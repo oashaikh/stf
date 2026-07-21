@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Build output
+dist/
+server/dist/
+.vercel/output/
+
+# Environment — NEVER commit real secrets
+.env
+.env.local
+.env.production
+.env.*.local
+*.pem
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+.claude/settings.local.json
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Vercel
+.vercel/.env.*
+
+# Test artifacts
+e2e/artifacts/
+playwright-report/
+
+# Uploads (local dev; use object storage in production)
+uploads/

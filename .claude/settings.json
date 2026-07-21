@@ -1,0 +1,14 @@
+{
+  "project": "stf",
+  "description": "Sole Trader Finance — open-source UK accounting for sole traders",
+  "allowedTools": ["Bash", "Read", "Write", "Edit", "Glob", "Grep"],
+  "permissions": {
+    "allow": [
+      "Bash(npm:*)",
+      "Bash(git:*)",
+      "Bash(docker:*)",
+      "Bash(psql:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-brand: #1a56db;
+  --color-brand-dark: #1245b8;
+  --color-success: #057a55;
+  --color-warning: #c27803;
+  --color-danger: #c81e1e;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Accessibility: focus-visible ring */
+*:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}

@@ -97,3 +97,65 @@
   - [x] npm test passes with the new test included, and typecheck/build/lint remain green.
   - Risk: Default vitest environment is node (no vitest.config), so fs access to the migrations directory works. The test depends on the migration SQL produced in the previous task.
   - Commit: `358aa9c48fc3`
+
+- [x] **Task 8: Fix: resolve validation failures** (after 7)
+  - Intent: ### lint: `npm run lint` (exit=2, timed_out=False)
+```
+> stf@0.1.0 lint
+> eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+
+
+
+Oops! Something went wrong! :(
+
+ESLint: 8.57.1
+
+ESLint couldn't find a configuration file. To set up a configuration file for this project, please run:
+
+    npm init @eslint/config
+
+ESLint looked for configuration files in /Users/oashaikh/Projects/PlaneServer/runtime/worktrees/STF-2/src and its ancestors. If it found none, it then looked in your home directory.
+
+If you think you already have a configuration file or if you need more help, please stop by the ESLint Discord server: https://eslint.org/chat
+```
+
+### lint: `npm run lint` (exit=2, timed_out=False)
+```
+> stf@0.1.0 lint
+> eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+
+
+
+Oops! Something went wrong! :(
+
+ESLint: 8.57.1
+
+ESLint couldn't find a configuration file. To set up a configuration file for this project, please run:
+
+    npm init @eslint/config
+
+ESLint looked for configuration files in /Users/oashaikh/Projects/PlaneServer/runtime/worktrees/STF-2/src and its ancestors. If it found none, it then looked in your home directory.
+
+If you think you already have a configuration file or if you need more help, please stop by the ESLint Discord server: https://eslint.org/chat
+```
+
+### lint: `npm run lint` (exit=2, timed_out=False)
+```
+> stf@0.1.0 lint
+> eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+
+
+
+Oops! Something went wrong! :(
+
+ESLint: 8.57.1
+
+ESLint couldn't find a configuration file. To set up a configuration file for this project, please run:
+
+    npm init @eslint/config
+
+ESLint looked for configuration files in /Users/oashaikh/Projects/PlaneServer/runtime/worktrees/STF-2/src and its ancestors. If it found none, it then looked in your home directory.
+
+If you think you already have a configuration file or if you need more help, please stop by the ESLint Discord server: https://eslint.org/chat
+```
+  - Commit: `f5001f422262`

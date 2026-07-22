@@ -68,14 +68,15 @@
   - Risk: invoice_lines/audit_events have no deleted_at: line items are children of the (soft-deletable) invoice, and audit_events is an append-only immutable log per architectures.md.
   - Commit: `14d17dee6267`
 
-- [ ] **Task 5: Mirror the schema in src/model/types.ts via inferred row types** (after 4)
+- [x] **Task 5: Mirror the schema in src/model/types.ts via inferred row types** (after 4)
   - Intent: Satisfy 'TypeScript types in src/model/types.ts mirror the schema' without drifting. Done when schema.ts exports $inferSelect/$inferInsert row types for all nine tables and src/model/types.ts re-exports them (type-only) as the canonical DB row types, reconciling the few enum values that diverge from architectures.md (e.g. vat scheme 'cash_accounting').
   - Files: `server/src/db/schema.ts`, `src/model/types.ts`
-  - [ ] schema.ts exports inferred row types (e.g. UserRow = typeof users.$inferSelect, and Insert variants) for users, accounts, transactions, transaction_lines, receipts, receipt_extractions, invoices, invoice_lines, audit_events.
-  - [ ] src/model/types.ts re-exports those DB row types using `import type` so no runtime/drizzle code enters the client bundle.
-  - [ ] Existing UI-facing view-model types remain but any enum union that contradicts the schema for an in-scope table is reconciled to the schema's values.
-  - [ ] npm run build, npm run typecheck, and npm run lint all pass (no page/component using these types breaks).
+  - [x] schema.ts exports inferred row types (e.g. UserRow = typeof users.$inferSelect, and Insert variants) for users, accounts, transactions, transaction_lines, receipts, receipt_extractions, invoices, invoice_lines, audit_events.
+  - [x] src/model/types.ts re-exports those DB row types using `import type` so no runtime/drizzle code enters the client bundle.
+  - [x] Existing UI-facing view-model types remain but any enum union that contradicts the schema for an in-scope table is reconciled to the schema's values.
+  - [x] npm run build, npm run typecheck, and npm run lint all pass (no page/component using these types breaks).
   - Risk: Editing exported enum unions could break importing pages; keep changes additive where possible and adjust only genuine contradictions. Use `import type` to avoid pulling drizzle-orm/postgres into the Vite client bundle.
+  - Commit: `54e8524579df`
 
 - [ ] **Task 6: Generate the initial migration and apply it to docker-compose Postgres** (after 5)
   - Intent: Produce the single initial migration and prove it applies cleanly to a fresh database. Done when drizzle-kit generate emits SQL under server/src/db/migrations and drizzle-kit migrate applies it to the docker-compose Postgres with all nine tables created and the schema reported in sync.

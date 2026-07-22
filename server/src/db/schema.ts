@@ -192,3 +192,35 @@ export const auditEvents = pgTable('audit_events', {
   afterSnapshot: jsonb('after_snapshot'),
   metadata: jsonb('metadata').notNull().default({}),
 });
+
+// ─── Inferred row types ────────────────────────────────────────────────────
+// Canonical DB row shapes, derived from the table definitions above so they
+// can never drift from the schema. Re-exported (type-only) from
+// src/model/types.ts.
+
+export type UserRow = typeof users.$inferSelect;
+export type UserInsert = typeof users.$inferInsert;
+
+export type AccountRow = typeof accounts.$inferSelect;
+export type AccountInsert = typeof accounts.$inferInsert;
+
+export type TransactionRow = typeof transactions.$inferSelect;
+export type TransactionInsert = typeof transactions.$inferInsert;
+
+export type TransactionLineRow = typeof transactionLines.$inferSelect;
+export type TransactionLineInsert = typeof transactionLines.$inferInsert;
+
+export type ReceiptRow = typeof receipts.$inferSelect;
+export type ReceiptInsert = typeof receipts.$inferInsert;
+
+export type ReceiptExtractionRow = typeof receiptExtractions.$inferSelect;
+export type ReceiptExtractionInsert = typeof receiptExtractions.$inferInsert;
+
+export type InvoiceRow = typeof invoices.$inferSelect;
+export type InvoiceInsert = typeof invoices.$inferInsert;
+
+export type InvoiceLineRow = typeof invoiceLines.$inferSelect;
+export type InvoiceLineInsert = typeof invoiceLines.$inferInsert;
+
+export type AuditEventRow = typeof auditEvents.$inferSelect;
+export type AuditEventInsert = typeof auditEvents.$inferInsert;

@@ -2,10 +2,35 @@
  * Shared domain types — STF
  *
  * These are the application-level types that flow through the UI and API.
- * Database column types live in server/src/db/schema.ts.
+ * Database column types live in server/src/db/schema.ts; the canonical DB
+ * row types are re-exported below (type-only, so drizzle/server code never
+ * enters the client bundle).
  *
  * Money rule: all amount fields are integer pence (GBP × 100).
  */
+
+// ─── Canonical DB row types (mirror server/src/db/schema.ts) ─────────────────
+
+export type {
+  UserRow,
+  UserInsert,
+  AccountRow,
+  AccountInsert,
+  TransactionRow,
+  TransactionInsert,
+  TransactionLineRow,
+  TransactionLineInsert,
+  ReceiptRow,
+  ReceiptInsert,
+  ReceiptExtractionRow,
+  ReceiptExtractionInsert,
+  InvoiceRow,
+  InvoiceInsert,
+  InvoiceLineRow,
+  InvoiceLineInsert,
+  AuditEventRow,
+  AuditEventInsert,
+} from '../../server/src/db/schema';
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -16,7 +41,7 @@ export type UserProfile = {
   email: string;
   utrMasked: string | null;       // e.g. "****5678" — never the full UTR in the UI
   vatRegistered: boolean;
-  vatScheme: 'standard' | 'flat_rate' | 'cash' | null;
+  vatScheme: 'standard' | 'flat_rate' | 'cash_accounting' | null;
   vrn: string | null;             // VAT registration number
   sandboxMode: boolean;           // true = HMRC sandbox
   createdAt: string;              // ISO 8601
@@ -65,7 +90,7 @@ export type TransactionWithLines = Transaction & { lines: TransactionLine[] };
 
 // ─── Receipts ─────────────────────────────────────────────────────────────────
 
-export type ReceiptAiStatus = 'pending' | 'processing' | 'extracted' | 'failed' | 'confirmed';
+export type ReceiptAiStatus = 'pending' | 'extracted' | 'failed' | 'skipped';
 
 export type Receipt = {
   id: string;
@@ -91,7 +116,7 @@ export type ReceiptExtraction = {
 
 // ─── Invoices ─────────────────────────────────────────────────────────────────
 
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'void';
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'voided';
 
 export type Invoice = {
   id: string;

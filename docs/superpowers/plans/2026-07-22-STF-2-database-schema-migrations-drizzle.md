@@ -47,14 +47,15 @@
   - Risk: transaction_lines has no deleted_at: lines are immutable children voided via their parent transaction, consistent with architectures.md.
   - Commit: `5dc06bda3ad4`
 
-- [ ] **Task 3: Add receipts and receipt_extractions tables** (after 2)
+- [x] **Task 3: Add receipts and receipt_extractions tables** (after 2)
   - Intent: Define receipt storage metadata and the AI-draft extraction rows. Done when both tables exist with deleted_at on receipts and confidence stored as a scaled integer (no numeric types).
   - Files: `server/src/db/schema.ts`
-  - [ ] receipts: uuid PK, user_id FK, transaction_id nullable FK -> transactions.id, file_key, file_name, mime_type, size_bytes integer, upload_status pgEnum (pending|ready|failed), ai_status pgEnum (pending|extracted|failed|skipped), ai_model nullable, ai_confidence stored as integer thousandths (0-1000) NOT numeric, ai_raw_output jsonb nullable, created_at timestamptz, deleted_at timestamptz nullable.
-  - [ ] receipt_extractions: uuid PK, receipt_id FK -> receipts.id, field, suggested_value, confidence as integer thousandths (0-1000) NOT numeric, confirmed_value nullable, confirmed_at nullable, confirmed_by_user_id nullable, created_at timestamptz.
-  - [ ] No numeric/decimal/real/double/float column types anywhere in these tables (confidence is integer-scaled).
-  - [ ] npm run typecheck passes; build and lint remain green.
+  - [x] receipts: uuid PK, user_id FK, transaction_id nullable FK -> transactions.id, file_key, file_name, mime_type, size_bytes integer, upload_status pgEnum (pending|ready|failed), ai_status pgEnum (pending|extracted|failed|skipped), ai_model nullable, ai_confidence stored as integer thousandths (0-1000) NOT numeric, ai_raw_output jsonb nullable, created_at timestamptz, deleted_at timestamptz nullable.
+  - [x] receipt_extractions: uuid PK, receipt_id FK -> receipts.id, field, suggested_value, confidence as integer thousandths (0-1000) NOT numeric, confirmed_value nullable, confirmed_at nullable, confirmed_by_user_id nullable, created_at timestamptz.
+  - [x] No numeric/decimal/real/double/float column types anywhere in these tables (confidence is integer-scaled).
+  - [x] npm run typecheck passes; build and lint remain green.
   - Risk: architectures.md wrote ai_confidence/confidence as NUMERIC(4,3); the ticket forbids numeric/decimal/float, so confidence is represented as integer thousandths (0.000-1.000 -> 0-1000). Document the scale in a comment.
+  - Commit: `834fdcc9893b`
 
 - [ ] **Task 4: Add invoices, invoice_lines, and audit_events tables** (after 3)
   - Intent: Complete the schema with invoicing and the audit trail. Done when all three tables exist, invoices carries deleted_at, invoice_lines quantity is a scaled integer, and audit_events is append-only with jsonb/inet columns.

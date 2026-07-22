@@ -1,4 +1,4 @@
-import { boolean, date, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { boolean, date, inet, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 
 export const businessTypeEnum = pgEnum('business_type', ['sole_trader', 'partnership', 'limited_company']);
 
@@ -15,6 +15,10 @@ export const transactionSourceEnum = pgEnum('transaction_source', ['manual', 'ba
 export const receiptUploadStatusEnum = pgEnum('receipt_upload_status', ['pending', 'ready', 'failed']);
 
 export const receiptAiStatusEnum = pgEnum('receipt_ai_status', ['pending', 'extracted', 'failed', 'skipped']);
+
+export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'paid', 'overdue', 'voided']);
+
+export const auditActorTypeEnum = pgEnum('audit_actor_type', ['user', 'system', 'ai_agent']);
 
 // Mirrors Clerk identity; created on first sign-in. All money is integer pence.
 export const users = pgTable('users', {
@@ -128,4 +132,63 @@ export const receiptExtractions = pgTable('receipt_extractions', {
   confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
   confirmedByUserId: uuid('confirmed_by_user_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Invoice header. Soft-deletable financial record.
+export const invoices = pgTable(
+  'invoices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    publicNumber: text('public_number').notNull(),
+    clientName: text('client_name').notNull(),
+    clientEmail: text('client_email'),
+    clientAddress: text('client_address'),
+    issueDate: date('issue_date').notNull(),
+    dueDate: date('due_date').notNull(),
+    status: invoiceStatusEnum('status').notNull().default('draft'),
+    subtotalPence: integer('subtotal_pence').notNull(),
+    vatPence: integer('vat_pence').notNull(),
+    totalPence: integer('total_pence').notNull(),
+    notes: text('notes'),
+    transactionId: uuid('transaction_id').references(() => transactions.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    userPublicNumberUnique: unique().on(table.userId, table.publicNumber),
+  }),
+);
+
+// Invoice lines. Quantity is scaled x10000 (4 dp) integer, never numeric/decimal.
+export const invoiceLines = pgTable('invoice_lines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  invoiceId: uuid('invoice_id')
+    .notNull()
+    .references(() => invoices.id),
+  description: text('description').notNull(),
+  quantity: integer('quantity').notNull(),
+  unitPricePence: integer('unit_price_pence').notNull(),
+  vatRatePercent: integer('vat_rate_percent').notNull(),
+  subtotalPence: integer('subtotal_pence').notNull(),
+  vatPence: integer('vat_pence').notNull(),
+  totalPence: integer('total_pence').notNull(),
+});
+
+// Append-only audit trail. Never updated or deleted.
+export const auditEvents = pgTable('audit_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+  userId: uuid('user_id'),
+  actorType: auditActorTypeEnum('actor_type').notNull(),
+  action: text('action').notNull(),
+  resourceType: text('resource_type').notNull(),
+  resourceId: uuid('resource_id'),
+  ipAddress: inet('ip_address'),
+  beforeSnapshot: jsonb('before_snapshot'),
+  afterSnapshot: jsonb('after_snapshot'),
+  metadata: jsonb('metadata').notNull().default({}),
 });

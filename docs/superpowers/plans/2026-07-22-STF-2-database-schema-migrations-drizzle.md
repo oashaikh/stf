@@ -159,3 +159,35 @@ ESLint looked for configuration files in /Users/oashaikh/Projects/PlaneServer/ru
 If you think you already have a configuration file or if you need more help, please stop by the ESLint Discord server: https://eslint.org/chat
 ```
   - Commit: `f5001f422262`
+
+- [x] **Task 9: Fix: resolve validation failures** (after 8)
+  - Intent: ### build: `npm run build` (exit=2, timed_out=False)
+```
+> stf@0.1.0 build
+> tsc -p tsconfig.app.json --noEmit && vite build
+
+src/lib/hmrc/client.ts(17,31): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/hmrc/client.ts(68,28): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/main.tsx(7,36): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+```
+
+### build: `npm run build` (exit=2, timed_out=False)
+```
+> stf@0.1.0 build
+> tsc -p tsconfig.app.json --noEmit && vite build
+
+src/lib/hmrc/client.ts(17,31): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/hmrc/client.ts(68,28): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/main.tsx(7,36): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+```
+
+### build: `npm run build` (exit=2, timed_out=False)
+```
+> stf@0.1.0 build
+> tsc -p tsconfig.app.json --noEmit && vite build
+
+src/lib/hmrc/client.ts(17,31): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/lib/hmrc/client.ts(68,28): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+src/main.tsx(7,36): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
+```
+  - Commit: `762b2652b472`

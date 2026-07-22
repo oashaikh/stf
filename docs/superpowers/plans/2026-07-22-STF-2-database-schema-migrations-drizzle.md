@@ -78,15 +78,16 @@
   - Risk: Editing exported enum unions could break importing pages; keep changes additive where possible and adjust only genuine contradictions. Use `import type` to avoid pulling drizzle-orm/postgres into the Vite client bundle.
   - Commit: `54e8524579df`
 
-- [ ] **Task 6: Generate the initial migration and apply it to docker-compose Postgres** (after 5)
+- [x] **Task 6: Generate the initial migration and apply it to docker-compose Postgres** (after 5)
   - Intent: Produce the single initial migration and prove it applies cleanly to a fresh database. Done when drizzle-kit generate emits SQL under server/src/db/migrations and drizzle-kit migrate applies it to the docker-compose Postgres with all nine tables created and the schema reported in sync.
   - Files: `server/src/db/migrations/`
-  - [ ] With `docker compose up -d` running and DATABASE_URL set to the local Postgres, `npm run db:generate` produces a migration (SQL + meta journal) under server/src/db/migrations/.
-  - [ ] `npm run db:migrate` applies cleanly against a freshly-created database with no errors.
-  - [ ] All nine tables exist afterwards (users, accounts, transactions, transaction_lines, receipts, receipt_extractions, invoices, invoice_lines, audit_events), verifiable via information_schema.
-  - [ ] Re-running db:generate reports no pending changes (schema and migration are in sync).
-  - [ ] npm run typecheck, build, and lint remain green.
+  - [x] With `docker compose up -d` running and DATABASE_URL set to the local Postgres, `npm run db:generate` produces a migration (SQL + meta journal) under server/src/db/migrations/.
+  - [x] `npm run db:migrate` applies cleanly against a freshly-created database with no errors.
+  - [x] All nine tables exist afterwards (users, accounts, transactions, transaction_lines, receipts, receipt_extractions, invoices, invoice_lines, audit_events), verifiable via information_schema.
+  - [x] Re-running db:generate reports no pending changes (schema and migration are in sync).
+  - [x] npm run typecheck, build, and lint remain green.
   - Risk: Requires a running local Postgres from docker-compose and DATABASE_URL in the environment. Generating one migration only after the full schema exists avoids migration churn.
+  - Commit: `00d9722035ac`
 
 - [ ] **Task 7: Add automated guard test: no floating-point columns + deleted_at coverage** (after 6)
   - Intent: Encode the ticket's headline acceptance criteria as a CI test so regressions are caught. Done when a vitest test reads the generated migration SQL and asserts no floating-point/numeric/decimal/money column types anywhere and that every financial-record table carries deleted_at.

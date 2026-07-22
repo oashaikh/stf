@@ -89,10 +89,11 @@
   - Risk: Requires a running local Postgres from docker-compose and DATABASE_URL in the environment. Generating one migration only after the full schema exists avoids migration churn.
   - Commit: `00d9722035ac`
 
-- [ ] **Task 7: Add automated guard test: no floating-point columns + deleted_at coverage** (after 6)
+- [x] **Task 7: Add automated guard test: no floating-point columns + deleted_at coverage** (after 6)
   - Intent: Encode the ticket's headline acceptance criteria as a CI test so regressions are caught. Done when a vitest test reads the generated migration SQL and asserts no floating-point/numeric/decimal/money column types anywhere and that every financial-record table carries deleted_at.
   - Files: `server/src/db/schema.test.ts`
-  - [ ] A vitest test reads the generated migration SQL from server/src/db/migrations/ and fails if any column type matches real, double precision, float4, float8, numeric, decimal, or money.
-  - [ ] The test asserts deleted_at is present on transactions, receipts, and invoices (the soft-deletable financial-record tables).
-  - [ ] npm test passes with the new test included, and typecheck/build/lint remain green.
+  - [x] A vitest test reads the generated migration SQL from server/src/db/migrations/ and fails if any column type matches real, double precision, float4, float8, numeric, decimal, or money.
+  - [x] The test asserts deleted_at is present on transactions, receipts, and invoices (the soft-deletable financial-record tables).
+  - [x] npm test passes with the new test included, and typecheck/build/lint remain green.
   - Risk: Default vitest environment is node (no vitest.config), so fs access to the migrations directory works. The test depends on the migration SQL produced in the previous task.
+  - Commit: `358aa9c48fc3`

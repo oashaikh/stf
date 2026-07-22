@@ -57,15 +57,16 @@
   - Risk: architectures.md wrote ai_confidence/confidence as NUMERIC(4,3); the ticket forbids numeric/decimal/float, so confidence is represented as integer thousandths (0.000-1.000 -> 0-1000). Document the scale in a comment.
   - Commit: `834fdcc9893b`
 
-- [ ] **Task 4: Add invoices, invoice_lines, and audit_events tables** (after 3)
+- [x] **Task 4: Add invoices, invoice_lines, and audit_events tables** (after 3)
   - Intent: Complete the schema with invoicing and the audit trail. Done when all three tables exist, invoices carries deleted_at, invoice_lines quantity is a scaled integer, and audit_events is append-only with jsonb/inet columns.
   - Files: `server/src/db/schema.ts`
-  - [ ] invoices: uuid PK, user_id FK, public_number, client_name/email/address, issue_date/due_date (date), status pgEnum (draft|sent|paid|overdue|voided), subtotal_pence/vat_pence/total_pence integer, notes nullable, transaction_id nullable FK, created_at/updated_at timestamptz, deleted_at timestamptz nullable, unique(user_id, public_number).
-  - [ ] invoice_lines: uuid PK, invoice_id FK -> invoices.id, description, quantity as integer scaled x10000 (4 dp) NOT numeric, unit_price_pence integer, vat_rate_percent integer, subtotal_pence/vat_pence/total_pence integer.
-  - [ ] audit_events: uuid PK, occurred_at timestamptz defaultNow, user_id nullable, actor_type pgEnum (user|system|ai_agent), action, resource_type, resource_id nullable, ip_address inet nullable, before_snapshot/after_snapshot jsonb nullable, metadata jsonb notNull default '{}'.
-  - [ ] No numeric/decimal/real/double/float column types; all money is integer pence and quantity is integer-scaled.
-  - [ ] npm run typecheck passes; build and lint remain green.
+  - [x] invoices: uuid PK, user_id FK, public_number, client_name/email/address, issue_date/due_date (date), status pgEnum (draft|sent|paid|overdue|voided), subtotal_pence/vat_pence/total_pence integer, notes nullable, transaction_id nullable FK, created_at/updated_at timestamptz, deleted_at timestamptz nullable, unique(user_id, public_number).
+  - [x] invoice_lines: uuid PK, invoice_id FK -> invoices.id, description, quantity as integer scaled x10000 (4 dp) NOT numeric, unit_price_pence integer, vat_rate_percent integer, subtotal_pence/vat_pence/total_pence integer.
+  - [x] audit_events: uuid PK, occurred_at timestamptz defaultNow, user_id nullable, actor_type pgEnum (user|system|ai_agent), action, resource_type, resource_id nullable, ip_address inet nullable, before_snapshot/after_snapshot jsonb nullable, metadata jsonb notNull default '{}'.
+  - [x] No numeric/decimal/real/double/float column types; all money is integer pence and quantity is integer-scaled.
+  - [x] npm run typecheck passes; build and lint remain green.
   - Risk: invoice_lines/audit_events have no deleted_at: line items are children of the (soft-deletable) invoice, and audit_events is an append-only immutable log per architectures.md.
+  - Commit: `14d17dee6267`
 
 - [ ] **Task 5: Mirror the schema in src/model/types.ts via inferred row types** (after 4)
   - Intent: Satisfy 'TypeScript types in src/model/types.ts mirror the schema' without drifting. Done when schema.ts exports $inferSelect/$inferInsert row types for all nine tables and src/model/types.ts re-exports them (type-only) as the canonical DB row types, reconciling the few enum values that diverge from architectures.md (e.g. vat scheme 'cash_accounting').

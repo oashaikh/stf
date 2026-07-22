@@ -36,15 +36,16 @@
   - Risk: drizzle-orm@0.30 predates the check() constraint builder, so enumerated columns use pgEnum (generates CREATE TYPE) rather than TEXT+CHECK. No dotenv dependency is added; DATABASE_URL is supplied via the environment (already documented in .env.example).
   - Commit: `ccd149e783eb`
 
-- [ ] **Task 2: Add ledger tables: accounts, transactions, transaction_lines** (after 1)
+- [x] **Task 2: Add ledger tables: accounts, transactions, transaction_lines** (after 1)
   - Intent: Define the chart of accounts and the double-entry ledger. Done when accounts, transactions, and transaction_lines are added to schema.ts with correct FKs, integer-pence money columns, status/source enums, and deleted_at on transactions.
   - Files: `server/src/db/schema.ts`
-  - [ ] accounts: uuid PK, user_id FK -> users.id, code, name, account_type (pgEnum: income|expense|asset|liability|equity), tax_category nullable, is_system boolean, unique(user_id, code).
-  - [ ] transactions: uuid PK, user_id FK, date (date), description, reference nullable, status pgEnum (draft|confirmed|reconciled|voided), source pgEnum (manual|bank_feed|receipt_ai|import), created_at/updated_at timestamptz, and deleted_at timestamptz nullable (soft-delete).
-  - [ ] transaction_lines: uuid PK, transaction_id FK -> transactions.id, account_id FK -> accounts.id, amount_pence integer, vat_pence integer default 0, vat_rate_percent integer default 0, description nullable.
-  - [ ] All money columns are integer; no numeric/decimal/real/double/float column types are introduced.
-  - [ ] npm run typecheck passes; build and lint remain green.
+  - [x] accounts: uuid PK, user_id FK -> users.id, code, name, account_type (pgEnum: income|expense|asset|liability|equity), tax_category nullable, is_system boolean, unique(user_id, code).
+  - [x] transactions: uuid PK, user_id FK, date (date), description, reference nullable, status pgEnum (draft|confirmed|reconciled|voided), source pgEnum (manual|bank_feed|receipt_ai|import), created_at/updated_at timestamptz, and deleted_at timestamptz nullable (soft-delete).
+  - [x] transaction_lines: uuid PK, transaction_id FK -> transactions.id, account_id FK -> accounts.id, amount_pence integer, vat_pence integer default 0, vat_rate_percent integer default 0, description nullable.
+  - [x] All money columns are integer; no numeric/decimal/real/double/float column types are introduced.
+  - [x] npm run typecheck passes; build and lint remain green.
   - Risk: transaction_lines has no deleted_at: lines are immutable children voided via their parent transaction, consistent with architectures.md.
+  - Commit: `5dc06bda3ad4`
 
 - [ ] **Task 3: Add receipts and receipt_extractions tables** (after 2)
   - Intent: Define receipt storage metadata and the AI-draft extraction rows. Done when both tables exist with deleted_at on receipts and confidence stored as a scaled integer (no numeric types).

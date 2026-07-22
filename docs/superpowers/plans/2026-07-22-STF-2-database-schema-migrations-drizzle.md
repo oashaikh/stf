@@ -24,16 +24,17 @@
 
 ## Tasks
 
-- [ ] **Task 1: Drizzle tooling + config + DB client + server tsconfig + users table**
+- [x] **Task 1: Drizzle tooling + config + DB client + server tsconfig + users table**
   - Intent: Stand up the Drizzle project so migrations can be generated and applied, and define the first (dependency-free) table. Done when drizzle.config.ts, a typecheckable server/ TypeScript project, a Postgres client, and migration npm scripts exist, and server/src/db/schema.ts defines the users table plus the shared enums it needs. No migration is generated yet (deferred to the single initial-migration task) but the schema must typecheck.
   - Files: `drizzle.config.ts`, `server/tsconfig.json`, `server/src/db/schema.ts`, `server/src/db/client.ts`, `package.json`
-  - [ ] drizzle.config.ts uses drizzle-kit defineConfig with dialect 'postgresql', schema './server/src/db/schema.ts', out './server/src/db/migrations', and dbCredentials.url from process.env.DATABASE_URL.
-  - [ ] package.json gains scripts: db:generate ('drizzle-kit generate'), db:migrate ('drizzle-kit migrate'), db:push ('drizzle-kit push'); and the existing 'typecheck' script is extended to also run 'tsc -p server/tsconfig.json --noEmit'.
-  - [ ] server/tsconfig.json compiles server/src with strict:true, noEmit:true, moduleResolution 'bundler', types:['node'].
-  - [ ] server/src/db/schema.ts defines the users table matching architectures.md (uuid PK defaultRandom, clerk_user_id unique, email, business_type/vat_scheme/accounting_basis as pgEnum, flat_rate_percent integer, hmrc_* token columns, hmrc_sandbox_mode boolean default true, created_at/updated_at timestamptz defaultNow); no numeric/decimal/real/double/float columns.
-  - [ ] server/src/db/client.ts exports a drizzle instance built on the `postgres` driver reading process.env.DATABASE_URL.
-  - [ ] npm run typecheck (root + server) passes; npm run build and npm run lint remain green.
+  - [x] drizzle.config.ts uses drizzle-kit defineConfig with dialect 'postgresql', schema './server/src/db/schema.ts', out './server/src/db/migrations', and dbCredentials.url from process.env.DATABASE_URL.
+  - [x] package.json gains scripts: db:generate ('drizzle-kit generate'), db:migrate ('drizzle-kit migrate'), db:push ('drizzle-kit push'); and the existing 'typecheck' script is extended to also run 'tsc -p server/tsconfig.json --noEmit'.
+  - [x] server/tsconfig.json compiles server/src with strict:true, noEmit:true, moduleResolution 'bundler', types:['node'].
+  - [x] server/src/db/schema.ts defines the users table matching architectures.md (uuid PK defaultRandom, clerk_user_id unique, email, business_type/vat_scheme/accounting_basis as pgEnum, flat_rate_percent integer, hmrc_* token columns, hmrc_sandbox_mode boolean default true, created_at/updated_at timestamptz defaultNow); no numeric/decimal/real/double/float columns.
+  - [x] server/src/db/client.ts exports a drizzle instance built on the `postgres` driver reading process.env.DATABASE_URL.
+  - [x] npm run typecheck (root + server) passes; npm run build and npm run lint remain green.
   - Risk: drizzle-orm@0.30 predates the check() constraint builder, so enumerated columns use pgEnum (generates CREATE TYPE) rather than TEXT+CHECK. No dotenv dependency is added; DATABASE_URL is supplied via the environment (already documented in .env.example).
+  - Commit: `ccd149e783eb`
 
 - [ ] **Task 2: Add ledger tables: accounts, transactions, transaction_lines** (after 1)
   - Intent: Define the chart of accounts and the double-entry ledger. Done when accounts, transactions, and transaction_lines are added to schema.ts with correct FKs, integer-pence money columns, status/source enums, and deleted_at on transactions.

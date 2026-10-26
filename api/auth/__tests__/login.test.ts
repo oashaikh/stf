@@ -32,10 +32,11 @@ function setup(now: () => Date = () => NOW) {
     createIfAbsent: vi.fn(async () => 'owner-row-id'),
   };
   const throttle = createLoginThrottle(memoryRows());
-  const handler = createLoginHandler({ throttle, users, env: ENV, now });
+  const totp = { isEnabled: vi.fn(async () => false) };
+  const handler = createLoginHandler({ throttle, users, totp, env: ENV, now });
   const login = (password: unknown) =>
     handler(new Request('https://x.test/api/auth/login', { method: 'POST', body: JSON.stringify({ password }) }));
-  return { login, users, handler };
+  return { login, users, handler, totp };
 }
 
 afterEach(() => {
@@ -123,5 +124,27 @@ describe('POST /api/auth/login', () => {
       expect(logged).not.toContain(secret);
       for (const body of bodies) expect(body).not.toContain(secret);
     }
+  });
+
+  it('with the authenticator on, a right password sets only a challenge cookie, not a session', async () => {
+    const { login, totp } = setup();
+    totp.isEnabled.mockResolvedValue(true);
+    const response = await login(PASSWORD);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, mfaRequired: true });
+    const cookie = response.headers.get('set-cookie') as string;
+    expect(cookie).toMatch(/^stf_mfa_challenge=/);
+    expect(cookie).toMatch(/HttpOnly; Secure; SameSite=Lax/);
+    expect(cookie).toContain('Max-Age=300');
+    expect(cookie).not.toContain('stf_session');
+  });
+
+  it('with the authenticator on, a right password does not clear earlier failures', async () => {
+    const { login, totp } = setup();
+    totp.isEnabled.mockResolvedValue(true);
+    for (let i = 0; i < 4; i += 1) await login(WRONG);
+    await login(PASSWORD);
+    await login(WRONG);
+    expect((await login(PASSWORD)).status).toBe(429);
   });
 });

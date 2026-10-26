@@ -13,6 +13,12 @@ Set these in your Vercel project settings. Never commit them to the repository.
 ### Authentication
 
 - `OWNER_PASSWORD` — the owner login password. To reset it, change this variable and redeploy
+- Authenticator app (optional second factor): no new variable. The secret is encrypted with `HMRC_TOKEN_ENCRYPTION_KEY`, so rotating that key makes the stored authenticator secret unreadable; turn the authenticator off first and set it up again afterwards. HMRC's fraud header validator stops warning about a missing `Gov-Client-Multi-Factor` once it is on.
+  - Set up: Settings, Authenticator app, Set up authenticator. Scan the QR code (or type the secret), enter a code, then save the 8 recovery codes. They are shown once and stored only as hashes.
+  - Sign-in then asks for the password, then a code. A recovery code works in place of an app code, once each. Wrong codes count towards the same lockout as wrong passwords.
+  - Turn off: Settings, Turn off authenticator, with a current app code. This deletes the secret and the recovery codes.
+  - Operator-only recovery when both the phone and the recovery codes are lost. Run this against the production database, then sign in with the password alone:
+    `BEGIN; DELETE FROM recovery_codes; UPDATE users SET totp_secret_encrypted = NULL, totp_enabled_at = NULL, totp_last_step = NULL; COMMIT;`
 - `SESSION_SECRET` — signs the session cookie (generate with `openssl rand -base64 32`)
 
 ### HMRC Making Tax Digital

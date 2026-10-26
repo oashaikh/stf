@@ -18,6 +18,8 @@ export type FraudHeaderInput = {
   /** Raw licence id of this deployment; only its SHA-256 is sent. */
   vendorLicenseId?: string;
   now: Date;
+  /** Present only for a session that passed a second factor; its absence means password only. */
+  secondFactor?: { type: 'TOTP'; time: Date; /** SHA-256 of the per-login reference; never the raw reference. */ uniqueReference: string };
 };
 
 const PRODUCT_NAME = 'stf';
@@ -55,7 +57,7 @@ function matching(value: string | undefined, pattern: RegExp): string | undefine
 }
 
 export function buildFraudHeaders(input: FraudHeaderInput): Record<string, string> {
-  const { request, userId, appVersion, vendorPublicIp, vendorLicenseId, now } = input;
+  const { request, userId, appVersion, vendorPublicIp, vendorLicenseId, now, secondFactor } = input;
   const incoming = (name: string) => request.headers.get(name)?.trim() || undefined;
 
   // Vercel sets x-vercel-forwarded-for even behind a proxy; the first x-forwarded-for entry is the client.
@@ -75,9 +77,6 @@ export function buildFraudHeaders(input: FraudHeaderInput): Record<string, strin
   const screens = incoming('x-stf-screens');
   const jsUserAgent = incoming('x-stf-js-user-agent');
 
-  // Gov-Client-Multi-Factor is deliberately never sent: HMRC says to send it only when multi-factor
-  // authentication is used, and "if you authenticate with username and password only, you will not be
-  // able to collect a value" (guides/fraud-prevention, WEB_APP_VIA_SERVER).
   const headers: Record<string, string> = {
     'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER',
     'Gov-Client-User-IDs': `stf=${encodeValue(userId)}`,
@@ -96,6 +95,13 @@ export function buildFraudHeaders(input: FraudHeaderInput): Record<string, strin
     ],
     // STF has no licence keys, so without a configured id the per-installation id (the single owner's user id) is hashed.
     ['Gov-Vendor-License-IDs', `${encodeValue(PRODUCT_NAME)}=${sha256Upper(vendorLicenseId || userId)}`],
+    // HMRC says to send this only when multi-factor authentication is used, so a password-only session omits it.
+    [
+      'Gov-Client-Multi-Factor',
+      secondFactor
+        ? `type=${encodeValue(secondFactor.type)}&timestamp=${encodeValue(secondFactor.time.toISOString())}&unique-reference=${encodeValue(secondFactor.uniqueReference)}`
+        : undefined,
+    ],
     ['Gov-Client-Device-ID', matching(incoming('x-stf-device-id'), UUID)],
     ['Gov-Client-Timezone', matching(incoming('x-stf-timezone'), TIMEZONE)],
     ['Gov-Client-Screens', screens?.split(',').every((screen) => SCREEN.test(screen)) ? screens : undefined],

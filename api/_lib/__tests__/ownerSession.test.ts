@@ -3,7 +3,10 @@ import { timingSafeEqual } from 'node:crypto';
 
 import {
   clearedSessionCookie,
+  createChallengeToken,
   createSessionToken,
+  readSecondFactor,
+  verifyChallengeToken,
   readSessionCookie,
   sessionCookie,
   verifyOwnerPassword,
@@ -98,5 +101,60 @@ describe('cookies', () => {
     expect(readSessionCookie(request('a=1'))).toBeUndefined();
     expect(readSessionCookie(request('stf_session='))).toBeUndefined();
     expect(readSessionCookie(request())).toBeUndefined();
+  });
+});
+
+describe('session token with a second factor', () => {
+  const cookieRequest = (token: string) => new Request('https://x.test', { headers: { cookie: `stf_session=${token}` } });
+
+  it('carries type, time and a hashed reference, and verifies as the owner', () => {
+    const token = createSessionToken(NOW, env, NOW);
+    expect(verifySessionToken(token, NOW, env)).toBe('owner');
+    const record = readSecondFactor(cookieRequest(token), NOW, env);
+    expect(record).toMatchObject({ type: 'TOTP', authenticatedAt: NOW });
+    expect(record?.referenceHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('gives each login a different reference', () => {
+    const hashes = [1, 2].map(() => readSecondFactor(cookieRequest(createSessionToken(NOW, env, NOW)), NOW, env)?.referenceHash);
+    expect(hashes[0]).not.toBe(hashes[1]);
+  });
+
+  it('still verifies a legacy two-part token, as no second factor', () => {
+    const token = createSessionToken(NOW, env);
+    expect(token.split('.')).toHaveLength(2);
+    expect(verifySessionToken(token, NOW, env)).toBe('owner');
+    expect(readSecondFactor(cookieRequest(token), NOW, env)).toBeNull();
+  });
+
+  it('rejects a token whose second-factor fields were edited or stripped', () => {
+    const [expiry, , time, reference, signature] = createSessionToken(NOW, env, NOW).split('.');
+    expect(verifySessionToken([expiry, 'totp', Number(time) + 1, reference, signature].join('.'), NOW, env)).toBeNull();
+    expect(verifySessionToken([expiry, 'totp', time, 'a'.repeat(64), signature].join('.'), NOW, env)).toBeNull();
+    expect(verifySessionToken([expiry, signature].join('.'), NOW, env)).toBeNull();
+  });
+
+  it('returns no record for an expired token or none at all', () => {
+    const token = createSessionToken(NOW, env, NOW);
+    expect(readSecondFactor(cookieRequest(token), new Date(NOW.getTime() + 31 * DAY), env)).toBeNull();
+    expect(readSecondFactor(new Request('https://x.test'), NOW, env)).toBeNull();
+  });
+});
+
+describe('challenge token', () => {
+  it('verifies for 5 minutes, then expires', () => {
+    const token = createChallengeToken(NOW, env);
+    expect(verifyChallengeToken(token, new Date(NOW.getTime() + 4 * 60_000), env)).toBe(true);
+    expect(verifyChallengeToken(token, new Date(NOW.getTime() + 5 * 60_000 + 1), env)).toBe(false);
+  });
+
+  it('is not a session token and a session token is not a challenge', () => {
+    expect(verifySessionToken(createChallengeToken(NOW, env), NOW, env)).toBeNull();
+    expect(verifyChallengeToken(createSessionToken(NOW, env), NOW, env)).toBe(false);
+  });
+
+  it('rejects a tampered expiry', () => {
+    const [prefix, , signature] = createChallengeToken(NOW, env).split('.');
+    expect(verifyChallengeToken(`${prefix}.${NOW.getTime() + DAY}.${signature}`, NOW, env)).toBe(false);
   });
 });

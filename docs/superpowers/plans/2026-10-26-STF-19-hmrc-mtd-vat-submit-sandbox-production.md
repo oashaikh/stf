@@ -82,7 +82,7 @@
   - Risk: Auth and tenant isolation on a new write route; opus high.
   - Commit: `aab055222cbc`
 
-- [ ] **Task 5: Settings opt-in for live HMRC submission** (after 2)
+- [x] **Task 5: Settings opt-in for live HMRC submission** (after 2)
   - Intent: Give users the 'user opt-in in Settings' half of the gate. Add a small authenticated endpoint api/hmrc/mode.ts (GET current opt-in, POST {live: boolean}) that writes users.hmrc_sandbox_mode via an HmrcStore method (setSandboxMode), and a Settings section with a clearly worded checkbox/toggle: default off, explains live filing is only possible when the server is also in production mode, requires explicit confirmation text when switching on, and shows the effective mode. Changing the flag also needs the user to reconnect HMRC because tokens are per environment (connect.ts already enforces); surface that hint. Add settingsApi helpers and tests (SettingsPage.test.tsx with the API mocked, store test for the new method). Controls meet 44px targets, focus states and shared tokens.
   - Files: `api/hmrc/mode.ts`, `api/_lib/hmrcStore.ts`, `api/_lib/__tests__/hmrc.test.ts`, `src/lib/hmrc/settingsApi.ts`, `src/pages/SettingsPage.tsx`, `src/pages/SettingsPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -92,6 +92,7 @@
     - UI screenshots at 1440 and 390 px are produced for the PR
     - lint, typecheck, test, build pass
   - Risk: Flips the switch that permits live tax filing; permission-related, so opus high for the endpoint and store change.
+  - Commit: `91b4149b76c7`
 
 - [ ] **Task 6: Submit button, receipt display and API client on the VAT page** (after 4)
   - Intent: Wire the UI: add submitVatReturn call to src/lib/hmrc/vatApi.ts, extend reviewState (vatReviewState.ts) with submit states (confirmed and not stale -> can submit; submitting; submitted showing form bundle number and processing date; sandbox label 'Sandbox test submission' so a rehearsal is never mistaken for a real filing; unknown-outcome state telling the user not to retry and to check HMRC). VatPage shows a submit button after confirmation with a confirm dialog that states the period, net VAT in the page's money format (formatPence, right aligned, tabular) and whether this goes to HMRC sandbox or live; no HMRC submit without the dialog (). Uses shared loading/error components and the existing query patterns; no new dependency. Tests: vatReviewState.test.ts for each state, vatApi.test.ts with fetch mocked.

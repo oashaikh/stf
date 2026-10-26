@@ -42,6 +42,12 @@ describe('VatPreviewPanel', () => {
     expect(raw.textContent).toContain('"periodKey": "26C3"');
   });
 
+  it('groups thousands like the rest of the page', () => {
+    const big = { ...preview, body: { ...preview.body, totalValueSalesExVAT: 6002 } };
+    render(<VatPreviewPanel preview={big} />);
+    expect(screen.getByText('£6,002.00')).toBeInTheDocument();
+  });
+
   it('renders a nil return as zero amounts', () => {
     const nil = { ...preview, body: { ...preview.body, vatDueSales: 0, totalVatDue: 0, vatReclaimedCurrPeriod: 0, netVatDue: 0, totalValueSalesExVAT: 0, totalValuePurchasesExVAT: 0 } };
     render(<VatPreviewPanel preview={nil} />);

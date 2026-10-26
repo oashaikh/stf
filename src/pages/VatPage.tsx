@@ -290,6 +290,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
                 Could not submit the return: {submit.error.message}
               </p>
             )}
+            <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
               disabled={!state.canSubmit}
@@ -297,7 +298,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
                 setSubmitDialogOpen(true);
                 dialogPreview.mutate();
               }}
-              className="mr-3 mt-4 min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+              className="min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
             >
               {state.submitLabel}
             </button>
@@ -306,11 +307,12 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
                 type="button"
                 disabled={pagePreview.isPending}
                 onClick={() => pagePreview.mutate()}
-                className="mt-4 min-h-[44px] rounded border border-gray-300 px-6 text-sm font-medium text-gray-900 disabled:cursor-not-allowed disabled:text-gray-600"
+                className="min-h-[44px] rounded border border-gray-300 px-6 text-sm font-medium text-gray-900 disabled:cursor-not-allowed disabled:text-gray-600"
               >
                 Preview what will be sent
               </button>
             )}
+            </div>
             {state.canSubmit && <PreviewResult mutation={pagePreview} />}
           </section>
 

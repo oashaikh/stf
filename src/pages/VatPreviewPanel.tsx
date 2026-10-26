@@ -1,5 +1,6 @@
 import type { VatPreview } from '../lib/hmrc/vatApi';
 import type { VatReturnPayload } from '../lib/hmrc/client';
+import { formatPence } from '../lib/money';
 import { boxLabel } from './vatReviewState';
 
 // Box number to the HMRC body field it is sent as.
@@ -15,10 +16,9 @@ const BOX_FIELDS: Record<number, keyof VatReturnPayload> = {
   9: 'totalAcquisitionsExVAT',
 };
 
-// The server sends pounds already; this only fixes the decimals and the sign position, it does no arithmetic.
+// The server sends pounds with at most two decimals; rounding back to pence is exact and keeps one currency format with the rest of the page.
 function formatPounds(pounds: number): string {
-  const text = Math.abs(pounds).toFixed(2);
-  return pounds < 0 ? `-£${text}` : `£${text}`;
+  return formatPence(Math.round(pounds * 100));
 }
 
 export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
@@ -45,7 +45,7 @@ export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
             return (
               <tr key={box} className="border-b border-gray-100">
                 <td className="py-1 pr-4">{box}</td>
-                <td className="max-w-0 truncate py-1 pr-4" title={label}>{label}</td>
+                <td className="break-words py-1 pr-4">{label}</td>
                 <td className="py-1 text-right tabular-nums">{formatPounds(pounds)}</td>
               </tr>
             );

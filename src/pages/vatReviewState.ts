@@ -52,20 +52,6 @@ export function boxLabel(box: number, pence: number): string {
   return box === 5 && pence < 0 ? `${BOX_LABELS[5]} (refund due to you)` : BOX_LABELS[box];
 }
 
-/** The calendar quarter containing `now`. ponytail: real VAT periods follow the user's stagger; replace when settings hold it. */
-export function currentQuarter(now: Date) {
-  const year = now.getUTCFullYear();
-  const quarter = Math.floor(now.getUTCMonth() / 3);
-  const startMonth = quarter * 3;
-  const end = new Date(Date.UTC(year, startMonth + 3, 0));
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return {
-    periodKey: `${year}-Q${quarter + 1}`,
-    start: `${year}-${pad(startMonth + 1)}-01`,
-    end: `${year}-${pad(end.getUTCMonth() + 1)}-${pad(end.getUTCDate())}`,
-  };
-}
-
 export function reviewState(input: ReviewStateInput): ReviewState {
   const stale = input.stale === true;
   const statusLabel = stale

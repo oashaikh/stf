@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchHmrcMode, isEffectivelyLive } from '../lib/hmrc/settingsApi';
-import { SubmitVatError, submitVatReturn } from '../lib/hmrc/vatApi';
+import { NotConnectedError, SubmitVatError, submitVatReturn, VatNumberMissingError } from '../lib/hmrc/vatApi';
 import { formatPence } from '../lib/money';
 import type { VatReturnBoxes } from '../lib/vat';
 import type { ApiResponse } from '../model/types';
 import VatObligationsList from './VatObligationsList';
-import { boxLabel, currentQuarter, DRILLABLE_BOXES, reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
+import { useVatObligations } from './useVatObligations';
+import { boxLabel, DRILLABLE_BOXES, reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
 
 interface DrillLine {
   lineId: string;
@@ -27,15 +29,88 @@ interface ReturnReview {
   submission: SubmissionReceipt | null;
 }
 
+interface VatPeriod {
+  periodKey: string;
+  start: string;
+  end: string;
+}
+
 const boxNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 export default function VatPage() {
+  const obligations = useVatObligations();
+  const [chosenPeriodKey, setChosenPeriodKey] = useState<string | null>(null);
+  const open = (obligations.data ?? []).filter((obligation) => obligation.status === 'O');
+  // A lone open obligation is the only thing the user can file, so it needs no click.
+  const selected = open.length === 1 ? open[0] : open.find((obligation) => obligation.periodKey === chosenPeriodKey);
+  const notConnected = obligations.error instanceof NotConnectedError;
+  const vatNumberMissing = obligations.error instanceof VatNumberMissingError;
+
+  return (
+    <main className="p-8">
+      <h1 className="text-2xl font-semibold text-gray-900">VAT Returns</h1>
+
+      {obligations.isPending && <p role="status" className="mt-4 text-gray-500">Loading your VAT obligations…</p>}
+      {notConnected && (
+        <p className="mt-4 text-gray-700">
+          HMRC is not connected yet.{' '}
+          <Link to="/settings" className="inline-flex min-h-[44px] items-center text-blue-700 underline">
+            Connect HMRC in Settings
+          </Link>
+        </p>
+      )}
+      {vatNumberMissing && (
+        <p className="mt-4 text-gray-700">
+          Add your VAT number to review a return.{' '}
+          <Link to="/settings" className="inline-flex min-h-[44px] items-center text-blue-700 underline">
+            Open Settings
+          </Link>
+        </p>
+      )}
+      {obligations.isError && !notConnected && !vatNumberMissing && (
+        <p role="alert" className="mt-4 text-red-700">
+          Could not load your VAT obligations. Reload the page to try again.
+        </p>
+      )}
+      {obligations.data && open.length === 0 && (
+        <p className="mt-4 text-gray-500">No open VAT obligations to file.</p>
+      )}
+      {open.length > 1 && (
+        <fieldset className="mt-4">
+          <legend className="text-sm font-medium text-gray-900">Choose the obligation to file</legend>
+          {open.map((obligation) => (
+            <label key={obligation.periodKey} className="flex min-h-[44px] items-center gap-3 text-sm text-gray-900">
+              <input
+                type="radio"
+                name="vat-obligation"
+                className="h-5 w-5 shrink-0"
+                checked={obligation.periodKey === selected?.periodKey}
+                onChange={() => setChosenPeriodKey(obligation.periodKey)}
+              />
+              <span>
+                {obligation.periodKey}: {obligation.start} to {obligation.end}, due {obligation.due}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+
+      {/* Keyed by period so switching obligations drops the ticked declaration, mutation state and open dialog. */}
+      {selected && <VatReturnReview key={selected.periodKey} period={selected} />}
+
+      <VatObligationsList />
+    </main>
+  );
+}
+
+function VatReturnReview({ period }: { period: VatPeriod }) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
-  const [period] = useState(() => currentQuarter(new Date()));
   const [declarationTicked, setDeclarationTicked] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [expandedBox, setExpandedBox] = useState<number | null>(null);
+  // The obligation row also carries due date and status, which the server neither needs nor should be sent.
+  const periodFields = { periodKey: period.periodKey, start: period.start, end: period.end };
   const queryKey = ['vat-return', period.periodKey];
 
   async function callApi(path: string, init?: RequestInit): Promise<ReturnReview> {
@@ -51,11 +126,11 @@ export default function VatPage() {
 
   const review = useQuery({
     queryKey,
-    queryFn: () => callApi(`/api/vat/return?${new URLSearchParams(period)}`),
+    queryFn: () => callApi(`/api/vat/return?${new URLSearchParams(periodFields)}`),
   });
 
   const saveDraft = useMutation({
-    mutationFn: () => callApi('/api/vat/return', { method: 'PUT', body: JSON.stringify(period) }),
+    mutationFn: () => callApi('/api/vat/return', { method: 'PUT', body: JSON.stringify(periodFields) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
@@ -68,7 +143,7 @@ export default function VatPage() {
 
   const confirm = useMutation({
     mutationFn: () =>
-      callApi('/api/vat/return-confirm', { method: 'POST', body: JSON.stringify({ ...period, declaration: true }) }),
+      callApi('/api/vat/return-confirm', { method: 'POST', body: JSON.stringify({ ...periodFields, declaration: true }) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
@@ -79,7 +154,7 @@ export default function VatPage() {
   const live = mode.data ? isEffectivelyLive(mode.data) : false;
 
   const submit = useMutation({
-    mutationFn: async () => submitVatReturn((await getToken()) ?? '', period),
+    mutationFn: async () => submitVatReturn((await getToken()) ?? '', periodFields),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
   // A pending claim means HMRC may already hold the return, so a refused retry reads the same as an unknown outcome.
@@ -98,9 +173,8 @@ export default function VatPage() {
   });
 
   return (
-    <main className="p-8">
-      <h1 className="text-2xl font-semibold text-gray-900">VAT Returns</h1>
-      <p className="mt-1 text-sm text-gray-500">
+    <>
+      <p className="mt-4 text-sm text-gray-500">
         Period {period.start} to {period.end}
       </p>
 
@@ -225,9 +299,7 @@ export default function VatPage() {
           />
         </>
       )}
-
-      <VatObligationsList />
-    </main>
+    </>
   );
 }
 

@@ -1,7 +1,6 @@
-import { useAuth } from '@clerk/clerk-react';
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { fetchVatObligations, NotConnectedError, VatNumberMissingError, type VatObligationRow } from '../lib/hmrc/vatApi';
+import { NotConnectedError, VatNumberMissingError, type VatObligationRow } from '../lib/hmrc/vatApi';
+import { useVatObligations } from './useVatObligations';
 
 function statusLabel(obligation: VatObligationRow): string {
   if (obligation.status === 'F') return 'Fulfilled';
@@ -9,16 +8,7 @@ function statusLabel(obligation: VatObligationRow): string {
 }
 
 export default function VatObligationsList() {
-  const { getToken } = useAuth();
-  const obligations = useQuery({
-    queryKey: ['vat-obligations'],
-    queryFn: async () => {
-      const token = await getToken();
-      if (!token) throw new Error('No session token');
-      return fetchVatObligations(token);
-    },
-    retry: false,
-  });
+  const obligations = useVatObligations();
 
   return (
     <section className="mt-8" aria-labelledby="vat-obligations-heading">

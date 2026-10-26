@@ -111,8 +111,9 @@ There is no DB schema change, since audit_events exists. The route stays sandbox
     - npm run lint, typecheck and test pass
   - Risk: Touches authenticated routes and credential handling; the audit snapshot must not leak personal or secret data. The route-rate-limit ponytail note in submit.ts applies here too.
 
-- [ ] **Task 4: Settings button 'Check HMRC fraud headers' and result rendering** (after 3)
+- [x] **Task 4: Settings button 'Check HMRC fraud headers' and result rendering** (after 3)
   - Intent: Add a client function in src/lib/hmrc/settingsApi.ts that POSTs to the new route and sends the browserFraudHeaders (export it from vatApi.ts). It maps failures to a visible error.
+  - Commit: `a82eb8434b23`
 Add a section to SettingsPage.tsx with the button 'Check HMRC fraud headers'. Follow the existing section markup and the shared loading and error components (). The result shows a clear pass, or lists each error and warning with its header name and message. Use text plus an icon, not colour alone (). Tap targets are at least 44px (), and the layout works at 390 and 1440 px. Fonts and colours come from tokens ().
 
 Add a mocked-fetch test in SettingsPage.test.tsx that renders a result with an error and a warning, and a second with a pass. Capture screenshots at 390 and 1440 px (light only; confirm whether a dark theme exists) into browser-evidence/settings-fraud-check/, following the existing folder convention.

@@ -116,6 +116,12 @@ describe("schema migrations", () => {
     );
   });
 
+  it("indexes transactions by (user_id, date) for the entries list", () => {
+    expect(readFileSync(new URL("./migrations/0007_entries_list_indexes.sql", import.meta.url), "utf8")).toMatch(
+      /CREATE INDEX IF NOT EXISTS "transactions_user_date_idx" ON "transactions" \("user_id","date"\)/,
+    );
+  });
+
   it("creates login_attempts with only a timestamp and an attempted_at index", () => {
     const match = sql.match(/CREATE TABLE IF NOT EXISTS "login_attempts" \(([\s\S]*?)\n\);/);
     expect(match, "could not find CREATE TABLE statement for login_attempts").not.toBeNull();

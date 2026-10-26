@@ -29,9 +29,9 @@
 
 ## Tasks
 
-- [ ] **Task 1: Complete and fix the WEB_APP_VIA_SERVER header builder**
+- [x] **Task 1: Complete and fix the WEB_APP_VIA_SERVER header builder**
   - Intent: Rework buildFraudHeaders in src/lib/hmrc/fraudHeaders.ts so it emits the full HMRC header set for WEB_APP_VIA_SERVER, per the current guide at developer.service.hmrc.gov.uk/guides/fraud-prevention. Read that guide first and fix the formats it specifies.
-
+  - Commit: `d11c8aad4bba`
 Headers to emit:
 - Gov-Client-Connection-Method
 - Gov-Client-Browser-JS-User-Agent
@@ -72,7 +72,6 @@ Extend fraudHeaders.test.ts with one format test per header, plus missing-input 
 
 - [ ] **Task 2: HMRC application-restricted token and Test Fraud Prevention Headers client**
   - Intent: Add the HMRC client call to the Test Fraud Prevention Headers validation API, which is sandbox-only. Read the current docs for the endpoint, which is GET /test/fraud-prevention-headers/validate on the sandbox base, and the token type it needs. I expect an application-restricted token from the client_credentials grant using HMRC_CLIENT_ID and HMRC_CLIENT_SECRET. If the docs say user-restricted, use withHmrcToken instead.
-
 Put everything in src/lib/hmrc/client.ts, since all HMRC calls go through it. Add a function that obtains the token and a function that takes the fraud headers and returns the parsed result. Normalise the HMRC response into { code, message, errors[], warnings[] }, where each entry has headers (a list of header names) and a message. Force the sandbox base URL regardless of HMRC_SANDBOX_MODE.
 
 The token must never appear in a thrown error, a log line or the returned value. Cover the call with a mocked-fetch unit test: pass, warnings only, errors, HMRC 4xx/5xx, and a check that the token is absent from the output.
@@ -88,7 +87,6 @@ The token must never appear in a thrown error, a log line or the returned value.
 
 - [ ] **Task 3: Server route to run the check and record an audit event** (after 1, 2)
   - Intent: Add api/vat/fraud-headers-check.ts (or api/hmrc/fraud-check.ts). It is a POST route behind withAuth that uses the same header-building path as submit. Extract a small shared function from prepareSubmission and the obligations route, so there is one place that assembles FraudHeaderInput from the request and env. Do not add a second copy.
-
 The route calls the task 2 validator and returns the normalised result, with no token and no raw HMRC body.
 
 It inserts an audit_events row with action 'hmrc.fraud_headers.validated', actorType 'user', resourceType 'hmrc_fraud_validation', and the userId. The row's afterSnapshot holds the outcome and the error and warning lists. Include the sent header values only if they carry no token; they hold an IP and a device id, so apply and keep them to header names and results. If the insert fails, that failure must be visible: return an error rather than swallowing it.
@@ -113,7 +111,6 @@ There is no DB schema change, since audit_events exists. The route stays sandbox
 
 - [ ] **Task 4: Settings button 'Check HMRC fraud headers' and result rendering** (after 3)
   - Intent: Add a client function in src/lib/hmrc/settingsApi.ts that POSTs to the new route and sends the browserFraudHeaders (export it from vatApi.ts). It maps failures to a visible error.
-
 Add a section to SettingsPage.tsx with the button 'Check HMRC fraud headers'. Follow the existing section markup and the shared loading and error components (). The result shows a clear pass, or lists each error and warning with its header name and message. Use text plus an icon, not colour alone (). Tap targets are at least 44px (), and the layout works at 390 and 1440 px. Fonts and colours come from tokens ().
 
 Add a mocked-fetch test in SettingsPage.test.tsx that renders a result with an error and a warning, and a second with a pass. Capture screenshots at 390 and 1440 px (light only; confirm whether a dark theme exists) into browser-evidence/settings-fraud-check/, following the existing folder convention.

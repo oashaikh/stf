@@ -3,6 +3,8 @@ import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import { DASHBOARD_QUERY_KEY } from '../lib/dashboardApi';
 import type { ApiEntry } from '../lib/entriesApi';
 import ExpensesPage from './ExpensesPage';
 
@@ -46,10 +48,14 @@ describe('ExpensesPage add entry form', () => {
     vi.unstubAllGlobals();
   });
 
-  async function openForm() {
+  let client: QueryClient;
+  async function openForm(url = '/expenses') {
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <ExpensesPage />
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={[url]}>
+          <ExpensesPage />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
@@ -122,5 +128,22 @@ describe('ExpensesPage add entry form', () => {
     const message = await screen.findByText('Date cannot be more than 7 days ahead');
     expect(screen.getByLabelText('Date')).toHaveAccessibleDescription(expect.stringContaining(message.textContent!));
     expect(screen.getByLabelText('Description')).toHaveValue('Train to client');
+  });
+
+  it('marks the dashboard summary stale after saving an entry', async () => {
+    await openForm();
+    client.setQueryData(DASHBOARD_QUERY_KEY, { stale: true });
+    fillValid();
+    fireEvent.click(screen.getByRole('button', { name: 'Save as draft' }));
+    await waitFor(() => expect(posts).toHaveLength(1));
+    await waitFor(() => expect(client.getQueryState(DASHBOARD_QUERY_KEY)?.isInvalidated).toBe(true));
+  });
+
+  it('lists only drafts when the URL says status=draft', async () => {
+    const entry = (id: string, description: string, status: 'draft' | 'confirmed'): ApiEntry => ({ id, date: '2026-10-01', description, reference: null, status, kind: 'expense', grossPence: 100 });
+    entries = [entry('d1', 'Draft taxi', 'draft'), entry('c1', 'Confirmed rent', 'confirmed')];
+    await openForm('/expenses?status=draft');
+    expect(await screen.findByText('Draft taxi', { selector: 'li *' })).toBeInTheDocument();
+    expect(screen.queryByText('Confirmed rent', { selector: 'li *' })).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { DASHBOARD_QUERY_KEY, fetchDashboard } from "../lib/dashboardApi";
 import { formatPence } from "../lib/money";
 
+const linkClass = "inline-flex min-h-11 items-center text-blue-800 underline";
+
 function Card({ title, period, children }: { title: string; period?: string; children: React.ReactNode }) {
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-4">
@@ -22,8 +24,6 @@ function Row({ label, pence }: { label: string; pence: number }) {
     </div>
   );
 }
-
-const linkClass = "inline-flex min-h-11 items-center text-blue-800 underline";
 
 export default function DashboardPage() {
   const summary = useQuery({ queryKey: DASHBOARD_QUERY_KEY, queryFn: fetchDashboard });
@@ -56,11 +56,17 @@ export default function DashboardPage() {
               <Row label="Income" pence={data.taxYear.incomePence} />
               <Row label="Expenses" pence={data.taxYear.expensesPence} />
               <Row label="Profit" pence={data.taxYear.profitPence} />
+              <Link to="/expenses" className={linkClass}>
+                View entries
+              </Link>
             </Card>
             <Card title="This month" period={`${data.month.start} to ${data.month.end}`}>
               <Row label="Income" pence={data.month.incomePence} />
               <Row label="Expenses" pence={data.month.expensesPence} />
               <Row label="Profit" pence={data.month.profitPence} />
+              <Link to="/expenses" className={linkClass}>
+                View entries
+              </Link>
             </Card>
             <Card title="VAT this quarter (estimate)" period={`${data.vatQuarter.start} to ${data.vatQuarter.end}`}>
               <Row label="VAT collected" pence={data.vatQuarter.vatCollectedPence} />

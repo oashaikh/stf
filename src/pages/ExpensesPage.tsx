@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
+import { DASHBOARD_QUERY_KEY } from "../lib/dashboardApi";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
 import {
@@ -122,7 +124,10 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
       setCategoryId("");
       setReference("");
       setErrors({});
-      await queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY }),
+      ]);
     },
     onError: (error) => {
       const fields =
@@ -348,6 +353,8 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
 }
 
 function EntryList() {
+  const [searchParams] = useSearchParams();
+  const draftsOnly = searchParams.get("status") === "draft";
   const entries = useQuery({
     queryKey: ENTRIES_QUERY_KEY,
     queryFn: fetchEntries,
@@ -364,15 +371,20 @@ function EntryList() {
         Could not load your entries. Please try again.
       </p>
     );
-  if (entries.data.length === 0)
+  const shown = draftsOnly
+    ? entries.data.filter((entry) => entry.status === "draft")
+    : entries.data;
+  if (shown.length === 0)
     return (
       <p className="mt-6 text-gray-700">
-        No entries yet. Add your first one above.
+        {draftsOnly
+          ? "No drafts to confirm."
+          : "No entries yet. Add your first one above."}
       </p>
     );
   return (
     <ul className="mt-6 divide-y divide-gray-200 rounded-lg border border-gray-300 bg-white">
-      {entries.data.map((entry) => (
+      {shown.map((entry) => (
         <li
           key={entry.id}
           className="flex min-h-[44px] items-center gap-3 px-4 py-2"

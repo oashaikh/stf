@@ -5,6 +5,7 @@ import {
   getVatObligations,
   HmrcError,
   refreshAccessToken,
+  validateFraudHeaders,
   withHmrcToken,
   type HmrcTokenSet,
 } from './client';
@@ -177,5 +178,74 @@ describe('withHmrcToken', () => {
     expect(error.apiError.code).toBe('invalid_grant');
     expect(`${error.message} ${JSON.stringify(error.apiError)}`).not.toMatch(/old-refresh|old-access/);
     expect(operation).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('validateFraudHeaders', () => {
+  const SECRET_TOKEN = 'app-token-do-not-leak';
+  const headers = { 'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER' };
+
+  function fakeHmrc(validation: Response) {
+    return vi.fn(async (url: string | URL | Request) =>
+      String(url).endsWith('/oauth/token')
+        ? jsonResponse(200, { access_token: SECRET_TOKEN, expires_in: 14400 })
+        : validation.clone(),
+    ) as unknown as typeof fetch & ReturnType<typeof vi.fn>;
+  }
+
+  it('uses a client_credentials token and the sandbox endpoint even when live mode is set', async () => {
+    vi.stubEnv('HMRC_SANDBOX_MODE', 'false');
+    const fetchFn = fakeHmrc(jsonResponse(200, { code: 'VALID_HEADERS', message: 'ok' }));
+    const result = await validateFraudHeaders(headers, fetchFn);
+    expect(result).toEqual({ code: 'VALID_HEADERS', message: 'ok', errors: [], warnings: [] });
+    const calls = (fetchFn as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls[0][0]).toBe('https://test-api.service.hmrc.gov.uk/oauth/token');
+    expect(String(calls[0][1].body)).toContain('grant_type=client_credentials');
+    expect(calls[1][0]).toBe('https://test-api.service.hmrc.gov.uk/test/fraud-prevention-headers/validate');
+    expect(calls[1][1].headers.Authorization).toBe(`Bearer ${SECRET_TOKEN}`);
+    expect(calls[1][1].headers['Gov-Client-Connection-Method']).toBe('WEB_APP_VIA_SERVER');
+  });
+
+  it('returns warnings with their header names', async () => {
+    const result = await validateFraudHeaders(headers, fakeHmrc(jsonResponse(200, {
+      code: 'POTENTIALLY_INVALID_HEADERS',
+      message: 'Some headers may be wrong',
+      warnings: [{ code: 'INVALID_HEADER', message: 'Check it', headers: ['Gov-Client-Multi-Factor'] }],
+    })));
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([{ headers: ['Gov-Client-Multi-Factor'], message: 'Check it' }]);
+  });
+
+  it('treats a 400 body with errors as a result', async () => {
+    const result = await validateFraudHeaders(headers, fakeHmrc(jsonResponse(400, {
+      code: 'INVALID_HEADERS',
+      message: 'bad',
+      errors: [{ code: 'MISSING_HEADER', message: 'Missing', headers: ['Gov-Vendor-License-IDs'] }],
+      warnings: [{ message: 'w', headers: ['Gov-Client-Timezone'] }],
+    })));
+    expect(result.code).toBe('INVALID_HEADERS');
+    expect(result.errors).toEqual([{ headers: ['Gov-Vendor-License-IDs'], message: 'Missing' }]);
+    expect(result.warnings).toHaveLength(1);
+  });
+
+  it.each([401, 403, 500, 503])('throws on HMRC %i without leaking the token or body', async (status) => {
+    const error = await validateFraudHeaders(headers, fakeHmrc(jsonResponse(status, { code: 'X', message: SECRET_TOKEN })))
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(HmrcError);
+    expect(JSON.stringify(error)).not.toContain(SECRET_TOKEN);
+    expect((error as Error).message).not.toContain(SECRET_TOKEN);
+  });
+
+  it('throws without echoing the response when the token request is rejected', async () => {
+    const fetchFn = vi.fn(async () => jsonResponse(401, { error: 'invalid_client', error_description: SECRET_TOKEN }));
+    const error = await validateFraudHeaders(headers, fetchFn as unknown as typeof fetch).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(HmrcError);
+    expect((error as Error).message).not.toContain(SECRET_TOKEN);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the token out of the returned value', async () => {
+    const result = await validateFraudHeaders(headers, fakeHmrc(jsonResponse(200, { code: 'VALID_HEADERS', message: 'ok' })));
+    expect(JSON.stringify(result)).not.toContain(SECRET_TOKEN);
   });
 });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -78,9 +79,11 @@ describe('live filing opt-in', () => {
 
   const renderPage = () =>
     render(
-      <MemoryRouter>
-        <SettingsPage />
-      </MemoryRouter>,
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <SettingsPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
 
   it('starts off and shows sandbox as the effective mode', async () => {
@@ -115,5 +118,77 @@ describe('HMRC mode api calls', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, live: true, envLive: false }));
     expect(await saveHmrcLiveOptIn(true, fetchMock)).toEqual({ live: true, envLive: false });
     expect(fetchMock).toHaveBeenCalledWith('/api/hmrc/mode', expect.objectContaining({ method: 'POST', body: '{"live":true}' }));
+  });
+});
+
+describe('VAT registration number', () => {
+  let saved: string | null;
+  const posts: unknown[] = [];
+
+  beforeEach(() => {
+    saved = null;
+    posts.length = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string, init?: RequestInit) => {
+        if (path === '/api/settings/vat-number' && init?.method === 'POST') {
+          const { vatNumber: typed } = JSON.parse(init.body as string);
+          posts.push(typed);
+          const vatNumber = typed.replace(/\s+/g, '').replace(/^GB/i, '');
+          if (typed === 'pending') return jsonResponse({ ok: false, code: 'SUBMISSION_PENDING' }, false);
+          if (!/^\d{9}$/.test(vatNumber)) return jsonResponse({ ok: false, code: 'BAD_REQUEST' }, false);
+          saved = '••••••' + vatNumber.slice(-3);
+          return jsonResponse({ ok: true, masked: saved });
+        }
+        if (path === '/api/settings/vat-number') return jsonResponse({ ok: true, masked: saved });
+        if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: false, envLive: false });
+        return jsonResponse({ ok: true, connected: true });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  const renderPage = () =>
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <SettingsPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+  it('shows an input when none is saved and then the masked number with Edit', async () => {
+    renderPage();
+    fireEvent.change(await screen.findByRole('textbox', { name: 'VAT registration number' }), { target: { value: 'GB 123 456 789' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save VAT number' }));
+    expect(await screen.findByText('GB ••••••789')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('123456789')).not.toBeInTheDocument();
+  });
+
+  it('shows the masked number with Edit when one is saved', async () => {
+    saved = '••••••789';
+    renderPage();
+    expect(await screen.findByText('GB ••••••789')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByRole('button', { name: 'Save VAT number' })).toBeInTheDocument();
+  });
+
+  it('tells the user when the server refuses the format', async () => {
+    renderPage();
+    fireEvent.change(await screen.findByRole('textbox', { name: 'VAT registration number' }), { target: { value: '12345678' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save VAT number' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter 9 digits');
+  });
+
+  it('tells the user when a live submission is pending', async () => {
+    renderPage();
+    fireEvent.change(await screen.findByRole('textbox', { name: 'VAT registration number' }), { target: { value: 'pending' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save VAT number' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('live VAT submission is pending');
   });
 });

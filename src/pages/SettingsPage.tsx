@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import {
   describeHmrcStatus,
   fetchHmrcConnected,
   fetchHmrcConnectUrl,
   fetchHmrcMode,
+  fetchVatNumberMask,
   isEffectivelyLive,
   saveHmrcLiveOptIn,
+  saveVatNumber,
+  VatNumberRefusedError,
   type HmrcModeState,
 } from '../lib/hmrc/settingsApi';
 
@@ -24,6 +28,42 @@ export default function SettingsPage() {
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [modeFailed, setModeFailed] = useState(false);
+  const queryClient = useQueryClient();
+  const [vatMask, setVatMask] = useState<string | null>(null);
+  const [editingVat, setEditingVat] = useState(false);
+  const [vatInput, setVatInput] = useState('');
+  const [vatError, setVatError] = useState('');
+
+  useEffect(() => {
+    fetchVatNumberMask().then(
+      (mask) => {
+        setVatMask(mask);
+        setEditingVat(mask === null);
+      },
+      () => setVatError('Could not load your VAT number. Please try again.'),
+    );
+  }, []);
+
+  async function submitVatNumber(event: FormEvent) {
+    event.preventDefault();
+    setVatError('');
+    try {
+      setVatMask(await saveVatNumber(vatInput));
+      setEditingVat(false);
+      setVatInput('');
+      // The VAT page may be holding a "VAT number missing" failure.
+      await queryClient.invalidateQueries({ queryKey: ['vat-obligations'] });
+    } catch (error) {
+      const code = error instanceof VatNumberRefusedError ? error.code : '';
+      setVatError(
+        code === 'BAD_REQUEST'
+          ? 'Enter 9 digits. A leading GB and spaces are fine.'
+          : code === 'SUBMISSION_PENDING'
+            ? 'A live VAT submission is pending. Change the number after it finishes.'
+            : 'Could not save your VAT number. Please try again.',
+      );
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +140,55 @@ export default function SettingsPage() {
         >
           {connected ? 'Reconnect to HMRC' : 'Connect to HMRC'}
         </button>
+      </section>
+      <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="vat-number-heading">
+        <h2 id="vat-number-heading" className="text-lg font-semibold text-gray-900">VAT registration number</h2>
+        {editingVat ? (
+          <form onSubmit={submitVatNumber} className="mt-2">
+            <label htmlFor="vat-number-input" className="block text-gray-900">VAT registration number</label>
+            <input
+              id="vat-number-input"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={vatInput}
+              onChange={(event) => setVatInput(event.target.value)}
+              aria-describedby="vat-number-help"
+              className="mt-1 min-h-[44px] w-full rounded-md border border-gray-400 px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+            />
+            <p id="vat-number-help" className="mt-1 text-gray-700">9 digits. A leading GB and spaces are ignored.</p>
+            <div className="mt-3 flex gap-3">
+              <button type="submit" className="min-h-[44px] min-w-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800">
+                Save VAT number
+              </button>
+              {vatMask && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingVat(false);
+                    setVatInput('');
+                    setVatError('');
+                  }}
+                  className="min-h-[44px] min-w-[44px] rounded-md border border-gray-400 px-4 text-gray-900 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        ) : (
+          <div className="mt-2 flex items-center gap-4">
+            <p className="font-mono text-gray-900">GB {vatMask}</p>
+            <button
+              type="button"
+              onClick={() => setEditingVat(true)}
+              className="min-h-[44px] min-w-[44px] rounded-md border border-gray-400 px-4 text-gray-900 hover:bg-gray-100"
+            >
+              Edit
+            </button>
+          </div>
+        )}
+        {vatError && <p className="mt-2 text-red-800" role="alert">{vatError}</p>}
       </section>
       <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="mode-heading">
         <h2 id="mode-heading" className="text-lg font-semibold text-gray-900">Live HMRC submission</h2>

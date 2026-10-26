@@ -70,8 +70,9 @@ Extend fraudHeaders.test.ts with one format test per header, plus missing-input 
     - npm run lint, typecheck and test pass
   - Risk: The HMRC spec must be read from the live docs, not memory; formats are strict. The port header name on Vercel needs verification.
 
-- [ ] **Task 2: HMRC application-restricted token and Test Fraud Prevention Headers client**
+- [x] **Task 2: HMRC application-restricted token and Test Fraud Prevention Headers client**
   - Intent: Add the HMRC client call to the Test Fraud Prevention Headers validation API, which is sandbox-only. Read the current docs for the endpoint, which is GET /test/fraud-prevention-headers/validate on the sandbox base, and the token type it needs. I expect an application-restricted token from the client_credentials grant using HMRC_CLIENT_ID and HMRC_CLIENT_SECRET. If the docs say user-restricted, use withHmrcToken instead.
+  - Commit: `5c1b564c5f39`
 Put everything in src/lib/hmrc/client.ts, since all HMRC calls go through it. Add a function that obtains the token and a function that takes the fraud headers and returns the parsed result. Normalise the HMRC response into { code, message, errors[], warnings[] }, where each entry has headers (a list of header names) and a message. Force the sandbox base URL regardless of HMRC_SANDBOX_MODE.
 
 The token must never appear in a thrown error, a log line or the returned value. Cover the call with a mocked-fetch unit test: pass, warnings only, errors, HMRC 4xx/5xx, and a check that the token is absent from the output.

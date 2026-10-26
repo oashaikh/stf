@@ -166,7 +166,7 @@ describe('submitVatReturnForUser', () => {
     const [, init] = fetchFn.mock.calls[0];
     expect(init.headers['Gov-Client-Connection-Method']).toBe('WEB_APP_VIA_SERVER');
     expect(init.headers['Gov-Client-User-IDs']).toBe('stf=user_a');
-    expect(init.headers['Gov-Vendor-Version']).toBe('stf=abc123');
+    expect(init.headers['Gov-Vendor-Version']).toBe('stf=0.1.0%2Babc123');
     expect(JSON.stringify(vat.calls.audits)).not.toContain(OLD_ACCESS);
     expect(vat.calls.audits[0]).toMatchObject({ periodKey: '26A1', sandbox: true, response: receiptBody });
   });
@@ -190,11 +190,45 @@ describe('submitVatReturnForUser', () => {
       expect(vat.submissions.size).toBe(0);
     };
 
-    it('asks HMRC for open obligations over the period range', async () => {
+    it('asks HMRC for obligations (unfiltered by status) over the period range', async () => {
       await submit(makeVatStore({ user_a: sales }), makeHmrcStore(true), fetchFn);
       expect(obligationsFetch).toHaveBeenCalledWith(
-        'https://test-api.service.hmrc.gov.uk/organisations/vat/123456789/obligations?from=2026-01-01&to=2026-03-31&status=O',
+        'https://test-api.service.hmrc.gov.uk/organisations/vat/123456789/obligations?from=2026-01-01&to=2026-03-31',
       );
+    });
+
+    it('accepts an open period when HMRC answers an unfiltered query only (sandbox static data)', async () => {
+      // Reproduces the live 409: the sandbox lists 18A2 as open but returns nothing for a status=O query.
+      const sandboxPeriod: Period = { periodKey: '18A2', start: '2017-04-01', end: '2017-06-30' };
+      obligationsFetch.mockImplementation(async (url: string) =>
+        json({
+          obligations: url.includes('status=')
+            ? []
+            : [{ ...sandboxPeriod, due: '2017-08-07', status: 'O' }],
+        }),
+      );
+      const vat = makeVatStore({ user_a: [] });
+      vat.drafts.set('user_a:18A2', {
+        status: 'confirmed',
+        periodStart: sandboxPeriod.start,
+        periodEnd: sandboxPeriod.end,
+        boxes: buildVatReturnFromLedger([], sandboxPeriod),
+        confirmedAt: NOW.toISOString(),
+      });
+      await submitVatReturnForUser(
+        { userId: 'user_a', period: sandboxPeriod, request },
+        { vatStore: vat.store, hmrcStore: makeHmrcStore(true).store, fetchFn: routeFetch(fetchFn), now: () => NOW },
+      );
+      expect(vat.calls.receipts).toHaveLength(1);
+    });
+
+    it('logs the keys, dates and statuses HMRC returned when it refuses, never a token', async () => {
+      openObligations = [{ periodKey: '26A1', start: '2026-01-01', end: '2026-03-31', due: '2026-05-07', status: 'F' }];
+      await refused();
+      const logged = JSON.stringify(vi.mocked(console.error).mock.calls);
+      expect(logged).toContain('\\"status\\":\\"F\\"');
+      expect(logged).toContain('26A1');
+      expect(logged).not.toContain(OLD_ACCESS);
     });
 
     it('refuses a period key that is not among the open obligations', async () => {

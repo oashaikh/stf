@@ -77,7 +77,7 @@ describe('VatPage', () => {
     const [path] = returnRequests()[0];
     const params = new URL(String(path), 'http://localhost').searchParams;
     expect(Object.fromEntries(params)).toEqual({ periodKey: '26C3', start: '2026-07-01', end: '2026-09-30' });
-    expect(screen.getByText('Period 2026-07-01 to 2026-09-30')).toBeInTheDocument();
+    expect(screen.getByText('Period 1 Jul 2026 to 30 Sep 2026')).toBeInTheDocument();
   });
 
   it('sends the selected obligation with the draft save and the confirmation', async () => {
@@ -156,6 +156,13 @@ describe('VatPage', () => {
       showReview(review);
       await screen.findByText(/Status:/);
       expect(screen.queryByRole('button', { name: 'Preview what will be sent' })).not.toBeInTheDocument();
+    });
+
+    it('replaces the declaration and Confirm return button with the confirmed date', async () => {
+      showReview(confirmed);
+      expect(await screen.findByText('Confirmed on 25 Oct 2026')).toBeInTheDocument();
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Confirm return' })).not.toBeInTheDocument();
     });
 
     it('shows the boxes, headers and raw JSON of a nil return once confirmed, without submitting', async () => {

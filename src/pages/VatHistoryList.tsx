@@ -1,3 +1,4 @@
+import { formatDate } from '../lib/dates';
 import { useState } from 'react';
 import type { VatHistoryItem, VatHistoryStatus } from '../lib/hmrc/vatApi';
 import { formatPence } from '../lib/money';
@@ -46,7 +47,7 @@ export default function VatHistoryList() {
           </thead>
           <tbody>
             {history.data.map((item) => {
-              const period = `${item.start} to ${item.end}`;
+              const period = `${formatDate(item.start)} to ${formatDate(item.end)}`;
               return (
                 <tr key={item.periodKey} className="block border-b border-gray-100 py-2 sm:table-row sm:py-0">
                   <td className="flex justify-between gap-4 py-1 sm:table-cell sm:py-2 sm:pr-4 text-gray-900">
@@ -111,7 +112,7 @@ export default function VatHistoryList() {
               </div>
               <div className="flex justify-between gap-4 py-1">
                 <dt>Processing date</dt>
-                <dd className="text-right tabular-nums">{opened.receipt.processingDate.slice(0, 10)}</dd>
+                <dd className="text-right tabular-nums">{formatDate(opened.receipt.processingDate)}</dd>
               </div>
             </dl>
           ) : (

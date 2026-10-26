@@ -1,3 +1,4 @@
+import { formatDate } from '../lib/dates';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -96,7 +97,7 @@ export default function VatPage() {
                 onChange={() => setChosenPeriodKey(obligation.periodKey)}
               />
               <span>
-                {obligation.periodKey}: {obligation.start} to {obligation.end}, due {obligation.due}
+                {obligation.periodKey}: {formatDate(obligation.start)} to {formatDate(obligation.end)}, due {formatDate(obligation.due)}
               </span>
             </label>
           ))}
@@ -187,7 +188,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
   return (
     <>
       <p className="mt-4 text-sm text-gray-500">
-        Period {period.start} to {period.end}
+        Period {formatDate(period.start)} to {formatDate(period.end)}
       </p>
 
       {review.isPending && <p role="status" className="mt-6 text-gray-500">Loading your VAT return…</p>}
@@ -240,36 +241,44 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
             </tbody>
           </table>
 
-          <fieldset className="mt-8 max-w-3xl">
-            <legend className="sr-only">Declaration</legend>
-            <label className="flex min-h-[44px] items-start gap-3 text-sm text-gray-900">
-              <input
-                type="checkbox"
-                className="mt-1 h-5 w-5 shrink-0"
-                checked={declarationTicked}
-                onChange={(event) => setDeclarationTicked(event.target.checked)}
-              />
-              <span>
-                I declare that the information given in this VAT return is true and complete to the best of my
-                knowledge and belief.
-              </span>
-            </label>
-          </fieldset>
-
-          {confirm.isError && (
-            <p role="alert" className="mt-4 text-red-700">
-              Could not confirm the return. Try again.
+          {state.alreadyConfirmed ? (
+            <p className="mt-8 text-sm font-medium text-gray-900">
+              Confirmed{review.data.confirmedAt && ` on ${formatDate(review.data.confirmedAt)}`}
             </p>
-          )}
+          ) : (
+            <>
+            <fieldset className="mt-8 max-w-3xl">
+              <legend className="sr-only">Declaration</legend>
+              <label className="flex min-h-[44px] items-start gap-3 text-sm text-gray-900">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-5 w-5 shrink-0"
+                  checked={declarationTicked}
+                  onChange={(event) => setDeclarationTicked(event.target.checked)}
+                />
+                <span>
+                  I declare that the information given in this VAT return is true and complete to the best of my
+                  knowledge and belief.
+                </span>
+              </label>
+            </fieldset>
 
-          <button
-            type="button"
-            disabled={!state.canConfirm}
-            onClick={() => confirm.mutate()}
-            className="mt-4 min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
-          >
-            {confirm.isPending ? 'Confirming…' : 'Confirm return'}
-          </button>
+            {confirm.isError && (
+              <p role="alert" className="mt-4 text-red-700">
+                Could not confirm the return. Try again.
+              </p>
+            )}
+
+            <button
+              type="button"
+              disabled={!state.canConfirm}
+              onClick={() => confirm.mutate()}
+              className="mt-4 min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+            >
+              {confirm.isPending ? 'Confirming…' : 'Confirm return'}
+            </button>
+            </>
+          )}
 
           <section className="mt-8 max-w-3xl" aria-labelledby="vat-submit-heading">
             <h2 id="vat-submit-heading" className="text-lg font-semibold text-gray-900">Submit to HMRC</h2>
@@ -277,7 +286,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
               <div role="status" className="mt-2 text-sm text-gray-900">
                 <p className="font-medium">{state.receipt.heading}</p>
                 <p>Form bundle number: {state.receipt.formBundleNumber}</p>
-                <p>Processing date: {new Date(state.receipt.processingDate).toLocaleDateString('en-GB')}</p>
+                <p>Processing date: {formatDate(state.receipt.processingDate)}</p>
               </div>
             )}
             {state.warning && (
@@ -316,7 +325,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
 
           <SubmitDialog
             open={submitDialogOpen}
-            periodLabel={`${period.start} to ${period.end}`}
+            periodLabel={`${formatDate(period.start)} to ${formatDate(period.end)}`}
             netVatPence={review.data.boxes.box5}
             live={live}
             preview={dialogPreview}
@@ -387,7 +396,7 @@ function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: B
                 {lines.map((line) => (
                   <li key={line.lineId} className="flex items-center justify-between gap-4 py-1">
                     <span className="min-w-0 truncate" title={line.description ?? undefined}>
-                      {line.date} {line.description ?? ''}
+                      {formatDate(line.date)} {line.description ?? ''}
                     </span>
                     <span className="shrink-0 text-right tabular-nums">
                       {formatPence(line.amountPence)} + {formatPence(line.vatPence)} VAT

@@ -38,7 +38,7 @@
     - No floats introduced; all values integer pence
   - Commit: `c0b12c5fe4a3`
 
-- [ ] **Task 2: Schema and migration for VAT return drafts**
+- [x] **Task 2: Schema and migration for VAT return drafts**
   - Intent: Add a vat_return_drafts table (id, user_id FK, period_key, period_start, period_end, status draft|confirmed, boxes as nine integer-pence columns or one jsonb snapshot of VatReturnBoxes, declaration_accepted_at nullable, confirmed_at nullable, created_at, updated_at) with unique(user_id, period_key) which doubles as the lookup index. No hard delete path. Export row types and re-export from src/model/types.ts. Generate a migration. STF-15 plans 0001_hmrc_token_expiry_index.sql and edits meta/_journal.json, so name this migration with idx 2 and tag 0002_vat_return_drafts and a later `when`, and keep a single journal head; re-check against main before finishing. Extend schema.test.ts to cover the new table.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0002_vat_return_drafts.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0002_snapshot.json`, `src/model/types.ts`
   - Acceptance criteria the planner set:
@@ -47,6 +47,7 @@
     - Only integer columns for money; no declaration text stored beyond a timestamp and the wording version if needed
     - npm run typecheck and npm test pass
   - Risk: Schema/migration work, and the journal collides with STF-15's planned 0001 migration; needs care to keep a single head.
+  - Commit: `fd49ef43688e`
 
 - [ ] **Task 3: Server-side draft, confirm and submit-gate API** (after 1, 2)
   - Intent: Add api/_lib/vatReturns.ts with a store interface (injected like AuthDeps) and logic, plus routes under api/vat/ wrapped in withAuth, scoped by auth.userId on every query. (a) GET: load the caller's ledger lines for a period (period_key, start, end validated with zod), recompute boxes with buildVatReturnFromLedger, return boxes, the saved draft status, and drill-down lines per box (bounded, only needed fields, indexed filters via user_id; one joined query not per-row). (b) PUT: upsert the draft (status draft); refuse if already confirmed unless reopened. (c) POST confirm: requires declaration:true in the body, recomputes boxes server-side (never trusts client boxes), stores the snapshot, sets declaration_accepted_at and confirmed_at, writes an audit_events row; nil returns must confirm the same way. (d) Export requireConfirmedReturn(userId, periodKey) that STF-19 must call: it throws unless status is confirmed AND a fresh recompute equals the stored snapshot (ledger changed since confirmation means re-confirm). Do not implement the HMRC submit. No network/HMRC calls. Tests with fake store and fake auth: no declaration refused, client-supplied boxes ignored, second user's period returns nothing/refused, unauthenticated 401, nil return confirms, stale snapshot rejected by the gate, unconfirmed rejected by the gate.

@@ -4,8 +4,8 @@ export interface ReviewStateInput {
   status: ReviewStatus;
   declarationTicked: boolean;
   confirmPending: boolean;
-  /** Error code from the last confirm or submit-gate response, if any. */
-  errorCode?: string;
+  /** The server found the ledger or period no longer matches what was confirmed. */
+  stale?: boolean;
 }
 
 export interface ReviewState {
@@ -48,7 +48,7 @@ export function currentQuarter(now: Date) {
 }
 
 export function reviewState(input: ReviewStateInput): ReviewState {
-  const stale = input.errorCode === 'STALE_CONFIRMATION';
+  const stale = input.stale === true;
   const statusLabel = stale
     ? 'Ledger changed since you confirmed. Review and confirm again.'
     : input.status === 'confirmed'

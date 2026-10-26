@@ -22,7 +22,7 @@ describe('reviewState', () => {
     expect(state.canConfirm).toBe(false);
   });
   it('allows re-confirming when the confirmation is stale', () => {
-    const state = reviewState({ ...base, status: 'confirmed', errorCode: 'STALE_CONFIRMATION' });
+    const state = reviewState({ ...base, status: 'confirmed', stale: true });
     expect(state.statusLabel).toMatch(/changed/);
     expect(state.canConfirm).toBe(true);
   });

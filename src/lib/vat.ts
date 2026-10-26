@@ -9,7 +9,7 @@
  * Zero rate:      0%
  */
 
-import { multiplyPence } from "./money.js";
+import { multiplyPence } from './money.js';
 
 export type VatRate = 0 | 5 | 20;
 
@@ -84,12 +84,12 @@ export function buildVatReturnBoxes(lines: VatReturnLines): VatReturnBoxes {
 /** One ledger line joined to its transaction and account, as the route loads it. */
 export interface LedgerLine {
   date: string; // YYYY-MM-DD, the transaction date
-  accountType: "income" | "expense" | "asset" | "liability" | "equity";
+  accountType: 'income' | 'expense' | 'asset' | 'liability' | 'equity';
   // Raw ledger signs (architectures.md): debit positive, credit negative. VAT carries the
   // same sign as its amount. Income is a credit, expense a debit.
   amountPence: number; // net, ex VAT
   vatPence: number;
-  status: "draft" | "confirmed" | "reconciled" | "voided";
+  status: 'draft' | 'confirmed' | 'reconciled' | 'voided';
   deletedAt: string | null;
 }
 
@@ -102,9 +102,9 @@ type Period = { start: string; end: string };
  */
 function contributesToReturn(line: LedgerLine, period: Period): boolean {
   return (
-    (line.status === "confirmed" || line.status === "reconciled") &&
+    (line.status === 'confirmed' || line.status === 'reconciled') &&
     line.deletedAt === null &&
-    (line.accountType === "income" || line.accountType === "expense") &&
+    (line.accountType === 'income' || line.accountType === 'expense') &&
     line.date >= period.start && // ISO dates compare correctly as strings
     line.date <= period.end
   );
@@ -123,7 +123,7 @@ export function buildVatReturnFromLedger(
   };
   for (const line of lines) {
     if (!contributesToReturn(line, period)) continue;
-    if (line.accountType === "income") {
+    if (line.accountType === 'income') {
       // credits are negative in the ledger; flip so sales are positive
       totals.salesNetPence -= line.amountPence;
       totals.salesVatPence -= line.vatPence;
@@ -141,13 +141,13 @@ export function linesForBox(
   period: Period,
   box: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
 ): LedgerLine[] {
-  const wanted: LedgerLine["accountType"][] =
+  const wanted: LedgerLine['accountType'][] =
     box === 1 || box === 6
-      ? ["income"]
+      ? ['income']
       : box === 4 || box === 7
-        ? ["expense"]
+        ? ['expense']
         : box === 3 || box === 5
-          ? ["income", "expense"]
+          ? ['income', 'expense']
           : [];
   return lines.filter(
     (line) =>

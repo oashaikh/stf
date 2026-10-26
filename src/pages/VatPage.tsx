@@ -17,14 +17,10 @@ interface DrillLine {
 interface ReturnReview {
   boxes: VatReturnBoxes;
   drillDown: Record<keyof VatReturnBoxes, DrillLine[]>;
+  drillDownTotals: Record<keyof VatReturnBoxes, number>;
   status: ReviewStatus;
   confirmedAt: string | null;
-}
-
-class ApiRequestError extends Error {
-  constructor(message: string, readonly code?: string) {
-    super(message);
-  }
+  stale: boolean;
 }
 
 const boxNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
@@ -35,7 +31,6 @@ export default function VatPage() {
   const [period] = useState(() => currentQuarter(new Date()));
   const [declarationTicked, setDeclarationTicked] = useState(false);
   const [expandedBox, setExpandedBox] = useState<number | null>(null);
-  const [errorCode, setErrorCode] = useState<string>();
   const queryKey = ['vat-return', period.periodKey];
 
   async function callApi(path: string, init?: RequestInit): Promise<ReturnReview> {
@@ -45,7 +40,7 @@ export default function VatPage() {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     });
     const body = (await response.json().catch(() => null)) as ApiResponse<ReturnReview> | null;
-    if (!body?.ok) throw new ApiRequestError(body?.error ?? 'Request failed', body?.code);
+    if (!body?.ok) throw new Error(body?.error ?? 'Request failed');
     return body.data;
   }
 
@@ -69,8 +64,6 @@ export default function VatPage() {
   const confirm = useMutation({
     mutationFn: () =>
       callApi('/api/vat/return-confirm', { method: 'POST', body: JSON.stringify({ ...period, declaration: true }) }),
-    onMutate: () => setErrorCode(undefined),
-    onError: (error) => setErrorCode(error instanceof ApiRequestError ? error.code : undefined),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
@@ -78,7 +71,7 @@ export default function VatPage() {
     status: review.data?.status ?? null,
     declarationTicked,
     confirmPending: confirm.isPending,
-    errorCode,
+    stale: review.data?.stale,
   });
 
   return (
@@ -129,6 +122,7 @@ export default function VatPage() {
                     label={label}
                     pence={pence}
                     lines={drillable ? lines : undefined}
+                    totalLines={review.data.drillDownTotals[`box${box}` as keyof VatReturnBoxes]}
                     expanded={expanded}
                     onToggle={() => setExpandedBox(expanded ? null : box)}
                   />
@@ -155,7 +149,7 @@ export default function VatPage() {
 
           {confirm.isError && (
             <p role="alert" className="mt-4 text-red-700">
-              {errorCode === 'STALE_CONFIRMATION' ? state.statusLabel : 'Could not confirm the return. Try again.'}
+              Could not confirm the return. Try again.
             </p>
           )}
 
@@ -178,11 +172,12 @@ interface BoxRowsProps {
   label: string;
   pence: number;
   lines?: DrillLine[];
+  totalLines: number;
   expanded: boolean;
   onToggle: () => void;
 }
 
-function BoxRows({ box, label, pence, lines, expanded, onToggle }: BoxRowsProps) {
+function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: BoxRowsProps) {
   const detailId = `vat-box-${box}-lines`;
   return (
     <>
@@ -223,6 +218,11 @@ function BoxRows({ box, label, pence, lines, expanded, onToggle }: BoxRowsProps)
                   </li>
                 ))}
               </ul>
+            )}
+            {lines.length < totalLines && (
+              <p className="mt-2 text-gray-500">
+                Showing the first {lines.length} of {totalLines} transactions, so the list does not add up to the box.
+              </p>
             )}
           </td>
         </tr>

@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lte, isNull } from 'drizzle-orm';
+import { and, eq, gte, inArray, lte, isNull, ne } from 'drizzle-orm';
 import { z } from 'zod';
 
 import type { ApiError } from '../../src/model/types';
@@ -16,6 +16,8 @@ export type DrillLine = LedgerLine & { lineId: string; description: string | nul
 
 export interface SavedDraft {
   status: 'draft' | 'confirmed';
+  periodStart: string;
+  periodEnd: string;
   boxes: VatReturnBoxes;
   confirmedAt: string | null;
 }
@@ -25,7 +27,8 @@ export interface VatReturnStore {
   /** Lines that could count toward the period, one joined query. Throws if over LEDGER_LINE_LIMIT. */
   loadLedgerLines(userId: string, period: Period): Promise<DrillLine[]>;
   findDraft(userId: string, periodKey: string): Promise<SavedDraft | undefined>;
-  saveDraft(userId: string, period: Period, boxes: VatReturnBoxes): Promise<void>;
+  /** One conditional upsert: a confirmed row is left alone unless `reopen` is set. */
+  saveDraft(userId: string, period: Period, boxes: VatReturnBoxes, reopen: boolean): Promise<void>;
   /** Stores the snapshot as confirmed and writes the audit event in one transaction. */
   confirm(userId: string, period: Period, boxes: VatReturnBoxes, now: Date): Promise<void>;
 }
@@ -71,6 +74,10 @@ export function periodFromQuery(url: URL): Period {
 const boxKeys = ['box1', 'box2', 'box3', 'box4', 'box5', 'box6', 'box7', 'box8', 'box9'] as const;
 const sameBoxes = (a: VatReturnBoxes, b: VatReturnBoxes) => boxKeys.every((key) => a[key] === b[key]);
 
+function matchesConfirmation(draft: SavedDraft, period: Period, boxes: VatReturnBoxes) {
+  return draft.periodStart === period.start && draft.periodEnd === period.end && sameBoxes(boxes, draft.boxes);
+}
+
 async function recompute(store: VatReturnStore, userId: string, period: Period) {
   const lines = await store.loadLedgerLines(userId, period);
   return { lines, boxes: buildVatReturnFromLedger(lines, period) };
@@ -81,21 +88,23 @@ export async function getReturnReview(store: VatReturnStore, userId: string, per
     recompute(store, userId, period),
     store.findDraft(userId, period.periodKey),
   ]);
+  const boxLines = boxKeys.map((_, index) => linesForBox(lines, period, (index + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9));
   const drillDown = Object.fromEntries(
     boxKeys.map((key, index) => [
       key,
-      linesForBox(lines, period, (index + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9)
-        .slice(0, DRILL_DOWN_LINES_PER_BOX)
-        .map((line) => ({
-          lineId: (line as DrillLine).lineId,
-          date: line.date,
-          amountPence: line.amountPence,
-          vatPence: line.vatPence,
-          description: (line as DrillLine).description,
-        })),
+      boxLines[index].slice(0, DRILL_DOWN_LINES_PER_BOX).map((line) => ({
+        lineId: (line as DrillLine).lineId,
+        date: line.date,
+        amountPence: line.amountPence,
+        vatPence: line.vatPence,
+        description: (line as DrillLine).description,
+      })),
     ]),
   );
-  return { boxes, drillDown, status: draft?.status ?? null, confirmedAt: draft?.confirmedAt ?? null };
+  // Lets the UI say when a drill-down list is cut short and so will not sum to its box.
+  const drillDownTotals = Object.fromEntries(boxKeys.map((key, index) => [key, boxLines[index].length]));
+  const stale = draft?.status === 'confirmed' && !matchesConfirmation(draft, period, boxes);
+  return { boxes, drillDown, drillDownTotals, status: draft?.status ?? null, confirmedAt: draft?.confirmedAt ?? null, stale };
 }
 
 export async function saveReturnDraft(store: VatReturnStore, userId: string, period: Period, reopen: boolean) {
@@ -104,7 +113,7 @@ export async function saveReturnDraft(store: VatReturnStore, userId: string, per
     throw new VatReturnError(409, 'ALREADY_CONFIRMED', 'Return is already confirmed; reopen it to edit');
   }
   const { boxes } = await recompute(store, userId, period);
-  await store.saveDraft(userId, period, boxes);
+  await store.saveDraft(userId, period, boxes, reopen);
   return { boxes, status: 'draft' as const };
 }
 
@@ -128,8 +137,8 @@ export async function requireConfirmedReturn(
     throw new VatReturnError(409, 'NOT_CONFIRMED', 'VAT return has not been confirmed');
   }
   const { boxes } = await recompute(store, userId, period);
-  if (!sameBoxes(boxes, draft.boxes)) {
-    throw new VatReturnError(409, 'STALE_CONFIRMATION', 'Ledger changed since confirmation; confirm again');
+  if (!matchesConfirmation(draft, period, boxes)) {
+    throw new VatReturnError(409, 'STALE_CONFIRMATION', 'Ledger or period changed since confirmation; confirm again');
   }
   return draft.boxes;
 }
@@ -188,6 +197,8 @@ export const databaseStore: VatReturnStore = {
     if (!row) return undefined;
     return {
       status: row.status,
+      periodStart: row.periodStart,
+      periodEnd: row.periodEnd,
       confirmedAt: row.confirmedAt?.toISOString() ?? null,
       boxes: {
         box1: row.box1Pence,
@@ -203,9 +214,11 @@ export const databaseStore: VatReturnStore = {
     };
   },
 
-  async saveDraft(userId, period, boxes) {
+  async saveDraft(userId, period, boxes, reopen) {
     const values = {
       ...boxColumns(boxes),
+      periodStart: period.start,
+      periodEnd: period.end,
       status: 'draft' as const,
       declarationAcceptedAt: null,
       confirmedAt: null,
@@ -213,13 +226,19 @@ export const databaseStore: VatReturnStore = {
     };
     await db
       .insert(vatReturnDrafts)
-      .values({ userId, periodKey: period.periodKey, periodStart: period.start, periodEnd: period.end, ...values })
-      .onConflictDoUpdate({ target: [vatReturnDrafts.userId, vatReturnDrafts.periodKey], set: values });
+      .values({ userId, periodKey: period.periodKey, ...values })
+      .onConflictDoUpdate({
+        target: [vatReturnDrafts.userId, vatReturnDrafts.periodKey],
+        set: values,
+        setWhere: reopen ? undefined : ne(vatReturnDrafts.status, 'confirmed'),
+      });
   },
 
   async confirm(userId, period, boxes, now) {
     const values = {
       ...boxColumns(boxes),
+      periodStart: period.start,
+      periodEnd: period.end,
       status: 'confirmed' as const,
       declarationAcceptedAt: now,
       confirmedAt: now,
@@ -228,7 +247,7 @@ export const databaseStore: VatReturnStore = {
     await db.transaction(async (tx) => {
       const [row] = await tx
         .insert(vatReturnDrafts)
-        .values({ userId, periodKey: period.periodKey, periodStart: period.start, periodEnd: period.end, ...values })
+        .values({ userId, periodKey: period.periodKey, ...values })
         .onConflictDoUpdate({ target: [vatReturnDrafts.userId, vatReturnDrafts.periodKey], set: values })
         .returning({ id: vatReturnDrafts.id });
       await tx.insert(auditEvents).values({

@@ -34,11 +34,12 @@ function makeStore(ledger: Record<string, DrillLine[]>) {
   const store: VatReturnStore = {
     loadLedgerLines: async (userId) => ledger[userId] ?? [],
     findDraft: async (userId, key) => drafts.get(`${userId}:${key}`),
-    saveDraft: async (userId, p, boxes) => {
-      drafts.set(`${userId}:${p.periodKey}`, { status: 'draft', boxes, confirmedAt: null });
+    saveDraft: async (userId, p, boxes, reopen) => {
+      if (drafts.get(`${userId}:${p.periodKey}`)?.status === 'confirmed' && !reopen) return;
+      drafts.set(`${userId}:${p.periodKey}`, { status: 'draft', periodStart: p.start, periodEnd: p.end, boxes, confirmedAt: null });
     },
     confirm: async (userId, p, boxes, now) => {
-      drafts.set(`${userId}:${p.periodKey}`, { status: 'confirmed', boxes, confirmedAt: now.toISOString() });
+      drafts.set(`${userId}:${p.periodKey}`, { status: 'confirmed', periodStart: p.start, periodEnd: p.end, boxes, confirmedAt: now.toISOString() });
       audit.push(`${userId}:vat_return.confirmed`);
     },
   };
@@ -154,7 +155,7 @@ describe('requireConfirmedReturn', () => {
 
   it('rejects a draft', async () => {
     const { store } = makeStore({ user_a: sales });
-    await store.saveDraft('user_a', period, { box1: 0, box2: 0, box3: 0, box4: 0, box5: 0, box6: 0, box7: 0, box8: 0, box9: 0 });
+    await store.saveDraft('user_a', period, { box1: 0, box2: 0, box3: 0, box4: 0, box5: 0, box6: 0, box7: 0, box8: 0, box9: 0 }, false);
     await expect(requireConfirmedReturn('user_a', period, store)).rejects.toBeInstanceOf(VatReturnError);
   });
 
@@ -170,5 +171,39 @@ describe('requireConfirmedReturn', () => {
     const { store } = makeStore({ user_a: sales });
     await call(vatConfirmHandler(store), confirmPost('a', { ...period, declaration: true }));
     await expect(requireConfirmedReturn('user_b', period, store)).rejects.toMatchObject({ code: 'NOT_CONFIRMED' });
+  });
+
+  it('rejects a confirmation made for different period dates under the same key', async () => {
+    const { store } = makeStore({ user_a: sales });
+    await call(vatConfirmHandler(store), confirmPost('a', { ...period, declaration: true }));
+    await expect(
+      requireConfirmedReturn('user_a', { ...period, end: '2026-04-30' }, store),
+    ).rejects.toMatchObject({ code: 'STALE_CONFIRMATION' });
+  });
+});
+
+describe('review of a confirmed return', () => {
+  const review = async (shared: ReturnType<typeof makeStore>) => {
+    const res = await withAuth(vatReturnHandler(shared.store), authDeps)(
+      new Request(`https://x.test/api/vat/return?${new URLSearchParams(period)}`, {
+        headers: { authorization: 'Bearer a' },
+      }),
+    );
+    return (await res.json()).data;
+  };
+
+  it('flags a confirmation as stale once the ledger changes', async () => {
+    const shared = makeStore({ user_a: [...sales] });
+    await call(vatConfirmHandler(shared.store), confirmPost('a', { ...period, declaration: true }));
+    expect((await review(shared)).stale).toBe(false);
+    shared.ledger.user_a.push(line('s2', 'income', -500, -100));
+    expect((await review(shared)).stale).toBe(true);
+  });
+
+  it('reports the full line count when the drill-down is cut short', async () => {
+    const many = Array.from({ length: 60 }, (_, index) => line(`s${index}`, 'income', -100, -20));
+    const data = await review(makeStore({ user_a: many }));
+    expect(data.drillDown.box1).toHaveLength(50);
+    expect(data.drillDownTotals.box1).toBe(60);
   });
 });

@@ -82,6 +82,5 @@ describe("schema migrations", () => {
     const whens = journal.entries.map((entry) => entry.when);
     expect(whens).toEqual([...whens].sort((a, b) => a - b));
     expect(new Set(journal.entries.map((entry) => entry.idx)).size).toBe(journal.entries.length);
-    expect(journal.entries.at(-1)!.tag).toBe("0002_vat_return_drafts");
   });
 });

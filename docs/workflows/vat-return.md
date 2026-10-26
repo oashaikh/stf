@@ -26,8 +26,8 @@ do tax arithmetic themselves.
    - **Stale rule:** If the ledger changes after confirmation, the submission gate `requireConfirmedReturn`
      (in `api/_lib/vatReturns.ts`) throws `STALE_CONFIRMATION`. The user must review and confirm
      again. This prevents silent mismatches between what was confirmed and what is submitted.
-   - **Submission gate:** `requireConfirmedReturn(userId, periodKey)` is called by STF-19 (the submit
-     endpoint). It verifies the return is confirmed and the boxes still match the ledger. Without
+   - **Submission gate:** `requireConfirmedReturn(userId, period, store?)` is called by STF-19 (the submit
+     endpoint). `period` is the full `{ periodKey, start, end }`. It verifies the return is confirmed, the stored dates equal `period`, and the boxes still match the ledger. Without
      this gate, no VAT return may be submitted to HMRC.
 5. At submission only, `boxesToHmrcPayload` converts pence to pounds.
 

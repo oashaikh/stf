@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildFraudHeaders, vendorVersion } from './fraudHeaders';
+import { readFileSync } from 'node:fs';
+import { buildFraudHeaders, PACKAGE_VERSION, vendorVersion } from './fraudHeaders';
 
 const now = new Date('2026-10-26T09:30:00.123Z');
 
@@ -72,5 +73,12 @@ describe('vendorVersion', () => {
 
   it('appends the short commit when present', () => {
     expect(vendorVersion('0123456789abcdef')).toMatch(/^\d+\.\d+\.\d+\+0123456$/);
+  });
+});
+
+describe('PACKAGE_VERSION', () => {
+  it('matches package.json', () => {
+    const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
+    expect(PACKAGE_VERSION).toBe(version);
   });
 });

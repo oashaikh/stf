@@ -5,8 +5,6 @@
  * See: https://developer.service.hmrc.gov.uk/guides/fraud-prevention/
  */
 
-import packageJson from '../../../package.json';
-
 export type FraudHeaderInput = {
   request: Request;
   /** Internal STF user id. Never an email address. */
@@ -19,6 +17,10 @@ export type FraudHeaderInput = {
 
 const PRODUCT_NAME = 'stf';
 
+// A bare JSON import throws ERR_IMPORT_ASSERTION_TYPE_MISSING under native Node ESM, which the API
+// functions may run as, so the version is a constant. A test fails if it drifts from package.json.
+export const PACKAGE_VERSION = '0.1.0';
+
 /**
  * The version sent as Gov-Vendor-Version: the package.json version, plus the short commit when known.
  * A CLI deploy sets VERCEL_GIT_COMMIT_SHA to an empty string, which `??` keeps, and HMRC rejects an
@@ -26,7 +28,7 @@ const PRODUCT_NAME = 'stf';
  */
 export function vendorVersion(commitSha: string | undefined = process.env.VERCEL_GIT_COMMIT_SHA): string {
   const shortSha = commitSha?.trim().slice(0, 7);
-  return shortSha ? `${packageJson.version}+${shortSha}` : packageJson.version;
+  return shortSha ? `${PACKAGE_VERSION}+${shortSha}` : PACKAGE_VERSION;
 }
 
 // HMRC wants every value percent-encoded; encodeURIComponent leaves !'()* alone.

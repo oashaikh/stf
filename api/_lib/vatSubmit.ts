@@ -95,8 +95,9 @@ export async function submitVatReturnForUser(
 
   // The client picks the period, so only HMRC's own list of this user's open obligations can authorise it.
   // Checked before the claim so a lookup failure leaves nothing pending. No status filter is sent: the
-  // obligations list the user sees is unfiltered, and the sandbox's static data answers a status=O query
-  // differently (the period it listed as open came back missing). Status is checked locally instead.
+  // obligations list the user sees is unfiltered, and in the live sandbox test a status=O query for the
+  // same dates did not return the period that list showed as open. Why HMRC differs is not established; status is
+  // checked locally instead, which does not depend on it.
   let openObligations;
   try {
     ({ obligations: openObligations } = await callHmrc((accessToken) =>

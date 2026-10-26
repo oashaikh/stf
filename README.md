@@ -25,7 +25,7 @@ Data lives in the `postgres_data` and `minio_data` Docker volumes and survives
 `docker compose down` and restarts. `docker compose down -v` wipes both. The MinIO
 console is at http://localhost:9001 (minioadmin / minioadmin, local only).
 
-In a second terminal (for the control plane — scheduled jobs, HMRC token refresh):
+In a second terminal (local control plane, only needed to run the scheduled jobs such as HMRC token refresh locally; on Vercel they run through Vercel Cron):
 
 ```bash
 npm run dev:server
@@ -40,7 +40,7 @@ npm run dev:server
 - **VAT returns** — builds the nine MTD boxes from your transactions; submit to HMRC in one click
 - **Income tax estimate** — running P&L with an estimated self-assessment figure
 - **Bank feed** — import transactions from your bank (Phase 3; requires Open Banking provider key)
-- **HMRC direct integration** — VAT, Income Tax self-employment updates, and Corporation Tax (Phase 5)
+- **HMRC direct integration** — VAT today; Income Tax self-employment updates (Phase 3)
 
 ---
 
@@ -64,6 +64,12 @@ See `.env.example` for the full list with instructions.
 ## HMRC sandbox
 
 HMRC sandbox mode is **on by default**. No live submissions happen until you explicitly set `HMRC_SANDBOX_MODE=false` in your env AND enable production mode in your account Settings. Test freely.
+
+---
+
+## Hosting
+
+STF runs on Vercel serverless routes in the `api/` folder (London region), with Neon Postgres in London. Login is a single owner password and a signed session cookie; there is no sign-up. Scheduled jobs run through Vercel Cron.
 
 ---
 
@@ -100,5 +106,4 @@ See `PLAN.md` for the full phase-by-phase roadmap.
 - **Phase 2** — VAT returns + HMRC MTD submission
 - **Phase 3** — Income Tax self-assessment via MTD
 - **Phase 4** — Bank feed import and reconciliation
-- **Phase 5** — Corporation Tax for limited companies
-- **Phase 6** — Advanced automation (email receipt ingestion, anomaly detection)
+- **Phase 5** — Advanced automation (email receipt ingestion, anomaly detection)

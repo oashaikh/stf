@@ -65,7 +65,7 @@
   - Risk: opus/high: login endpoint, brute-force defence and cookie issuance.
   - Commit: `4a26658de344`
 
-- [ ] **Task 4: Replace Clerk in the frontend with cookie auth, login page and sign-out** (after 3)
+- [x] **Task 4: Replace Clerk in the frontend with cookie auth, login page and sign-out** (after 3)
   - Intent: Remove ClerkProvider from main.tsx; App.tsx decides signed-in state by calling a cookie-authenticated GET /api/me (credentials same-origin) via react-query, showing a loading state, then the routes or the login page. Replace SignInPage with a plain LoginPage (labelled password input, submit button, error and lockout messages, using shared tokens, 44px targets, focus states) posting to /api/auth/login. AppShell gets a Sign out item (desktop and phone More) that POSTs /api/auth/logout and returns to login. Drop the token parameter from settingsApi.ts, vatApi.ts and the pages/hooks (VatPage, SettingsPage, useVatHistory, useVatObligations), sending credentials: 'same-origin' instead of Authorization. The HMRC fraud prevention user id already comes from the server's auth.userId (the owner row), so no header code changes beyond removing Bearer. Update the tests that mock @clerk/clerk-react.
   - Files: `src/main.tsx`, `src/App.tsx`, `src/pages/SignInPage.tsx`, `src/pages/LoginPage.tsx`, `src/pages/LoginPage.test.tsx`, `src/components/AppShell.tsx`, `src/components/AppShell.test.tsx`, `src/lib/hmrc/settingsApi.ts`, `src/lib/hmrc/vatApi.ts`, `src/lib/hmrc/vatApi.test.ts`, `src/pages/VatPage.tsx`, `src/pages/VatPage.test.tsx`, `src/pages/SettingsPage.tsx`, `src/pages/SettingsPage.test.tsx`, `src/pages/useVatHistory.ts`, `src/pages/useVatObligations.ts`, `src/pages/VatHistoryList.test.tsx`, `src/pages/VatObligationsList.test.tsx`, `src/model/types.ts`
   - Acceptance criteria the planner set:
@@ -73,6 +73,7 @@
     - No request sends an Authorization bearer header to /api/*; fetches use credentials same-origin
     - Login page renders a password field and button; wrong-password and locked messages show; sign out calls logout and shows the login page
     - lint, typecheck, test, build pass
+  - Commit: `8264f031f8b8`
 
 - [ ] **Task 5: Remove Clerk packages, env vars and docs; add OWNER_PASSWORD and SESSION_SECRET** (after 4)
   - Intent: Uninstall @clerk/backend and @clerk/clerk-react from package.json and package-lock.json (lockfile edit only, no other upgrades note in PR). In .env.example drop the Clerk block and add OWNER_PASSWORD= and SESSION_SECRET= with no values and a generation hint. Update docs/runbooks/vercel-deploy.md (remove Clerk vars and the 'Clerk allowed origins' section, add the two new vars and 'reset password by changing OWNER_PASSWORD'), and the Clerk mentions in README.md, CLAUDE.md-independent docs AI.md, architectures.md, PLAN.md. Confirm envExample.test.ts passes.

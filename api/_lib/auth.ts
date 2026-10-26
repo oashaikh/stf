@@ -29,7 +29,7 @@ export interface AuthIdentity {
 
 export class UnauthorizedError extends Error {}
 
-const databaseUsers: UserStore = {
+export const databaseUsers: UserStore = {
   async findId(issuerUserId) {
     const [row] = await db.select({ id: users.id }).from(users).where(eq(users.clerkUserId, issuerUserId)).limit(1);
     return row?.id;

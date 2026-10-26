@@ -4,7 +4,7 @@ vi.mock('../db', () => ({ db: {} }));
 
 import { createEntriesHandler } from '../../entries';
 import type { AuthDeps } from '../auth';
-import type { Entry, EntryStore, PostingContext } from '../entries';
+import type { Entry, EntryListRow, EntryStore, PostingContext } from '../entries';
 import { getReturnReview, type DrillLine, type VatReturnStore } from '../vatReturns';
 
 const authDeps: AuthDeps = {
@@ -51,9 +51,6 @@ describe('entries route', () => {
     async get(userId, entryId) {
       return saved.find((entry) => entry.userId === userId && entry.id === entryId && !entry.voidedAt);
     },
-    async list() {
-      return [];
-    },
     async isDateLocked(_userId, date) {
       return lockedPeriods.some((period) => date >= period.start && date <= period.end);
     },
@@ -80,6 +77,18 @@ describe('entries route', () => {
       audits.push(`${userId}:entry.confirm`);
       return found;
     },
+    async list(userId) {
+      return saved
+        .filter((entry) => entry.userId === userId)
+        .reverse()
+        .map(({ lines, id, date, description, reference, status }): EntryListRow => {
+          const category = lines.find((line) => line.accountId in accountTypes)!;
+          const vatPence = Math.abs(category.vatPence);
+          const netPence = Math.abs(category.amountPence);
+          const kind = accountTypes[category.accountId];
+          return { id, date, description, reference, kind, categoryAccountId: category.accountId, categoryName: kind, grossPence: netPence + vatPence, netPence, vatPence, status, hasReceipt: false };
+        });
+    },
   };
   const call = (method: string, body?: unknown, userId?: string, query = '') =>
     createEntriesHandler(store, authDeps, () => NOW)(
@@ -95,6 +104,23 @@ describe('entries route', () => {
     saved = [];
     audits = [];
     lockedPeriods = [];
+  });
+
+  it('lists only the signed-in owner\'s entries, newest first', async () => {
+    await call('POST', valid, 'owner');
+    await call('POST', { ...valid, description: 'Second' }, 'owner');
+    await call('POST', { ...valid, description: 'Not yours' }, 'someone-else');
+    const { entries } = await (await call('GET', undefined, 'owner')).json();
+    expect(entries.map((entry: Entry) => entry.description)).toEqual(['Second', 'Train to client']);
+  });
+
+  it('names the field a refusal belongs to', async () => {
+    const badAmount = await (await call('POST', { ...valid, amountPence: -5 }, 'owner')).json();
+    expect(badAmount.fields).toEqual(['amountPence']);
+    const wrongKind = await (await call('POST', { ...valid, categoryAccountId: SALES }, 'owner')).json();
+    expect(wrongKind.fields).toEqual(['categoryAccountId']);
+    const farFuture = await (await call('POST', { ...valid, date: '2026-03-01' }, 'owner')).json();
+    expect(farFuture.fields).toEqual(['date']);
   });
 
   it('creates a confirmed manual entry with lines built by the posting rules', async () => {

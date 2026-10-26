@@ -3,8 +3,10 @@ import { z } from 'zod';
 import { withAuth, type AuthDeps } from './_lib/auth.js';
 import { confirmEntry, createEntry, decodeCursor, entryListQuerySchema, listEntries, editEntry, voidEntry, databaseEntryStore, EntryRuleError, newEntrySchema, type EntryStore } from './_lib/entries.js';
 
-const refuse = (status: number, error: string, code: string) => Response.json({ ok: false, error, code }, { status });
+const refuse = (status: number, error: string, code: string, fields: string[] = []) =>
+  Response.json({ ok: false, error, code, fields }, { status });
 const confirmBodySchema = z.object({ status: z.literal('confirmed') });
+const issueFields = (error: z.ZodError) => [...new Set(error.issues.map((issue) => String(issue.path[0])))];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function createEntriesHandler(store: EntryStore = databaseEntryStore, authDeps?: AuthDeps, now: () => Date = () => new Date()) {
@@ -13,7 +15,7 @@ export function createEntriesHandler(store: EntryStore = databaseEntryStore, aut
       try {
         return await work();
       } catch (error) {
-        if (error instanceof EntryRuleError) return refuse(error.status, error.message, error.code);
+        if (error instanceof EntryRuleError) return refuse(error.status, error.message, error.code, error.field ? [error.field] : []);
         throw error;
       }
     };
@@ -22,7 +24,7 @@ export function createEntriesHandler(store: EntryStore = databaseEntryStore, aut
 
     if (request.method === 'POST') {
       const parsed = newEntrySchema.safeParse(await readBody());
-      if (!parsed.success) return refuse(400, 'Invalid entry', 'BAD_REQUEST');
+      if (!parsed.success) return refuse(400, 'Invalid entry', 'BAD_REQUEST', issueFields(parsed.error));
       return run(async () => Response.json({ ok: true, entry: await createEntry(store, auth.userId, parsed.data, now()) }));
     }
 
@@ -46,7 +48,7 @@ export function createEntriesHandler(store: EntryStore = databaseEntryStore, aut
 
     if (request.method === 'PUT') {
       const parsed = newEntrySchema.safeParse(await readBody());
-      if (!parsed.success) return refuse(400, 'Invalid entry', 'BAD_REQUEST');
+      if (!parsed.success) return refuse(400, 'Invalid entry', 'BAD_REQUEST', issueFields(parsed.error));
       return run(async () => Response.json({ ok: true, entry: await editEntry(store, auth.userId, entryId, parsed.data, now()) }));
     }
 

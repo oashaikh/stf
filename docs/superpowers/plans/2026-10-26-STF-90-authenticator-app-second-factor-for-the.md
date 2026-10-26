@@ -65,7 +65,7 @@
   - Risk: Opus high: authentication and secret handling.
   - Commit: `3caa35902ca9`
 
-- [ ] **Task 4: Send Gov-Client-Multi-Factor from the session record** (after 2)
+- [x] **Task 4: Send Gov-Client-Multi-Factor from the session record** (after 2)
   - Intent: Replace the deliberate omission in src/lib/hmrc/fraudHeaders.ts. Add an optional secondFactor input ({type, time, uniqueReference hash}) to FraudHeaderInput and emit Gov-Client-Multi-Factor in HMRC's format: type=TOTP&timestamp=<ISO 8601 UTC>&unique-reference=<hash>, each value percent-encoded via encodeValue, only when the session carries a record (omitted for password-only sessions). api/_lib/hmrcCall.ts requestFraudHeaders (the one assembly point used by submit, preview, obligations and the check) reads the record from the request's session cookie so every caller gets it. Update the fraudHeadersCheck flow if it enumerates expected headers. Update docs/fraud-prevention-headers.md and drop the now-wrong comment. Tests: exact header string, header absent without a second factor, value encoding, and that it appears via requestFraudHeaders for a TOTP session.
   - Files: `src/lib/hmrc/fraudHeaders.ts`, `src/lib/hmrc/fraudHeaders.test.ts`, `api/_lib/hmrcCall.ts`, `api/_lib/fraudHeadersCheck.ts`, `api/_lib/__tests__/fraudHeadersCheck.test.ts`, `api/_lib/__tests__/hmrc.test.ts`, `docs/fraud-prevention-headers.md`
   - Acceptance criteria the planner set:
@@ -75,6 +75,7 @@
     - The raw unique reference never appears; only its hash
     - lint, typecheck, test, build pass
   - Risk: Sonnet medium: pure header formatting, but touches the file STF-89 changed; merge dev in first.
+  - Commit: `62179c35c4a3`
 
 - [ ] **Task 5: Login page asks for the code after the password** (after 2)
   - Intent: Update src/lib/session.ts signIn to return a 'code-required' outcome, add a submitMfaCode call to /api/auth/mfa, and update src/pages/LoginPage.tsx with a second step: label, numeric one-time-code input (autocomplete one-time-code, inputmode numeric), a link to use a recovery code instead, locked and wrong-code messages from the shared error components, and navigation to the Dashboard on success. Use existing tokens and 44px tap targets, keyboard path and focus state. Component tests with the API mocked: password then code lands on Dashboard, wrong code shows error, locked state shown.

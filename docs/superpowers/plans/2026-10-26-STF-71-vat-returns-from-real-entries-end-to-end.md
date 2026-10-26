@@ -85,12 +85,13 @@ Also depends on:
   - Risk: VatPage.tsx is shared with other VAT tickets; keep hunks local.
   - Commit: `768a3e14d22c`
 
-- [ ] **Task 4: Update docs/workflows/vat-return.md on how entries reach the return** (after 2, 3)
+- [x] **Task 4: Update docs/workflows/vat-return.md on how entries reach the return** (after 2, 3)
   - Intent: Document the path: an entry is created through the posting rules, only confirmed or reconciled non-deleted entries are counted by loadLedgerLines, period dates are inclusive, entry lines map to boxes 1 to 9, how a refund shows in box 5, edit after confirming makes the confirmation stale, the STF-66 period lock after filing, the preview payload fields, and the drill-down link to the Expenses page and its filter query. Must match the code as built.
   - Files: `docs/workflows/vat-return.md`
   - Acceptance criteria the planner set:
     - Doc covers entry to box flow, boundaries, stale and lock behaviour, preview and the drill-down link
     - Statements match the tests in vatFromEntries.test.ts
+  - Commit: `dcbeedbad693`
 
 - [ ] **Task 5: E2E journey with the real add-entry form, plus screenshots at 390 and 1440 px** (after 3)
   - Intent: Extend e2e/mockApi.ts so entries created through the STF-67 form on /expenses are held by the mock and flow into the VAT review (box 1, box 6, drill-down line with transactionId) and the preview (vatDueSales, totalValueSalesExVAT). Add a journey step to e2e/journey.spec.ts: sign in, open Expenses, use the real Add entry form to add an income entry with 20% VAT dated inside the open period, open VAT, assert box 1 and box 6, expand the drill-down and assert the line and its link, click Preview what will be sent and assert vatDueSales and totalValueSalesExVAT. Capture screenshots of the VAT page, drill-down and preview at 390 and 1440 px, light, committed as browser-evidence/STF-71/<width>-light-<step>.png. Invented data only.

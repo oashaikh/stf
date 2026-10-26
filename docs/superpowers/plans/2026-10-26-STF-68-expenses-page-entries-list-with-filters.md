@@ -120,3 +120,7 @@ Also depends on:
 - [x] **Task 7: Fix: address 10 review findings (cycle 2)** (after 6)
   - Intent: Review left 10 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. Filters map to request params, load more uses the cursor and appends, void asks first and keeps the row visible as Voided, and P The agent is fixing them; nothing is needed from you.
   - Commit: `0693a2f0ebd6`
+
+- [x] **Task 8: Fix: address 7 review findings (cycle 3)** (after 7)
+  - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Fix one bug: a locked-period refusal on the edit form also shows "Could not save the entry. Please try again." under the locked message. The 390 px overflow from last cycl The agent is fixing them; nothing is needed from you.
+  - Commit: `aaa2e6e604ba`

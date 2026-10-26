@@ -114,3 +114,7 @@
 - [x] **Task 9: Fix: address 15 review findings (cycle 1)** (after 8)
   - Intent: Review left 15 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The server side holds up: the signed session token, the challenge cookie, the step-reuse check, recovery-code single use, the shared lockout and the header format all trac The agent is fixing them; nothing is needed from you.
   - Commit: `efab0b5bbf2c`
+
+- [x] **Task 10: Fix: address 12 review findings (cycle 2)** (after 9)
+  - Intent: Review left 12 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. The login code step now resets on an expired challenge, and a test covers that. The start and confirm responses carry Cache-Cont The agent is fixing them; nothing is needed from you.
+  - Commit: `fc5b578b2d1d`

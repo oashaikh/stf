@@ -1,9 +1,11 @@
 import { buildFraudHeaders, vendorVersion } from '../../src/lib/hmrc/fraudHeaders.js';
 import { HmrcError, refreshAccessToken, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
+import { readSecondFactor } from './ownerSession.js';
 import type { HmrcCredentials, HmrcStore } from './hmrcStore.js';
 
 /** The one place the fraud-header inputs are assembled, so submit, preview, obligations and the check send the same set. */
 export function requestFraudHeaders(request: Request, userId: string, now: Date): Record<string, string> {
+  const secondFactor = readSecondFactor(request, now);
   return buildFraudHeaders({
     request,
     userId,
@@ -11,6 +13,9 @@ export function requestFraudHeaders(request: Request, userId: string, now: Date)
     vendorPublicIp: process.env.HMRC_VENDOR_PUBLIC_IP,
     vendorLicenseId: process.env.HMRC_VENDOR_LICENSE_ID,
     now,
+    secondFactor: secondFactor
+      ? { type: secondFactor.type, time: secondFactor.authenticatedAt, uniqueReference: secondFactor.referenceHash }
+      : undefined,
   });
 }
 

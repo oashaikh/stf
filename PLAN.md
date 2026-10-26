@@ -57,6 +57,7 @@ Milestone checklist:
 - [x] Project scaffold
 - [x] Database schema + migrations (Drizzle)
 - [x] Auth — single-owner password login
+- [x] Authenticator-app second factor (TOTP) with recovery codes; feeds `Gov-Client-Multi-Factor`
 - [ ] Chart of accounts (seeded defaults, user-editable)
 - [ ] Manual transaction entry (income + expense)
 - [ ] Receipt upload (image/PDF)
@@ -330,7 +331,7 @@ stf/
 │
 ├── api/                         # Vercel serverless routes (London region)
 │   ├── _lib/                    # Shared API code: auth.ts, db.ts, VAT and HMRC helpers
-│   ├── auth/                    # login.ts, logout.ts
+│   ├── auth/                    # login.ts, mfa.ts, logout.ts
 │   ├── cron/                    # refresh-hmrc-tokens.ts (Vercel Cron)
 │   ├── hmrc/                    # connect.ts, callback.ts, mode.ts, status.ts
 │   ├── vat/                     # obligations.ts, preview.ts, filed.ts, history.ts, submit.ts

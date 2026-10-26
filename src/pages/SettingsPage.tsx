@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import ChartOfAccountsSection from './ChartOfAccountsSection';
+import AuthenticatorSection from './AuthenticatorSection';
 import { LegalLinks } from './LegalPages';
 import {
   describeHmrcStatus,
@@ -313,6 +314,7 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
+      <AuthenticatorSection />
       <ChartOfAccountsSection />
       <section className="mt-6 max-w-xl" aria-labelledby="legal-heading">
         <h2 id="legal-heading" className="text-lg font-semibold text-gray-900">Privacy and terms</h2>

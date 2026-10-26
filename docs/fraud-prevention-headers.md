@@ -27,7 +27,7 @@ STF uses the `WEB_APP_VIA_SERVER` connection method, where a web application (th
 
 **Wording for the HMRC production application:** STF runs on Vercel serverless functions, which expose the client's IP in `x-vercel-forwarded-for` but not its source port. `x-forwarded-port` is the server port (443) and HMRC says it must not be sent. We therefore cannot send `Gov-Client-Public-Port`.
 
-**NOT sent:** `Gov-Client-Multi-Factor` — HMRC specifies this header only when multi-factor authentication is used. STF uses password-only authentication, so this header is omitted.
+**Gov-Client-Multi-Factor:** sent as `type=TOTP&timestamp=<ISO 8601 UTC>&unique-reference=<SHA-256 hex>` (each value percent-encoded) when the owner signed in with the authenticator-app second factor. The timestamp and the hashed reference come from the signed session cookie, so every HMRC call path sends them. A password-only session omits the header, as HMRC specifies it only when multi-factor authentication is used. The raw reference is never stored or sent.
 
 ## Vendor IP and licence id configuration
 

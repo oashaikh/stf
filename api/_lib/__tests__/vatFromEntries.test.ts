@@ -87,7 +87,7 @@ describe('VAT return from real entries', () => {
   };
 
   // Reads the same saved rows the entry store writes, the way the database store joins lines to accounts.
-  const vatStore = {
+  const partialVatStore: Partial<VatReturnStore> = {
     async loadLedgerLines(userId, { start, end }) {
       return live()
         .filter((entry) => entry.userId === userId && entry.date >= start && entry.date <= end)
@@ -114,8 +114,9 @@ describe('VAT return from real entries', () => {
     async confirm(_userId, { start, end }, boxes, now) {
       draft = { status: 'confirmed', periodStart: start, periodEnd: end, boxes, confirmedAt: now.toISOString() };
     },
-  } as unknown as VatReturnStore;
+  };
 
+  const vatStore = partialVatStore as VatReturnStore;
   const call = (method: string, body?: unknown, query = '') =>
     createEntriesHandler(entryStore, authDeps, () => NOW)(
       new Request(`https://app.test/api/entries${query}`, {

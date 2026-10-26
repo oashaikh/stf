@@ -125,10 +125,11 @@ Add a mocked-fetch test in SettingsPage.test.tsx that renders a result with an e
     - Screenshots at 390 and 1440 px exist
     - npm run lint, typecheck, test and build pass
 
-- [ ] **Task 5: Document the check and the header set** (after 1, 4)
+- [x] **Task 5: Document the check and the header set** (after 1, 4)
   - Intent: Update docs/workflows/vat-return.md and docs/runbooks/vercel-deploy.md. Cover the full header table for WEB_APP_VIA_SERVER, the new env vars, how to run the check from Settings, and the multi-factor decision (password-only, header omitted). Add a note in docs/ on HMRC_VENDOR_PUBLIC_IP and the licence ids. Docs only.
   - Files: `docs/workflows/vat-return.md`, `docs/runbooks/vercel-deploy.md`
   - Acceptance criteria the planner set:
     - Docs list every header with its source
     - New env vars are documented
     - npm run lint, typecheck, test and build still pass
+  - Commit: `edf54e27a952`

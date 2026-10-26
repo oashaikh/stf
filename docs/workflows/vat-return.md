@@ -30,6 +30,24 @@ do tax arithmetic themselves.
      endpoint). `period` is the full `{ periodKey, start, end }`. It verifies the return is confirmed, the stored dates equal `period`, and the boxes still match the ledger. Without
      this gate, no VAT return may be submitted to HMRC.
 5. At submission only, `boxesToHmrcPayload` converts pence to pounds.
+6. **Submission:** `POST /api/vat/submit` with `{ periodKey, start, end, confirm: true }` files the confirmed return
+   to HMRC (or the sandbox). The submission flow:
+   - **Confirmed gate:** Verifies the return is confirmed and the ledger still matches (calls `requireConfirmedReturn`).
+   - **Dual mode check:** Requires both `HMRC_SANDBOX_MODE` environment variable and the user's Settings opt-in to agree.
+     This blocks live filing on either switch alone.
+   - **Idempotency claim:** Inserts a row into `vatSubmissions` with status `pending`. The unique index on
+     `(user_id, period_key, sandbox)` ensures only one submission claim per period per mode. A concurrent request
+     gets `ALREADY_SUBMITTED`. A request after a failed claim may flip the status back to `pending` to retry.
+   - **HMRC filing:** Sends the payload, boxes, fraud headers (including user agent, device fingerprint, and vendor version),
+     and tokens to HMRC. All HMRC tokens are decrypted in-memory only; they never appear in logs or audit trails.
+   - **Outcome handling:** On HMRC success, writes `vat_return.submitted` audit event with the form bundle number,
+     processing date, request payload, response, and fraud headers (authorization header excluded). On HMRC 4xx error
+     (client mistake), marks the claim `failed` and writes `vat_return.submit_failed`. On HMRC 5xx or network failure,
+     keeps the claim `pending` because the outcome is ambiguous: HMRC may have processed the return even if the response failed.
+   - **Receipt storage:** The receipt is the form bundle number and processing date from HMRC. Both are stored on the
+     `vatSubmissions` row when the claim transitions to `submitted`.
+   - **Response:** Returns `{ ok: true, data: { formBundleNumber, processingDate, sandbox } }`. The `sandbox` flag tells
+     the UI whether this was filed to the sandbox or live.
 
 ## What counts
 
@@ -61,6 +79,40 @@ and 7. The loader must not take absolute values.
 
 A period with no qualifying lines gives all nine boxes as 0. It is a valid return and
 is covered by a test.
+
+## Submission states and recovery
+
+A period can be in one of three submission states. The `vatSubmissions` row tracks them:
+
+| State | Meaning | Recovery |
+|---|---|---|
+| `pending` | Submission was claimed but the outcome is unknown (HMRC 5xx, network failure, or in-flight). The period is locked: no new submission attempt is allowed. | Check HMRC directly. Do not resubmit; call the user to verify the return reached HMRC. If confirmed lost, ask them to contact HMRC support. |
+| `submitted` | Receipt confirmed by HMRC. The form bundle number and processing date are stored. The period is locked: no new submission attempt is allowed. | No action needed; the return is filed. |
+| `failed` | HMRC rejected the submission (4xx error, e.g. invalid box values). The claim can be retried by submitting again. | Fix the validation error and resubmit via `POST /api/vat/submit`. |
+
+**Outcome unknown:** If the submission returns code `OUTCOME_UNKNOWN`, HMRC may have processed the return despite the failed response. The claim stays `pending` to prevent double-submission. Instruct the user to:
+1. Check their HMRC account (MyVAT) for evidence of filing.
+2. If the return appears in HMRC, no action is needed (it will sync on the next obligations refresh).
+3. If the return does not appear, contact HMRC support before retrying.
+
+## Dual gates for live submission
+
+Filing goes to the sandbox by default and requires both of:
+1. Server config: `HMRC_SANDBOX_MODE=false` in the deployment environment.
+2. User opt-in: Settings → HMRC → "I authorize live filing" (stored as `users.hmrc_sandbox_mode = false`).
+
+If only one switch is set, the request fails with `MODE_MISMATCH`. Both must match exactly.
+
+## Audit events
+
+The submission process writes two audit events (action, resource type, resource id, and snapshot):
+
+| Action | Resource | Snapshot | Trigger |
+|---|---|---|---|
+| `vat_return.submitted` | `vat_submission` | Request payload, HMRC response (form bundle number + processing date), fraud headers (no auth header), period key, sandbox flag | Successful HMRC filing |
+| `vat_return.submit_failed` | `vat_submission` | Request payload, HMRC error code and status, fraud headers (no auth header), period key, sandbox flag | HMRC 4xx rejection |
+
+**Testing note:** Every test mocks the HMRC API via the `submitVatReturn` function. Live HMRC is never called in any test. Sandbox filing is tested end-to-end with mocked responses; live filing is tested only via the mode mismatch gate and does not interact with HMRC.
 
 ## Units
 

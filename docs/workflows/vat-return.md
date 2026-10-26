@@ -11,7 +11,24 @@ do tax arithmetic themselves.
 2. Load the user's transaction lines for the period, joined to the transaction (date,
    status, `deleted_at`) and account (`account_type`), as `LedgerLine[]`.
 3. Call `buildVatReturnFromLedger(lines, { start, end })`. The result is a draft.
-4. The user reviews the nine boxes and confirms. Nothing is submitted without that.
+4. Draft and confirmation: the user reviews the nine boxes and confirms.
+   - **Draft state:** `PUT /api/vat/return` with `{ periodKey, start, end, reopen?: boolean }` saves
+     a draft snapshot to `vatReturnDrafts` with status `draft`. The server recomputes the boxes
+     from the ledger every time (never trusts the client boxes). A user can leave and return to
+     review later, or reopen a confirmed return with `reopen: true`.
+   - **Server recompute:** Every request to `/api/vat/return` (both GET and PUT) recomputes the
+     boxes from the current ledger. If the UI shows stale data (a new transaction was recorded),
+     the server always uses live numbers.
+   - **Confirmation:** `POST /api/vat/return-confirm` with `{ periodKey, start, end, declaration: true }`
+     recomputes the boxes, records them with status `confirmed`, stores `confirmedAt` and
+     `declarationAcceptedAt` timestamps, and writes an audit event. Only a confirmed return may
+     be submitted.
+   - **Stale rule:** If the ledger changes after confirmation, the submission gate `requireConfirmedReturn`
+     (in `api/_lib/vatReturns.ts`) throws `STALE_CONFIRMATION`. The user must review and confirm
+     again. This prevents silent mismatches between what was confirmed and what is submitted.
+   - **Submission gate:** `requireConfirmedReturn(userId, period, store?)` is called by STF-19 (the submit
+     endpoint). `period` is the full `{ periodKey, start, end }`. It verifies the return is confirmed, the stored dates equal `period`, and the boxes still match the ledger. Without
+     this gate, no VAT return may be submitted to HMRC.
 5. At submission only, `boxesToHmrcPayload` converts pence to pounds.
 
 ## What counts

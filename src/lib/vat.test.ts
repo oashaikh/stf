@@ -3,6 +3,7 @@ import {
   boxesToHmrcPayload,
   buildVatReturnBoxes,
   buildVatReturnFromLedger,
+  linesForBox,
   grossFromNet,
   netFromGross,
   vatOnGross,
@@ -214,5 +215,46 @@ describe('boxesToHmrcPayload', () => {
   it('sends the absolute value of a refund as netVatDue', () => {
     const refund = buildVatReturnBoxes({ salesNetPence: 0, salesVatPence: 0, purchasesNetPence: 0, purchasesVatPence: 1234 });
     expect(boxesToHmrcPayload(refund, 'X', false)).toMatchObject({ netVatDue: 12.34, finalised: false });
+  });
+});
+
+describe('linesForBox', () => {
+  const ledger = [
+    line({}),
+    line({ amountPence: -5000, vatPence: -1000 }),
+    line({ accountType: 'expense', amountPence: 4000, vatPence: 800 }),
+    line({ accountType: 'asset', amountPence: 9000, vatPence: 0 }),
+    line({ status: 'voided' }),
+    line({ status: 'draft' }),
+    line({ deletedAt: '2026-08-20' }),
+    line({ date: '2026-10-01' }),
+    line({ date: '2026-06-30', accountType: 'expense', amountPence: 100, vatPence: 20 }),
+  ];
+  const boxes = buildVatReturnFromLedger(ledger, period);
+  const sum = (box: 1 | 4 | 6 | 7, pick: 'amountPence' | 'vatPence') =>
+    linesForBox(ledger, period, box).reduce((total, l) => total + l[pick], 0);
+
+  it('reproduces boxes 1, 4, 6 and 7 from the contributing lines', () => {
+    expect(-sum(1, 'vatPence')).toBe(boxes.box1);
+    expect(sum(4, 'vatPence')).toBe(boxes.box4);
+    expect(-sum(6, 'amountPence')).toBe(boxes.box6);
+    expect(sum(7, 'amountPence')).toBe(boxes.box7);
+  });
+
+  it('excludes voided, draft, deleted, out-of-period and non-income/expense lines', () => {
+    expect(linesForBox(ledger, period, 1)).toHaveLength(2);
+    expect(linesForBox(ledger, period, 4)).toHaveLength(1);
+  });
+
+  it('lists both income and expense lines for boxes 3 and 5, none for 2, 8 and 9', () => {
+    expect(linesForBox(ledger, period, 3)).toHaveLength(3);
+    expect(linesForBox(ledger, period, 5)).toHaveLength(3);
+    for (const box of [2, 8, 9] as const) expect(linesForBox(ledger, period, box)).toEqual([]);
+  });
+
+  it('gives an empty list for every box on a nil return', () => {
+    for (const box of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) {
+      expect(linesForBox([], period, box)).toEqual([]);
+    }
   });
 });

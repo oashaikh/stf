@@ -28,6 +28,8 @@ export type {
   InvoiceInsert,
   InvoiceLineRow,
   InvoiceLineInsert,
+  VatReturnDraftRow,
+  VatReturnDraftInsert,
   AuditEventRow,
   AuditEventInsert,
 } from '../../server/src/db/schema';

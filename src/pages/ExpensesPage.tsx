@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
 import {
@@ -377,26 +383,28 @@ function AddEntryForm({
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={save.isPending}
-        className="min-h-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-60 md:col-span-2 md:justify-self-start"
-      >
-        {save.isPending
-          ? "Saving…"
-          : entry
-            ? "Save changes"
-            : "Save as draft"}
-      </button>
-      {entry && (
+      <div className="flex flex-wrap gap-3 md:col-span-2">
         <button
-          type="button"
-          onClick={onDone}
-          className="min-h-[44px] rounded-md border border-gray-400 px-4 text-gray-900 hover:bg-gray-100 md:justify-self-start"
+          type="submit"
+          disabled={save.isPending}
+          className="min-h-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-60"
         >
-          Cancel
+          {save.isPending
+            ? "Saving…"
+            : entry
+              ? "Save changes"
+              : "Save as draft"}
         </button>
-      )}
+        {entry && (
+          <button
+            type="button"
+            onClick={onDone}
+            className="min-h-[44px] rounded-md border border-gray-400 px-4 text-gray-900 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

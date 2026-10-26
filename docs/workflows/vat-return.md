@@ -38,8 +38,8 @@ do tax arithmetic themselves.
    - **Idempotency claim:** Inserts a row into `vatSubmissions` with status `pending`. The unique index on
      `(user_id, period_key, sandbox)` ensures only one submission claim per period per mode. A concurrent request
      gets `ALREADY_SUBMITTED`. A request after a failed claim may flip the status back to `pending` to retry.
-   - **HMRC filing:** Sends the payload, boxes, fraud headers (including user agent, device fingerprint, and vendor version),
-     and tokens to HMRC. All HMRC tokens are decrypted in-memory only; they never appear in logs or audit trails.
+   - **HMRC filing:** Sends the boxes and fraud headers (connection method, user IDs and vendor version) to HMRC,
+     with the access token in the Authorization header. All HMRC tokens are decrypted in-memory only; they never appear in logs or audit trails.
    - **Outcome handling:** On HMRC success, writes `vat_return.submitted` audit event with the form bundle number,
      processing date, request payload, response, and fraud headers (authorization header excluded). On HMRC 4xx error
      (client mistake), marks the claim `failed` and writes `vat_return.submit_failed`. On HMRC 5xx or network failure,
@@ -99,7 +99,7 @@ A period can be in one of three submission states. The `vatSubmissions` row trac
 
 Filing goes to the sandbox by default and requires both of:
 1. Server config: `HMRC_SANDBOX_MODE=false` in the deployment environment.
-2. User opt-in: Settings → HMRC → "I authorize live filing" (stored as `users.hmrc_sandbox_mode = false`).
+2. User opt-in: Settings → HMRC → "Allow live filing with HMRC" plus typing FILE LIVE to confirm (stored as `users.hmrc_sandbox_mode = false`).
 
 If only one switch is set, the request fails with `MODE_MISMATCH`. Both must match exactly.
 

@@ -97,7 +97,7 @@
   - Risk: opus/high: schema migration plus token handling in a background job.
   - Commit: `98c5a1410a39`
 
-- [ ] **Task 6: Settings page: Connect to HMRC button and connection status** (after 4)
+- [x] **Task 6: Settings page: Connect to HMRC button and connection status** (after 4)
   - Files: `src/pages/SettingsPage.tsx`, `src/pages/SettingsPage.test.tsx`
   - Acceptance criteria the planner set:
     - Settings shows a clear disconnected or connected state and a Connect button that triggers the redirect with the bearer token
@@ -106,3 +106,4 @@
     - Test mocks fetch and Clerk; no live call
     - `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass
   - Risk: Default sonnet/medium. UI only; the server enforces auth.
+  - Commit: `6df8ea869c39`

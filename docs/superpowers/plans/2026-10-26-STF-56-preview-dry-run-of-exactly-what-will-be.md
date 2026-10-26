@@ -92,3 +92,7 @@
 - [x] **Task 7: Fix: address 8 review findings (cycle 2)** (after 6)
   - Intent: Review left 8 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. Preview and submit both call `prepareSubmission`, so the body and fraud headers cannot drift. The preview makes no HMRC call, cl The agent is fixing them; nothing is needed from you.
   - Commit: `003670c3fb18`
+
+- [x] **Task 8: Fix: address 7 review findings (cycle 3)** (after 7)
+  - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found nothing blocking. Preview and submit share prepareSubmission, so the body and headers match. Preview makes no HMRC call or submission claim, and leaks The agent is fixing them; nothing is needed from you.
+  - Commit: `f7140370667c`

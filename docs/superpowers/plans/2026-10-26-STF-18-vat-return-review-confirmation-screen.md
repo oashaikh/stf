@@ -62,7 +62,7 @@
   - Risk: Server-side enforcement of the acceptance criterion, per-user data isolation and legal confirmation; security-class work.
   - Commit: `3826153dc987`
 
-- [ ] **Task 4: Review and confirmation UI on VatPage** (after 3)
+- [x] **Task 4: Review and confirmation UI on VatPage** (after 3)
   - Intent: Replace the VatPage placeholder with the review flow: nine boxes in a right-aligned tabular-figure table using formatPence, each box expandable to its contributing transactions from the API, a legal declaration checkbox, and a Confirm button disabled until ticked (server still enforces). Draft state is loaded from the server on mount so the user can leave and return; show confirmed status and the stale case. Use react-query (already installed) for fetch/confirm, existing loading/empty/error patterns, 44px tap targets, focus states, tokens not raw hex. Do not add a submit button or call HMRC. Keep decision logic (button enabled, status label) in a small pure function with a vitest test since there is no component test library and no new dependency may be added. No money formatting outside src/lib/money.ts.
   - Files: `src/pages/VatPage.tsx`, `src/pages/vatReviewState.ts`, `src/pages/vatReviewState.test.ts`
   - Acceptance criteria the planner set:

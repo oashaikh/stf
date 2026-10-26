@@ -76,3 +76,7 @@
     - No machine paths, tokens or real hostnames appear.
     - npm run lint, typecheck, test and build pass.
   - Commit: `c65593dd4904`
+
+- [x] **Task 5: Fix: address 8 review findings (cycle 1)** (after 4)
+  - Intent: Review left 8 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. The cron route fails closed, uses a constant-time compare and leaks no error text, and is covered by tests. The shared DB client The agent is fixing them; nothing is needed from you.
+  - Commit: `df572847e8ee`

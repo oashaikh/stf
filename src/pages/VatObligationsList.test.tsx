@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import VatObligationsList from './VatObligationsList';
-import { NotConnectedError } from '../lib/hmrc/vatApi';
+import { NotConnectedError, VatNumberMissingError } from '../lib/hmrc/vatApi';
 
 const fetchVatObligations = vi.fn();
 vi.mock('../lib/hmrc/vatApi', async (importOriginal) => ({
@@ -62,6 +62,15 @@ describe('VatObligationsList', () => {
     renderList();
     const link = await screen.findByRole('link', { name: /settings/i });
     expect(link).toHaveAttribute('href', '/settings');
+  });
+
+  it('asks for a VAT number instead of a connection when the number is missing', async () => {
+    fetchVatObligations.mockImplementation(async () => {
+      throw new VatNumberMissingError();
+    });
+    renderList();
+    expect(await screen.findByText(/add your vat number/i)).toBeInTheDocument();
+    expect(screen.queryByText(/not connected/i)).toBeNull();
   });
 
   it('shows an error state for other failures', async () => {

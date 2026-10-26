@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchVatObligations, NotConnectedError } from './vatApi';
+import { fetchVatObligations, NotConnectedError, VatNumberMissingError } from './vatApi';
 
 const obligation = { periodKey: '18A1', start: '2026-01-01', end: '2026-03-31', due: '2026-05-07', status: 'O', overdue: false };
 
@@ -36,6 +36,13 @@ describe('fetchVatObligations', () => {
   it('throws NotConnectedError on 409', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false, code: 'HMRC_NOT_CONNECTED' }, 409));
     await expect(fetchVatObligations('tok', fetchMock)).rejects.toBeInstanceOf(NotConnectedError);
+  });
+
+  it('throws VatNumberMissingError when the VAT number is missing', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false, code: 'VAT_NUMBER_MISSING' }, 409));
+    const failure = await fetchVatObligations('tok', fetchMock).catch((error) => error);
+    expect(failure).toBeInstanceOf(VatNumberMissingError);
+    expect(failure).not.toBeInstanceOf(NotConnectedError);
   });
 
   it('throws a plain error on other failures', async () => {

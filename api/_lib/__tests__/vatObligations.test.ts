@@ -179,6 +179,15 @@ describe('GET /api/vat/obligations', () => {
     expect(saveRefreshedTokens).toHaveBeenCalledTimes(1);
   });
 
+  it('still serves the request when saving the rotated tokens fails, logging the failure without secrets', async () => {
+    stored.u1 = credentials({ expiresAt: new Date(TODAY.getTime() - 1000) });
+    saveRefreshedTokens.mockRejectedValue(new Error(`db down ${NEW_REFRESH}`));
+    const response = await handler()(asUser('/api/vat/obligations', 'u1'));
+    expect(response.status).toBe(200);
+    expect(hmrcFetch.mock.calls[0][1].headers.Authorization).toBe(`Bearer ${NEW_ACCESS}`);
+    expect(logged).not.toContain(NEW_REFRESH);
+  });
+
   it('maps an HMRC error to a sanitised response with no token or VRN in the logs', async () => {
     hmrcFetch.mockResolvedValue(jsonResponse({ code: 'VRN_NOT_FOUND', message: `no ${VRN} for ${ACCESS}` }, 404));
     const response = await handler()(asUser('/api/vat/obligations', 'u1'));

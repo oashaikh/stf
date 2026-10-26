@@ -15,6 +15,12 @@ export class NotConnectedError extends Error {
   }
 }
 
+export class VatNumberMissingError extends Error {
+  constructor() {
+    super('No VAT number is set');
+  }
+}
+
 const DEVICE_ID_KEY = 'stf-device-id';
 
 // HMRC wants a device id that stays the same across sessions on this browser.
@@ -49,7 +55,10 @@ export async function fetchVatObligations(token: string, fetchFn: FetchFn = fetc
   const response = await fetchFn('/api/vat/obligations', {
     headers: { Authorization: `Bearer ${token}`, ...browserFraudHeaders() },
   });
-  if (response.status === 409) throw new NotConnectedError();
+  if (response.status === 409) {
+    const body = await response.json().catch(() => ({}));
+    throw body.code === 'VAT_NUMBER_MISSING' ? new VatNumberMissingError() : new NotConnectedError();
+  }
   if (!response.ok) throw new Error('Request to /api/vat/obligations failed');
   return (await response.json()).obligations;
 }

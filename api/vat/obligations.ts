@@ -83,12 +83,18 @@ export function createObligationsHandler(
         (accessToken) =>
           getVatObligations(vatNumber, accessToken, query.from, query.to, fraudHeaders, fetchFn, query.status),
         // A lost compare-and-swap means a concurrent request already rotated the stored tokens; ours still serve this retry.
+        // A failed save must not fail the request: the rotated token is still valid for this call.
         async (refreshed) => {
-          await store.saveRefreshedTokens(auth.userId, storedRefreshToken, {
-            accessToken: refreshed.accessToken,
-            refreshToken: refreshed.refreshToken,
-            expiresAt: new Date(refreshed.expiresAt),
-          });
+          try {
+            await store.saveRefreshedTokens(auth.userId, storedRefreshToken, {
+              accessToken: refreshed.accessToken,
+              refreshToken: refreshed.refreshToken,
+              expiresAt: new Date(refreshed.expiresAt),
+            });
+          } catch {
+            // The error text can echo tokens, so log a fixed message only. The user may need to reconnect HMRC.
+            console.error('HMRC refreshed tokens could not be saved');
+          }
         },
         refresh,
       );

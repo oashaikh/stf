@@ -1,0 +1,27 @@
+export const SESSION_QUERY_KEY = ['session'];
+
+/** Cookie-authenticated probe: any non-OK answer (401 included) means not signed in. */
+export async function fetchSignedIn(): Promise<boolean> {
+  const response = await fetch('/api/me', { credentials: 'same-origin' });
+  return response.ok;
+}
+
+export type LoginResult = 'ok' | 'wrong-password' | 'locked' | 'error';
+
+export async function login(password: string): Promise<LoginResult> {
+  const response = await fetch('/api/auth/login', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  }).catch(() => null);
+  if (!response) return 'error';
+  if (response.ok) return 'ok';
+  if (response.status === 401) return 'wrong-password';
+  return response.status === 429 ? 'locked' : 'error';
+}
+
+export async function signOut(): Promise<void> {
+  const response = await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+  if (!response.ok) throw new Error('Sign out failed');
+}

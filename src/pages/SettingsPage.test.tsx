@@ -11,9 +11,6 @@ import {
 } from '../lib/hmrc/settingsApi';
 import SettingsPage, { LIVE_CONFIRMATION_TEXT } from './SettingsPage';
 
-// Stable getToken: the page's effect depends on it, so a fresh function per render would loop.
-const getToken = async () => 'tok';
-vi.mock('@clerk/clerk-react', () => ({ useAuth: () => ({ getToken }) }));
 
 function jsonResponse(body: unknown, ok = true) {
   return { ok, json: async () => body } as Response;
@@ -34,21 +31,21 @@ describe('describeHmrcStatus', () => {
 });
 
 describe('HMRC api calls', () => {
-  it('sends the bearer token to the status route', async () => {
+  it('sends the session cookie to the status route', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, connected: true }));
-    expect(await fetchHmrcConnected('tok', fetchMock)).toBe(true);
-    expect(fetchMock).toHaveBeenCalledWith('/api/hmrc/status', { headers: { Authorization: 'Bearer tok' } });
+    expect(await fetchHmrcConnected(fetchMock)).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith('/api/hmrc/status', { credentials: 'same-origin' });
   });
 
   it('returns the authorize url from the connect route', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, url: 'https://hmrc.test/auth' }));
-    expect(await fetchHmrcConnectUrl('tok', fetchMock)).toBe('https://hmrc.test/auth');
-    expect(fetchMock).toHaveBeenCalledWith('/api/hmrc/connect', { headers: { Authorization: 'Bearer tok' } });
+    expect(await fetchHmrcConnectUrl(fetchMock)).toBe('https://hmrc.test/auth');
+    expect(fetchMock).toHaveBeenCalledWith('/api/hmrc/connect', { credentials: 'same-origin' });
   });
 
   it('throws when the connect route refuses', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false }, false));
-    await expect(fetchHmrcConnectUrl('tok', fetchMock)).rejects.toThrow();
+    await expect(fetchHmrcConnectUrl(fetchMock)).rejects.toThrow();
   });
 });
 
@@ -114,9 +111,9 @@ describe('live filing opt-in', () => {
 });
 
 describe('HMRC mode api calls', () => {
-  it('posts a boolean to the mode route with the bearer token', async () => {
+  it('posts a boolean to the mode route with the session cookie', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, live: true, envLive: false }));
-    expect(await saveHmrcLiveOptIn('tok', true, fetchMock)).toEqual({ live: true, envLive: false });
+    expect(await saveHmrcLiveOptIn(true, fetchMock)).toEqual({ live: true, envLive: false });
     expect(fetchMock).toHaveBeenCalledWith('/api/hmrc/mode', expect.objectContaining({ method: 'POST', body: '{"live":true}' }));
   });
 });

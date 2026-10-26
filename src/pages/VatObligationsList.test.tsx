@@ -12,7 +12,6 @@ vi.mock('../lib/hmrc/vatApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/hmrc/vatApi')>()),
   fetchVatObligations: (...args: unknown[]) => fetchVatObligations(...args),
 }));
-vi.mock('@clerk/clerk-react', () => ({ useAuth: () => ({ getToken: async () => 'tok' }) }));
 
 function renderList() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

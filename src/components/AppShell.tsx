@@ -1,4 +1,4 @@
-import { SignOutButton } from '@clerk/clerk-react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   BarChart3,
   CalendarCheck,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { SESSION_QUERY_KEY, signOut } from '../lib/session';
 
 type NavItem = { to: string; label: string; icon: LucideIcon };
 
@@ -50,19 +51,29 @@ function renderLink({ to, label, icon: Icon }: NavItem) {
 export default function AppShell() {
   const [moreOpen, setMoreOpen] = useState(false);
   const { pathname } = useLocation();
+  const queryClient = useQueryClient();
   const moreActive = MORE_ITEMS.some(({ to }) => pathname.startsWith(to));
   useEffect(() => setMoreOpen(false), [pathname]);
+
+  async function handleSignOut() {
+    await signOut();
+    // Drop cached owner data so the next sign-in starts clean, then flip the gate back to the login page.
+    queryClient.clear();
+    queryClient.setQueryData(SESSION_QUERY_KEY, false);
+  }
 
   return (
     <div className="min-h-screen pb-16 md:pb-0">
       <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-gray-200 bg-white px-4 md:px-6">
         <span className="py-3 text-lg font-semibold text-brand">STF</span>
         <div className="ml-auto md:order-3">
-          <SignOutButton>
-            <button type="button" className="min-h-11 min-w-11 rounded px-3 text-sm font-medium text-gray-700 hover:bg-gray-100">
-              Sign out
-            </button>
-          </SignOutButton>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="min-h-11 min-w-11 rounded px-3 text-sm font-medium text-gray-700 hover:bg-gray-100"
+          >
+            Sign out
+          </button>
         </div>
         <nav
           aria-label="Main"

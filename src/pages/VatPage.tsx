@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchHmrcMode, isEffectivelyLive } from '../lib/hmrc/settingsApi';
 import {
@@ -114,7 +113,6 @@ export default function VatPage() {
 }
 
 function VatReturnReview({ period }: { period: VatPeriod }) {
-  const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const [declarationTicked, setDeclarationTicked] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
@@ -124,10 +122,10 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
   const queryKey = ['vat-return', period.periodKey];
 
   async function callApi(path: string, init?: RequestInit): Promise<ReturnReview> {
-    const token = await getToken();
     const response = await fetch(path, {
       ...init,
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
     });
     const body = (await response.json().catch(() => null)) as ApiResponse<ReturnReview> | null;
     if (!body?.ok) throw new Error(body?.error ?? 'Request failed');
@@ -159,16 +157,16 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
 
   const mode = useQuery({
     queryKey: ['hmrc-mode'],
-    queryFn: async () => fetchHmrcMode((await getToken()) ?? ''),
+    queryFn: async () => fetchHmrcMode(),
   });
   const live = mode.data ? isEffectivelyLive(mode.data) : false;
 
   const submit = useMutation({
-    mutationFn: async () => submitVatReturn((await getToken()) ?? '', periodFields),
+    mutationFn: () => submitVatReturn(periodFields),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
   // The page preview and the dialog preview are separate so opening one never changes what the other shows.
-  const previewMutation = () => ({ mutationFn: async () => previewVatReturn((await getToken()) ?? '', periodFields) });
+  const previewMutation = () => ({ mutationFn: () => previewVatReturn(periodFields) });
   const pagePreview = useMutation(previewMutation());
   const dialogPreview = useMutation(previewMutation());
   // A pending claim means HMRC may already hold the return, so a refused retry reads the same as an unknown outcome.

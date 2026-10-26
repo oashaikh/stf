@@ -1,6 +1,5 @@
-import { useAuth } from '@clerk/clerk-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 
 // Pages — lazy imports to be added as features are built
 import DashboardPage from './pages/DashboardPage.tsx';
@@ -12,7 +11,8 @@ import TaxPage from './pages/TaxPage.tsx';
 import ReportsPage from './pages/ReportsPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import AppShell from './components/AppShell.tsx';
-import SignInPage from './pages/SignInPage.tsx';
+import LoginPage from './pages/LoginPage.tsx';
+import { SESSION_QUERY_KEY, fetchSignedIn } from './lib/session.ts';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,35 +23,35 @@ const queryClient = new QueryClient({
   },
 });
 
-export default function App() {
-  const { isLoaded, isSignedIn } = useAuth();
-  // <Routes> only accepts <Route> children, so the sign-in gate branches here instead of wrapping routes.
-  if (!isLoaded) return null;
+function AuthGate() {
+  const session = useQuery({ queryKey: SESSION_QUERY_KEY, queryFn: fetchSignedIn, staleTime: Infinity, retry: false });
+  if (session.isPending) return <p role="status" className="p-6 text-gray-700">Loading…</p>;
+  // A failed check (server down) shows the login page rather than a protected screen: fail closed.
+  if (!session.data) return <LoginPage />;
 
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route element={<AppShell />}>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/invoices" element={<InvoicesPage />} />
+        <Route path="/receipts" element={<ReceiptsPage />} />
+        <Route path="/vat" element={<VatPage />} />
+        <Route path="/tax" element={<TaxPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
+}
+
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        {isSignedIn ? (
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route element={<AppShell />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/expenses" element={<ExpensesPage />} />
-              <Route path="/invoices" element={<InvoicesPage />} />
-              <Route path="/receipts" element={<ReceiptsPage />} />
-              <Route path="/vat" element={<VatPage />} />
-              <Route path="/tax" element={<TaxPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        ) : (
-          <Routes>
-            <Route path="/sign-in/*" element={<SignInPage />} />
-            <Route path="*" element={<Navigate to="/sign-in" replace />} />
-          </Routes>
-        )}
+        <AuthGate />
       </BrowserRouter>
     </QueryClientProvider>
   );

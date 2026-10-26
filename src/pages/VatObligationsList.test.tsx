@@ -49,6 +49,17 @@ describe('VatObligationsList', () => {
     expect(screen.getByText('2025-02-07')).toBeInTheDocument();
   });
 
+  it('puts each phone-card label and value in separate elements', async () => {
+    fetchVatObligations.mockResolvedValue([{ ...base, periodKey: '26C3', due: '2026-11-07', status: 'O', overdue: false }]);
+    renderList();
+    const periodKey = await screen.findByText('26C3');
+    const status = screen.getByText('Due');
+    expect(periodKey.tagName).toBe('SPAN');
+    expect(status.tagName).toBe('SPAN');
+    expect(periodKey.previousElementSibling).toHaveTextContent('Period key');
+    expect(status.previousElementSibling).toHaveTextContent('Status');
+  });
+
   it('shows an empty state', async () => {
     fetchVatObligations.mockResolvedValue([]);
     renderList();

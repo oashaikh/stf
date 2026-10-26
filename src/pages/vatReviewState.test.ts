@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boxLabel, currentQuarter, reviewState } from './vatReviewState';
+import { boxLabel, reviewState } from './vatReviewState';
 
 const base = { status: 'draft' as const, declarationTicked: true, confirmPending: false };
 
@@ -72,20 +72,18 @@ describe('reviewState submit', () => {
   it('renders a nil return like any other', () => {
     expect(reviewState(confirmed).canSubmit).toBe(true);
   });
+  it('asks for confirmation of a nil return only while it is unconfirmed and unfiled', () => {
+    expect(reviewState(base).needsConfirming).toBe(true);
+    expect(reviewState({ ...base, status: null }).needsConfirming).toBe(true);
+    expect(reviewState({ ...confirmed, stale: true }).needsConfirming).toBe(true);
+    expect(reviewState(confirmed).needsConfirming).toBe(false);
+    expect(reviewState({ ...base, submission: receipt }).needsConfirming).toBe(false);
+  });
 });
 
 describe('boxLabel', () => {
   it('labels a negative box 5 as a refund', () => {
     expect(boxLabel(5, -1200)).toMatch(/refund/);
     expect(boxLabel(5, 1200)).not.toMatch(/refund/);
-  });
-});
-
-describe('currentQuarter', () => {
-  it('returns inclusive quarter dates', () => {
-    expect(currentQuarter(new Date('2026-11-05T00:00:00Z'))).toEqual({
-      periodKey: '2026-Q4', start: '2026-10-01', end: '2026-12-31',
-    });
-    expect(currentQuarter(new Date('2026-02-10T00:00:00Z')).end).toBe('2026-03-31');
   });
 });

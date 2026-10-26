@@ -1,5 +1,5 @@
 import { buildFraudHeaders } from '../../src/lib/hmrc/fraudHeaders';
-import { HmrcError, refreshAccessToken, submitVatReturn, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client';
+import { getVatObligations, HmrcError, refreshAccessToken, submitVatReturn, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client';
 import { boxesToHmrcPayload } from '../../src/lib/vat';
 import { databaseHmrcStore, type HmrcStore } from './hmrcStore';
 import { databaseStore, requireConfirmedReturn, VatReturnError, type Period, type VatReturnStore } from './vatReturns';
@@ -37,10 +37,6 @@ export async function submitVatReturnForUser(
   if (!credentials.vatNumber) throw new VatReturnError(409, 'VAT_NUMBER_MISSING', 'No VAT number is set');
   const { vatNumber, storedRefreshToken } = credentials;
 
-  const submissionId = await vatStore.claimSubmission(userId, period.periodKey, sandbox);
-  if (!submissionId) throw new VatReturnError(409, 'ALREADY_SUBMITTED', 'This period has already been submitted or is being submitted');
-
-  const payload = boxesToHmrcPayload(boxes, period.periodKey, true);
   const fraudHeaders = buildFraudHeaders({
     request,
     userId,
@@ -49,17 +45,20 @@ export async function submitVatReturnForUser(
     now: now(),
   });
 
-  let hmrcReceipt: { formBundleNumber: string; processingDate: string };
-  try {
-    hmrcReceipt = await withHmrcToken(
-      {
-        accessToken: credentials.accessToken,
-        refreshToken: credentials.refreshToken,
-        expiresAt: credentials.expiresAt.getTime(),
-      },
-      (accessToken) => submitVatReturn(vatNumber, accessToken, payload, fraudHeaders, fetchFn),
-      // A failed save must not fail the filing: the rotated token is still valid for this call.
+  // Both HMRC calls share this token set, so a refresh during the obligations check is reused by the submit
+  // instead of spending the rotated-away refresh token a second time.
+  let tokens: HmrcTokenSet = {
+    accessToken: credentials.accessToken,
+    refreshToken: credentials.refreshToken,
+    expiresAt: credentials.expiresAt.getTime(),
+  };
+  const callHmrc = <T>(operation: (accessToken: string) => Promise<T>) =>
+    withHmrcToken(
+      tokens,
+      operation,
+      // A failed save must not fail the call: the rotated token is still valid for it.
       async (refreshed) => {
+        tokens = refreshed;
         try {
           await hmrcStore.saveRefreshedTokens(userId, storedRefreshToken, {
             accessToken: refreshed.accessToken,
@@ -72,6 +71,36 @@ export async function submitVatReturnForUser(
       },
       refresh,
     );
+
+  // The client picks the period, so only HMRC's own list of this user's open obligations can authorise it.
+  // Checked before the claim so a lookup failure leaves nothing pending.
+  let openObligations;
+  try {
+    ({ obligations: openObligations } = await callHmrc((accessToken) =>
+      getVatObligations(vatNumber, accessToken, period.start, period.end, fraudHeaders, fetchFn, 'O'),
+    ));
+  } catch (error) {
+    if (!(error instanceof HmrcError)) throw error;
+    console.error('HMRC obligations check failed', error.apiError.code, error.apiError.statusCode);
+    throw new VatReturnError(502, error.apiError.code, 'Could not check the open HMRC obligations');
+  }
+  const isOpen = openObligations.some(
+    (obligation) =>
+      obligation.status === 'O' &&
+      obligation.periodKey === period.periodKey &&
+      obligation.start === period.start &&
+      obligation.end === period.end,
+  );
+  if (!isOpen) throw new VatReturnError(409, 'PERIOD_NOT_OPEN', 'This period is not an open HMRC obligation');
+
+  const submissionId = await vatStore.claimSubmission(userId, period.periodKey, sandbox);
+  if (!submissionId) throw new VatReturnError(409, 'ALREADY_SUBMITTED', 'This period has already been submitted or is being submitted');
+
+  const payload = boxesToHmrcPayload(boxes, period.periodKey, true);
+
+  let hmrcReceipt: { formBundleNumber: string; processingDate: string };
+  try {
+    hmrcReceipt = await callHmrc((accessToken) => submitVatReturn(vatNumber, accessToken, payload, fraudHeaders, fetchFn));
   } catch (error) {
     const audit = { periodKey: period.periodKey, sandbox, request: payload, fraudHeaders };
     if (error instanceof HmrcError && error.apiError.code === DUPLICATE_SUBMISSION) {

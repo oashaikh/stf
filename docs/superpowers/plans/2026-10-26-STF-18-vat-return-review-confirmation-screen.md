@@ -28,7 +28,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Add box drill-down selector to vat.ts**
+- [x] **Task 1: Add box drill-down selector to vat.ts**
   - Intent: Add a pure function in src/lib/vat.ts that returns the LedgerLines contributing to a given box (1/6 income, 4/7 expense, 3 and 5 both, 2/8/9 none) using the same inclusion rule as buildVatReturnFromLedger. Extract that rule into one shared predicate so the totals and the drill-down can never disagree (). Tests in vat.test.ts: each box's lines sum to the box value, voided/deleted/out-of-period lines are excluded, nil return gives empty lists and all-zero boxes.
   - Files: `src/lib/vat.ts`, `src/lib/vat.test.ts`
   - Acceptance criteria the planner set:
@@ -36,6 +36,7 @@
     - New selector's contributing lines reproduce boxes 1,4,6,7 exactly in a test
     - Nil return test: every box's drill-down is empty
     - No floats introduced; all values integer pence
+  - Commit: `c0b12c5fe4a3`
 
 - [ ] **Task 2: Schema and migration for VAT return drafts**
   - Intent: Add a vat_return_drafts table (id, user_id FK, period_key, period_start, period_end, status draft|confirmed, boxes as nine integer-pence columns or one jsonb snapshot of VatReturnBoxes, declaration_accepted_at nullable, confirmed_at nullable, created_at, updated_at) with unique(user_id, period_key) which doubles as the lookup index. No hard delete path. Export row types and re-export from src/model/types.ts. Generate a migration. STF-15 plans 0001_hmrc_token_expiry_index.sql and edits meta/_journal.json, so name this migration with idx 2 and tag 0002_vat_return_drafts and a later `when`, and keep a single journal head; re-check against main before finishing. Extend schema.test.ts to cover the new table.

@@ -80,7 +80,7 @@ Also depends on:
   - Risk: ExpensesPage.tsx is also edited by STF-71; keep the edit here to swapping out the old EntryList so hunks merge cleanly.
   - Commit: `dd21ea384b8c`
 
-- [ ] **Task 3: Row actions: confirm draft, void with confirmation, locked-period message** (after 2)
+- [x] **Task 3: Row actions: confirm draft, void with confirmation, locked-period message** (after 2)
   - Intent: Add per-row actions. Confirm (drafts only) calls confirmEntry and invalidates ENTRIES_QUERY_KEY. Void opens a confirmation dialog naming the entry (date, description, amount) and saying it is marked voided and stays on record; dialog follows layout, traps focus, closes on Escape. On success the row stays for the session as 'Voided' (struck through, no actions) because the list API excludes voided entries and the journey says voided shows as voided; a refetch drops it. A PeriodLockedError from confirm, void or edit shows a plain-words alert ('This entry is in a VAT period that has been confirmed or filed, so it cannot be changed') with a react-router Link to /vat (44 px target). Other failures show a retryable error. Tests: cancel sends no request; confirm void sends DELETE with id and row shows Voided; confirm draft sends PATCH; 409 PERIOD_LOCKED shows message and /vat link; Escape closes dialog.
   - Files: `src/pages/EntriesList.tsx`, `src/pages/EntriesList.test.tsx`, `src/pages/EntryActions.tsx`
   - Acceptance criteria the planner set:
@@ -89,6 +89,7 @@ Also depends on:
     - Locked refusal renders plain-words message with link to /vat
     - Confirm button only on draft rows and clears the Draft badge after success
     - lint, typecheck, test and build pass
+  - Commit: `ec0e55777d1d`
 
 - [ ] **Task 4: Edit an entry: reuse the STF-67 form pre-filled** (after 3)
   - Intent: Give AddEntryForm in src/pages/ExpensesPage.tsx an edit mode rather than a second form. Edit on a row opens the form pre-filled from the list row: kind, date, description, reference, category, gross amount in pounds via existing entryForm/money helpers (amountIs gross), VAT rate derived from integer vatPence/netPence (0, 5 or 20, integer arithmetic). Submit reads Save changes and sends editEntry (PUT) keeping the original status. On success close the form and invalidate ENTRIES_QUERY_KEY; Cancel returns to the list. Field refusals use existing FORM_FIELD mapping. PeriodLockedError reuses the locked-message component from task 3. Tests: pre-fill, PUT with changed amount and id in URL, list shows update, locked refusal message.

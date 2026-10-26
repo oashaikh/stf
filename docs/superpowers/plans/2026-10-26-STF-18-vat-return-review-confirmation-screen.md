@@ -49,7 +49,7 @@
   - Risk: Schema/migration work, and the journal collides with STF-15's planned 0001 migration; needs care to keep a single head.
   - Commit: `fd49ef43688e`
 
-- [ ] **Task 3: Server-side draft, confirm and submit-gate API** (after 1, 2)
+- [x] **Task 3: Server-side draft, confirm and submit-gate API** (after 1, 2)
   - Intent: Add api/_lib/vatReturns.ts with a store interface (injected like AuthDeps) and logic, plus routes under api/vat/ wrapped in withAuth, scoped by auth.userId on every query. (a) GET: load the caller's ledger lines for a period (period_key, start, end validated with zod), recompute boxes with buildVatReturnFromLedger, return boxes, the saved draft status, and drill-down lines per box (bounded, only needed fields, indexed filters via user_id; one joined query not per-row). (b) PUT: upsert the draft (status draft); refuse if already confirmed unless reopened. (c) POST confirm: requires declaration:true in the body, recomputes boxes server-side (never trusts client boxes), stores the snapshot, sets declaration_accepted_at and confirmed_at, writes an audit_events row; nil returns must confirm the same way. (d) Export requireConfirmedReturn(userId, periodKey) that STF-19 must call: it throws unless status is confirmed AND a fresh recompute equals the stored snapshot (ledger changed since confirmation means re-confirm). Do not implement the HMRC submit. No network/HMRC calls. Tests with fake store and fake auth: no declaration refused, client-supplied boxes ignored, second user's period returns nothing/refused, unauthenticated 401, nil return confirms, stale snapshot rejected by the gate, unconfirmed rejected by the gate.
   - Files: `api/_lib/vatReturns.ts`, `api/_lib/__tests__/vatReturns.test.ts`, `api/vat/return.ts`, `api/vat/return-confirm.ts`
   - Acceptance criteria the planner set:
@@ -60,6 +60,7 @@
     - Nil return (all zeros) can be saved and confirmed
     - Error responses use ApiError shape and log no request body
   - Risk: Server-side enforcement of the acceptance criterion, per-user data isolation and legal confirmation; security-class work.
+  - Commit: `3826153dc987`
 
 - [ ] **Task 4: Review and confirmation UI on VatPage** (after 3)
   - Intent: Replace the VatPage placeholder with the review flow: nine boxes in a right-aligned tabular-figure table using formatPence, each box expandable to its contributing transactions from the API, a legal declaration checkbox, and a Confirm button disabled until ticked (server still enforces). Draft state is loaded from the server on mount so the user can leave and return; show confirmed status and the stale case. Use react-query (already installed) for fetch/confirm, existing loading/empty/error patterns, 44px tap targets, focus states, tokens not raw hex. Do not add a submit button or call HMRC. Keep decision logic (button enabled, status label) in a small pure function with a vitest test since there is no component test library and no new dependency may be added. No money formatting outside src/lib/money.ts.

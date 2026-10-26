@@ -22,6 +22,7 @@ import { boxLabel, DRILLABLE_BOXES, reviewState, type ReviewStatus, type Submiss
 
 interface DrillLine {
   lineId: string;
+  transactionId: string;
   date: string;
   amountPence: number;
   vatPence: number;
@@ -32,6 +33,7 @@ interface ReturnReview {
   boxes: VatReturnBoxes;
   drillDown: Record<keyof VatReturnBoxes, DrillLine[]>;
   drillDownTotals: Record<keyof VatReturnBoxes, number>;
+  entryCount: number;
   status: ReviewStatus;
   confirmedAt: string | null;
   stale: boolean;
@@ -42,6 +44,13 @@ interface VatPeriod {
   periodKey: string;
   start: string;
   end: string;
+}
+
+// STF-10's list filters by from, to and search; the hash lets the Expenses list highlight the entry.
+function expensesLink(line: DrillLine): string {
+  const filters = new URLSearchParams({ from: line.date, to: line.date });
+  if (line.description) filters.set('search', line.description);
+  return `/expenses?${filters}#entry-${line.transactionId}`;
 }
 
 const boxNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
@@ -203,7 +212,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
           <p role="status" className="mt-4 text-sm font-medium text-gray-900">
             Status: {state.statusLabel}
           </p>
-          {review.data.boxes.box5 === 0 && review.data.boxes.box6 === 0 && review.data.boxes.box7 === 0 && (
+          {review.data.entryCount === 0 && (
             <p className="mt-2 text-sm text-gray-500">
               No VAT-relevant transactions in this period.{state.needsConfirming && ' This is a nil return and still needs confirming.'}
             </p>
@@ -394,13 +403,19 @@ function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: B
             ) : (
               <ul className="divide-y divide-gray-200">
                 {lines.map((line) => (
-                  <li key={line.lineId} className="flex items-center justify-between gap-4 py-1">
-                    <span className="min-w-0 truncate" title={line.description ?? undefined}>
-                      {formatDate(line.date)} {line.description ?? ''}
-                    </span>
-                    <span className="shrink-0 text-right tabular-nums">
-                      {formatPence(line.amountPence)} + {formatPence(line.vatPence)} VAT
-                    </span>
+                  <li key={line.lineId}>
+                    <Link
+                      to={expensesLink(line)}
+                      className="flex min-h-[44px] flex-wrap items-center gap-x-4 py-1 text-blue-700 hover:underline sm:flex-nowrap"
+                    >
+                      <span className="shrink-0 tabular-nums">{formatDate(line.date)}</span>
+                      <span className="order-last min-w-0 basis-full truncate sm:order-none sm:basis-0 sm:flex-1" title={line.description ?? undefined}>
+                        {line.description ?? ''}
+                      </span>
+                      <span className="shrink-0 text-right tabular-nums">
+                        {formatPence(line.amountPence)} + {formatPence(line.vatPence)} VAT
+                      </span>
+                    </Link>
                   </li>
                 ))}
               </ul>

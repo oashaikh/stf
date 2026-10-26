@@ -28,6 +28,7 @@ const review = {
   boxes: zeroBoxes,
   drillDown: Object.fromEntries(Object.keys(zeroBoxes).map((box) => [box, []])),
   drillDownTotals: zeroBoxes,
+  entryCount: 0,
   status: 'draft',
   confirmedAt: null,
   stale: false,
@@ -189,6 +190,47 @@ describe('VatPage', () => {
       previewVatReturn.mockRejectedValue(new Error('boom'));
       fireEvent.click(await screen.findByRole('button', { name: 'Preview what will be sent' }));
       expect(await screen.findByText(/Could not build the preview/)).toBeInTheDocument();
+    });
+  });
+  describe('drill-down and nil message', () => {
+    const line = {
+      lineId: 'line-1', transactionId: 'entry-42', date: '2026-08-15', amountPence: 10000, vatPence: 2000,
+      description: 'Consulting & design',
+    };
+    const withEntries = {
+      ...review,
+      entryCount: 1,
+      drillDown: { ...review.drillDown, box1: [line] },
+      drillDownTotals: { ...zeroBoxes, box1: 1 },
+    };
+
+    function showReview(data: object) {
+      fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data })));
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+    }
+
+    it('links each drill-down line to the Expenses list for that entry', async () => {
+      showReview(withEntries);
+      fireEvent.click(await screen.findByRole('button', { name: /VAT due on sales/i }));
+      const link = screen.getByRole('link', { name: /Consulting & design/ });
+      expect(link).toHaveAttribute(
+        'href',
+        '/expenses?from=2026-08-15&to=2026-08-15&search=Consulting+%26+design#entry-entry-42',
+      );
+      expect(link).toHaveTextContent('15 Aug 2026');
+      expect(link).toHaveTextContent('£100.00');
+    });
+
+    it('hides the nil message when entries exist but the boxes net to zero', async () => {
+      showReview({ ...withEntries, drillDown: review.drillDown, drillDownTotals: zeroBoxes });
+      await screen.findByText(/Status:/);
+      expect(screen.queryByText(/No VAT-relevant transactions/)).not.toBeInTheDocument();
+    });
+
+    it('shows the nil message when the period has no entries', async () => {
+      showReview(review);
+      expect(await screen.findByText(/No VAT-relevant transactions/)).toBeInTheDocument();
     });
   });
 });

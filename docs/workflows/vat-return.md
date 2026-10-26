@@ -1,8 +1,9 @@
 # VAT return workflow
 
-How a VAT return is built from the ledger. The computation lives in `src/lib/vat.ts`
-(`buildVatReturnFromLedger`) and is pure: route handlers load rows, call it, and never
-do tax arithmetic themselves.
+How a VAT return is built from the ledger. An entry is created through the posting rules,
+confirmed or reconciled, and then counted towards the return. The computation lives in
+`src/lib/vat.ts` (`buildVatReturnFromLedger`) and is pure: route handlers load rows, call
+it, and never do tax arithmetic themselves.
 
 ## Steps
 
@@ -23,9 +24,16 @@ do tax arithmetic themselves.
      recomputes the boxes, records them with status `confirmed`, stores `confirmedAt` and
      `declarationAcceptedAt` timestamps, and writes an audit event. Only a confirmed return may
      be submitted.
-   - **Stale rule:** If the ledger changes after confirmation, the submission gate `requireConfirmedReturn`
-     (in `api/_lib/vatReturns.ts`) throws `STALE_CONFIRMATION`. The user must review and confirm
-     again. This prevents silent mismatches between what was confirmed and what is submitted.
+   - **Stale rule:** If an entry inside the confirmed period is created, edited, or voided after
+     confirmation (e.g., by another route or session), the return becomes stale. The submission gate
+     `requireConfirmedReturn` (in `api/_lib/vatReturns.ts`) throws `STALE_CONFIRMATION`. The user
+     must review and confirm again. The period lock (below) prevents this on a single route; this
+     guards against edits by other routes.
+   - **Period lock (STF-66):** When a return is confirmed, the entry API (`POST /api/entries`, `PUT /api/entries?id=<id>`,
+     `DELETE /api/entries?id=<id>`) refuses to create, edit, or void entries with a date inside the period,
+     returning `409 PERIOD_LOCKED`. This prevents the return from going stale. The lock is enforced by
+     `entryStore.isDateLocked(userId, date)`. After filing, the lock persists: a filed period remains closed
+     to entry edits.
    - **Submission gate:** `requireConfirmedReturn(userId, period, store?)` is called by STF-19 (the submit
      endpoint). `period` is the full `{ periodKey, start, end }`. It verifies the return is confirmed, the stored dates equal `period`, and the boxes still match the ledger. Without
      this gate, no VAT return may be submitted to HMRC.
@@ -51,11 +59,24 @@ do tax arithmetic themselves.
    - **Response:** Returns `{ ok: true, data: { formBundleNumber, processingDate, sandbox } }`. The `sandbox` flag tells
      the UI whether this was filed to the sandbox or live.
 
+## Entries and the posting rules
+
+An entry is one income or expense with a single VAT rate. When it is created or edited, the posting
+rules (`src/lib/postingRules.ts`) turn it into balanced ledger lines: debit positive, credit negative,
+with the VAT amount carried on each line and the same sign as its amount.
+
+An entry has a status: `draft` (temporary, not confirmed) or `confirmed` (ready to count towards
+returns and commitments). `POST /api/entries` and `PUT /api/entries?id=<entryId>` create and
+edit entries; `DELETE /api/entries?id=<entryId>` voids them.
+
+A voided entry no longer appears in the ledger. An entry can only be edited or deleted if its
+date falls outside all filed VAT periods (STF-66: the period lock).
+
 ## What counts
 
-A line is included when its transaction is `confirmed` or `reconciled`, has no
-`deleted_at`, and its date falls inside the period (both ends inclusive). Only
-`income` and `expense` accounts contribute. `amount_pence` is the net, ex-VAT amount.
+A line is included when its entry is `confirmed` or `reconciled`, has no
+`deleted_at` (i.e. is not voided), and its date falls inside the period (both ends inclusive).
+Only `income` and `expense` accounts contribute. `amount_pence` is the net, ex-VAT amount.
 
 Pass lines with the raw ledger signs: debit positive, credit negative, and `vat_pence`
 signed like its `amount_pence`. Income is a credit, so the function flips its sign;
@@ -79,8 +100,11 @@ and 7. The loader must not take absolute values.
 
 ## Nil return
 
-A period with no qualifying lines gives all nine boxes as 0. It is a valid return and
-is covered by a test.
+A period with no qualifying entries gives all nine boxes as 0. It is a valid return and
+must still be confirmed and filed. The VAT page shows "No VAT-relevant transactions in this
+period" and includes a note if the return needs confirming: "This is a nil return and still
+needs confirming." The `entryCount` field reflects the number of confirmed and reconciled entries
+in the period; a nil return shows `entryCount: 0`.
 
 ## Submission states and recovery
 
@@ -123,6 +147,35 @@ the submit button. It calls `POST /api/vat/preview` and shows the endpoint (sand
 in pounds as they will be sent, the header names and values (Authorization reads "Bearer (hidden)") and the raw JSON
 in a collapsible block (`src/pages/VatPreviewPanel.tsx`). The submit confirmation dialog fetches and shows the same
 preview when it opens. Nothing is sent to HMRC and no submission row is written.
+
+The preview payload includes:
+- `periodKey` — the period identifier
+- `vatDueSales` — box 1 (VAT on sales) in whole pounds
+- `vatDueAcquisitions` — box 2 (always 0)
+- `totalVatDue` — box 3 (box 1 + box 2) in whole pounds
+- `vatReclaimedCurrPeriod` — box 4 (VAT reclaimed on purchases) in whole pounds
+- `netVatDue` — box 5 (box 3 - box 4, signed; absolute value in whole pounds sent to HMRC)
+- `totalValueSalesExVAT` — box 6 (total sales ex VAT) in whole pounds
+- `totalValuePurchasesExVAT` — box 7 (total purchases ex VAT) in whole pounds
+- `totalValueGoodsSuppliedExVAT` — box 8 (always 0)
+- `totalAcquisitionsExVAT` — box 9 (always 0)
+- `finalised` — true (the return is being filed)
+
+## Drill-down links
+
+On the VAT page, boxes 1 (VAT on sales), 4 (VAT reclaimed), 6 (total sales ex VAT) and 7 (total purchases ex VAT)
+are expandable. Clicking the box description expands a list of the entries (up to 50) that contribute to it, showing
+the entry's date, description, net amount and VAT. Each entry is a link to the Expenses page filtered and highlighted
+to show that entry.
+
+The link to the Expenses page is:
+```
+/expenses?from={date}&to={date}[&search={description}]#entry-{transactionId}
+```
+
+`from` and `to` are the entry's date and `search` is its description. The Expenses page is meant to filter on them
+and highlight the row named by `#entry-{transactionId}`; that reading is being built under STF-68 and is not in
+effect yet, so for now the link opens the Expenses page unfiltered.
 
 ## History
 

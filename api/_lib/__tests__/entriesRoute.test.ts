@@ -190,6 +190,7 @@ describe('entries route', () => {
           .flatMap((entry) =>
             entry.lines.map((line, index): DrillLine => ({
               lineId: `${entry.id}-${index}`,
+              transactionId: entry.id,
               date: entry.date,
               accountType: line.accountId === BANK || line.accountId === VAT ? 'asset' : accountTypes[line.accountId],
               amountPence: line.amountPence,
@@ -223,6 +224,7 @@ describe('entries route', () => {
           saved.flatMap((entry) =>
             entry.lines.map((line, index): DrillLine => ({
               lineId: `${entry.id}-${index}`,
+              transactionId: entry.id,
               date: entry.date,
               accountType: line.accountId === BANK || line.accountId === VAT ? 'asset' : accountTypes[line.accountId],
               amountPence: line.amountPence,

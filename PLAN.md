@@ -75,7 +75,7 @@ Milestone checklist:
 - [ ] HMRC OAuth flow (user connects their Government Gateway account)
 - [ ] MTD VAT obligations fetch (what returns are due)
 - [ ] VAT return builder (pulls transactions by period, computes nine boxes)
-- [ ] User review and confirmation screen
+- [x] User review and confirmation screen
 - [ ] HMRC MTD VAT submit (sandbox first, then production)
 - [ ] VAT return history and status tracking
 - [ ] Flat Rate Scheme support

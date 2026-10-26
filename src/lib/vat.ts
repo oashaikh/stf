@@ -93,14 +93,27 @@ export interface LedgerLine {
   deletedAt: string | null;
 }
 
+type Period = { start: string; end: string };
+
 /**
- * Compute the nine boxes for an inclusive date period straight from ledger lines.
- * Only confirmed/reconciled, non-deleted income and expense lines count: drafts
- * are unreviewed, and the return must never include voided records.
+ * The one inclusion rule for the return: confirmed/reconciled, non-deleted income and
+ * expense lines inside the inclusive period. Drafts are unreviewed, and the return must
+ * never include voided records. Totals and drill-down both use this so they cannot disagree.
  */
+function contributesToReturn(line: LedgerLine, period: Period): boolean {
+  return (
+    (line.status === 'confirmed' || line.status === 'reconciled') &&
+    line.deletedAt === null &&
+    (line.accountType === 'income' || line.accountType === 'expense') &&
+    line.date >= period.start && // ISO dates compare correctly as strings
+    line.date <= period.end
+  );
+}
+
+/** Compute the nine boxes for an inclusive date period straight from ledger lines. */
 export function buildVatReturnFromLedger(
   lines: LedgerLine[],
-  period: { start: string; end: string },
+  period: Period,
 ): VatReturnBoxes {
   const totals: VatReturnLines = {
     salesNetPence: 0,
@@ -109,22 +122,37 @@ export function buildVatReturnFromLedger(
     purchasesVatPence: 0,
   };
   for (const line of lines) {
-    const counts =
-      (line.status === 'confirmed' || line.status === 'reconciled') &&
-      line.deletedAt === null &&
-      line.date >= period.start && // ISO dates compare correctly as strings
-      line.date <= period.end;
-    if (!counts) continue;
+    if (!contributesToReturn(line, period)) continue;
     if (line.accountType === 'income') {
       // credits are negative in the ledger; flip so sales are positive
       totals.salesNetPence -= line.amountPence;
       totals.salesVatPence -= line.vatPence;
-    } else if (line.accountType === 'expense') {
+    } else {
       totals.purchasesNetPence += line.amountPence;
       totals.purchasesVatPence += line.vatPence;
     }
   }
   return buildVatReturnBoxes(totals);
+}
+
+/** The ledger lines that make up one box, for drill-down. Boxes 2, 8 and 9 are always 0. */
+export function linesForBox(
+  lines: LedgerLine[],
+  period: Period,
+  box: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
+): LedgerLine[] {
+  const wanted: LedgerLine['accountType'][] =
+    box === 1 || box === 6
+      ? ['income']
+      : box === 4 || box === 7
+        ? ['expense']
+        : box === 3 || box === 5
+          ? ['income', 'expense']
+          : [];
+  return lines.filter(
+    (line) =>
+      contributesToReturn(line, period) && wanted.includes(line.accountType),
+  );
 }
 
 /**

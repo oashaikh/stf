@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, inArray, lte, isNull, ne } from 'drizzle-orm';
 import { z } from 'zod';
 
-import type { ApiError } from '../../src/model/types';
+import type { ApiError } from '../../src/model/types.js';
 import {
   accounts,
   auditEvents,
@@ -10,8 +10,8 @@ import {
   vatReturnDrafts,
   vatSubmissions,
 } from '../../server/src/db/schema.js';
-import { buildVatReturnFromLedger, linesForBox, type LedgerLine, type VatReturnBoxes } from '../../src/lib/vat';
-import { db } from './db';
+import { buildVatReturnFromLedger, linesForBox, type LedgerLine, type VatReturnBoxes } from '../../src/lib/vat.js';
+import { db } from './db.js';
 
 export interface Period {
   periodKey: string;

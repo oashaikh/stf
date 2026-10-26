@@ -1,8 +1,8 @@
-import { buildFraudHeaders } from '../../src/lib/hmrc/fraudHeaders';
-import { getVatObligations, HmrcError, refreshAccessToken, submitVatReturn, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client';
-import { boxesToHmrcPayload } from '../../src/lib/vat';
-import { databaseHmrcStore, type HmrcStore } from './hmrcStore';
-import { databaseStore, requireConfirmedReturn, VatReturnError, type Period, type VatReturnStore } from './vatReturns';
+import { buildFraudHeaders } from '../../src/lib/hmrc/fraudHeaders.js';
+import { getVatObligations, HmrcError, refreshAccessToken, submitVatReturn, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
+import { boxesToHmrcPayload } from '../../src/lib/vat.js';
+import { databaseHmrcStore, type HmrcStore } from './hmrcStore.js';
+import { databaseStore, requireConfirmedReturn, VatReturnError, type Period, type VatReturnStore } from './vatReturns.js';
 
 export interface SubmitDeps {
   vatStore?: VatReturnStore;

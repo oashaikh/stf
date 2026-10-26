@@ -1,7 +1,7 @@
-import { buildFraudHeaders } from '../../src/lib/hmrc/fraudHeaders';
-import { getVatObligations, HmrcError, refreshAccessToken, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client';
-import { withAuth, type AuthDeps } from '../_lib/auth';
-import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore';
+import { buildFraudHeaders } from '../../src/lib/hmrc/fraudHeaders.js';
+import { getVatObligations, HmrcError, refreshAccessToken, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
+import { withAuth, type AuthDeps } from '../_lib/auth.js';
+import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore.js';
 
 export interface ObligationsHmrcDeps {
   fetchFn?: typeof fetch;

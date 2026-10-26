@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { HmrcError } from '../../src/lib/hmrc/client';
-import { withAuth, type AuthDeps } from '../_lib/auth';
-import { periodSchema, VatReturnError, vatErrorResponse } from '../_lib/vatReturns';
-import { submitVatReturnForUser, type SubmitDeps } from '../_lib/vatSubmit';
+import { HmrcError } from '../../src/lib/hmrc/client.js';
+import { withAuth, type AuthDeps } from '../_lib/auth.js';
+import { periodSchema, VatReturnError, vatErrorResponse } from '../_lib/vatReturns.js';
+import { submitVatReturnForUser, type SubmitDeps } from '../_lib/vatSubmit.js';
 
 // Filing is irreversible, so the caller must say so explicitly; boxes are never read from the body.
 const confirmSchema = z.object({ confirm: z.literal(true) });

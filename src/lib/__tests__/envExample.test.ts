@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // Set by the platform or the runtime, never by a developer.
-const PLATFORM_PROVIDED = new Set(['NODE_ENV', 'VERCEL_GIT_COMMIT_SHA']);
+const PLATFORM_PROVIDED = new Set(['NODE_ENV', 'VERCEL', 'VERCEL_GIT_COMMIT_SHA']);
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

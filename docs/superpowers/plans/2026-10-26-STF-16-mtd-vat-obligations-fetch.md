@@ -92,3 +92,7 @@
     - npm run build, lint, typecheck, test pass; PR needs UI screenshots at 1440 and 390 px ()
   - Risk: Default tier. Merge-conflict risk with STF-18 on VatPage.tsx.
   - Commit: `a53c4952b1a8`
+
+- [x] **Task 6: Fix: address 6 review findings (cycle 1)** (after 5)
+  - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found no blocking defects. I traced the 401/expired-token refresh-and-retry, the compare-and-swap token save, date and range validation (leap years, the 365 The agent is fixing them; nothing is needed from you.
+  - Commit: `b05adb4ce658`

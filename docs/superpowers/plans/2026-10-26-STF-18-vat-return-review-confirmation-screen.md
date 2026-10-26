@@ -71,6 +71,7 @@
     - Confirm is disabled until the declaration is ticked and while the request is pending; nil return shows the same flow
     - Reload shows the saved draft or confirmed state from the server
     - npm run lint, typecheck, test and build pass
+  - Commit: `ed8ebc7d5393`
 
 - [ ] **Task 5: Document the review and confirm flow** (after 3)
   - Intent: Update docs/workflows/vat-return.md step 4 to describe the draft/confirm states, server recompute, the stale rule and the requireConfirmedReturn gate STF-19 must call, and tick the review item in PLAN.md if present.

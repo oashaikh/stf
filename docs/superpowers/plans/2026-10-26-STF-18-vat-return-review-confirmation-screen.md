@@ -92,3 +92,7 @@
 - [x] **Task 8: Fix: address 10 review findings (cycle 2)** (after 7)
   - Intent: Review left 10 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. I read the diff only and did not re-run the orchestrator's passing validation. Every cycle-1 correctness finding is fixed in thi The agent is fixing them; nothing is needed from you.
   - Commit: `986e7f603506`
+
+- [x] **Task 9: Fix: address 6 review findings (cycle 3)** (after 8)
+  - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. The server enforces the acceptance criterion: confirm needs a literal declaration:true (422 otherwise), recomputes the boxes and The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

@@ -38,7 +38,7 @@
   - Risk: Refactor of the money-filing path; a regression would break real submissions, so high effort and full existing tests as the guard.
   - Commit: `d792b3685ae4`
 
-- [ ] **Task 2: Add previewVatReturnForUser with masked endpoint, header list and audit event** (after 1)
+- [x] **Task 2: Add previewVatReturnForUser with masked endpoint, header list and audit event** (after 1)
   - Intent: New api/_lib/vatPreview.ts exports previewVatReturnForUser({userId, period, request}, deps). It calls the shared prepare function from task 1, then stops: no claimSubmission, no fetch, no token refresh, no obligations check, no DB write except one audit_events insert (actor_type user, action 'vat_return.previewed', resource_type 'vat_return', metadata {periodKey, sandbox}; no body, headers or tokens). The audit write is an injectable dependency defaulting to a db insert into auditEvents (reuse the table; no new migration). Returns { endpoint, body, headers }: endpoint is the method plus the full URL built from the same base URL and path template the client uses for submitVatReturn (reuse or export that from src/lib/hmrc/client.ts rather than retyping it), with the VRN replaced by asterisks except its last 3 digits, and sandbox vs live shown; body is the exact payload object; headers are the fraud headers plus Content-Type/Accept as hmrcFetch sets them, with Authorization listed as 'Bearer (hidden)'. Tests (injected fakes, no network): preview body deep-equals the body the submit sends to a mocked fetch for the same return, including a nil return (all boxes 0); preview calls fetch zero times and claimSubmission zero times; response and console output contain no access or refresh token string; VRN masked; refusals (NOT_CONFIRMED, MODE_MISMATCH, VAT_NUMBER_MISSING) propagate as VatReturnError and write no audit event.
   - Files: `api/_lib/vatPreview.ts`, `api/_lib/__tests__/vatPreview.test.ts`, `src/lib/hmrc/client.ts`
   - Acceptance criteria the planner set:
@@ -50,6 +50,7 @@
     - One audit event per successful preview, none on refusal, and its payload has no token or header values
     - npm test, typecheck and lint pass
   - Risk: Handles credentials adjacent to a response and logs; the no-token guarantee is the core security property, so high effort.
+  - Commit: `7e6347b21ff0`
 
 - [ ] **Task 3: Add POST /api/vat/preview route with auth and ownership tests** (after 2)
   - Intent: New api/vat/preview.ts modelled on api/vat/submit.ts: withAuth, POST only, body validated with periodSchema (no confirm flag needed, nothing is filed), calls previewVatReturnForUser, maps VatReturnError via vatErrorResponse, never logs error messages that could carry tokens. Returns { ok: true, data }. Route test mirrors vatSubmitRoute.test.ts: unauthenticated refused, wrong method 405, bad body 400, a second user cannot preview the first user's period (409 NOT_CONFIRMED, since drafts are scoped by user id), and the response has no token. Add the same ponytail rate-limit note only if it is not already covered by a shared comment.

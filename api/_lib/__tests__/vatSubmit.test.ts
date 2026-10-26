@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vite
 vi.mock('../db', () => ({ db: {} }));
 
 import type { HmrcCredentials, HmrcStore } from '../hmrcStore';
-import { submitVatReturnForUser } from '../vatSubmit';
+import { prepareSubmission, submitVatReturnForUser } from '../vatSubmit';
 import type { DrillLine, Period, SavedDraft, VatReturnStore } from '../vatReturns';
 import { buildVatReturnFromLedger } from '../../../src/lib/vat';
 
@@ -333,5 +333,29 @@ describe('submitVatReturnForUser', () => {
       throw new Error('db down');
     };
     await rejects(submit(vat, makeHmrcStore(true), fetchFn), 502, 'OUTCOME_UNKNOWN');
+  });
+});
+
+describe('prepareSubmission', () => {
+  const prepare = (vat: ReturnType<typeof makeVatStore>, hmrc: ReturnType<typeof makeHmrcStore>, userId = 'user_a') =>
+    prepareSubmission({ userId, period, request }, vat.store, hmrc.store, () => NOW);
+
+  it('builds the payload, fraud headers and mode without claiming or calling HMRC', async () => {
+    const vat = makeVatStore({ user_a: sales });
+    const prepared = await prepare(vat, makeHmrcStore(true));
+    expect(prepared.sandbox).toBe(true);
+    expect(prepared.vatNumber).toBe('123456789');
+    expect(prepared.payload.periodKey).toBe('26A1');
+    expect(prepared.payload.finalised).toBe(true);
+    expect(prepared.fraudHeaders['Gov-Client-User-IDs']).toBeDefined();
+    expect(vat.submissions.size).toBe(0);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('refuses an unconfirmed return, a mode mismatch and missing credentials', async () => {
+    const vat = makeVatStore({ user_a: sales, user_b: sales }, ['user_a']);
+    await rejects(prepare(vat, makeHmrcStore(true), 'user_b'), 409, 'NOT_CONFIRMED');
+    await rejects(prepare(vat, makeHmrcStore(false)), 409, 'MODE_MISMATCH');
+    await rejects(prepare(vat, makeHmrcStore(true, { vatNumber: null })), 409, 'VAT_NUMBER_MISSING');
   });
 });

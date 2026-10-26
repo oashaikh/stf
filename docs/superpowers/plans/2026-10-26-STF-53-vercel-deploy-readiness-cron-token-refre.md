@@ -66,7 +66,7 @@
   - Risk: Sonnet/medium. Edits are mechanical but bundler behaviour must be verified, not assumed. api/_lib files are possible edits only.
   - Commit: `607ee32b8658`
 
-- [ ] **Task 4: Deploy runbook: Vercel env vars, HMRC redirect URI, Clerk origins, manual migrations** (after 3)
+- [x] **Task 4: Deploy runbook: Vercel env vars, HMRC redirect URI, Clerk origins, manual migrations** (after 3)
   - Intent: Add docs/runbooks/vercel-deploy.md as a short page. List the env vars to set in Vercel (names only, no values): DATABASE_URL (pooled Neon URL), CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY, CLERK_AUTHORIZED_PARTIES, HMRC_* with HMRC_SANDBOX_MODE=true by default, APP_ORIGIN, STORAGE_*, ANTHROPIC_API_KEY, CRON_SECRET. Give the HMRC redirect URI to register (https://<domain>/api/hmrc/callback, same as HMRC_REDIRECT_URI) and the Clerk allowed origins (deployed origin, matching CLERK_AUTHORIZED_PARTIES and APP_ORIGIN). State that migrations never run on deploy and give the one-line manual command, e.g. DATABASE_URL=<direct-unpooled-url> npm run db:migrate. Cover cron authentication, that Fastify is local-only, and the Pro-plan note for the 5-minute cron. Mark the CONTROL_PLANE heading in .env.example as local only. Check every var name against .env.example and the code. Link from README if it lists docs.
   - Files: `docs/runbooks/vercel-deploy.md`, `.env.example`, `README.md`
   - Acceptance criteria the planner set:
@@ -75,3 +75,4 @@
     - Every env var named in the page exists in .env.example.
     - No machine paths, tokens or real hostnames appear.
     - npm run lint, typecheck, test and build pass.
+  - Commit: `c65593dd4904`

@@ -105,10 +105,11 @@
     - lint, typecheck, test, build pass
   - Commit: `ed4cd2e08088`
 
-- [ ] **Task 7: Docs and env example for submission** (after 4)
+- [x] **Task 7: Docs and env example for submission** (after 4)
   - Intent: Document the flow: update docs/workflows/vat-return.md with the submit step, the double gate (HMRC_SANDBOX_MODE=false AND Settings opt-in), idempotency states (pending/submitted/failed and what 'outcome unknown' means), audit event names and what is stored, and that every test mocks HMRC. Add an .env.example comment on HMRC_SANDBOX_MODE (default true; production needs the Settings opt-in too) only if not already documented. No secrets, no real values.
   - Files: `docs/workflows/vat-return.md`, `.env.example`
   - Acceptance criteria the planner set:
     - Doc describes both gates, the three submission states and recovery for an unknown outcome
     - No credentials, job ids or machine paths appear
     - lint and typecheck pass
+  - Commit: `1bad2bfcab7b`

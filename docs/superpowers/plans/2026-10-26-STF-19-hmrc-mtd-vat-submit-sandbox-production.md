@@ -71,7 +71,7 @@
   - Risk: Money going to a tax authority plus the production gate and token handling; opus high.
   - Commit: `7a1a90092a46`
 
-- [ ] **Task 4: POST /api/vat/submit route** (after 3)
+- [x] **Task 4: POST /api/vat/submit route** (after 3)
   - Intent: Add api/vat/submit.ts as a thin handler wrapped in withAuth (), validating the body with periodSchema (periodKey/start/end) plus a literal confirm check, rejecting non-POST with 405, mapping VatReturnError/HmrcError to the shared vatErrorResponse shape, and returning only the receipt (formBundleNumber, processingDate, sandbox) per. Handler is injectable (store, hmrc store, fetchFn, refresh, now) following api/vat/obligations.ts and return-confirm.ts. Rate limit follows whatever the repo uses for other vat routes (note if none exists). Route tests cover 401 unauthenticated, 405, 400 bad body, 409 states, 200 receipt, and a second user's period being refused.
   - Files: `api/vat/submit.ts`, `api/_lib/__tests__/vatSubmit.test.ts`
   - Acceptance criteria the planner set:
@@ -80,6 +80,7 @@
     - Another user's periodKey cannot be submitted or read (no cross-user row touched)
     - npm run lint, typecheck and test pass
   - Risk: Auth and tenant isolation on a new write route; opus high.
+  - Commit: `aab055222cbc`
 
 - [ ] **Task 5: Settings opt-in for live HMRC submission** (after 2)
   - Intent: Give users the 'user opt-in in Settings' half of the gate. Add a small authenticated endpoint api/hmrc/mode.ts (GET current opt-in, POST {live: boolean}) that writes users.hmrc_sandbox_mode via an HmrcStore method (setSandboxMode), and a Settings section with a clearly worded checkbox/toggle: default off, explains live filing is only possible when the server is also in production mode, requires explicit confirmation text when switching on, and shows the effective mode. Changing the flag also needs the user to reconnect HMRC because tokens are per environment (connect.ts already enforces); surface that hint. Add settingsApi helpers and tests (SettingsPage.test.tsx with the API mocked, store test for the new method). Controls meet 44px targets, focus states and shared tokens.

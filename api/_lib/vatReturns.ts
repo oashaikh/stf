@@ -2,7 +2,14 @@ import { and, eq, gte, inArray, lte, isNull, ne } from 'drizzle-orm';
 import { z } from 'zod';
 
 import type { ApiError } from '../../src/model/types';
-import { accounts, auditEvents, transactionLines, transactions, vatReturnDrafts } from '../../server/src/db/schema.js';
+import {
+  accounts,
+  auditEvents,
+  transactionLines,
+  transactions,
+  vatReturnDrafts,
+  vatSubmissions,
+} from '../../server/src/db/schema.js';
 import { buildVatReturnFromLedger, linesForBox, type LedgerLine, type VatReturnBoxes } from '../../src/lib/vat';
 import { db } from './db';
 
@@ -31,6 +38,37 @@ export interface VatReturnStore {
   saveDraft(userId: string, period: Period, boxes: VatReturnBoxes, reopen: boolean): Promise<void>;
   /** Stores the snapshot as confirmed and writes the audit event in one transaction. */
   confirm(userId: string, period: Period, boxes: VatReturnBoxes, now: Date): Promise<void>;
+  findSubmission(userId: string, periodKey: string, sandbox: boolean): Promise<{ status: SubmissionStatus } | undefined>;
+  /**
+   * One conditional statement: inserts a pending row, or flips a failed one back to pending.
+   * Returns the submission id, or undefined when a pending or submitted row already holds the period.
+   */
+  claimSubmission(userId: string, periodKey: string, sandbox: boolean): Promise<string | undefined>;
+  /** Marks the claim submitted and writes vat_return.submitted in one transaction. Throws if the claim is not pending. */
+  recordReceipt(userId: string, submissionId: string, receipt: SubmissionReceipt, audit: SubmissionAudit, now: Date): Promise<void>;
+  /** For definite HMRC rejections only: releases the claim and writes vat_return.submit_failed. Ambiguous outcomes must not call this. */
+  markFailed(userId: string, submissionId: string, audit: SubmissionAudit): Promise<void>;
+}
+
+export type SubmissionStatus = 'pending' | 'submitted' | 'failed';
+export interface SubmissionReceipt {
+  formBundleNumber: string;
+  processingDate: Date;
+}
+export interface SubmissionAudit {
+  periodKey: string;
+  sandbox: boolean;
+  request: unknown;
+  response: unknown;
+  fraudHeaders: Record<string, string>;
+}
+
+/** The audit trail keeps the request, the HMRC body and the fraud headers, never credentials. */
+export function submissionSnapshot(audit: SubmissionAudit) {
+  const fraudHeaders = Object.fromEntries(
+    Object.entries(audit.fraudHeaders).filter(([name]) => name.toLowerCase() !== 'authorization'),
+  );
+  return { ...audit, fraudHeaders };
 }
 
 // Truncating would silently understate the return, so exceeding this fails loudly instead.
@@ -107,7 +145,16 @@ export async function getReturnReview(store: VatReturnStore, userId: string, per
   return { boxes, drillDown, drillDownTotals, status: draft?.status ?? null, confirmedAt: draft?.confirmedAt ?? null, stale };
 }
 
+// Only live filings lock a period: a sandbox rehearsal must never block the real one.
+async function refuseIfFiledLive(store: VatReturnStore, userId: string, periodKey: string) {
+  const filed = await store.findSubmission(userId, periodKey, false);
+  if (filed && filed.status !== 'failed') {
+    throw new VatReturnError(409, 'ALREADY_SUBMITTED', 'Return has been submitted to HMRC');
+  }
+}
+
 export async function saveReturnDraft(store: VatReturnStore, userId: string, period: Period, reopen: boolean) {
+  await refuseIfFiledLive(store, userId, period.periodKey);
   const existing = await store.findDraft(userId, period.periodKey);
   if (existing?.status === 'confirmed' && !reopen) {
     throw new VatReturnError(409, 'ALREADY_CONFIRMED', 'Return is already confirmed; reopen it to edit');
@@ -118,6 +165,7 @@ export async function saveReturnDraft(store: VatReturnStore, userId: string, per
 }
 
 export async function confirmReturn(store: VatReturnStore, userId: string, period: Period, now: Date) {
+  await refuseIfFiledLive(store, userId, period.periodKey);
   const { boxes } = await recompute(store, userId, period);
   await store.confirm(userId, period, boxes, now);
   return { boxes, status: 'confirmed' as const };
@@ -257,6 +305,72 @@ export const databaseStore: VatReturnStore = {
         resourceType: 'vat_return_draft',
         resourceId: row.id,
         afterSnapshot: { periodKey: period.periodKey, boxes },
+      });
+    });
+  },
+  async findSubmission(userId, periodKey, sandbox) {
+    const [row] = await db
+      .select({ status: vatSubmissions.status })
+      .from(vatSubmissions)
+      .where(
+        and(eq(vatSubmissions.userId, userId), eq(vatSubmissions.periodKey, periodKey), eq(vatSubmissions.sandbox, sandbox)),
+      )
+      .limit(1);
+    return row;
+  },
+
+  async claimSubmission(userId, periodKey, sandbox) {
+    // The unique (user_id, period_key, sandbox) index makes this the only arbiter between concurrent requests.
+    const [row] = await db
+      .insert(vatSubmissions)
+      .values({ userId, periodKey, sandbox })
+      .onConflictDoUpdate({
+        target: [vatSubmissions.userId, vatSubmissions.periodKey, vatSubmissions.sandbox],
+        set: { status: 'pending', updatedAt: new Date() },
+        setWhere: eq(vatSubmissions.status, 'failed'),
+      })
+      .returning({ id: vatSubmissions.id });
+    return row?.id;
+  },
+
+  async recordReceipt(userId, submissionId, receipt, audit, now) {
+    await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(vatSubmissions)
+        .set({ ...receipt, status: 'submitted', submittedAt: now, updatedAt: now })
+        .where(
+          and(eq(vatSubmissions.id, submissionId), eq(vatSubmissions.userId, userId), eq(vatSubmissions.status, 'pending')),
+        )
+        .returning({ id: vatSubmissions.id });
+      if (!row) throw new Error('No pending VAT submission to record a receipt against');
+      await tx.insert(auditEvents).values({
+        userId,
+        actorType: 'user',
+        action: 'vat_return.submitted',
+        resourceType: 'vat_submission',
+        resourceId: submissionId,
+        afterSnapshot: { ...submissionSnapshot(audit), receipt },
+      });
+    });
+  },
+
+  async markFailed(userId, submissionId, audit) {
+    await db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(vatSubmissions)
+        .set({ status: 'failed', updatedAt: new Date() })
+        .where(
+          and(eq(vatSubmissions.id, submissionId), eq(vatSubmissions.userId, userId), eq(vatSubmissions.status, 'pending')),
+        )
+        .returning({ id: vatSubmissions.id });
+      if (!row) throw new Error('No pending VAT submission to mark failed');
+      await tx.insert(auditEvents).values({
+        userId,
+        actorType: 'user',
+        action: 'vat_return.submit_failed',
+        resourceType: 'vat_submission',
+        resourceId: submissionId,
+        afterSnapshot: submissionSnapshot(audit),
       });
     });
   },

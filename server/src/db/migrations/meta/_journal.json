@@ -29,6 +29,13 @@
       "when": 1792986650119,
       "tag": "0003_vat_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792986650120,
+      "tag": "0004_vat_return_drafts_history_index",
+      "breakpoints": true
     }
   ]
 }

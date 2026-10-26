@@ -70,3 +70,7 @@
     - lint, typecheck, test and build all pass
   - Risk: STF-20 also edits docs/workflows/vat-return.md; small additive edit only.
   - Commit: `fdc580d6face`
+
+- [x] **Task 5: Fix: address 5 review findings (cycle 1)** (after 4)
+  - Intent: Review left 5 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The code is correct, but both committed screenshots are blank white images, so the "screenshots at 390 and 1440 px" acceptance criterion and are not met. The server  The agent is fixing them; nothing is needed from you.
+  - Commit: `786e14942521`

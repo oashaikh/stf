@@ -1,0 +1,122 @@
+// @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import VatPage from './VatPage';
+
+const fetchVatObligations = vi.fn();
+vi.mock('../lib/hmrc/vatApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/hmrc/vatApi')>()),
+  fetchVatObligations: (...args: unknown[]) => fetchVatObligations(...args),
+}));
+vi.mock('../lib/hmrc/settingsApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/hmrc/settingsApi')>()),
+  fetchHmrcMode: async () => ({ sandbox: true, liveOptIn: false }),
+  isEffectivelyLive: () => false,
+}));
+vi.mock('@clerk/clerk-react', () => ({ useAuth: () => ({ getToken: async () => 'tok' }) }));
+
+const zeroBoxes = { box1: 0, box2: 0, box3: 0, box4: 0, box5: 0, box6: 0, box7: 0, box8: 0, box9: 0 };
+const review = {
+  boxes: zeroBoxes,
+  drillDown: Object.fromEntries(Object.keys(zeroBoxes).map((box) => [box, []])),
+  drillDownTotals: zeroBoxes,
+  status: 'draft',
+  confirmedAt: null,
+  stale: false,
+  submission: null,
+};
+const fetchMock = vi.fn();
+
+function obligation(periodKey: string, start: string, end: string, status: 'O' | 'F' = 'O') {
+  return { periodKey, start, end, due: '2026-11-07', status, overdue: false };
+}
+
+function renderPage() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <VatPage />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+function returnRequests() {
+  return fetchMock.mock.calls.filter(([path]) => String(path).startsWith('/api/vat/return'));
+}
+
+describe('VatPage', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-26T10:00:00Z') });
+    fetchVatObligations.mockReset();
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data: review })));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('reviews exactly the open obligation, not the calendar quarter', async () => {
+    fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+    renderPage();
+    await screen.findByText(/Status:/);
+    const [path] = returnRequests()[0];
+    const params = new URL(String(path), 'http://localhost').searchParams;
+    expect(Object.fromEntries(params)).toEqual({ periodKey: '26C3', start: '2026-07-01', end: '2026-09-30' });
+    expect(screen.getByText('Period 2026-07-01 to 2026-09-30')).toBeInTheDocument();
+  });
+
+  it('sends the selected obligation with the draft save and the confirmation', async () => {
+    fetchMock.mockImplementation(async (path: string, init?: RequestInit) => {
+      const data = path.startsWith('/api/vat/return?') && !init?.method ? { ...review, status: null } : review;
+      return new Response(JSON.stringify({ ok: true, data }));
+    });
+    fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+    renderPage();
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(true));
+    const put = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body)).toEqual({ periodKey: '26C3', start: '2026-07-01', end: '2026-09-30' });
+
+    fireEvent.click(await screen.findByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm return' }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => path === '/api/vat/return-confirm')).toBe(true));
+    const confirm = fetchMock.mock.calls.find(([path]) => path === '/api/vat/return-confirm')!;
+    expect(JSON.parse(confirm[1].body)).toEqual({
+      periodKey: '26C3', start: '2026-07-01', end: '2026-09-30', declaration: true,
+    });
+  });
+
+  it('requires a choice between several open obligations and ignores fulfilled ones', async () => {
+    fetchVatObligations.mockResolvedValue([
+      obligation('26C3', '2026-07-01', '2026-09-30'),
+      obligation('26C2', '2026-04-01', '2026-06-30'),
+      obligation('26C1', '2026-01-01', '2026-03-31', 'F'),
+    ]);
+    renderPage();
+    const choices = await screen.findAllByRole('radio');
+    expect(choices).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Confirm return' })).not.toBeInTheDocument();
+    expect(returnRequests()).toHaveLength(0);
+
+    fireEvent.click(choices[1]);
+    await screen.findByText(/Status:/);
+    const params = new URL(String(returnRequests()[0][0]), 'http://localhost').searchParams;
+    expect(params.get('periodKey')).toBe('26C2');
+  });
+
+  it('offers no review or submit when no obligation is open', async () => {
+    fetchVatObligations.mockResolvedValue([obligation('26C1', '2026-01-01', '2026-03-31', 'F')]);
+    renderPage();
+    expect(await screen.findByText('No open VAT obligations to file.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm return' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Submit to HMRC/ })).not.toBeInTheDocument();
+    expect(returnRequests()).toHaveLength(0);
+  });
+});

@@ -75,9 +75,14 @@ const hmrcStore = (sandbox: boolean | undefined = true): HmrcStore =>
 
 const receiptBody = { formBundleNumber: '256616960283', processingDate: '2026-10-26T10:00:01.000Z' };
 
+// Obligations GETs are answered here; `fetchFn` therefore only sees submit POSTs.
+let openObligations: unknown[];
 let fetchFn: Mock<[], Promise<Response>>;
+const routedFetch = ((url: string) =>
+  url.includes('/obligations?') ? Promise.resolve(Response.json({ obligations: openObligations })) : fetchFn()) as unknown as typeof fetch;
 beforeEach(() => {
   vi.stubEnv('HMRC_SANDBOX_MODE', 'true');
+  openObligations = [{ ...period, due: '2026-05-07', status: 'O' }];
   fetchFn = vi.fn(async () => new Response(JSON.stringify({ ...receiptBody, chargeRefNumber: 'raw-only' })));
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
@@ -88,7 +93,7 @@ afterEach(() => {
 
 function post(vat = makeVatStore(), token: string | null = 'a', body: unknown = { ...period, confirm: true }, method = 'POST', sandbox?: boolean) {
   const handler = createSubmitHandler(
-    { vatStore: vat.store, hmrcStore: hmrcStore(sandbox), fetchFn: fetchFn as unknown as typeof fetch, now: () => NOW },
+    { vatStore: vat.store, hmrcStore: hmrcStore(sandbox), fetchFn: routedFetch, now: () => NOW },
     authDeps,
   );
   return handler(
@@ -148,6 +153,14 @@ describe('POST /api/vat/submit', () => {
     const mismatch = await post(makeVatStore(), 'a', undefined, 'POST', false);
     expect(mismatch.status).toBe(409);
     expect(await mismatch.json()).toMatchObject({ code: 'MODE_MISMATCH' });
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('maps a period that is not an open obligation to 409 PERIOD_NOT_OPEN without filing', async () => {
+    openObligations = [];
+    const res = await post();
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ ok: false, code: 'PERIOD_NOT_OPEN' });
     expect(fetchFn).not.toHaveBeenCalled();
   });
 

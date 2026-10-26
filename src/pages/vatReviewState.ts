@@ -30,6 +30,8 @@ export interface ReviewState {
   receipt: (SubmissionReceipt & { heading: string }) | null;
   /** Tells the user not to retry; set when the outcome could not be confirmed. */
   warning: string | null;
+  /** A nil return still needs confirming only until it is confirmed (and fresh) or filed. */
+  needsConfirming: boolean;
 }
 
 /** Boxes with contributing transactions; 2, 8 and 9 are always zero so have nothing to expand. */
@@ -50,20 +52,6 @@ export const BOX_LABELS: Record<number, string> = {
 /** Box 5 is signed on the server: negative means HMRC owes the user a refund. */
 export function boxLabel(box: number, pence: number): string {
   return box === 5 && pence < 0 ? `${BOX_LABELS[5]} (refund due to you)` : BOX_LABELS[box];
-}
-
-/** The calendar quarter containing `now`. ponytail: real VAT periods follow the user's stagger; replace when settings hold it. */
-export function currentQuarter(now: Date) {
-  const year = now.getUTCFullYear();
-  const quarter = Math.floor(now.getUTCMonth() / 3);
-  const startMonth = quarter * 3;
-  const end = new Date(Date.UTC(year, startMonth + 3, 0));
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return {
-    periodKey: `${year}-Q${quarter + 1}`,
-    start: `${year}-${pad(startMonth + 1)}-01`,
-    end: `${year}-${pad(end.getUTCMonth() + 1)}-${pad(end.getUTCDate())}`,
-  };
 }
 
 export function reviewState(input: ReviewStateInput): ReviewState {
@@ -91,5 +79,6 @@ export function reviewState(input: ReviewStateInput): ReviewState {
     warning: outcomeUnknown
       ? 'We could not confirm whether HMRC received this return. Do not submit again. Check your HMRC online account before trying again.'
       : null,
+    needsConfirming: !alreadyConfirmed && submission === null,
   };
 }

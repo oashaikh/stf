@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchVatHistory, fetchVatObligations, NotConnectedError, SubmitVatError, submitVatReturn, VatNumberMissingError } from './vatApi';
+import { fetchVatHistory, fetchVatObligations, NotConnectedError, previewVatReturn, SubmitVatError, submitVatReturn, VatNumberMissingError } from './vatApi';
 
 const obligation = { periodKey: '18A1', start: '2026-01-01', end: '2026-03-31', due: '2026-05-07', status: 'O', overdue: false };
 
@@ -90,5 +90,28 @@ describe('fetchVatHistory', () => {
   it('throws when the request fails', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false }, 500));
     await expect(fetchVatHistory('tok', fetchMock)).rejects.toThrow('Request to /api/vat/history failed');
+  });
+});
+
+describe('previewVatReturn', () => {
+  beforeEach(() => localStorage.clear());
+  const period = { periodKey: '26A1', start: '2026-01-01', end: '2026-03-31' };
+
+  it('posts only the period with the bearer token and returns the preview', async () => {
+    const preview = { endpoint: { method: 'POST', url: 'https://x/***456/returns', sandbox: true }, body: { periodKey: '26A1' }, headers: {} };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, data: preview }));
+    expect(await previewVatReturn('tok', period, fetchMock)).toEqual(preview);
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe('/api/vat/preview');
+    expect(init.method).toBe('POST');
+    expect(init.headers.Authorization).toBe('Bearer tok');
+    expect(init.headers['x-stf-device-id']).toBeTruthy();
+    expect(JSON.parse(init.body)).toEqual(period);
+  });
+
+  it('throws with the server code when the preview fails', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false, code: 'NOT_CONNECTED', error: 'Connect HMRC' }, 409));
+    await expect(previewVatReturn('tok', period, fetchMock)).rejects.toMatchObject({ code: 'NOT_CONNECTED' });
+    await expect(previewVatReturn('tok', period, fetchMock)).rejects.toBeInstanceOf(SubmitVatError);
   });
 });

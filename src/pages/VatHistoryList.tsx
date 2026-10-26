@@ -86,7 +86,7 @@ export default function VatHistoryList() {
         </table>
       )}
 
-      {opened?.receipt && (
+      {opened && (
         <section className="mt-6 max-w-3xl rounded border border-gray-200 p-4" aria-labelledby="vat-history-detail-heading">
           <h3 id="vat-history-detail-heading" className="font-semibold text-gray-900">
             Return {opened.periodKey}, {STATUS_LABELS[opened.status]} (view only)
@@ -103,16 +103,20 @@ export default function VatHistoryList() {
               );
             })}
           </dl>
-          <dl className="mt-4 border-t border-gray-200 pt-3 text-sm text-gray-700">
-            <div className="flex justify-between gap-4 py-1">
-              <dt>{opened.receipt.sandbox ? 'Sandbox receipt, form bundle number' : 'HMRC form bundle number'}</dt>
-              <dd className="text-right tabular-nums">{opened.receipt.formBundleNumber}</dd>
-            </div>
-            <div className="flex justify-between gap-4 py-1">
-              <dt>Processing date</dt>
-              <dd className="text-right tabular-nums">{opened.receipt.processingDate.slice(0, 10)}</dd>
-            </div>
-          </dl>
+          {opened.receipt ? (
+            <dl className="mt-4 border-t border-gray-200 pt-3 text-sm text-gray-700">
+              <div className="flex justify-between gap-4 py-1">
+                <dt>{opened.receipt.sandbox ? 'Sandbox receipt, form bundle number' : 'HMRC form bundle number'}</dt>
+                <dd className="text-right tabular-nums">{opened.receipt.formBundleNumber}</dd>
+              </div>
+              <div className="flex justify-between gap-4 py-1">
+                <dt>Processing date</dt>
+                <dd className="text-right tabular-nums">{opened.receipt.processingDate.slice(0, 10)}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="mt-4 border-t border-gray-200 pt-3 text-sm text-gray-700">Awaiting HMRC confirmation.</p>
+          )}
         </section>
       )}
     </section>

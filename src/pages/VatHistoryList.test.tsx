@@ -44,7 +44,7 @@ describe('VatHistoryList', () => {
     fetchVatHistory.mockResolvedValue([
       item('26A1', 'draft', 75000),
       item('25D4', 'confirmed', 123456),
-      item('25C3', 'submitted', -5000, liveReceipt),
+      item('25C3', 'submitted', -5000),
       item('25B2', 'accepted', 0, liveReceipt),
     ]);
     renderList();
@@ -70,11 +70,22 @@ describe('VatHistoryList', () => {
   });
 
   it('labels a sandbox receipt', async () => {
-    fetchVatHistory.mockResolvedValue([item('25B2', 'submitted', 75000, { ...liveReceipt, sandbox: true })]);
+    fetchVatHistory.mockResolvedValue([item('25B2', 'accepted', 75000, { ...liveReceipt, sandbox: true })]);
     renderList();
     expect(await screen.findByText('Sandbox')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /25B2/ }));
     expect(within(screen.getByRole('region', { name: /Return 25B2/ })).getByText(/Sandbox receipt/)).toBeInTheDocument();
+  });
+
+  it('opens a submitted return with no receipt yet, showing boxes and an awaiting note', async () => {
+    fetchVatHistory.mockResolvedValue([item('25C3', 'submitted', 75000)]);
+    renderList();
+    fireEvent.click(await screen.findByRole('button', { name: /25C3/ }));
+    const detail = screen.getByRole('region', { name: /Return 25C3/ });
+    expect(within(detail).getByText(/Box 1: VAT due on sales/)).toBeInTheDocument();
+    expect(within(detail).getAllByText(/£/)).toHaveLength(9);
+    expect(within(detail).getByText(/awaiting HMRC confirmation/i)).toBeInTheDocument();
+    expect(within(detail).queryByText(/form bundle number/i)).toBeNull();
   });
 
   it('does not open a draft', async () => {

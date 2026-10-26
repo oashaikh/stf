@@ -116,3 +116,7 @@ Also depends on:
 - [x] **Task 6: Fix: address 23 review findings (cycle 1)** (after 5)
   - Intent: Review left 23 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness of the list, filters, load more, edit (PUT), void, confirm and locked-period handling checks out against api/entries.ts and the entry list query schema. Two pr The agent is fixing them; nothing is needed from you.
   - Commit: `eef0bf86b45a`
+
+- [x] **Task 7: Fix: address 10 review findings (cycle 2)** (after 6)
+  - Intent: Review left 10 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. Filters map to request params, load more uses the cursor and appends, void asks first and keeps the row visible as Voided, and P The agent is fixing them; nothing is needed from you.
+  - Commit: `0693a2f0ebd6`

@@ -63,7 +63,7 @@ Also depends on:
   - Risk: opus/high: touches the owner-scoped ledger loader every VAT path (review, confirm, preview, submit) uses, and carries a merge with conflict resolution. VatPage.tsx edit here is only the type so it still typechecks.
   - Commit: `fd9d95fdaf48`
 
-- [ ] **Task 2: End-to-end VAT tests from real entries (all boxes, refund, boundaries, stale, lock)** (after 1)
+- [x] **Task 2: End-to-end VAT tests from real entries (all boxes, refund, boundaries, stale, lock)** (after 1)
   - Intent: New api/_lib/__tests__/vatFromEntries.test.ts wiring one in-memory EntryStore and one in-memory VatReturnStore over the same saved rows (reuse the fake pattern in entriesRoute.test.ts). Create entries through createEntry and the entries handler, then run getReturnReview, confirmReturn, requireConfirmedReturn and previewVatReturnForUser. Cases: standard 20%, reduced 5%, zero-rated sales and purchases, asserting boxes 1 to 9 at least once; a refund period with box 5 negative as implemented in src/lib/vat.ts; entries on the first and last day of the period counted, day before and after excluded; editing an entry after confirmation makes requireConfirmedReturn refuse with the existing stale error; create, edit and void inside a filed period refused with PERIOD_LOCKED from STF-66; preview shows vatDueSales and totalValueSalesExVAT from the entries. Integer pence only, invented data. Check real exported names first; if a case exposes a real bug, report it rather than widening scope.
   - Files: `api/_lib/__tests__/vatFromEntries.test.ts`
   - Acceptance criteria the planner set:
@@ -72,6 +72,7 @@ Also depends on:
     - Stale-after-edit and filed-period lock cases fail if the respective guard is removed
     - Boundary cases cover first day, last day, day before, day after
     - No network or live database; npm test passes
+  - Commit: `e8a3c4f3b1f0`
 
 - [ ] **Task 3: VAT drill-down links to the Expenses list, truthful nil-return message, component tests** (after 1)
   - Intent: In the DrillLine rows of BoxRows in src/pages/VatPage.tsx show date (UK format), description and amount (formatPence, right-aligned, tabular figures, one-line truncation with title tooltip, 44px tap target, labelled rows on phone), each linking with react-router Link to the Expenses page using STF-10's filter query: /expenses?from=<date>&to=<date>&search=<description> plus #entry-<id>, so it lands on the list STF-68 is building. Do not build a second list or edit ExpensesPage.tsx. Show the 'No VAT-relevant transactions' nil message only when entryCount is 0. Component tests: lines render with links, nil message hidden when entries exist but boxes net to zero, shown when count is 0.

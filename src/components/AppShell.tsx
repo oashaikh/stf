@@ -10,7 +10,8 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 const NAV_ITEMS: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/dashboard', label: 'Dashboard', icon: Home },
@@ -25,6 +26,13 @@ const NAV_ITEMS: { to: string; label: string; icon: LucideIcon }[] = [
 
 // One nav element serves both layouts: a scrollable bottom bar on phones, inline links in the header from md up.
 export default function AppShell() {
+  const navRef = useRef<HTMLElement>(null);
+  const { pathname } = useLocation();
+  // Eight items are wider than a phone, so the bar scrolls; keep the current page in view.
+  useEffect(() => {
+    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView?.({ inline: 'center', block: 'nearest' });
+  }, [pathname]);
+
   return (
     <div className="min-h-screen pb-16 md:pb-0">
       <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-gray-200 bg-white px-4 md:px-6">
@@ -37,6 +45,7 @@ export default function AppShell() {
           </SignOutButton>
         </div>
         <nav
+          ref={navRef}
           aria-label="Main"
           className="fixed inset-x-0 bottom-0 z-10 flex overflow-x-auto border-t border-gray-200 bg-white md:static md:order-2 md:border-0"
         >

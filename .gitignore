@@ -44,3 +44,4 @@ playwright-report/
 
 # Uploads (local dev; use object storage in production)
 uploads/
+.agent-tmp/

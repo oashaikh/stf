@@ -40,7 +40,7 @@
   - Risk: Opus at high: schema and migration work. The hand-built snapshot must match what drizzle-kit would generate. No Docker is available, so the orchestrator validates applying it to a database.
   - Commit: `adabcbd38ce4`
 
-- [ ] **Task 2: Default UK sole-trader chart of accounts constant**
+- [x] **Task 2: Default UK sole-trader chart of accounts constant**
   - Intent: Create src/lib/chartOfAccounts.ts: a typed readonly DEFAULT_ACCOUNTS list of about 18 entries with code, name, accountType, taxCategory slug and isSystem. Income: sales, other business income. Expenses map to HMRC self-employment categories: cost-of-goods, travel, premises, admin-office, advertising, professional-fees, finance-costs, other-allowable, plus a disallowable account. System accounts: bank (asset), trade debtors (asset), VAT control (liability), owner's capital and drawings (equity). Reuse the AccountInsert type from the schema; add no new abstraction. A test checks codes are unique, size is 15 to 20, every expense has a taxCategory, and every system account has isSystem set.
   - Files: `src/lib/chartOfAccounts.ts`, `src/lib/__tests__/chartOfAccounts.test.ts`
   - Acceptance criteria the planner set:
@@ -49,6 +49,7 @@
     - The five required system accounts exist with isSystem true
     - Expense accounts cover all of the named HMRC categories including disallowable
     - npm run lint, typecheck and test pass
+  - Commit: `ac402c32c010`
 
 - [ ] **Task 3: Accounts store, seeding and audit logic (injected, DB-free tests)** (after 1, 2)
   - Intent: Create api/_lib/accounts.ts following the vatNumber.ts pattern, with an AccountStore interface and databaseAccountStore. Operations: seedDefaults (insert DEFAULT_ACCOUNTS with onConflictDoNothing on (userId, code)); list (userId filter, active via archived_at IS NULL or archived on request, ordered by code, explicit LIMIT, explicit columns); create; rename; archive. Each of create, rename and archive writes an audit_events row (actorType 'user', resourceType 'account', before/after snapshots) in the same transaction as the change, with no network calls inside. Every query filters on the session userId, including update and archive by (id, userId). Pure rules are unit-tested: name/code validation, refusing archive of a system account, refusing a retype, mapping unique violation 23505 to a duplicate-code error. Tests use an in-memory fake store. Mark the queries as registered for the query audit in a comment, as vatNumber.ts does.

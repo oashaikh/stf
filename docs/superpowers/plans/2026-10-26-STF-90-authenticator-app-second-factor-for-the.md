@@ -40,7 +40,7 @@
   - Risk: Opus high: authentication secrets, schema/migration and a new dependency.
   - Commit: `508908092ba7`
 
-- [ ] **Task 2: Two-step login with lockout and a second factor on the session** (after 1)
+- [x] **Task 2: Two-step login with lockout and a second factor on the session** (after 1)
   - Intent: Make login ask for the code after the password when the authenticator is on. api/auth/login.ts: after a correct password and MFA enabled, do not issue a session; return {ok:true, mfaRequired:true} plus a short-lived (5 min) signed challenge cookie (HttpOnly, Secure, SameSite) that proves the password step only and is useless as a session. New api/auth/mfa.ts takes {code} (TOTP or recovery code), checks lockout first, and on failure calls the same loginThrottle.recordFailure so wrong codes count toward the existing 5-failure lockout; success clears the throttle and issues the session. Extend the session token in api/_lib/ownerSession.ts (backward-compatible parse so existing 2-part tokens still verify as no second factor) to carry the second factor: type TOTP, authenticated time, and a random unique reference stored only as its hash; the HMAC covers it. Expose a reader that returns that record for a Request. Tampering must fail verification. Recovery-code login records the same TOTP type. Tests: wrong code returns 401 and counts to the lockout (6th attempt gets 429 even with a right code), reused recovery code refused, challenge cookie alone cannot call requireAuth, tampered token rejected, password-only owner login unchanged. Logs carry the error class only, never code or secret.
   - Files: `api/auth/login.ts`, `api/auth/mfa.ts`, `api/auth/__tests__/login.test.ts`, `api/auth/__tests__/mfa.test.ts`, `api/_lib/ownerSession.ts`, `api/_lib/__tests__/ownerSession.test.ts`, `api/_lib/auth.ts`, `api/_lib/__tests__/auth.test.ts`, `vercel.json`
   - Acceptance criteria the planner set:
@@ -51,6 +51,7 @@
     - No test or log output contains a code or secret
     - lint, typecheck, test, build pass
   - Risk: Opus high: sign-in, session and lockout work ().
+  - Commit: `0bad0e33457e`
 
 - [ ] **Task 3: Authenticator setup, confirm and disable API** (after 1, 2)
   - Intent: Owner-only routes in api/settings/authenticator.ts behind requireAuth: POST start (generate a pending secret, store it encrypted but not enabled, return otpauth URI, QR data URL and the base32 secret), POST confirm {code} (verify, set totp_enabled_at, generate 8 recovery codes, return them in plaintext exactly once), POST disable {code} (requires the current valid TOTP code, then clears the secret and deletes recovery codes), GET status {enabled}. Restarting setup while enabled is refused. Failed confirm/disable codes count toward the same login lockout. Response bodies never echo back codes beyond the one-time recovery list; no select * (explicit columns). Tests: wrong code on confirm leaves it off, confirm returns 8 codes once and a later status/GET never returns them, disable with wrong code refused and with right code works, unauthenticated requests get 401, no secret in logged output.

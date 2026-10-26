@@ -86,8 +86,9 @@ The token must never appear in a thrown error, a log line or the returned value.
     - npm run lint, typecheck and test pass
   - Risk: Token type must be confirmed against HMRC docs; the client secret is a credential, so keep it out of every output.
 
-- [ ] **Task 3: Server route to run the check and record an audit event** (after 1, 2)
+- [x] **Task 3: Server route to run the check and record an audit event** (after 1, 2)
   - Intent: Add api/vat/fraud-headers-check.ts (or api/hmrc/fraud-check.ts). It is a POST route behind withAuth that uses the same header-building path as submit. Extract a small shared function from prepareSubmission and the obligations route, so there is one place that assembles FraudHeaderInput from the request and env. Do not add a second copy.
+  - Commit: `7d314acdb0dc`
 The route calls the task 2 validator and returns the normalised result, with no token and no raw HMRC body.
 
 It inserts an audit_events row with action 'hmrc.fraud_headers.validated', actorType 'user', resourceType 'hmrc_fraud_validation', and the userId. The row's afterSnapshot holds the outcome and the error and warning lists. Include the sent header values only if they carry no token; they hold an IP and a device id, so apply and keep them to header names and results. If the insert fails, that failure must be visible: return an error rather than swallowing it.

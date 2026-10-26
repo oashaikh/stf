@@ -1,19 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent, type ReactNode } from "react";
-import { useSearchParams } from "react-router-dom";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { DASHBOARD_QUERY_KEY } from "../lib/dashboardApi";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
 import {
   createEntry,
+  editEntry,
   EntryRefusedError,
+  PeriodLockedError,
   ENTRIES_QUERY_KEY,
-  fetchEntries,
   fetchHasVatNumber,
+  type ApiEntry,
+  type NewEntryRequest,
 } from "../lib/entriesApi";
-import { entryFigures, parseEntryAmount } from "../lib/entryForm";
+import { entryFigures, parseEntryAmount, vatRateOf } from "../lib/entryForm";
 import { formatPence } from "../lib/money";
 import type { VatRate } from "../lib/vat";
+import EntriesList from "./EntriesList";
+import { LockedMessage } from "./EntryActions";
 
 const fieldClass =
   "mt-1 min-h-[44px] w-full rounded-md border border-gray-400 px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700";
@@ -90,17 +100,38 @@ const describedBy = (id: string, error?: string, hint?: string) =>
   [error && `${id}-error`, hint && `${id}-hint`].filter(Boolean).join(" ") ||
   undefined;
 
-function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
+// With `entry` the form edits that entry (PUT) instead of adding a new one; `onDone` closes it after a save or Cancel.
+function AddEntryForm({
+  hasVatNumber,
+  entry,
+  onDone,
+}: {
+  hasVatNumber: boolean;
+  entry?: ApiEntry;
+  onDone: () => void;
+}) {
   const queryClient = useQueryClient();
-  const [kind, setKind] = useState<Kind>("expense");
-  const [date, setDate] = useState(todayIso);
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
+  const [kind, setKind] = useState<Kind>(entry?.kind ?? "expense");
+  const [date, setDate] = useState(entry?.date ?? todayIso());
+  const [description, setDescription] = useState(entry?.description ?? "");
+  // The list holds the gross figure, so the amount is edited as gross.
+  const [amount, setAmount] = useState(
+    entry ? formatPence(entry.grossPence) : "",
+  );
   const [amountIs, setAmountIs] = useState<"gross" | "net">("gross");
-  const [vatRate, setVatRate] = useState<VatRate>(0);
-  const [categoryId, setCategoryId] = useState("");
-  const [reference, setReference] = useState("");
+  const [vatRate, setVatRate] = useState<VatRate>(
+    entry ? vatRateOf(entry.netPence, entry.vatPence) : 0,
+  );
+  const [categoryId, setCategoryId] = useState(entry?.categoryAccountId ?? "");
+  const [reference, setReference] = useState(entry?.reference ?? "");
+  // An edited entry that already carries VAT keeps its rate even if the VAT number was removed since.
+  const showVat = hasVatNumber || vatRate !== 0;
   const [errors, setErrors] = useState<Errors>({});
+  const dateRef = useRef<HTMLInputElement>(null);
+  // Editing opens the form above a possibly long list, so bring it into view and put focus in it.
+  useEffect(() => {
+    if (entry) dateRef.current?.focus();
+  }, [entry]);
 
   const accounts = useQuery({
     queryKey: ["accounts", "active"],
@@ -113,11 +144,12 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
   const parsedAmount = parseEntryAmount(amount);
   const figures =
     "pence" in parsedAmount
-      ? entryFigures(parsedAmount.pence, amountIs, hasVatNumber ? vatRate : 0)
+      ? entryFigures(parsedAmount.pence, amountIs, showVat ? vatRate : 0)
       : null;
 
   const save = useMutation({
-    mutationFn: createEntry,
+    mutationFn: (request: NewEntryRequest) =>
+      entry ? editEntry(entry.id, request) : createEntry(request),
     onSuccess: async () => {
       setDescription("");
       setAmount("");
@@ -128,8 +160,14 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
         queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY }),
         queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY }),
       ]);
+      if (entry) onDone();
     },
     onError: (error) => {
+      // A locked period is permanent; LockedMessage explains it, so no retry text.
+      if (error instanceof PeriodLockedError) {
+        setErrors({});
+        return;
+      }
       const fields =
         error instanceof EntryRefusedError
           ? error.fields.flatMap((field) => FORM_FIELD[field] ?? [])
@@ -163,8 +201,9 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
       categoryAccountId: categoryId,
       amountPence: parsedAmount.pence,
       amountIs,
-      vatRatePercent: hasVatNumber ? vatRate : 0,
-      status: "draft",
+      vatRatePercent: showVat ? vatRate : 0,
+      // A reconciled entry is confirmed as far as the edit API is concerned.
+      status: entry && entry.status !== "draft" ? "confirmed" : "draft",
     });
   }
 
@@ -174,6 +213,11 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
       noValidate
       className="mt-4 grid gap-4 rounded-lg border border-gray-300 bg-white p-4 md:grid-cols-2"
     >
+      {entry && (
+        <h2 className="text-lg font-semibold text-gray-900 md:col-span-2">
+          Edit entry: {entry.description}
+        </h2>
+      )}
       <div
         role="group"
         aria-label="Money in or out"
@@ -207,6 +251,7 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
           value={date}
           onChange={(event) => setDate(event.target.value)}
           className={fieldClass}
+          ref={dateRef}
           aria-describedby={describedBy("entry-date", errors.date, date)}
           aria-invalid={Boolean(errors.date)}
         />
@@ -265,7 +310,7 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
         ))}
       </fieldset>
 
-      {hasVatNumber && (
+      {showVat && (
         <Field id="entry-vat" label="VAT rate" error={errors.vat}>
           <select
             id="entry-vat"
@@ -335,84 +380,47 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
         </dl>
       )}
 
+      {save.error instanceof PeriodLockedError && (
+        <div className="md:col-span-2">
+          <LockedMessage />
+        </div>
+      )}
+
       {errors.form && (
         <p role="alert" className="text-red-800 md:col-span-2">
           {errors.form}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={save.isPending}
-        className="min-h-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-60 md:col-span-2 md:justify-self-start"
-      >
-        {save.isPending ? "Saving…" : "Save as draft"}
-      </button>
-    </form>
-  );
-}
-
-function EntryList() {
-  const [searchParams] = useSearchParams();
-  const draftsOnly = searchParams.get("status") === "draft";
-  const entries = useQuery({
-    queryKey: ENTRIES_QUERY_KEY,
-    queryFn: fetchEntries,
-  });
-  if (entries.isPending)
-    return (
-      <p role="status" className="mt-6 text-gray-700">
-        Loading entries…
-      </p>
-    );
-  if (entries.isError)
-    return (
-      <p role="alert" className="mt-6 text-red-800">
-        Could not load your entries. Please try again.
-      </p>
-    );
-  const shown = draftsOnly
-    ? entries.data.filter((entry) => entry.status === "draft")
-    : entries.data;
-  if (shown.length === 0)
-    return (
-      <p className="mt-6 text-gray-700">
-        {draftsOnly
-          ? "No drafts to confirm."
-          : "No entries yet. Add your first one above."}
-      </p>
-    );
-  return (
-    <ul className="mt-6 divide-y divide-gray-200 rounded-lg border border-gray-300 bg-white">
-      {shown.map((entry) => (
-        <li
-          key={entry.id}
-          className="flex min-h-[44px] items-center gap-3 px-4 py-2"
+      <div className="flex flex-wrap gap-3 md:col-span-2">
+        <button
+          type="submit"
+          disabled={save.isPending}
+          className="min-h-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-60"
         >
-          <span className="min-w-0 flex-1">
-            <span
-              className="block truncate font-medium"
-              title={entry.description}
-            >
-              {entry.description}
-            </span>
-            <span className="block text-sm text-gray-700">
-              {formatDate(entry.date)} ·{" "}
-              {entry.status === "draft" ? "Draft" : "Confirmed"}
-            </span>
-          </span>
-          <span className="text-right tabular-nums">
-            {entry.kind === "income" ? "In " : "Out "}
-            {formatPence(entry.grossPence)}
-          </span>
-        </li>
-      ))}
-    </ul>
+          {save.isPending
+            ? "Saving…"
+            : entry
+              ? "Save changes"
+              : "Save as draft"}
+        </button>
+        {entry && (
+          <button
+            type="button"
+            onClick={onDone}
+            className="min-h-[44px] rounded-md border border-gray-400 px-4 text-gray-900 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+    </form>
   );
 }
 
 export default function ExpensesPage() {
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<ApiEntry | null>(null);
   const vat = useQuery({
     queryKey: ["vat-number-present"],
     queryFn: fetchHasVatNumber,
@@ -430,8 +438,22 @@ export default function ExpensesPage() {
           Add entry
         </button>
       </div>
-      {adding && <AddEntryForm hasVatNumber={vat.data === true} />}
-      <EntryList />
+      {editing ? (
+        <AddEntryForm
+          key={editing.id}
+          hasVatNumber={vat.data === true}
+          entry={editing}
+          onDone={() => setEditing(null)}
+        />
+      ) : (
+        adding && (
+          <AddEntryForm
+            hasVatNumber={vat.data === true}
+            onDone={() => setAdding(false)}
+          />
+        )
+      )}
+      <EntriesList onEdit={setEditing} />
     </main>
   );
 }

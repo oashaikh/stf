@@ -57,6 +57,13 @@
       "when": 1792986650123,
       "tag": "0007_entries_list_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792986650124,
+      "tag": "0008_totp_second_factor",
+      "breakpoints": true
     }
   ]
 }

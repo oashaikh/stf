@@ -283,3 +283,24 @@ describe('database store credentials', () => {
     expect(await databaseHmrcStore.saveRefreshedTokens('u1', 'rotated-elsewhere', tokens)).toBe(false);
   });
 });
+
+describe('requestFraudHeaders second factor', () => {
+  const env = { SESSION_SECRET: 's'.repeat(32) };
+  const at = new Date('2026-10-26T10:00:00Z');
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('sends Gov-Client-Multi-Factor from a TOTP session cookie and omits it for a password-only one', async () => {
+    vi.stubEnv('SESSION_SECRET', env.SESSION_SECRET);
+    const { createSessionToken } = await import('../ownerSession');
+    const { requestFraudHeaders } = await import('../hmrcCall');
+    const withCookie = (token: string) => new Request('https://app.test/x', { headers: { cookie: `stf_session=${token}` } });
+
+    const totp = requestFraudHeaders(withCookie(createSessionToken(at, env, at)), 'user_a', at)['Gov-Client-Multi-Factor'];
+    expect(totp).toMatch(/^type=TOTP&timestamp=2026-10-26T10%3A00%3A00\.000Z&unique-reference=[0-9a-f]{64}$/);
+
+    expect(requestFraudHeaders(withCookie(createSessionToken(at, env)), 'user_a', at)).not.toHaveProperty('Gov-Client-Multi-Factor');
+  });
+});

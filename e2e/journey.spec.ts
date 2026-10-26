@@ -98,6 +98,8 @@ test('owner sets up the authenticator, signs out, and signs back in with passwor
     const original = page.viewportSize();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });
+      // A full-page capture paints fixed bars at the viewport offset, mid-page over the content being shown.
+      await page.addStyleTag({ content: '.sticky, .fixed { position: static !important; }' });
       await page.screenshot({ path: path.join(evidenceDir, `${String(stepNumber).padStart(2, '0')}-${name}-${width}.png`), fullPage: true });
     }
     if (original) await page.setViewportSize(original);

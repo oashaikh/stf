@@ -24,7 +24,7 @@ export async function login(password: string): Promise<LoginResult> {
   return response.status === 429 ? 'locked' : 'error';
 }
 
-export type MfaResult = 'ok' | 'wrong-code' | 'locked' | 'error';
+export type MfaResult = 'ok' | 'wrong-code' | 'challenge-expired' | 'locked' | 'error';
 
 /** Second login step: an authenticator code or a recovery code, sent with the challenge cookie from login. */
 export async function submitMfaCode(code: string): Promise<MfaResult> {
@@ -36,7 +36,10 @@ export async function submitMfaCode(code: string): Promise<MfaResult> {
   }).catch(() => null);
   if (!response) return 'error';
   if (response.ok) return 'ok';
-  if (response.status === 401) return 'wrong-code';
+  if (response.status === 401) {
+    const body = await response.json().catch(() => null);
+    return body?.code === 'CHALLENGE_EXPIRED' ? 'challenge-expired' : 'wrong-code';
+  }
   return response.status === 429 ? 'locked' : 'error';
 }
 

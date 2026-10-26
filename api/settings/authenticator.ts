@@ -12,6 +12,9 @@ export interface AuthenticatorDeps {
   now: () => Date;
 }
 
+// The start and confirm bodies carry the secret and the one-time recovery codes.
+const NO_STORE = { 'Cache-Control': 'no-store' };
+
 const refuse = (status: number, error: string, code: string, headers?: HeadersInit) =>
   Response.json({ ok: false, error, code }, { status, headers });
 
@@ -32,7 +35,10 @@ export function createAuthenticatorHandler(deps: AuthenticatorDeps, authDeps?: A
       const secret = generateSecret();
       await deps.totp.begin(auth.userId, secret);
       const uri = otpauthUri(secret, ISSUER);
-      return Response.json({ ok: true, otpauthUri: uri, qrDataUrl: await qrCodeDataUrl(uri), secret });
+      return Response.json(
+        { ok: true, otpauthUri: uri, qrDataUrl: await qrCodeDataUrl(uri), secret },
+        { headers: NO_STORE },
+      );
     }
     if (action !== 'confirm' && action !== 'disable') return refuse(400, 'Unknown action', 'BAD_REQUEST');
 
@@ -55,7 +61,7 @@ export function createAuthenticatorHandler(deps: AuthenticatorDeps, authDeps?: A
         await deps.throttle.recordFailure(now);
         return refuse(401, 'Invalid code', 'INVALID_CODE');
       }
-      return Response.json({ ok: true, enabled: true, recoveryCodes });
+      return Response.json({ ok: true, enabled: true, recoveryCodes }, { headers: NO_STORE });
     }
 
     if (!(await deps.totp.verifyLogin(auth.userId, code, now))) {

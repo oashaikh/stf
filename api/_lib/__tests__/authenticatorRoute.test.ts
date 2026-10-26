@@ -106,6 +106,7 @@ describe('authenticator settings route', () => {
     const response = await call('POST', 'start');
     const body = await response.json();
     expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
     expect(body.otpauthUri).toMatch(/^otpauth:\/\/totp\//);
     expect(body.qrDataUrl).toMatch(/^data:image\/png;base64,/);
     expect(state.secretEncrypted).not.toContain(body.secret);
@@ -126,6 +127,7 @@ describe('authenticator settings route', () => {
     const response = await call('POST', 'confirm', { code: codeAt(secret, now) });
     const body = await response.json();
     expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
     expect(body.recoveryCodes).toHaveLength(8);
     expect(state.recovery).toEqual(body.recoveryCodes.map(hashRecoveryCode));
     expect(state.recovery).not.toContain(body.recoveryCodes[0]);

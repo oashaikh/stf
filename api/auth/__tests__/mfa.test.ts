@@ -124,7 +124,9 @@ describe('POST /api/auth/mfa', () => {
 
   it('refuses without a valid challenge cookie, even with a right code', async () => {
     const { submit } = await setup();
-    expect((await submit(codeAt(NOW), null)).status).toBe(401);
+    const missing = await submit(codeAt(NOW), null);
+    expect(missing.status).toBe(401);
+    expect((await missing.json()).code).toBe('CHALLENGE_EXPIRED');
     expect((await submit(codeAt(NOW), 'mfa-challenge.1.AAAA')).status).toBe(401);
     expect((await submit(codeAt(NOW), createChallengeToken(new Date(NOW.getTime() - 6 * 60_000), ENV))).status).toBe(401);
   });

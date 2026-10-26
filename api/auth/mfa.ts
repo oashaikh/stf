@@ -45,7 +45,7 @@ export function createMfaHandler(deps: MfaDeps) {
 
       const challenge = readChallengeCookie(request);
       if (!challenge || !verifyChallengeToken(challenge, now, deps.env)) {
-        return refuse(401, 'Sign in with your password first', 'UNAUTHORIZED');
+        return refuse(401, 'Sign in with your password first', 'CHALLENGE_EXPIRED');
       }
 
       const userId = await deps.users.createIfAbsent(OWNER_EXTERNAL_ID, OWNER_EMAIL);

@@ -103,6 +103,14 @@ describe('LoginPage', () => {
       expect(queryClient.getQueryData(SESSION_QUERY_KEY)).toBeUndefined();
     });
 
+    it('returns to the password step when the sign-in challenge has expired', async () => {
+      const { input } = await reachCodeStep(reply(401, { ok: false, code: 'CHALLENGE_EXPIRED' }));
+      fireEvent.change(input, { target: { value: '123456' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Enter your password again');
+      expect(screen.getByLabelText('Password')).toBeInTheDocument();
+    });
+
     it('shows the lockout message on 429', async () => {
       const { input } = await reachCodeStep(reply(429));
       fireEvent.change(input, { target: { value: '000000' } });

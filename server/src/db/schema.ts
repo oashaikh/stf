@@ -1,4 +1,5 @@
-import { boolean, date, inet, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { index, boolean, date, inet, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 export const businessTypeEnum = pgEnum('business_type', ['sole_trader', 'partnership', 'limited_company']);
 
@@ -42,7 +43,12 @@ export const users = pgTable('users', {
   hmrcSandboxMode: boolean('hmrc_sandbox_mode').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  // Backs the scheduled token refresh query; partial so users without HMRC are not indexed.
+  hmrcTokenExpiresAtIdx: index('users_hmrc_token_expires_at_idx')
+    .on(table.hmrcTokenExpiresAt)
+    .where(sql`${table.hmrcRefreshToken} is not null`),
+}));
 
 // Chart of accounts, per user. No independent deleted_at: accounts are not
 // financial-record transactions themselves; they are referenced by (soft-

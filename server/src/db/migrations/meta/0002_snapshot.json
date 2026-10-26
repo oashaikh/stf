@@ -1,6 +1,6 @@
 {
   "id": "930e04a6-70eb-41ce-9fdb-ec08099fcba3",
-  "prevId": "f6dcf300-2c5e-4082-b884-7b65ea49d33b",
+  "prevId": "c391f5fb-4d2a-47d9-8b6d-488e720b3722",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -911,7 +911,15 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "users_hmrc_token_expires_at_idx": {
+          "name": "users_hmrc_token_expires_at_idx",
+          "columns": [
+            "hmrc_token_expires_at"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {

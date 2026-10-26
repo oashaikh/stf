@@ -25,7 +25,8 @@ export const vatSubmissionStatusEnum = pgEnum('vat_submission_status', ['pending
 
 export const auditActorTypeEnum = pgEnum('audit_actor_type', ['user', 'system', 'ai_agent']);
 
-// Mirrors Clerk identity; created on first sign-in. All money is integer pence.
+// The single owner, created on first login. clerk_user_id keeps its legacy name to avoid a rename
+// migration; it now holds the fixed owner external id. All money is integer pence.
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   clerkUserId: text('clerk_user_id').notNull().unique(),
@@ -265,6 +266,19 @@ export const auditEvents = pgTable('audit_events', {
   afterSnapshot: jsonb('after_snapshot'),
   metadata: jsonb('metadata').notNull().default({}),
 });
+
+// Failed owner-login attempts, for the brute-force lockout. Holds only a timestamp (no IP, no
+// password data); rows older than the lockout window are pruned on each failure.
+export const loginAttempts = pgTable(
+  'login_attempts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    attemptedAt: timestamp('attempted_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    attemptedAtIdx: index('login_attempts_attempted_at_idx').on(table.attemptedAt),
+  }),
+);
 
 // ─── Inferred row types ────────────────────────────────────────────────────
 // Canonical DB row shapes, derived from the table definitions above so they

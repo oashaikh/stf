@@ -32,7 +32,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Add vat_submissions table and migration 0003**
+- [x] **Task 1: Add vat_submissions table and migration 0003**
   - Intent: Create the persistence for submissions: a new append-friendly table vat_submissions (id, user_id FK, period_key, sandbox boolean, status enum pending|submitted|failed, form_bundle_number, processing_date, submitted_at, created_at, updated_at) with UNIQUE(user_id, period_key, sandbox). That unique key is the idempotency lock: a period can only ever have one pending/submitted row per HMRC environment. A separate table (not columns on vat_return_drafts) means a sandbox rehearsal never blocks the real filing and the draft row stays untouched. Add the drizzle schema entry, exported row types, generated migration 0003 chained after 0002 in meta/_journal.json with its snapshot, and extend schema.test.ts. Single migration head. No financial row is ever deleted; failed attempts are flipped to 'failed', never removed.
   - Files: `server/src/db/schema.ts`, `server/src/db/migrations/0003_vat_submissions.sql`, `server/src/db/migrations/meta/0003_snapshot.json`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/schema.test.ts`
   - Acceptance criteria the planner set:
@@ -42,6 +42,7 @@
     - schema.test.ts asserts the new table, its unique constraint and the status enum values
     - npm run typecheck and npm test pass
   - Risk: Schema/migration and the idempotency lock are data work where a mistake permits a double filing with HMRC; opus high.
+  - Commit: `e2def7f066f3`
 
 - [ ] **Task 2: Submission store: atomic claim, receipt, release, audit, and reopen guard** (after 1)
   - Intent: Extend VatReturnStore in api/_lib/vatReturns.ts (and databaseStore) with: claimSubmission(userId, period, sandbox) as one INSERT ... ON CONFLICT DO NOTHING (or conditional UPDATE failed->pending) RETURNING, so two concurrent requests cannot both win; recordReceipt(...) which sets status=submitted plus form bundle number and processing date AND writes the audit event vat_return.submitted in one transaction; markFailed(...) for definite HMRC rejections (4xx) that releases the claim and writes a vat_return.submit_failed audit event; ambiguous outcomes (network error, 5xx, timeout) leave the row pending so a retry is refused. The audit afterSnapshot stores the full request payload and the full HMRC response body (or error body) and the fraud headers, but never the Authorization header or tokens. No network call inside any transaction (claim commits first, HMRC call happens after, receipt is a second transaction). Also fix the shared saveDraft and confirm paths so a non-sandbox submitted/pending return cannot be reopened or re-confirmed (change the shared function once, not the routes). Queries are keyed on (user_id, period_key, sandbox), bounded, and scoped by userId.

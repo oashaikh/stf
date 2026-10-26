@@ -54,7 +54,7 @@
   - Risk: Changes a shared function every HMRC caller routes through, so signatures change; typecheck must catch all callers.
   - Commit: `d9ba52d79d9e`
 
-- [ ] **Task 3: Store credential read and compare-and-swap refresh save**
+- [x] **Task 3: Store credential read and compare-and-swap refresh save**
   - Intent: Extend HmrcStore in api/_lib/hmrcStore.ts with a read of what the obligations route needs for one user: vat_number (the VRN), encrypted access/refresh tokens, expiry, all by users.id primary key with LIMIT 1 and no select *. Add a save used after a transparent refresh that writes only if the stored refresh token still equals the one used (same guard as the scheduled refresh job in server/src/scheduled-jobs/refreshHmrcTokens.ts), so a request and the cron job cannot clobber each other with rotated tokens. Tokens stay AES-GCM encrypted at rest via server/src/lib/hmrcCrypto.ts (decrypt on read, encrypt on write); do not add a second token store. Register the new queries with the query audit if the repo has one (none found; note in PR). Tests use the existing in-memory fake store pattern from api/_lib/__tests__/hmrc.test.ts.
   - Files: `api/_lib/hmrcStore.ts`, `api/_lib/__tests__/hmrc.test.ts`
   - Acceptance criteria the planner set:
@@ -64,6 +64,7 @@
     - No token is logged or returned by any new method beyond the route-internal credentials object
     - typecheck, lint, test pass
   - Risk: Touches encrypted HMRC token storage and rotation races; security/data work, so opus high.
+  - Commit: `e4d248424768`
 
 - [ ] **Task 4: GET /api/vat/obligations route** (after 1, 2, 3)
   - Intent: Add api/vat/obligations.ts following the api/hmrc/status.ts pattern: withAuth (STF-3 helper, no second sign-in check), factory createObligationsHandler(store, authDeps, hmrcDeps) for injection, default export { fetch }. Only GET. Resolve the user from auth.userId only, never from a query parameter. Load credentials via the store; 409 with a clear code when HMRC is not connected or no VAT number is set. Validate optional from/to query params as YYYY-MM-DD (default: last 12 months to today, HMRC's from/to range maximum is one year) and optionally status=O|F; reject others with 400. Build fraud headers (task 1) from the Request, decrypt the stored tokens, call getVatObligations through withHmrcToken (task 2) so an expired token refreshes transparently, retries once and the new tokens are saved encrypted via the CAS store method. Map HmrcError to a sanitised JSON response (code and status, no token, no VRN in logs). Response returns only periodKey, start, end, due, status, received plus a derived overdue flag computed server-side against today's date (injectable clock). Tests with mocked HMRC and fake store: sandbox obligations returned; expired token path refreshes, retries and saves; unauthenticated is 401; user B never sees user A's credentials (/); not connected; bad dates; log capture contains no token. Add the x-stf-* request headers list used by task 1 to .env.example only if any config is needed (expected: HMRC_PRODUCT_NAME not required, skip).

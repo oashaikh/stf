@@ -46,6 +46,12 @@ describe("schema migrations", () => {
     },
   );
 
+  it("adds a nullable archived_at timestamp to accounts", () => {
+    expect(sql).toMatch(
+      /ALTER TABLE "accounts" ADD COLUMN IF NOT EXISTS "archived_at" timestamp with time zone;/,
+    );
+  });
+
   describe("vat_return_drafts", () => {
     const tableBody = () => {
       const match = sql.match(/CREATE TABLE IF NOT EXISTS "vat_return_drafts" \(([\s\S]*?)\n\);/);

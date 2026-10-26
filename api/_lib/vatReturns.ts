@@ -38,7 +38,7 @@ export interface VatReturnStore {
   saveDraft(userId: string, period: Period, boxes: VatReturnBoxes, reopen: boolean): Promise<void>;
   /** Stores the snapshot as confirmed and writes the audit event in one transaction. */
   confirm(userId: string, period: Period, boxes: VatReturnBoxes, now: Date): Promise<void>;
-  findSubmission(userId: string, periodKey: string, sandbox: boolean): Promise<{ status: SubmissionStatus } | undefined>;
+  findSubmission(userId: string, periodKey: string, sandbox: boolean): Promise<SubmissionLookup | undefined>;
   /**
    * One conditional statement: inserts a pending row, or flips a failed one back to pending.
    * Returns the submission id, or undefined when a pending or submitted row already holds the period.
@@ -51,6 +51,11 @@ export interface VatReturnStore {
 }
 
 export type SubmissionStatus = 'pending' | 'submitted' | 'failed';
+export interface SubmissionLookup {
+  status: SubmissionStatus;
+  formBundleNumber?: string | null;
+  processingDate?: Date | null;
+}
 export interface SubmissionReceipt {
   formBundleNumber: string;
   processingDate: Date;
@@ -122,10 +127,19 @@ async function recompute(store: VatReturnStore, userId: string, period: Period) 
 }
 
 export async function getReturnReview(store: VatReturnStore, userId: string, period: Period) {
-  const [{ lines, boxes }, draft] = await Promise.all([
+  const [{ lines, boxes }, draft, liveFiling, sandboxFiling] = await Promise.all([
     recompute(store, userId, period),
     store.findDraft(userId, period.periodKey),
+    store.findSubmission(userId, period.periodKey, false),
+    store.findSubmission(userId, period.periodKey, true),
   ]);
+  // A live filing outranks a sandbox rehearsal; pending and failed attempts have no receipt to show.
+  const filed = [liveFiling && { ...liveFiling, sandbox: false }, sandboxFiling && { ...sandboxFiling, sandbox: true }].find(
+    (row) => row?.status === 'submitted' && row.formBundleNumber && row.processingDate,
+  );
+  const submission = filed
+    ? { formBundleNumber: filed.formBundleNumber, processingDate: filed.processingDate!.toISOString(), sandbox: filed.sandbox }
+    : null;
   const boxLines = boxKeys.map((_, index) => linesForBox(lines, period, (index + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9));
   const drillDown = Object.fromEntries(
     boxKeys.map((key, index) => [
@@ -142,7 +156,7 @@ export async function getReturnReview(store: VatReturnStore, userId: string, per
   // Lets the UI say when a drill-down list is cut short and so will not sum to its box.
   const drillDownTotals = Object.fromEntries(boxKeys.map((key, index) => [key, boxLines[index].length]));
   const stale = draft?.status === 'confirmed' && !matchesConfirmation(draft, period, boxes);
-  return { boxes, drillDown, drillDownTotals, status: draft?.status ?? null, confirmedAt: draft?.confirmedAt ?? null, stale };
+  return { boxes, drillDown, drillDownTotals, status: draft?.status ?? null, confirmedAt: draft?.confirmedAt ?? null, stale, submission };
 }
 
 // Only live filings lock a period: a sandbox rehearsal must never block the real one.
@@ -310,7 +324,11 @@ export const databaseStore: VatReturnStore = {
   },
   async findSubmission(userId, periodKey, sandbox) {
     const [row] = await db
-      .select({ status: vatSubmissions.status })
+      .select({
+        status: vatSubmissions.status,
+        formBundleNumber: vatSubmissions.formBundleNumber,
+        processingDate: vatSubmissions.processingDate,
+      })
       .from(vatSubmissions)
       .where(
         and(eq(vatSubmissions.userId, userId), eq(vatSubmissions.periodKey, periodKey), eq(vatSubmissions.sandbox, sandbox)),

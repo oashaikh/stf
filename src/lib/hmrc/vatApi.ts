@@ -62,3 +62,34 @@ export async function fetchVatObligations(token: string, fetchFn: FetchFn = fetc
   if (!response.ok) throw new Error('Request to /api/vat/obligations failed');
   return (await response.json()).obligations;
 }
+
+export interface VatReceipt {
+  formBundleNumber: string;
+  processingDate: string;
+  sandbox: boolean;
+}
+
+export class SubmitVatError extends Error {
+  constructor(
+    /** The server's error code, e.g. OUTCOME_UNKNOWN or ALREADY_SUBMITTED. */
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+export async function submitVatReturn(
+  token: string,
+  period: { periodKey: string; start: string; end: string },
+  fetchFn: FetchFn = fetch,
+): Promise<VatReceipt> {
+  const response = await fetchFn('/api/vat/submit', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...browserFraudHeaders() },
+    body: JSON.stringify({ ...period, confirm: true }),
+  });
+  const body = await response.json().catch(() => null);
+  if (!body?.ok) throw new SubmitVatError(body?.code ?? 'REQUEST_FAILED', body?.error ?? 'Submission failed');
+  return body.data;
+}

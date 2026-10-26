@@ -219,6 +219,22 @@ describe('review of a confirmed return', () => {
     expect(data.drillDown.box1).toHaveLength(50);
     expect(data.drillDownTotals.box1).toBe(60);
   });
+
+  it('returns the HMRC receipt of a submitted period, preferring live over sandbox', async () => {
+    const shared = makeStore({ user_a: sales });
+    expect((await review(shared)).submission).toBeNull();
+    const processingDate = new Date('2026-04-02T10:00:00Z');
+    shared.store.findSubmission = async (_userId, _key, sandbox) => ({
+      status: 'submitted',
+      formBundleNumber: sandbox ? 'SANDBOX-1' : 'LIVE-1',
+      processingDate,
+    });
+    expect((await review(shared)).submission).toEqual({
+      formBundleNumber: 'LIVE-1',
+      processingDate: processingDate.toISOString(),
+      sandbox: false,
+    });
+  });
 });
 
 

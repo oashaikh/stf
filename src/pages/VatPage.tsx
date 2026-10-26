@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchHmrcMode, isEffectivelyLive } from '../lib/hmrc/settingsApi';
+import { SubmitVatError, submitVatReturn } from '../lib/hmrc/vatApi';
 import { formatPence } from '../lib/money';
 import type { VatReturnBoxes } from '../lib/vat';
 import type { ApiResponse } from '../model/types';
 import VatObligationsList from './VatObligationsList';
-import { boxLabel, currentQuarter, DRILLABLE_BOXES, reviewState, type ReviewStatus } from './vatReviewState';
+import { boxLabel, currentQuarter, DRILLABLE_BOXES, reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
 
 interface DrillLine {
   lineId: string;
@@ -22,6 +24,7 @@ interface ReturnReview {
   status: ReviewStatus;
   confirmedAt: string | null;
   stale: boolean;
+  submission: SubmissionReceipt | null;
 }
 
 const boxNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
@@ -31,6 +34,7 @@ export default function VatPage() {
   const queryClient = useQueryClient();
   const [period] = useState(() => currentQuarter(new Date()));
   const [declarationTicked, setDeclarationTicked] = useState(false);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [expandedBox, setExpandedBox] = useState<number | null>(null);
   const queryKey = ['vat-return', period.periodKey];
 
@@ -68,11 +72,29 @@ export default function VatPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
+  const mode = useQuery({
+    queryKey: ['hmrc-mode'],
+    queryFn: async () => fetchHmrcMode((await getToken()) ?? ''),
+  });
+  const live = mode.data ? isEffectivelyLive(mode.data) : false;
+
+  const submit = useMutation({
+    mutationFn: async () => submitVatReturn((await getToken()) ?? '', period),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
+  // A pending claim means HMRC may already hold the return, so a refused retry reads the same as an unknown outcome.
+  const outcomeUnknown =
+    submit.error instanceof SubmitVatError && ['OUTCOME_UNKNOWN', 'ALREADY_SUBMITTED'].includes(submit.error.code);
+
   const state = reviewState({
     status: review.data?.status ?? null,
     declarationTicked,
     confirmPending: confirm.isPending,
     stale: review.data?.stale,
+    submission: review.data?.submission,
+    submitPending: submit.isPending,
+    outcomeUnknown,
+    live,
   });
 
   return (
@@ -162,6 +184,45 @@ export default function VatPage() {
           >
             {confirm.isPending ? 'Confirming…' : 'Confirm return'}
           </button>
+
+          <section className="mt-8 max-w-3xl" aria-labelledby="vat-submit-heading">
+            <h2 id="vat-submit-heading" className="text-lg font-semibold text-gray-900">Submit to HMRC</h2>
+            {state.receipt && (
+              <div role="status" className="mt-2 text-sm text-gray-900">
+                <p className="font-medium">{state.receipt.heading}</p>
+                <p>Form bundle number: {state.receipt.formBundleNumber}</p>
+                <p>Processing date: {new Date(state.receipt.processingDate).toLocaleDateString('en-GB')}</p>
+              </div>
+            )}
+            {state.warning && (
+              <p role="alert" className="mt-2 text-sm text-red-700">{state.warning}</p>
+            )}
+            {submit.isError && !outcomeUnknown && (
+              <p role="alert" className="mt-2 text-sm text-red-700">
+                Could not submit the return: {submit.error.message}
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={!state.canSubmit}
+              onClick={() => setSubmitDialogOpen(true)}
+              className="mt-4 min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+            >
+              {state.submitLabel}
+            </button>
+          </section>
+
+          <SubmitDialog
+            open={submitDialogOpen}
+            periodLabel={`${period.start} to ${period.end}`}
+            netVatPence={review.data.boxes.box5}
+            live={live}
+            onCancel={() => setSubmitDialogOpen(false)}
+            onSubmit={() => {
+              setSubmitDialogOpen(false);
+              submit.mutate();
+            }}
+          />
         </>
       )}
 
@@ -231,5 +292,63 @@ function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: B
         </tr>
       )}
     </>
+  );
+}
+
+interface SubmitDialogProps {
+  open: boolean;
+  periodLabel: string;
+  netVatPence: number;
+  live: boolean;
+  onCancel: () => void;
+  onSubmit: () => void;
+}
+
+// A native modal dialog gives the focus trap and Escape-to-close; nothing reaches HMRC until the footer button is pressed.
+function SubmitDialog({ open, periodLabel, netVatPence, live, onCancel, onSubmit }: SubmitDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="vat-submit-dialog-title"
+      onClose={onCancel}
+      className="w-full max-w-md rounded p-0 backdrop:bg-black/50"
+    >
+      <div className="p-6">
+        <h2 id="vat-submit-dialog-title" className="text-lg font-semibold text-gray-900">
+          {live ? 'Submit this VAT return to HMRC?' : 'Submit this VAT return to the HMRC sandbox?'}
+        </h2>
+        <dl className="mt-4 space-y-2 text-sm text-gray-900">
+          <div className="flex justify-between gap-4">
+            <dt>Period</dt>
+            <dd className="text-right tabular-nums">{periodLabel}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt>Net VAT to pay or reclaim</dt>
+            <dd className="text-right tabular-nums">{formatPence(netVatPence)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt>Destination</dt>
+            <dd className="text-right">{live ? 'HMRC live (a real filing)' : 'HMRC sandbox (a test, nothing is filed)'}</dd>
+          </div>
+        </dl>
+        {live && <p className="mt-4 text-sm text-gray-900">A live submission cannot be undone.</p>}
+      </div>
+      <div className="flex justify-end gap-3 border-t border-gray-200 p-4">
+        <button type="button" onClick={onCancel} className="min-h-[44px] rounded border border-gray-300 px-6 text-sm font-medium text-gray-900">
+          Cancel
+        </button>
+        <button type="button" onClick={onSubmit} className="min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800">
+          {live ? 'Submit to HMRC' : 'Submit to sandbox'}
+        </button>
+      </div>
+    </dialog>
   );
 }

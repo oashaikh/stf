@@ -92,6 +92,12 @@ describe('live filing opt-in', () => {
     expect(screen.getByText('Sandbox (test)')).toBeInTheDocument();
   });
 
+  it('links to the privacy policy and terms', async () => {
+    renderPage();
+    expect(await screen.findByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: 'Terms of use' })).toHaveAttribute('href', '/terms');
+  });
+
   it('needs the confirmation text before switching on', async () => {
     renderPage();
     fireEvent.click(await screen.findByRole('checkbox', { name: /allow live filing/i }));

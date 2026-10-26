@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 
 // Pages — lazy imports to be added as features are built
@@ -12,6 +12,7 @@ import ReportsPage from './pages/ReportsPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import AppShell from './components/AppShell.tsx';
 import LoginPage from './pages/LoginPage.tsx';
+import { PrivacyPage, TermsPage } from './pages/LegalPages.tsx';
 import { SESSION_QUERY_KEY, fetchSignedIn } from './lib/session.ts';
 
 const queryClient = new QueryClient({
@@ -47,11 +48,19 @@ function AuthGate() {
   );
 }
 
+// These two pages are given to HMRC, so they load without a session and without asking the server who you are.
+function PublicOrAuthGate() {
+  const { pathname } = useLocation();
+  if (pathname === '/privacy') return <PrivacyPage />;
+  if (pathname === '/terms') return <TermsPage />;
+  return <AuthGate />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthGate />
+        <PublicOrAuthGate />
       </BrowserRouter>
     </QueryClientProvider>
   );

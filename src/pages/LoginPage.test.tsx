@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SESSION_QUERY_KEY } from '../lib/session';
 import LoginPage from './LoginPage';
@@ -13,7 +14,9 @@ function submitWith(status: number) {
   vi.stubGlobal('fetch', fetchMock);
   render(
     <QueryClientProvider client={queryClient}>
-      <LoginPage />
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'hunter2' } });
@@ -28,6 +31,12 @@ afterEach(() => {
 });
 
 describe('LoginPage', () => {
+  it('links to the privacy policy and terms', () => {
+    submitWith(200);
+    expect(screen.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: 'Terms of use' })).toHaveAttribute('href', '/terms');
+  });
+
   it('posts the password to the login route and marks the session signed in', async () => {
     const fetchMock = submitWith(200);
     await waitFor(() => expect(queryClient.getQueryData(SESSION_QUERY_KEY)).toBe(true));

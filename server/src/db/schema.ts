@@ -18,6 +18,8 @@ export const receiptAiStatusEnum = pgEnum('receipt_ai_status', ['pending', 'extr
 
 export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'paid', 'overdue', 'voided']);
 
+export const vatReturnDraftStatusEnum = pgEnum('vat_return_draft_status', ['draft', 'confirmed']);
+
 export const auditActorTypeEnum = pgEnum('audit_actor_type', ['user', 'system', 'ai_agent']);
 
 // Mirrors Clerk identity; created on first sign-in. All money is integer pence.
@@ -178,6 +180,40 @@ export const invoiceLines = pgTable('invoice_lines', {
   totalPence: integer('total_pence').notNull(),
 });
 
+// Saved review state of a computed VAT return. All boxes are integer pence
+// (box1-5, 8-9 are VAT or EC values, box6-7 are net values). Rows are never
+// deleted; a confirmed row is the server-side gate STF-19's submit checks.
+export const vatReturnDrafts = pgTable(
+  'vat_return_drafts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    periodKey: text('period_key').notNull(),
+    periodStart: date('period_start').notNull(),
+    periodEnd: date('period_end').notNull(),
+    status: vatReturnDraftStatusEnum('status').notNull().default('draft'),
+    box1Pence: integer('box1_pence').notNull(),
+    box2Pence: integer('box2_pence').notNull(),
+    box3Pence: integer('box3_pence').notNull(),
+    box4Pence: integer('box4_pence').notNull(),
+    box5Pence: integer('box5_pence').notNull(),
+    box6Pence: integer('box6_pence').notNull(),
+    box7Pence: integer('box7_pence').notNull(),
+    box8Pence: integer('box8_pence').notNull(),
+    box9Pence: integer('box9_pence').notNull(),
+    declarationAcceptedAt: timestamp('declaration_accepted_at', { withTimezone: true }),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // Also the lookup index: every query filters on (user_id, period_key).
+    userPeriodUnique: unique().on(table.userId, table.periodKey),
+  }),
+);
+
 // Append-only audit trail. Never updated or deleted.
 export const auditEvents = pgTable('audit_events', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -221,6 +257,9 @@ export type InvoiceInsert = typeof invoices.$inferInsert;
 
 export type InvoiceLineRow = typeof invoiceLines.$inferSelect;
 export type InvoiceLineInsert = typeof invoiceLines.$inferInsert;
+
+export type VatReturnDraftRow = typeof vatReturnDrafts.$inferSelect;
+export type VatReturnDraftInsert = typeof vatReturnDrafts.$inferInsert;
 
 export type AuditEventRow = typeof auditEvents.$inferSelect;
 export type AuditEventInsert = typeof auditEvents.$inferInsert;

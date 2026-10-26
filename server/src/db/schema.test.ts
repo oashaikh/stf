@@ -45,4 +45,43 @@ describe("schema migrations", () => {
       expect(tableBody).toMatch(/"deleted_at"\s+timestamp with time zone/);
     },
   );
+
+  describe("vat_return_drafts", () => {
+    const tableBody = () => {
+      const match = sql.match(/CREATE TABLE IF NOT EXISTS "vat_return_drafts" \(([\s\S]*?)\n\);/);
+      expect(match, "could not find CREATE TABLE statement for vat_return_drafts").not.toBeNull();
+      return match![1];
+    };
+
+    it("allows one draft per user and period", () => {
+      expect(tableBody()).toContain('UNIQUE("user_id","period_key")');
+    });
+
+    it.each(["box1", "box2", "box3", "box4", "box5", "box6", "box7", "box8", "box9"])(
+      "stores %s as integer pence",
+      (box) => {
+        expect(tableBody()).toMatch(new RegExp(`"${box}_pence" integer NOT NULL`));
+      },
+    );
+
+    it("keeps only timestamps for the declaration, not its text", () => {
+      const body = tableBody();
+      expect(body).toMatch(/"declaration_accepted_at" timestamp with time zone/);
+      expect(body).not.toMatch(/declaration_text/);
+    });
+
+    it("has no deleted_at, since drafts are never removed", () => {
+      expect(tableBody()).not.toContain("deleted_at");
+    });
+  });
+
+  it("keeps the migration journal a single linear chain", () => {
+    const journal = JSON.parse(
+      readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"),
+    ) as { entries: { idx: number; when: number; tag: string }[] };
+    const whens = journal.entries.map((entry) => entry.when);
+    expect(whens).toEqual([...whens].sort((a, b) => a - b));
+    expect(new Set(journal.entries.map((entry) => entry.idx)).size).toBe(journal.entries.length);
+    expect(journal.entries.at(-1)!.tag).toBe("0002_vat_return_drafts");
+  });
 });

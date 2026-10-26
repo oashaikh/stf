@@ -8,6 +8,13 @@
       "when": 1784731305769,
       "tag": "0000_panoramic_slayback",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784900000000,
+      "tag": "0002_vat_return_drafts",
+      "breakpoints": true
     }
   ]
 }

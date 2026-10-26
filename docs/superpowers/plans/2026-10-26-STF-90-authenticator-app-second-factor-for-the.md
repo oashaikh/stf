@@ -97,7 +97,7 @@
     - lint, typecheck, test, build pass
   - Commit: `2f184bb76030`
 
-- [ ] **Task 7: Journey mock, screenshots and docs** (after 5, 6)
+- [x] **Task 7: Journey mock, screenshots and docs** (after 5, 6)
   - Intent: Extend e2e/mockApi.ts and e2e/journey.spec.ts with the authenticator journey (Settings, set up, confirm, save recovery codes, sign out, password then code, Dashboard) in mock mode, capture screenshots of each step at 390 and 1440 px into docs/screenshots for the PR (invented data only), and note the feature in README/architectures/PLAN where auth is described and in a short operations note. Confirm .env.example needs no new variable (the existing token encryption key is reused); the envExample test must still pass.
   - Files: `e2e/mockApi.ts`, `e2e/journey.spec.ts`, `docs/screenshots`, `docs/runbooks/vercel-deploy.md`, `architectures.md`
   - Acceptance criteria the planner set:
@@ -105,3 +105,4 @@
     - Screenshots exist for each step at 390 and 1440 px
     - Docs describe setup, recovery codes and disabling
     - lint, typecheck, test, build pass
+  - Commit: `a47f33ea2f1a`

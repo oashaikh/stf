@@ -30,7 +30,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Server-side fraud prevention headers module**
+- [x] **Task 1: Server-side fraud prevention headers module**
   - Intent: Add src/lib/hmrc/fraudHeaders.ts (the path PLAN.md already names) with a pure function that builds the Gov-Client-* and Gov-Vendor-* headers for a server-made call. Inputs: the incoming Request (user-agent, x-forwarded-for for Gov-Client-Public-IP and its timestamp, Gov-Vendor-Public-IP), the internal STF user id (Gov-Client-User-IDs as stf=<id>, never email), app version (Gov-Vendor-Version, Gov-Vendor-Product-Name), plus browser-collected values the SPA will send in x-stf-* request headers (device id, timezone, screens, window size, JS user agent). Connection method is WEB_APP_VIA_SERVER. Values are percent-encoded per HMRC spec; a missing optional value is omitted, never faked. No browser globals, so it is safe to import on the server. Unit-test the output with fixed Request objects and a fixed clock (no sleeps, no network). Do not wire it in yet.
   - Files: `src/lib/hmrc/fraudHeaders.ts`, `src/lib/hmrc/fraudHeaders.test.ts`
   - Acceptance criteria the planner set:
@@ -40,6 +40,7 @@
     - No navigator, window or import.meta usage in the file
     - npm test, typecheck and lint pass
   - Risk: Default tier; header spec details come from HMRC fraud-prevention guide and must be matched by tests.
+  - Commit: `67810d87ebcd`
 
 - [ ] **Task 2: Make the HMRC client server-safe, pass fraud headers, add refresh-and-retry** (after 1)
   - Intent: In src/lib/hmrc/client.ts remove buildFraudPreventionHeaders (it reads navigator/window and cannot run in an API route) and the import.meta appVersion default. hmrcFetch takes the fraud headers as a parameter; getVatObligations, submitVatReturn and listItsSelfEmploymentBusinesses take them as a required argument (grep for other callers first and update them). Add the withHmrcToken helper the file header already promises: call the operation with the current access token; on an HmrcError with statusCode 401, call the injected refresh (refreshAccessToken) once, persist via an injected callback, retry the operation once with the new token, and rethrow if the retry fails or refresh fails. Also refresh up front when expiresAt is already past. Fetch is injectable so tests mock HMRC. Update client.test.ts for the new signatures and add tests: 401 then success after refresh; refresh failure surfaces an error without a token in its message; second 401 is not retried again. Fix the stale header comment about 'user .env'.

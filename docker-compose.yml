@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -28,21 +26,18 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
-  # MinIO bucket setup (runs once then exits)
+  # MinIO bucket setup (runs once then exits). The minio image ships no mc or curl,
+  # so there is no healthcheck to wait on; this loop retries until the server answers.
+  # restart: "no" keeps it from re-running on `docker compose restart`.
   minio-setup:
     image: minio/mc:latest
     depends_on:
-      minio:
-        condition: service_healthy
+      - minio
+    restart: "no"
     entrypoint: >
       /bin/sh -c "
-      mc alias set local http://minio:9000 minioadmin minioadmin;
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done;
       mc mb --ignore-existing local/stf-receipts;
       mc anonymous set none local/stf-receipts;
       echo 'MinIO bucket ready.';

@@ -1,7 +1,6 @@
-import { useAuth } from '@clerk/clerk-react';
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { fetchVatObligations, NotConnectedError, VatNumberMissingError, type VatObligationRow } from '../lib/hmrc/vatApi';
+import { NotConnectedError, VatNumberMissingError, type VatObligationRow } from '../lib/hmrc/vatApi';
+import { useVatObligations } from './useVatObligations';
 
 function statusLabel(obligation: VatObligationRow): string {
   if (obligation.status === 'F') return 'Fulfilled';
@@ -9,16 +8,7 @@ function statusLabel(obligation: VatObligationRow): string {
 }
 
 export default function VatObligationsList() {
-  const { getToken } = useAuth();
-  const obligations = useQuery({
-    queryKey: ['vat-obligations'],
-    queryFn: async () => {
-      const token = await getToken();
-      if (!token) throw new Error('No session token');
-      return fetchVatObligations(token);
-    },
-    retry: false,
-  });
+  const obligations = useVatObligations();
 
   return (
     <section className="mt-8" aria-labelledby="vat-obligations-heading">
@@ -64,19 +54,19 @@ export default function VatObligationsList() {
               <tr key={obligation.periodKey} className="block border-b border-gray-100 py-2 sm:table-row sm:py-0">
                 <td className="flex justify-between gap-4 py-1 sm:table-cell sm:py-2 sm:pr-4 text-gray-900">
                   <span className="text-gray-500 sm:hidden">Period key</span>
-                  {obligation.periodKey}
+                  <span>{obligation.periodKey}</span>
                 </td>
                 <td className="flex justify-between gap-4 py-1 sm:table-cell sm:py-2 sm:pr-4 text-gray-700">
                   <span className="text-gray-500 sm:hidden">Period</span>
-                  <span>{obligation.start} to {obligation.end}</span>
+                  <span className="text-right sm:text-left">{obligation.start} to {obligation.end}</span>
                 </td>
                 <td className="flex justify-between gap-4 py-1 sm:table-cell sm:py-2 sm:pr-4 text-gray-700">
                   <span className="text-gray-500 sm:hidden">Due date</span>
-                  {obligation.due}
+                  <span>{obligation.due}</span>
                 </td>
                 <td className={`flex justify-between gap-4 py-1 sm:table-cell sm:py-2 font-medium ${obligation.overdue ? 'text-red-800' : 'text-gray-900'}`}>
                   <span className="font-normal text-gray-500 sm:hidden">Status</span>
-                  {statusLabel(obligation)}
+                  <span>{statusLabel(obligation)}</span>
                 </td>
               </tr>
             ))}

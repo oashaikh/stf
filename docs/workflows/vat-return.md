@@ -6,7 +6,7 @@ do tax arithmetic themselves.
 
 ## Steps
 
-1. Fetch the open obligation from HMRC (period key, start, end). Sandbox mode unless
+1. Fetch open HMRC obligations and let the user select one (period key, start, end). If there is only one open obligation, select it automatically. If there are none, say so and offer no review or submit. Sandbox mode unless
    `HMRC_SANDBOX_MODE=false` and the user has opted in under Settings.
 2. Load the user's transaction lines for the period, joined to the transaction (date,
    status, `deleted_at`) and account (`account_type`), as `LedgerLine[]`.
@@ -32,6 +32,8 @@ do tax arithmetic themselves.
 5. At submission only, `boxesToHmrcPayload` converts pence to pounds.
 6. **Submission:** `POST /api/vat/submit` with `{ periodKey, start, end, confirm: true }` files the confirmed return
    to HMRC (or the sandbox). The submission flow:
+   - **Open obligation check:** Before claiming the submission, the server fetches the user's open HMRC obligations
+     and verifies the period matches one exactly (same periodKey, start, end, and status='O'). Requests for periods that are not open are refused with `PERIOD_NOT_OPEN` (409). This guards against submitting stale or invalid periods.
    - **Confirmed gate:** Verifies the return is confirmed and the ledger still matches (calls `requireConfirmedReturn`).
    - **Dual mode check:** Requires both `HMRC_SANDBOX_MODE` environment variable and the user's Settings opt-in to agree.
      This blocks live filing on either switch alone.

@@ -87,7 +87,7 @@
     - lint, typecheck, test, build pass
   - Commit: `334ca8f6cd88`
 
-- [ ] **Task 6: Settings 'Set up authenticator' section** (after 3)
+- [x] **Task 6: Settings 'Set up authenticator' section** (after 3)
   - Intent: Add a Settings section (own component file, like ChartOfAccountsSection, to keep SettingsPage small) with: status, Set up authenticator button, QR image with alt text plus the secret as text, code confirmation field, then a one-time recovery codes panel with copy and an acknowledgement before dismissing, and a Turn off flow requiring the current code with a confirmation that says what it affects. API helpers in src/lib/hmrc/settingsApi.ts or a new small authenticatorApi.ts following the existing pattern. Tests with the API mocked: setup happy path, wrong code error, recovery codes shown once, disable needs a code. Responsive at 390 and 1440 px, no raw hex or pixel font sizes.
   - Files: `src/pages/AuthenticatorSection.tsx`, `src/pages/AuthenticatorSection.test.tsx`, `src/pages/SettingsPage.tsx`, `src/pages/SettingsPage.test.tsx`, `src/lib/authenticatorApi.ts`
   - Acceptance criteria the planner set:
@@ -95,6 +95,7 @@
     - Recovery codes and secret are not stored in browser storage or logged
     - Destructive turn-off asks for confirmation naming its effect
     - lint, typecheck, test, build pass
+  - Commit: `2f184bb76030`
 
 - [ ] **Task 7: Journey mock, screenshots and docs** (after 5, 6)
   - Intent: Extend e2e/mockApi.ts and e2e/journey.spec.ts with the authenticator journey (Settings, set up, confirm, save recovery codes, sign out, password then code, Dashboard) in mock mode, capture screenshots of each step at 390 and 1440 px into docs/screenshots for the PR (invented data only), and note the feature in README/architectures/PLAN where auth is described and in a short operations note. Confirm .env.example needs no new variable (the existing token encryption key is reused); the envExample test must still pass.

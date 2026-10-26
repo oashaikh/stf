@@ -77,7 +77,7 @@
   - Risk: Sonnet medium: pure header formatting, but touches the file STF-89 changed; merge dev in first.
   - Commit: `62179c35c4a3`
 
-- [ ] **Task 5: Login page asks for the code after the password** (after 2)
+- [x] **Task 5: Login page asks for the code after the password** (after 2)
   - Intent: Update src/lib/session.ts signIn to return a 'code-required' outcome, add a submitMfaCode call to /api/auth/mfa, and update src/pages/LoginPage.tsx with a second step: label, numeric one-time-code input (autocomplete one-time-code, inputmode numeric), a link to use a recovery code instead, locked and wrong-code messages from the shared error components, and navigation to the Dashboard on success. Use existing tokens and 44px tap targets, keyboard path and focus state. Component tests with the API mocked: password then code lands on Dashboard, wrong code shows error, locked state shown.
   - Files: `src/lib/session.ts`, `src/pages/LoginPage.tsx`, `src/pages/LoginPage.test.tsx`, `src/App.test.tsx`
   - Acceptance criteria the planner set:
@@ -85,6 +85,7 @@
     - Code step is shown only on mfaRequired, and failure keeps the user on the code step
     - Tests cover wrong code and locked states
     - lint, typecheck, test, build pass
+  - Commit: `334ca8f6cd88`
 
 - [ ] **Task 6: Settings 'Set up authenticator' section** (after 3)
   - Intent: Add a Settings section (own component file, like ChartOfAccountsSection, to keep SettingsPage small) with: status, Set up authenticator button, QR image with alt text plus the secret as text, code confirmation field, then a one-time recovery codes panel with copy and an acknowledgement before dismissing, and a Turn off flow requiring the current code with a confirmation that says what it affects. API helpers in src/lib/hmrc/settingsApi.ts or a new small authenticatorApi.ts following the existing pattern. Tests with the API mocked: setup happy path, wrong code error, recovery codes shown once, disable needs a code. Responsive at 390 and 1440 px, no raw hex or pixel font sizes.

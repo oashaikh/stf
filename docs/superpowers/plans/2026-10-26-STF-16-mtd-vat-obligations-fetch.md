@@ -42,7 +42,7 @@
   - Risk: Default tier; header spec details come from HMRC fraud-prevention guide and must be matched by tests.
   - Commit: `67810d87ebcd`
 
-- [ ] **Task 2: Make the HMRC client server-safe, pass fraud headers, add refresh-and-retry** (after 1)
+- [x] **Task 2: Make the HMRC client server-safe, pass fraud headers, add refresh-and-retry** (after 1)
   - Intent: In src/lib/hmrc/client.ts remove buildFraudPreventionHeaders (it reads navigator/window and cannot run in an API route) and the import.meta appVersion default. hmrcFetch takes the fraud headers as a parameter; getVatObligations, submitVatReturn and listItsSelfEmploymentBusinesses take them as a required argument (grep for other callers first and update them). Add the withHmrcToken helper the file header already promises: call the operation with the current access token; on an HmrcError with statusCode 401, call the injected refresh (refreshAccessToken) once, persist via an injected callback, retry the operation once with the new token, and rethrow if the retry fails or refresh fails. Also refresh up front when expiresAt is already past. Fetch is injectable so tests mock HMRC. Update client.test.ts for the new signatures and add tests: 401 then success after refresh; refresh failure surfaces an error without a token in its message; second 401 is not retried again. Fix the stale header comment about 'user .env'.
   - Files: `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`
   - Acceptance criteria the planner set:
@@ -52,6 +52,7 @@
     - Error messages and thrown values contain no access or refresh token
     - npm run typecheck, lint, test pass
   - Risk: Changes a shared function every HMRC caller routes through, so signatures change; typecheck must catch all callers.
+  - Commit: `d9ba52d79d9e`
 
 - [ ] **Task 3: Store credential read and compare-and-swap refresh save**
   - Intent: Extend HmrcStore in api/_lib/hmrcStore.ts with a read of what the obligations route needs for one user: vat_number (the VRN), encrypted access/refresh tokens, expiry, all by users.id primary key with LIMIT 1 and no select *. Add a save used after a transparent refresh that writes only if the stored refresh token still equals the one used (same guard as the scheduled refresh job in server/src/scheduled-jobs/refreshHmrcTokens.ts), so a request and the cron job cannot clobber each other with rotated tokens. Tokens stay AES-GCM encrypted at rest via server/src/lib/hmrcCrypto.ts (decrypt on read, encrypt on write); do not add a second token store. Register the new queries with the query audit if the repo has one (none found; note in PR). Tests use the existing in-memory fake store pattern from api/_lib/__tests__/hmrc.test.ts.

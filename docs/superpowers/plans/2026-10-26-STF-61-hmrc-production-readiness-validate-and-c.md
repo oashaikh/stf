@@ -133,3 +133,7 @@ Add a mocked-fetch test in SettingsPage.test.tsx that renders a result with an e
     - New env vars are documented
     - npm run lint, typecheck, test and build still pass
   - Commit: `edf54e27a952`
+
+- [x] **Task 6: Fix: address 4 review findings (cycle 1)** (after 5)
+  - Intent: Review left 4 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The header set is incomplete. Gov-Client-Public-Port is never built, although the ticket and the plan both require it. Everything else I checked in the correctness lens ho The agent is fixing them; nothing is needed from you.
+  - Commit: `7867d634d04b`

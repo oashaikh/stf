@@ -1,4 +1,5 @@
 import type { VatReturnBoxes } from '../vat';
+import type { VatReturnPayload } from './client';
 
 type FetchFn = typeof fetch;
 
@@ -112,4 +113,25 @@ export async function fetchVatHistory(token: string, fetchFn: FetchFn = fetch): 
   const response = await fetchFn('/api/vat/history', { headers: { Authorization: `Bearer ${token}` } });
   if (!response.ok) throw new Error('Request to /api/vat/history failed');
   return (await response.json()).data;
+}
+
+export interface VatPreview {
+  endpoint: { method: string; url: string; sandbox: boolean };
+  body: VatReturnPayload;
+  headers: Record<string, string>;
+}
+
+export async function previewVatReturn(
+  token: string,
+  period: { periodKey: string; start: string; end: string },
+  fetchFn: FetchFn = fetch,
+): Promise<VatPreview> {
+  const response = await fetchFn('/api/vat/preview', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...browserFraudHeaders() },
+    body: JSON.stringify(period),
+  });
+  const body = await response.json().catch(() => null);
+  if (!body?.ok) throw new SubmitVatError(body?.code ?? 'REQUEST_FAILED', body?.error ?? 'Preview failed');
+  return body.data;
 }

@@ -15,12 +15,14 @@ export interface SubmitDeps {
 const DUPLICATE_SUBMISSION = 'DUPLICATE_SUBMISSION';
 
 /**
- * Files the confirmed return for `period` with HMRC. The boxes come from the stored,
- * server-recomputed confirmation, never from the caller. Throws VatReturnError for every refusal.
+ * Everything a submission needs before it touches HMRC or claims the period. Submit and the preview
+ * both run this, so the body and headers the user inspects are the ones that would be sent.
  */
-export async function submitVatReturnForUser(
+export async function prepareSubmission(
   { userId, period, request }: { userId: string; period: Period; request: Request },
-  { vatStore = databaseStore, hmrcStore = databaseHmrcStore, fetchFn, refresh = refreshAccessToken, now = () => new Date() }: SubmitDeps = {},
+  vatStore: VatReturnStore,
+  hmrcStore: HmrcStore,
+  now: () => Date,
 ) {
   const boxes = await requireConfirmedReturn(userId, period, vatStore);
 
@@ -35,7 +37,6 @@ export async function submitVatReturnForUser(
   const credentials = await hmrcStore.credentials(userId);
   if (!credentials) throw new VatReturnError(409, 'HMRC_NOT_CONNECTED', 'HMRC is not connected');
   if (!credentials.vatNumber) throw new VatReturnError(409, 'VAT_NUMBER_MISSING', 'No VAT number is set');
-  const { vatNumber, storedRefreshToken } = credentials;
 
   const fraudHeaders = buildFraudHeaders({
     request,
@@ -44,6 +45,26 @@ export async function submitVatReturnForUser(
     vendorPublicIp: process.env.HMRC_VENDOR_PUBLIC_IP,
     now: now(),
   });
+  const payload = boxesToHmrcPayload(boxes, period.periodKey, true);
+
+  return { sandbox, vatNumber: credentials.vatNumber, credentials, fraudHeaders, payload };
+}
+
+/**
+ * Files the confirmed return for `period` with HMRC. The boxes come from the stored,
+ * server-recomputed confirmation, never from the caller. Throws VatReturnError for every refusal.
+ */
+export async function submitVatReturnForUser(
+  { userId, period, request }: { userId: string; period: Period; request: Request },
+  { vatStore = databaseStore, hmrcStore = databaseHmrcStore, fetchFn, refresh = refreshAccessToken, now = () => new Date() }: SubmitDeps = {},
+) {
+  const { sandbox, vatNumber, credentials, fraudHeaders, payload } = await prepareSubmission(
+    { userId, period, request },
+    vatStore,
+    hmrcStore,
+    now,
+  );
+  const { storedRefreshToken } = credentials;
 
   // Both HMRC calls share this token set, so a refresh during the obligations check is reused by the submit
   // instead of spending the rotated-away refresh token a second time.
@@ -95,8 +116,6 @@ export async function submitVatReturnForUser(
 
   const submissionId = await vatStore.claimSubmission(userId, period.periodKey, sandbox);
   if (!submissionId) throw new VatReturnError(409, 'ALREADY_SUBMITTED', 'This period has already been submitted or is being submitted');
-
-  const payload = boxesToHmrcPayload(boxes, period.periodKey, true);
 
   let hmrcReceipt: { formBundleNumber: string; processingDate: string };
   try {

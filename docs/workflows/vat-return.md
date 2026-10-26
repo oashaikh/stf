@@ -116,6 +116,14 @@ The submission process writes two audit events (action, resource type, resource 
 
 **Testing note:** Every test mocks the HMRC API via the `submitVatReturn` function. Live HMRC is never called in any test. Sandbox filing is tested end-to-end with mocked responses; live filing is tested only via the mode mismatch gate and does not interact with HMRC.
 
+## Preview
+
+On the VAT page, once a return is confirmed and not stale or submitted, "Preview what will be sent" sits beside
+the submit button. It calls `POST /api/vat/preview` and shows the endpoint (sandbox or live, VRN masked), boxes 1 to 9
+in pounds as they will be sent, the header names and values (Authorization reads "Bearer (hidden)") and the raw JSON
+in a collapsible block (`src/pages/VatPreviewPanel.tsx`). The submit confirmation dialog fetches and shows the same
+preview when it opens. Nothing is sent to HMRC and no submission row is written.
+
 ## History
 
 `GET /api/vat/history` lists the newest returns for the signed-in user. The VAT page shows them under

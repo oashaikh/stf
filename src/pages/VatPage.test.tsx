@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,10 +8,14 @@ import VatPage from './VatPage';
 
 const fetchVatObligations = vi.fn();
 const fetchVatHistory = vi.fn();
+const previewVatReturn = vi.fn();
+const submitVatReturn = vi.fn();
 vi.mock('../lib/hmrc/vatApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/hmrc/vatApi')>()),
   fetchVatObligations: (...args: unknown[]) => fetchVatObligations(...args),
   fetchVatHistory: (...args: unknown[]) => fetchVatHistory(...args),
+  previewVatReturn: (...args: unknown[]) => previewVatReturn(...args),
+  submitVatReturn: (...args: unknown[]) => submitVatReturn(...args),
 }));
 vi.mock('../lib/hmrc/settingsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/hmrc/settingsApi')>()),
@@ -122,5 +126,63 @@ describe('VatPage', () => {
     expect(screen.queryByRole('button', { name: 'Confirm return' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Submit to HMRC/ })).not.toBeInTheDocument();
     expect(returnRequests()).toHaveLength(0);
+  });
+
+  describe('preview of what will be sent', () => {
+    const confirmed = { ...review, status: 'confirmed', confirmedAt: '2026-10-25T09:00:00Z' };
+    const preview = {
+      endpoint: { method: 'POST', url: 'https://test-api.service.hmrc.gov.uk/organisations/vat/XXXXXX789/returns', sandbox: true },
+      body: {
+        periodKey: '26C3', vatDueSales: 0, vatDueAcquisitions: 0, totalVatDue: 0, vatReclaimedCurrPeriod: 0,
+        netVatDue: 0, totalValueSalesExVAT: 0, totalValuePurchasesExVAT: 0, totalValueGoodsSuppliedExVAT: 0,
+        totalAcquisitionsExVAT: 0, finalised: true,
+      },
+      headers: { Authorization: 'Bearer (hidden)' },
+    };
+
+    function showReview(data: object) {
+      // jsdom has no modal dialog support.
+      HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute('open', ''); };
+      HTMLDialogElement.prototype.close = function close() { this.removeAttribute('open'); };
+      fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data })));
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      previewVatReturn.mockReset();
+      previewVatReturn.mockResolvedValue(preview);
+      submitVatReturn.mockReset();
+      submitVatReturn.mockResolvedValue({ formBundleNumber: '1', processingDate: '2026-10-26T10:00:00Z' });
+      renderPage();
+    }
+
+    it('offers no preview button before the return is confirmed', async () => {
+      showReview(review);
+      await screen.findByText(/Status:/);
+      expect(screen.queryByRole('button', { name: 'Preview what will be sent' })).not.toBeInTheDocument();
+    });
+
+    it('shows the boxes, headers and raw JSON of a nil return once confirmed, without submitting', async () => {
+      showReview(confirmed);
+      fireEvent.click(await screen.findByRole('button', { name: 'Preview what will be sent' }));
+      expect(await screen.findByText('Bearer (hidden)')).toBeInTheDocument();
+      const sentBoxes = screen.getByRole('table', { name: 'Boxes exactly as they will be sent' });
+      expect(within(sentBoxes).getAllByText('£0.00')).toHaveLength(9);
+      expect(screen.getByText('Raw JSON')).toBeInTheDocument();
+      expect(previewVatReturn).toHaveBeenCalledWith('tok', { periodKey: '26C3', start: '2026-07-01', end: '2026-09-30' });
+      expect(submitVatReturn).not.toHaveBeenCalled();
+    });
+
+    it('shows the same preview in the submit dialog and still submits from it', async () => {
+      showReview(confirmed);
+      fireEvent.click(await screen.findByRole('button', { name: 'Submit to HMRC sandbox' }));
+      expect(await screen.findByText('Bearer (hidden)')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Submit to sandbox' }));
+      await waitFor(() => expect(submitVatReturn).toHaveBeenCalled());
+    });
+
+    it('says so when the preview cannot be built', async () => {
+      showReview(confirmed);
+      previewVatReturn.mockRejectedValue(new Error('boom'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Preview what will be sent' }));
+      expect(await screen.findByText(/Could not build the preview/)).toBeInTheDocument();
+    });
   });
 });

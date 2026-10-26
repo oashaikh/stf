@@ -17,11 +17,18 @@
 
 // Read at call time so importing this module touches no browser or build-time globals.
 // Anything other than the literal string 'false' stays on the sandbox.
-function hmrcApiBase(): string {
+export function hmrcApiBase(): string {
   return process.env.HMRC_SANDBOX_MODE === 'false'
     ? 'https://api.service.hmrc.gov.uk'
     : 'https://test-api.service.hmrc.gov.uk';
 }
+
+export const HMRC_JSON_HEADERS = {
+  'Accept': 'application/vnd.hmrc.1.0+json',
+  'Content-Type': 'application/json',
+};
+
+export const vatReturnsPath = (vrn: string) => `/organisations/vat/${vrn}/returns`;
 
 export type HmrcTokenSet = {
   accessToken: string;
@@ -59,8 +66,7 @@ async function hmrcFetch<T>(
   const response = await fetchFn(url, {
     ...options,
     headers: {
-      'Accept': 'application/vnd.hmrc.1.0+json',
-      'Content-Type': 'application/json',
+      ...HMRC_JSON_HEADERS,
       'Authorization': `Bearer ${accessToken}`,
       ...fraudHeaders,
       ...(options.headers ?? {}),
@@ -141,7 +147,7 @@ export async function submitVatReturn(
   fetchFn?: typeof fetch,
 ): Promise<{ formBundleNumber: string; processingDate: string }> {
   return hmrcFetch(
-    `/organisations/vat/${vrn}/returns`,
+    vatReturnsPath(vrn),
     accessToken,
     fraudHeaders,
     {

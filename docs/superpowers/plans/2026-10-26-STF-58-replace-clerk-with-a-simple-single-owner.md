@@ -52,7 +52,7 @@
   - Risk: opus/high: authentication, session signing and secrets handling ().
   - Commit: `b54b683e7211`
 
-- [ ] **Task 3: Add login and logout routes with lockout** (after 1, 2)
+- [x] **Task 3: Add login and logout routes with lockout** (after 1, 2)
   - Intent: Add api/auth/login.ts (POST) and api/auth/logout.ts (POST) as the explicit public routes (). Login validates the JSON body (string password, bounded length), checks lockout first (locked returns 429 with Retry-After and does not evaluate the password), compares via ownerSession, records a failure on mismatch (401 generic body), and on success clears the counter, ensures the owner user row exists via the auth helper's store, and returns Set-Cookie with the session. Logout clears the cookie (Max-Age=0, same attributes). Error bodies and console output carry only error class names, never password, cookie or secret. Use dependency injection like the other route tests so no DB or network is touched. Register routes in apiRoutes test if it enumerates routes.
   - Files: `api/auth/login.ts`, `api/auth/logout.ts`, `api/auth/__tests__/login.test.ts`, `api/auth/__tests__/logout.test.ts`, `api/_lib/__tests__/apiRoutes.test.ts`
   - Acceptance criteria the planner set:
@@ -63,6 +63,7 @@
     - Test captures console output and asserts the password and cookie value never appear in logs or response bodies
     - lint, typecheck, test pass
   - Risk: opus/high: login endpoint, brute-force defence and cookie issuance.
+  - Commit: `4a26658de344`
 
 - [ ] **Task 4: Replace Clerk in the frontend with cookie auth, login page and sign-out** (after 3)
   - Intent: Remove ClerkProvider from main.tsx; App.tsx decides signed-in state by calling a cookie-authenticated GET /api/me (credentials same-origin) via react-query, showing a loading state, then the routes or the login page. Replace SignInPage with a plain LoginPage (labelled password input, submit button, error and lockout messages, using shared tokens, 44px targets, focus states) posting to /api/auth/login. AppShell gets a Sign out item (desktop and phone More) that POSTs /api/auth/logout and returns to login. Drop the token parameter from settingsApi.ts, vatApi.ts and the pages/hooks (VatPage, SettingsPage, useVatHistory, useVatObligations), sending credentials: 'same-origin' instead of Authorization. The HMRC fraud prevention user id already comes from the server's auth.userId (the owner row), so no header code changes beyond removing Bearer. Update the tests that mock @clerk/clerk-react.

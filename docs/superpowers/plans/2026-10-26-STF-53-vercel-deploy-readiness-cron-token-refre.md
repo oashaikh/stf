@@ -40,7 +40,7 @@
   - Risk: Opus/high: the database connection and TLS settings affect every route and the data path.
   - Commit: `23f4440ae713`
 
-- [ ] **Task 2: Vercel Cron function for HMRC token refresh, secured by CRON_SECRET** (after 1)
+- [x] **Task 2: Vercel Cron function for HMRC token refresh, secured by CRON_SECRET** (after 1)
   - Intent: Add api/cron/refresh-hmrc-tokens.ts, a fetch-style default export matching the other api routes. It must reject any request whose Authorization header is not exactly `Bearer ${CRON_SECRET}`, using a constant-time compare, and fail closed when CRON_SECRET is unset. With the right header it runs the existing refresh job and returns a small JSON ok body. No secret or error text in logs or the response. Keep server/src/index.ts and the Fastify scheduler as the local-only path, with a comment saying so. Add a vercel.json crons entry for the route on `*/5 * * * *`, matching TICK_INTERVAL_MS. Add CRON_SECRET to .env.example (no value). Export a handler factory with injectable job and secret, as the other routes do, so the test needs no database. Tests: no header refused and refresh not called; wrong secret refused; unset env secret refused; correct secret runs refresh once.
   - Files: `api/cron/refresh-hmrc-tokens.ts`, `api/cron/__tests__/refreshHmrcTokens.test.ts`, `vercel.json`, `.env.example`, `server/src/index.ts`
   - Acceptance criteria the planner set:
@@ -52,6 +52,7 @@
     - Fastify entrypoint still starts the interval scheduler for local use, commented as local only.
     - npm run lint, typecheck, test and build pass.
   - Risk: Opus/high: an authentication boundary on a public URL that touches stored HMRC tokens.
+  - Commit: `d0414ecd37b3`
 
 - [ ] **Task 3: Make every api/ route bundle on Vercel, including server/ and src/ imports** (after 2)
   - Intent: package.json has type: module, and api/ and server/ files import relative modules without extensions while some use '.js'. Vercel's Node runtime may fail on extensionless ESM imports or not trace files outside api/. Inspect how the builder handles this, then fix once and consistently: functions config in vercel.json (e.g. includeFiles for server/src and src/lib) and/or normalise import specifiers. Prefer the smallest change that makes `vercel build` succeed. Add the vercel CLI as a devDependency only if it cannot be run otherwise, and say why. Confirm no api route imports React, import.meta.env or browser-only code from src/. If vercel build needs network or login unavailable here, report exactly what was and was not verified. Add a guard test that every route file under api/ (excluding _lib and __tests__) has a default export with a fetch handler.

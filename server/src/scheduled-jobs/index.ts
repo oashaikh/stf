@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 
-import { refreshHmrcTokensJob } from './refreshHmrcTokens';
+import { refreshHmrcTokensJob } from './refreshHmrcTokens.js';
 
 export interface ScheduledJob {
   name: string;

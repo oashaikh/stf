@@ -1,5 +1,5 @@
-import { formatPence, parsePence } from './money';
-import { grossFromNet, netFromGross, vatOnGross, vatOnNet, type VatRate } from './vat';
+import { formatPence, parsePence } from './money.js';
+import { grossFromNet, netFromGross, vatOnGross, vatOnNet, type VatRate } from './vat.js';
 
 export const MAX_AMOUNT_PENCE = 1_000_000_000; // £10m; also keeps sums inside the integer column
 

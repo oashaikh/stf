@@ -32,7 +32,7 @@ export type {
   VatReturnDraftInsert,
   AuditEventRow,
   AuditEventInsert,
-} from '../../server/src/db/schema';
+} from '../../server/src/db/schema.js';
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 

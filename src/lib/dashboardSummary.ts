@@ -1,5 +1,5 @@
-import { currentTaxYear } from './taxBands';
-import { contributesToReturn, type LedgerLine } from './vat';
+import { currentTaxYear } from './taxBands.js';
+import { contributesToReturn, type LedgerLine } from './vat.js';
 
 export interface DatePeriod {
   start: string; // inclusive YYYY-MM-DD

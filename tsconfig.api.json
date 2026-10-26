@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowImportingTsExtensions": false,
+    "paths": {}
+  },
+  "include": ["api"],
+  "exclude": ["api/**/__tests__"]
+}

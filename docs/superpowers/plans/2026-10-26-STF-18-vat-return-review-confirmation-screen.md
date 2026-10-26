@@ -73,9 +73,10 @@
     - npm run lint, typecheck, test and build pass
   - Commit: `ed8ebc7d5393`
 
-- [ ] **Task 5: Document the review and confirm flow** (after 3)
+- [x] **Task 5: Document the review and confirm flow** (after 3)
   - Intent: Update docs/workflows/vat-return.md step 4 to describe the draft/confirm states, server recompute, the stale rule and the requireConfirmedReturn gate STF-19 must call, and tick the review item in PLAN.md if present.
   - Files: `docs/workflows/vat-return.md`, `PLAN.md`
   - Acceptance criteria the planner set:
     - Doc names the gate function and the routes
     - States that submission itself is STF-19
+  - Commit: `2370e36ff334`

@@ -13,11 +13,11 @@ import {
   type AccountRow,
 } from '../../server/src/db/schema.js';
 import { BANK_ACCOUNT_CODE, TRADE_DEBTORS_CODE, VAT_CONTROL_CODE } from '../../src/lib/chartOfAccounts.js';
+import { MAX_AMOUNT_PENCE } from '../../src/lib/entryForm.js';
 import { postEntry, type PostedLine } from '../../src/lib/postingRules.js';
 import { databaseAccountStore } from './accounts.js';
 import { db } from './db.js';
 
-export const MAX_AMOUNT_PENCE = 1_000_000_000; // £10m; also keeps sums inside the integer column
 export const MAX_DAYS_AHEAD = 7;
 export const ENTRY_LINE_LIMIT = 10;
 
@@ -100,6 +100,8 @@ export class EntryRuleError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    /** Form field the message belongs beside. */
+    readonly field?: string,
   ) {
     super(message);
   }
@@ -166,7 +168,7 @@ export async function listEntries(store: EntryStore, userId: string, filters: En
 
 export function assertDateNotTooFarAhead(date: string, now: Date): void {
   const latest = new Date(now.getTime() + MAX_DAYS_AHEAD * 86_400_000).toISOString().slice(0, 10);
-  if (date > latest) throw new EntryRuleError(400, 'BAD_REQUEST', `Date cannot be more than ${MAX_DAYS_AHEAD} days ahead`);
+  if (date > latest) throw new EntryRuleError(400, 'BAD_REQUEST', `Date cannot be more than ${MAX_DAYS_AHEAD} days ahead`, 'date');
 }
 
 export const PERIOD_LOCKED_MESSAGE =
@@ -182,7 +184,7 @@ async function buildEntry(store: EntryStore, userId: string, input: NewEntry, no
   await assertDateOpen(store, userId, input.date);
   const context = await store.loadPostingContext(userId, input.categoryAccountId);
   if (!context.category || context.category.archivedAt !== null || context.category.accountType !== input.kind) {
-    throw new EntryRuleError(422, 'INVALID_ACCOUNT', 'Category must be one of your active accounts matching the entry kind');
+    throw new EntryRuleError(422, 'INVALID_ACCOUNT', 'Category must be one of your active accounts matching the entry kind', 'categoryAccountId');
   }
   const lines = postEntry({
     kind: input.kind,

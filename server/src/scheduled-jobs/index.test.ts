@@ -9,6 +9,7 @@ describe('startScheduledJobs', () => {
   });
 
   it('runs registered jobs on their interval and stops them when the app closes', async () => {
+    scheduledJobs.length = 0;
     vi.useFakeTimers();
     const run = vi.fn();
     const app = Fastify();

@@ -1,12 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 
+import { refreshHmrcTokensJob } from './refreshHmrcTokens';
+
 export interface ScheduledJob {
   name: string;
   intervalMs: number;
   run: () => void | Promise<void>;
 }
 
-export const scheduledJobs: ScheduledJob[] = [];
+export const scheduledJobs: ScheduledJob[] = [refreshHmrcTokensJob];
 
 export function startScheduledJobs(app: FastifyInstance): void {
   const timers = scheduledJobs.map((job) =>

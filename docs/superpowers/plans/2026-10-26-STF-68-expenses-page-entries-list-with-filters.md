@@ -103,7 +103,7 @@ Also depends on:
   - Risk: ExpensesPage.tsx is also edited by STF-71; keep changes additive and small.
   - Commit: `c71a5607a153`
 
-- [ ] **Task 5: Screenshots at 390 and 1440 px for each journey step** (after 4)
+- [x] **Task 5: Screenshots at 390 and 1440 px for each journey step** (after 4)
   - Intent: Run the app with mocked API responses and capture /expenses steps as review evidence, committed as browser-evidence/STF-68/<width>-light-<name>.png: list, filtered, edit pre-filled, voided row, locked-period refusal, each at 390 and 1440 px, light only. Use existing Playwright setup or an ad hoc script; do not edit e2e/journey.spec.ts or e2e/mockApi.ts (STF-71, STF-90 edit them). Invented data only. Fix any layout defect found (sideways scroll, targets under 44 px) in the earlier tasks' files.
   - Files: `browser-evidence/STF-68/1440-light-expenses-list.png`, `browser-evidence/STF-68/390-light-expenses-list.png`, `browser-evidence/STF-68/1440-light-expenses-filtered.png`, `browser-evidence/STF-68/390-light-expenses-filtered.png`, `browser-evidence/STF-68/1440-light-expenses-edit.png`, `browser-evidence/STF-68/390-light-expenses-edit.png`, `browser-evidence/STF-68/1440-light-expenses-voided.png`, `browser-evidence/STF-68/390-light-expenses-voided.png`, `browser-evidence/STF-68/1440-light-expenses-locked.png`, `browser-evidence/STF-68/390-light-expenses-locked.png`
   - Acceptance criteria the planner set:
@@ -111,3 +111,4 @@ Also depends on:
     - No page-level horizontal scroll at 390 or 1440 px
     - Only invented records shown
     - lint, typecheck, test and build pass on final tree
+  - Commit: `70471587cb4f`

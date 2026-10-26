@@ -10,6 +10,7 @@
  */
 
 import { multiplyPence } from './money.js';
+import type { VatReturnPayload } from './hmrc/client.js';
 
 export type VatRate = 0 | 5 | 20;
 
@@ -157,13 +158,13 @@ export function linesForBox(
 
 /**
  * Convert pence boxes to the HMRC MTD submission payload (pounds, 2dp strings).
- * Called only at the API boundary in api/hmrc/vat/submit.ts.
+ * Called only at the API boundary in api/_lib/vatSubmit.ts.
  */
 export function boxesToHmrcPayload(
   boxes: VatReturnBoxes,
   periodKey: string,
   finalised: boolean = true,
-): Record<string, string | number | boolean> {
+): VatReturnPayload {
   const p = (pence: number) => parseFloat((pence / 100).toFixed(2));
   return {
     periodKey,

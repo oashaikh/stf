@@ -84,7 +84,7 @@
   - Risk: opus/high: authentication, CSRF state and token storage. Must follow STF-3's real helper API after merging dev.
   - Commit: `cf7525ac560f`
 
-- [ ] **Task 5: Scheduled token refresh job in the Fastify control plane with supporting index migration** (after 1, 2, 3)
+- [x] **Task 5: Scheduled token refresh job in the Fastify control plane with supporting index migration** (after 1, 2, 3)
   - Files: `server/src/scheduled-jobs/refreshHmrcTokens.ts`, `server/src/scheduled-jobs/refreshHmrcTokens.test.ts`, `server/src/scheduled-jobs/index.ts`, `server/src/db/schema.ts`, `server/src/db/migrations/0001_hmrc_token_expiry_index.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0001_snapshot.json`
   - Acceptance criteria the planner set:
     - A user expiring inside the window is refreshed and stored as ciphertext; a user expiring later is untouched
@@ -95,6 +95,7 @@
     - No log line or thrown message contains a token
     - `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass
   - Risk: opus/high: schema migration plus token handling in a background job.
+  - Commit: `98c5a1410a39`
 
 - [ ] **Task 6: Settings page: Connect to HMRC button and connection status** (after 4)
   - Files: `src/pages/SettingsPage.tsx`, `src/pages/SettingsPage.test.tsx`

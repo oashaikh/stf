@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatPence } from '../lib/money';
 import type { VatReturnBoxes } from '../lib/vat';
 import type { ApiResponse } from '../model/types';
+import VatObligationsList from './VatObligationsList';
 import { boxLabel, currentQuarter, DRILLABLE_BOXES, reviewState, type ReviewStatus } from './vatReviewState';
 
 interface DrillLine {
@@ -163,6 +164,8 @@ export default function VatPage() {
           </button>
         </>
       )}
+
+      <VatObligationsList />
     </main>
   );
 }

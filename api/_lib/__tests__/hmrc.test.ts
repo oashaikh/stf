@@ -24,6 +24,8 @@ function fakeStore(rows: Record<string, Row>): HmrcStore {
     saveTokens: vi.fn(async (userId, tokens) => {
       Object.assign(rows[userId], tokens);
     }),
+    credentials: vi.fn(),
+    saveRefreshedTokens: vi.fn(),
     status: async (userId) => ({
       connected: Boolean(rows[userId]?.refreshToken),
       expiresAt: rows[userId]?.expiresAt?.toISOString() ?? null,
@@ -181,5 +183,66 @@ describe('status', () => {
 
     const second = await (await handler(asUser('/api/hmrc/status', 'u2'))).json();
     expect(second).toEqual({ ok: true, connected: false, expiresAt: null });
+  });
+});
+
+describe('database store credentials', () => {
+  const NEW_ACCESS = 'access-secret-NNN';
+  const NEW_REFRESH = 'refresh-secret-RRR';
+  let stored: { vatNumber: string | null; accessToken: string; refreshToken: string; expiresAt: Date };
+  let setPayload: Record<string, unknown>;
+  let updateMatches: boolean;
+
+  async function loadStore() {
+    vi.resetModules();
+    vi.doMock('../db', () => ({
+      db: {
+        select: () => ({ from: () => ({ where: () => ({ limit: async () => [stored] }) }) }),
+        update: () => ({
+          set: (payload: Record<string, unknown>) => {
+            setPayload = payload;
+            return { where: () => ({ returning: async () => (updateMatches ? [{ id: 'u1' }] : []) }) };
+          },
+        }),
+      },
+    }));
+    const crypto = await import('../../../server/src/lib/hmrcCrypto');
+    stored = {
+      vatNumber: '123456789',
+      accessToken: crypto.encryptToken(ACCESS),
+      refreshToken: crypto.encryptToken(REFRESH),
+      expiresAt: new Date('2030-01-01T00:00:00Z'),
+    };
+    return { ...(await import('../hmrcStore')), crypto };
+  }
+
+  afterEach(() => vi.doUnmock('../db'));
+
+  it('decrypts stored tokens and keeps the stored refresh ciphertext as the guard', async () => {
+    updateMatches = true;
+    const { databaseHmrcStore, crypto } = await loadStore();
+    const credentials = await databaseHmrcStore.credentials('u1');
+    expect(credentials).toMatchObject({ vatNumber: '123456789', accessToken: ACCESS, refreshToken: REFRESH });
+    expect(crypto.decryptToken(credentials!.storedRefreshToken)).toBe(REFRESH);
+  });
+
+  it('has no credentials when the user has no stored tokens', async () => {
+    updateMatches = true;
+    const { databaseHmrcStore } = await loadStore();
+    stored.refreshToken = null as unknown as string;
+    expect(await databaseHmrcStore.credentials('u1')).toBeUndefined();
+  });
+
+  it('saves refreshed tokens as ciphertext and reports whether the guard matched', async () => {
+    const { databaseHmrcStore, crypto } = await loadStore();
+    const tokens = { accessToken: NEW_ACCESS, refreshToken: NEW_REFRESH, expiresAt: new Date('2030-02-01T00:00:00Z') };
+
+    updateMatches = true;
+    expect(await databaseHmrcStore.saveRefreshedTokens('u1', stored.refreshToken, tokens)).toBe(true);
+    expect(setPayload.hmrcAccessToken).not.toContain(NEW_ACCESS);
+    expect(crypto.decryptToken(setPayload.hmrcRefreshToken as string)).toBe(NEW_REFRESH);
+
+    updateMatches = false;
+    expect(await databaseHmrcStore.saveRefreshedTokens('u1', 'rotated-elsewhere', tokens)).toBe(false);
   });
 });

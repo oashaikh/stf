@@ -54,7 +54,7 @@
   - Risk: Opus/high: an authentication boundary on a public URL that touches stored HMRC tokens.
   - Commit: `d0414ecd37b3`
 
-- [ ] **Task 3: Make every api/ route bundle on Vercel, including server/ and src/ imports** (after 2)
+- [x] **Task 3: Make every api/ route bundle on Vercel, including server/ and src/ imports** (after 2)
   - Intent: package.json has type: module, and api/ and server/ files import relative modules without extensions while some use '.js'. Vercel's Node runtime may fail on extensionless ESM imports or not trace files outside api/. Inspect how the builder handles this, then fix once and consistently: functions config in vercel.json (e.g. includeFiles for server/src and src/lib) and/or normalise import specifiers. Prefer the smallest change that makes `vercel build` succeed. Add the vercel CLI as a devDependency only if it cannot be run otherwise, and say why. Confirm no api route imports React, import.meta.env or browser-only code from src/. If vercel build needs network or login unavailable here, report exactly what was and was not verified. Add a guard test that every route file under api/ (excluding _lib and __tests__) has a default export with a fetch handler.
   - Files: `vercel.json`, `package.json`, `package-lock.json`, `api/_lib/db.ts`, `api/_lib/hmrcStore.ts`, `api/_lib/vatSubmit.ts`, `api/_lib/vatReturns.ts`, `api/hmrc/callback.ts`, `api/hmrc/connect.ts`, `api/me.ts`, `api/_lib/__tests__/apiRoutes.test.ts`
   - Acceptance criteria the planner set:
@@ -64,6 +64,7 @@
     - No unrelated refactor; any lockfile change is justified in the commit message.
     - npm run lint, typecheck, test and build pass.
   - Risk: Sonnet/medium. Edits are mechanical but bundler behaviour must be verified, not assumed. api/_lib files are possible edits only.
+  - Commit: `607ee32b8658`
 
 - [ ] **Task 4: Deploy runbook: Vercel env vars, HMRC redirect URI, Clerk origins, manual migrations** (after 3)
   - Intent: Add docs/runbooks/vercel-deploy.md as a short page. List the env vars to set in Vercel (names only, no values): DATABASE_URL (pooled Neon URL), CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY, CLERK_AUTHORIZED_PARTIES, HMRC_* with HMRC_SANDBOX_MODE=true by default, APP_ORIGIN, STORAGE_*, ANTHROPIC_API_KEY, CRON_SECRET. Give the HMRC redirect URI to register (https://<domain>/api/hmrc/callback, same as HMRC_REDIRECT_URI) and the Clerk allowed origins (deployed origin, matching CLERK_AUTHORIZED_PARTIES and APP_ORIGIN). State that migrations never run on deploy and give the one-line manual command, e.g. DATABASE_URL=<direct-unpooled-url> npm run db:migrate. Cover cron authentication, that Fastify is local-only, and the Pro-plan note for the 5-minute cron. Mark the CONTROL_PLANE heading in .env.example as local only. Check every var name against .env.example and the code. Link from README if it lists docs.

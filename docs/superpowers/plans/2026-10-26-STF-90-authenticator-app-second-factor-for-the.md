@@ -53,7 +53,7 @@
   - Risk: Opus high: sign-in, session and lockout work ().
   - Commit: `0bad0e33457e`
 
-- [ ] **Task 3: Authenticator setup, confirm and disable API** (after 1, 2)
+- [x] **Task 3: Authenticator setup, confirm and disable API** (after 1, 2)
   - Intent: Owner-only routes in api/settings/authenticator.ts behind requireAuth: POST start (generate a pending secret, store it encrypted but not enabled, return otpauth URI, QR data URL and the base32 secret), POST confirm {code} (verify, set totp_enabled_at, generate 8 recovery codes, return them in plaintext exactly once), POST disable {code} (requires the current valid TOTP code, then clears the secret and deletes recovery codes), GET status {enabled}. Restarting setup while enabled is refused. Failed confirm/disable codes count toward the same login lockout. Response bodies never echo back codes beyond the one-time recovery list; no select * (explicit columns). Tests: wrong code on confirm leaves it off, confirm returns 8 codes once and a later status/GET never returns them, disable with wrong code refused and with right code works, unauthenticated requests get 401, no secret in logged output.
   - Files: `api/settings/authenticator.ts`, `api/_lib/__tests__/authenticatorRoute.test.ts`, `api/_lib/totpStore.ts`, `vercel.json`
   - Acceptance criteria the planner set:
@@ -63,6 +63,7 @@
     - All routes return 401 without a session
     - lint, typecheck, test, build pass
   - Risk: Opus high: authentication and secret handling.
+  - Commit: `3caa35902ca9`
 
 - [ ] **Task 4: Send Gov-Client-Multi-Factor from the session record** (after 2)
   - Intent: Replace the deliberate omission in src/lib/hmrc/fraudHeaders.ts. Add an optional secondFactor input ({type, time, uniqueReference hash}) to FraudHeaderInput and emit Gov-Client-Multi-Factor in HMRC's format: type=TOTP&timestamp=<ISO 8601 UTC>&unique-reference=<hash>, each value percent-encoded via encodeValue, only when the session carries a record (omitted for password-only sessions). api/_lib/hmrcCall.ts requestFraudHeaders (the one assembly point used by submit, preview, obligations and the check) reads the record from the request's session cookie so every caller gets it. Update the fraudHeadersCheck flow if it enumerates expected headers. Update docs/fraud-prevention-headers.md and drop the now-wrong comment. Tests: exact header string, header absent without a second factor, value encoding, and that it appears via requestFraudHeaders for a TOTP session.

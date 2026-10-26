@@ -84,3 +84,7 @@
     - npm run lint, typecheck, test and build all pass
   - Risk: Shares VatPage.tsx with STF-20; the new panel file keeps the VatPage hunks small.
   - Commit: `0280e4738fa6`
+
+- [x] **Task 6: Fix: address 6 review findings (cycle 1)** (after 5)
+  - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found nothing. Preview and submit share prepareSubmission, so the body and headers match. The preview makes no HMRC call, claims no submission row and expos The agent is fixing them; nothing is needed from you.
+  - Commit: `6380e8d638b2`

@@ -12,7 +12,15 @@ function secretKey(): string {
 
 export const clerkIssuer: AuthIssuer = {
   async verifyToken(token) {
-    const authorizedParties = process.env.CLERK_AUTHORIZED_PARTIES?.split(',').map((party) => party.trim());
+    const configuredParties = (process.env.CLERK_AUTHORIZED_PARTIES ?? '')
+      .split(',')
+      .map((party) => party.trim())
+      .filter(Boolean);
+    // Without azp pinning, a token minted for another origin on the same Clerk instance would pass.
+    if (configuredParties.length === 0 && process.env.NODE_ENV === 'production') {
+      throw new Error('CLERK_AUTHORIZED_PARTIES is not set');
+    }
+    const authorizedParties = configuredParties.length > 0 ? configuredParties : undefined;
     const key = secretKey();
     try {
       const claims = await verifyToken(token, { secretKey: key, authorizedParties });

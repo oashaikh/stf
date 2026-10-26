@@ -47,6 +47,7 @@ You supply all keys. STF does not phone home.
 | `ANTHROPIC_API_KEY` | [console.anthropic.com](https://console.anthropic.com) | Receipt scanning |
 | `VITE_CLERK_PUBLISHABLE_KEY` | [clerk.com](https://clerk.com) | Authentication |
 | `CLERK_SECRET_KEY` | clerk.com | Authentication (server) |
+| `CLERK_AUTHORIZED_PARTIES` | Comma-separated origins your app is served from, e.g. `https://app.example.com` | Authentication (server). Required in production; the API refuses to verify tokens without it |
 | `DATABASE_URL` | Your Postgres instance | Everything |
 | `STORAGE_*` | Any S3-compatible provider | Receipt storage |
 | `HMRC_CLIENT_ID` + `HMRC_CLIENT_SECRET` | [developer.service.hmrc.gov.uk](https://developer.service.hmrc.gov.uk) | HMRC submission |

@@ -91,7 +91,7 @@ Also depends on:
     - lint, typecheck, test and build pass
   - Commit: `ec0e55777d1d`
 
-- [ ] **Task 4: Edit an entry: reuse the STF-67 form pre-filled** (after 3)
+- [x] **Task 4: Edit an entry: reuse the STF-67 form pre-filled** (after 3)
   - Intent: Give AddEntryForm in src/pages/ExpensesPage.tsx an edit mode rather than a second form. Edit on a row opens the form pre-filled from the list row: kind, date, description, reference, category, gross amount in pounds via existing entryForm/money helpers (amountIs gross), VAT rate derived from integer vatPence/netPence (0, 5 or 20, integer arithmetic). Submit reads Save changes and sends editEntry (PUT) keeping the original status. On success close the form and invalidate ENTRIES_QUERY_KEY; Cancel returns to the list. Field refusals use existing FORM_FIELD mapping. PeriodLockedError reuses the locked-message component from task 3. Tests: pre-fill, PUT with changed amount and id in URL, list shows update, locked refusal message.
   - Files: `src/pages/ExpensesPage.tsx`, `src/pages/ExpensesPage.test.tsx`, `src/pages/EntriesList.tsx`, `src/lib/entryForm.ts`, `src/lib/entryForm.test.ts`
   - Acceptance criteria the planner set:
@@ -101,6 +101,7 @@ Also depends on:
     - Existing add-entry tests still pass
     - lint, typecheck, test and build pass
   - Risk: ExpensesPage.tsx is also edited by STF-71; keep changes additive and small.
+  - Commit: `c71a5607a153`
 
 - [ ] **Task 5: Screenshots at 390 and 1440 px for each journey step** (after 4)
   - Intent: Run the app with mocked API responses and capture /expenses steps as review evidence, committed as browser-evidence/STF-68/<width>-light-<name>.png: list, filtered, edit pre-filled, voided row, locked-period refusal, each at 390 and 1440 px, light only. Use existing Playwright setup or an ad hoc script; do not edit e2e/journey.spec.ts or e2e/mockApi.ts (STF-71, STF-90 edit them). Invented data only. Fix any layout defect found (sideways scroll, targets under 44 px) in the earlier tasks' files.

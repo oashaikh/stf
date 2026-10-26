@@ -161,9 +161,9 @@ Malformed browser-supplied values (those that don't match HMRC's format) are dro
 | `Gov-Client-Public-IP` | No | Client IP (extracted from request headers, validated with `isIP()`) |
 | `Gov-Client-Public-Port` | No | Client source port, only when the forwarded entry carries one (`ip:port`); Vercel exposes none |
 | `Gov-Client-Public-IP-Timestamp` | No | ISO 8601 with milliseconds (set when client IP is present) |
-| `Gov-Vendor-Public-IP` | No | Server's public egress IP (from `HMRC_VENDOR_PUBLIC_IP` env var) |
-| `Gov-Vendor-Forwarded` | No | `by=<vendor-ip>&for=<client-ip>` (set when both IPs are known, percent-encoded) |
-| `Gov-Vendor-License-IDs` | No | SHA-256 hash of licence id (from `HMRC_VENDOR_LICENSE_ID` env var; never sends the id itself) |
+| `Gov-Vendor-Public-IP` | Yes for production | Public IP of the servers clients connect to (from `HMRC_VENDOR_PUBLIC_IP` env var, which must be set; Vercel does not expose it) |
+| `Gov-Vendor-Forwarded` | Yes for production | `by=<vendor-ip>&for=<client-ip>` (set when both IPs are known, percent-encoded) |
+| `Gov-Vendor-License-IDs` | Yes | SHA-256 hash of the licence id (`HMRC_VENDOR_LICENSE_ID` env var, else the owner's user id; never sends the id itself) |
 | `Gov-Client-Device-ID` | No | UUID v4 from browser (dropped if malformed) |
 | `Gov-Client-Timezone` | No | Browser timezone in `UTC±HH:MM` format (dropped if malformed) |
 | `Gov-Client-Screens` | No | Comma-separated list of display dimensions (dropped if any entry is malformed) |

@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut } from '@clerk/clerk-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -11,6 +11,7 @@ import VatPage from './pages/VatPage.tsx';
 import TaxPage from './pages/TaxPage.tsx';
 import ReportsPage from './pages/ReportsPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
+import SignInPage from './pages/SignInPage.tsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,9 +25,17 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <SignedIn>
-        <BrowserRouter>
-          <Routes>
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/sign-in"
+            element={
+              <SignedOut>
+                <SignInPage />
+              </SignedOut>
+            }
+          />
+          <SignedIn>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/expenses" element={<ExpensesPage />} />
@@ -37,12 +46,12 @@ export default function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </SignedIn>
-      <SignedOut>
-        <RedirectToSignIn />
-      </SignedOut>
+          </SignedIn>
+          <SignedOut>
+            <Route path="*" element={<Navigate to="/sign-in" replace />} />
+          </SignedOut>
+        </Routes>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

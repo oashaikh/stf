@@ -106,3 +106,7 @@
     - Docs describe setup, recovery codes and disabling
     - lint, typecheck, test, build pass
   - Commit: `a47f33ea2f1a`
+
+- [x] **Task 8: Fix: address 15 review findings (cycle 1)** (after 7)
+  - Intent: Review left 15 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The server side holds up: the signed session token, the challenge cookie, the step-reuse check, recovery-code single use, the shared lockout and the header format all trac The agent is fixing them; nothing is needed from you.
+  - Commit: `49e67b0994c9`

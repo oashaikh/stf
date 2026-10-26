@@ -129,7 +129,7 @@ Never add a new package because it is convenient. Add it because it is necessary
 
 ### Layer 5: Vendor gate
 
-For every external vendor (HMRC MTD API, Anthropic, Clerk, Stripe), document before integrating:
+For every external vendor (HMRC MTD API, Anthropic, Stripe), document before integrating:
 
 - What data it receives.
 - What happens if it is unavailable.

@@ -35,7 +35,7 @@ AI (Claude Haiku) automates the tedious parts: reading receipts, suggesting expe
 | Backend API | Vercel serverless (TypeScript) | Zero-ops for self-hosters; edge-friendly |
 | Control plane | Fastify (Node.js) | Scheduled jobs, HMRC token refresh |
 | Database | PostgreSQL (via Drizzle ORM) | Relational integrity for financial data |
-| Auth | Clerk | Google + email; JWT; easy self-host swap |
+| Auth | Single-owner password | Signed session cookie; OWNER_PASSWORD + SESSION_SECRET |
 | AI | Anthropic Claude Haiku | Vision for receipts; fast; cheap; user-supplied key |
 | PDF generation | `@react-pdf/renderer` | Invoice PDF export |
 | Object storage | S3-compatible (MinIO for self-host) | Receipt/document storage |
@@ -55,7 +55,7 @@ AI (Claude Haiku) automates the tedious parts: reading receipts, suggesting expe
 Milestone checklist:
 - [ ] Project scaffold (done — you're reading this)
 - [ ] Database schema + migrations (Drizzle)
-- [ ] Auth (Clerk) — sign in with Google or email
+- [ ] Auth — single-owner password login
 - [ ] Chart of accounts (seeded defaults, user-editable)
 - [ ] Manual transaction entry (income + expense)
 - [ ] Receipt upload (image/PDF)
@@ -246,7 +246,7 @@ Flow:
 POST /organisations/vat/{vrn}/returns
 Authorization: Bearer <access_token>
 Gov-Client-Connection-Method: WEB_APP_VIA_SERVER
-Gov-Client-User-IDs: os=<clerk-user-id>
+Gov-Client-User-IDs: os=<owner-user-id>
 Gov-Vendor-Version: stf/<app-version>
 Content-Type: application/json
 
@@ -268,13 +268,13 @@ Content-Type: application/json
 ```bash
 git clone https://github.com/oashaikh/stf
 cp .env.example .env.local
-# fill in your keys (Anthropic, Clerk, HMRC sandbox)
+# fill in your keys (Anthropic, HMRC sandbox)
 docker compose up -d
 ```
 
 Required keys:
 - `ANTHROPIC_API_KEY` — your key from console.anthropic.com
-- `VITE_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` — from clerk.com
+- `OWNER_PASSWORD` + `SESSION_SECRET` — your own values
 - `DATABASE_URL` — Postgres connection string
 - `STORAGE_ENDPOINT` / `STORAGE_BUCKET` / `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` — S3-compatible
 - `HMRC_CLIENT_ID` + `HMRC_CLIENT_SECRET` — from developer.service.hmrc.gov.uk (sandbox first)
@@ -368,7 +368,7 @@ stf/
 │
 ├── api/                         # Vercel serverless functions
 │   ├── _lib/                    # Shared API utilities
-│   │   ├── auth.ts              # Clerk token verification
+│   │   ├── auth.ts              # signed-cookie session verification
 │   │   ├── db.ts                # DB connection
 │   │   └── errors.ts            # Error response helpers
 │   ├── receipts/
@@ -411,4 +411,4 @@ stf/
 4. **Open source, bring-your-own-keys** — no central server, no analytics, no phoning home. Core to the project identity.
 5. **Drizzle ORM over raw SQL** — type-safe schema, migration-first, small footprint.
 6. **No floating-point in the domain layer** — Drizzle schema uses `integer` for all pence columns.
-7. **Clerk for auth** — easily replaceable by any JWT issuer for advanced self-hosters; the auth boundary is in `api/_lib/auth.ts`.
+7. **Single-owner password auth** — the auth boundary is in `api/_lib/auth.ts`.

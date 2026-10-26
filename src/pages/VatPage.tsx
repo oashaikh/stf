@@ -46,6 +46,13 @@ interface VatPeriod {
   end: string;
 }
 
+// STF-10's list filters by from, to and search; the hash lets the Expenses list highlight the entry.
+function expensesLink(line: DrillLine): string {
+  const filters = new URLSearchParams({ from: line.date, to: line.date });
+  if (line.description) filters.set('search', line.description);
+  return `/expenses?${filters}#entry-${line.transactionId}`;
+}
+
 const boxNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 export default function VatPage() {
@@ -205,7 +212,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
           <p role="status" className="mt-4 text-sm font-medium text-gray-900">
             Status: {state.statusLabel}
           </p>
-          {review.data.boxes.box5 === 0 && review.data.boxes.box6 === 0 && review.data.boxes.box7 === 0 && (
+          {review.data.entryCount === 0 && (
             <p className="mt-2 text-sm text-gray-500">
               No VAT-relevant transactions in this period.{state.needsConfirming && ' This is a nil return and still needs confirming.'}
             </p>
@@ -396,13 +403,19 @@ function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: B
             ) : (
               <ul className="divide-y divide-gray-200">
                 {lines.map((line) => (
-                  <li key={line.lineId} className="flex items-center justify-between gap-4 py-1">
-                    <span className="min-w-0 truncate" title={line.description ?? undefined}>
-                      {formatDate(line.date)} {line.description ?? ''}
-                    </span>
-                    <span className="shrink-0 text-right tabular-nums">
-                      {formatPence(line.amountPence)} + {formatPence(line.vatPence)} VAT
-                    </span>
+                  <li key={line.lineId}>
+                    <Link
+                      to={expensesLink(line)}
+                      className="flex min-h-[44px] flex-wrap items-center gap-x-4 text-blue-700 hover:underline sm:flex-nowrap"
+                    >
+                      <span className="shrink-0 tabular-nums">{formatDate(line.date)}</span>
+                      <span className="min-w-0 flex-1 truncate" title={line.description ?? undefined}>
+                        {line.description ?? ''}
+                      </span>
+                      <span className="shrink-0 text-right tabular-nums">
+                        {formatPence(line.amountPence)} + {formatPence(line.vatPence)} VAT
+                      </span>
+                    </Link>
                   </li>
                 ))}
               </ul>

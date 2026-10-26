@@ -68,7 +68,7 @@
   - Risk: Default sonnet/medium. Shared HMRC client, but no auth or storage logic.
   - Commit: `c1cc735e85cc`
 
-- [ ] **Task 4: HMRC connect, callback and status API routes using STF-3 auth and db helpers** (after 1, 2, 3)
+- [x] **Task 4: HMRC connect, callback and status API routes using STF-3 auth and db helpers** (after 1, 2, 3)
   - Intent: Blocked on STF-3: first run `git merge dev` and confirm STF-3's shared auth helper and database helper exist in the serverless API folder (api/_lib/). Read their real exports before coding; do not write a second sign-in check. Add serverless routes under api/hmrc/, matching PLAN.md. (1) connect, authenticated by the STF-3 auth helper: refuse live mode unless HMRC_SANDBOX_MODE=false AND users.hmrc_sandbox_mode is false; otherwise return `{ url }` from buildHmrcAuthUrl with signState for that user. (2) callback (browser redirect from HMRC, no bearer header; identity comes from the signed state, and the route sits on the explicit public list per STF-3's convention): verifyState first, on failure respond 400 with no HMRC call. Then exchange the code, encrypt both tokens, and update only that user's row (access token, refresh token, expiry, updated_at) through the db helper. The HMRC call happens outside any transaction. Redirect to `${APP_ORIGIN}/settings?hmrc=connected` or `?hmrc=error`. (3) status, authenticated: return `{ connected, expiresAt }` only, never tokens. Set .env.example HMRC_REDIRECT_URI to the `/api/hmrc/callback` path and add APP_ORIGIN. Make sure root typecheck/lint cover the api folder, extending them only if STF-3 did not. Tests use a mocked HMRC token endpoint (fake fetch) and a fake db, no live HMRC or database. Cover: valid flow stores only ciphertext; forged, expired or other-user state refused with no token exchange; unauthenticated connect and status refused; a second user cannot read the first user's status; logs capture nothing sensitive.
   - Files: `api/hmrc/connect.ts`, `api/hmrc/callback.ts`, `api/hmrc/status.ts`, `api/hmrc/hmrc.test.ts`, `.env.example`, `package.json`
   - Acceptance criteria the planner set:
@@ -82,6 +82,7 @@
     - All HMRC tests use a mocked token endpoint
     - `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass
   - Risk: opus/high: authentication, CSRF state and token storage. Must follow STF-3's real helper API after merging dev.
+  - Commit: `cf7525ac560f`
 
 - [ ] **Task 5: Scheduled token refresh job in the Fastify control plane with supporting index migration** (after 1, 2, 3)
   - Files: `server/src/scheduled-jobs/refreshHmrcTokens.ts`, `server/src/scheduled-jobs/refreshHmrcTokens.test.ts`, `server/src/scheduled-jobs/index.ts`, `server/src/db/schema.ts`, `server/src/db/migrations/0001_hmrc_token_expiry_index.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0001_snapshot.json`

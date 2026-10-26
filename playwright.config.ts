@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 const mocked = process.env.JOURNEY_MOCK === '1';
-const baseURL = process.env.JOURNEY_BASE_URL ?? 'http://localhost:4173';
+const baseURL = process.env.JOURNEY_BASE_URL ?? process.env.AIP_JOURNEY_URL ?? 'http://localhost:4173';
 
 export default defineConfig({
   testDir: 'e2e',

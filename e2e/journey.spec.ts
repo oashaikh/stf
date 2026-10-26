@@ -1,21 +1,28 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { mockApi, mockMfaCode } from './mockApi';
+import { mockApi, mockMfaCode, mockVatStates, type MockVatState } from './mockApi';
 
 const mocked = process.env.JOURNEY_MOCK === '1';
 const ownerPassword = mocked ? 'mock-owner-password' : process.env.JOURNEY_OWNER_PASSWORD;
 const runName = process.env.JOURNEY_RUN_NAME ?? new Date().toISOString().replace(/[:.]/g, '-');
-const screenshotDir = path.join('e2e', 'artifacts', runName);
+// The platform journey runner sets AIP_EVIDENCE_DIR; a local run keeps its screenshots under e2e/artifacts.
+const evidenceRoot = process.env.AIP_EVIDENCE_DIR ?? path.join('e2e', 'artifacts', runName);
 
 // The login and the one entry added through the form are the only writes the journey may make; the preview is a POST that computes and stores nothing.
-const ALLOWED_WRITES = new Set(['POST /api/auth/login', 'POST /api/entries', 'PATCH /api/entries', 'POST /api/vat/preview']);
+// Opening a return that has never been reviewed makes the app save a draft (PUT); that is neither a confirmation nor a filing.
+const ALLOWED_WRITES = new Set(['POST /api/auth/login', 'POST /api/entries', 'PATCH /api/entries', 'POST /api/vat/preview', 'PUT /api/vat/return']);
 // Set to commit the VAT screens as review evidence: <width>-light-<step>.png.
 const evidenceDir = process.env.JOURNEY_EVIDENCE_DIR;
 const evidenceWidths = [1440, 390];
 
-test('owner signs in and walks Dashboard, Expenses, VAT preview and Settings', async ({ page }) => {
+// A deployed run takes whatever VAT state the live data is in; the mocked run walks each state in turn.
+const vatStates: Array<MockVatState | null> = mocked ? mockVatStates : [null];
+
+for (const mockVatState of vatStates) {
+test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatState ? ` (VAT: ${mockVatState})` : ''}`, async ({ page }) => {
   test.skip(!ownerPassword, 'Set JOURNEY_OWNER_PASSWORD and JOURNEY_BASE_URL to run against a deployed URL');
+  const screenshotDir = mockVatState && process.env.AIP_EVIDENCE_DIR ? path.join(evidenceRoot, mockVatState) : evidenceRoot;
   mkdirSync(screenshotDir, { recursive: true });
 
   const consoleErrors: string[] = [];
@@ -26,7 +33,7 @@ test('owner signs in and walks Dashboard, Expenses, VAT preview and Settings', a
 
   // Playwright tries the newest route first, so this guard sees every request and falls back to the mock for the ones it allows.
   const blockedWrites: string[] = [];
-  if (mocked) await mockApi(page, ownerPassword!);
+  if (mocked) await mockApi(page, ownerPassword!, mockVatState ?? 'confirmed');
   await page.route('**/api/**', (route) => {
     const request = route.request();
     const key = `${request.method()} ${new URL(request.url()).pathname}`;
@@ -47,6 +54,8 @@ test('owner signs in and walks Dashboard, Expenses, VAT preview and Settings', a
     } catch (error) {
       const failedShot = shot.replace(/\.png$/, '-FAILED.png');
       await page.screenshot({ path: failedShot, fullPage: true }).catch(() => undefined);
+      // The platform reads this line to name the failing step.
+      console.log(`JOURNEY_FAILED_STEP: ${name}`);
       throw new Error(`Journey step "${name}" failed at ${page.url()} (screenshot: ${failedShot})\n${(error as Error).message}`);
     }
   }
@@ -85,14 +94,16 @@ test('owner signs in and walks Dashboard, Expenses, VAT preview and Settings', a
     });
   }
   await step('vat-obligations', openPage('/vat', 'VAT Returns'));
+  // The entry's figures are only checked where the mocked return is confirmed and still open, so the preview is reachable.
+  const checkFigures = mockVatState === 'confirmed';
   await step('vat-review', async () => {
     await openVatReview(page);
-    if (!mocked) return;
+    if (!checkFigures) return;
     await expect(boxRow(page, 1)).toContainText('£100.00');
     await expect(boxRow(page, 6)).toContainText('£500.00');
     await captureEvidence(page, 'vat-boxes');
   });
-  if (mocked) {
+  if (checkFigures) {
     await step('vat-drill-down', async () => {
       await page.getByRole('button', { name: /^Box 1\b|VAT due on sales/ }).first().click();
       const line = page.getByRole('link', { name: /Invoice 1001 website build/ });
@@ -101,23 +112,33 @@ test('owner signs in and walks Dashboard, Expenses, VAT preview and Settings', a
       await captureEvidence(page, 'vat-drill-down');
     });
   }
-  await step('vat-preview', async () => {
-    // The button only exists once the return is confirmed. Confirming is a write, so a draft return fails here rather than being confirmed.
+  await step('vat-state', async () => {
     const preview = page.getByRole('button', { name: 'Preview what will be sent' });
-    await expect(preview, 'the first open VAT return is not confirmed; the journey never confirms or submits').toBeVisible();
-    await preview.click();
-    const sent = page.getByRole('table', { name: 'Boxes exactly as they will be sent' });
-    await expect(sent).toBeVisible();
-    if (!mocked) return;
-    // The body fields only appear by name in the raw JSON, so open it and read the two figures the entry must reach.
-    await page.getByText('Raw JSON').click();
-    const rawBody = page.locator('pre');
-    await expect(rawBody).toContainText('"vatDueSales": 100,');
-    await expect(rawBody).toContainText('"totalValueSalesExVAT": 500,');
-    await captureEvidence(page, 'vat-preview');
+    const branch = await vatBranch(page);
+    console.log(`JOURNEY_VAT_BRANCH: ${branch}`);
+    if (branch === 'nothing-due') {
+      await expect(page.getByText('No open VAT obligations to file.')).toBeVisible();
+    } else if (branch === 'unconfirmed') {
+      // Confirming is a write, so an unconfirmed return is only checked for what it shows.
+      await expect(page.getByRole('table', { name: 'VAT return boxes for the period' }).getByRole('row')).toHaveCount(10);
+      await expect(page.getByRole('group', { name: 'Declaration' })).toBeVisible();
+    } else if (branch === 'filed') {
+      await expect(page.getByText(/^Form bundle number:/)).toBeVisible();
+    } else {
+      await preview.click();
+      await expect(page.getByRole('table', { name: 'Boxes exactly as they will be sent' })).toBeVisible();
+      if (!checkFigures) return;
+      // The body fields only appear by name in the raw JSON, so open it and read the two figures the entry must reach.
+      await page.getByText('Raw JSON').click();
+      const rawBody = page.locator('pre');
+      await expect(rawBody).toContainText('"vatDueSales": 100,');
+      await expect(rawBody).toContainText('"totalValueSalesExVAT": 500,');
+      await captureEvidence(page, 'vat-preview');
+    }
   });
   await step('settings', openPage('/settings', 'Settings'));
 });
+}
 
 const boxRow = (page: Page, box: number) => page.getByRole('row').filter({ has: page.getByRole('cell', { name: String(box), exact: true }) });
 
@@ -139,9 +160,20 @@ async function openVatReview(page: Page) {
   // With several open obligations the page waits for a choice; the first listed is taken.
   const choices = page.getByRole('radio');
   const status = page.getByText(/^Status:/);
-  await expect(status.or(choices.first())).toBeVisible();
+  const nothingDue = page.getByText('No open VAT obligations to file.');
+  await expect(status.or(choices.first()).or(nothingDue)).toBeVisible();
   if (await choices.count()) await choices.first().check();
-  await expect(status).toBeVisible();
+  await expect(status.or(nothingDue)).toBeVisible();
+}
+
+type VatBranch = 'nothing-due' | 'unconfirmed' | 'confirmed' | 'filed';
+
+async function vatBranch(page: Page): Promise<VatBranch> {
+  if (await page.getByText('No open VAT obligations to file.').isVisible()) return 'nothing-due';
+  if (await page.getByRole('button', { name: 'Preview what will be sent' }).isVisible()) return 'confirmed';
+  // Confirmed but no preview button means HMRC already holds a receipt for the period.
+  if (await page.getByText(/^Form bundle number:/).isVisible()) return 'filed';
+  return 'unconfirmed';
 }
 
 // Mock mode only: it turns the second factor on and signs out, which the read-only deployed journey must never do.

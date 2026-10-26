@@ -11,6 +11,7 @@ import VatPage from './pages/VatPage.tsx';
 import TaxPage from './pages/TaxPage.tsx';
 import ReportsPage from './pages/ReportsPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
+import AppShell from './components/AppShell.tsx';
 import SignInPage from './pages/SignInPage.tsx';
 
 const queryClient = new QueryClient({
@@ -33,14 +34,16 @@ export default function App() {
         {isSignedIn ? (
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/expenses" element={<ExpensesPage />} />
-            <Route path="/invoices" element={<InvoicesPage />} />
-            <Route path="/receipts" element={<ReceiptsPage />} />
-            <Route path="/vat" element={<VatPage />} />
-            <Route path="/tax" element={<TaxPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route element={<AppShell />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/invoices" element={<InvoicesPage />} />
+              <Route path="/receipts" element={<ReceiptsPage />} />
+              <Route path="/vat" element={<VatPage />} />
+              <Route path="/tax" element={<TaxPage />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         ) : (

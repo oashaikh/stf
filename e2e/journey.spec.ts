@@ -1,0 +1,86 @@
+import { expect, test, type Page } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
+import { mockApi } from './mockApi';
+
+const mocked = process.env.JOURNEY_MOCK === '1';
+const ownerPassword = mocked ? 'mock-owner-password' : process.env.JOURNEY_OWNER_PASSWORD;
+const runName = process.env.JOURNEY_RUN_NAME ?? new Date().toISOString().replace(/[:.]/g, '-');
+const screenshotDir = path.join('e2e', 'artifacts', runName);
+
+// The login is the only write the journey may make; the preview is a POST that computes and stores nothing.
+const ALLOWED_WRITES = new Set(['POST /api/auth/login', 'POST /api/vat/preview']);
+
+test('owner signs in and walks Dashboard, Expenses, VAT preview and Settings', async ({ page }) => {
+  test.skip(!ownerPassword, 'Set JOURNEY_OWNER_PASSWORD and JOURNEY_BASE_URL to run against a deployed URL');
+  mkdirSync(screenshotDir, { recursive: true });
+
+  const consoleErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => consoleErrors.push(error.message));
+
+  // Playwright tries the newest route first, so this guard sees every request and falls back to the mock for the ones it allows.
+  const blockedWrites: string[] = [];
+  if (mocked) await mockApi(page, ownerPassword!);
+  await page.route('**/api/**', (route) => {
+    const request = route.request();
+    const key = `${request.method()} ${new URL(request.url()).pathname}`;
+    if (request.method() === 'GET' || ALLOWED_WRITES.has(key)) return route.fallback();
+    blockedWrites.push(key);
+    return route.abort();
+  });
+
+  let stepNumber = 0;
+  async function step(name: string, action: () => Promise<void>) {
+    stepNumber += 1;
+    const shot = path.join(screenshotDir, `${String(stepNumber).padStart(2, '0')}-${name.replace(/\W+/g, '-')}.png`);
+    try {
+      await action();
+      expect(blockedWrites, 'a write other than login or preview was attempted').toEqual([]);
+      expect(consoleErrors, 'console errors on the page').toEqual([]);
+      await page.screenshot({ path: shot, fullPage: true });
+    } catch (error) {
+      const failedShot = shot.replace(/\.png$/, '-FAILED.png');
+      await page.screenshot({ path: failedShot, fullPage: true }).catch(() => undefined);
+      throw new Error(`Journey step "${name}" failed at ${page.url()} (screenshot: ${failedShot})\n${(error as Error).message}`);
+    }
+  }
+
+  const openPage = (route: string, heading: string) => async () => {
+    await page.goto(route);
+    await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+  };
+
+  await step('sign-in', async () => {
+    await page.goto('/');
+    await expect(page.getByLabel('Password')).toBeVisible();
+    // The signed-out probe of /api/me answers 401 by design and the browser logs it as an error.
+    consoleErrors.length = 0;
+    await page.getByLabel('Password').fill(ownerPassword!);
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  });
+  await step('dashboard', openPage('/dashboard', 'Dashboard'));
+  await step('expenses', openPage('/expenses', 'Expenses'));
+  await step('vat-obligations', openPage('/vat', 'VAT Returns'));
+  await step('vat-review', () => openVatReview(page));
+  await step('vat-preview', async () => {
+    // The button only exists once the return is confirmed. Confirming is a write, so a draft return fails here rather than being confirmed.
+    const preview = page.getByRole('button', { name: 'Preview what will be sent' });
+    await expect(preview, 'the first open VAT return is not confirmed; the journey never confirms or submits').toBeVisible();
+    await preview.click();
+    await expect(page.getByRole('table', { name: 'Boxes exactly as they will be sent' })).toBeVisible();
+  });
+  await step('settings', openPage('/settings', 'Settings'));
+});
+
+async function openVatReview(page: Page) {
+  // With several open obligations the page waits for a choice; the first listed is taken.
+  const choices = page.getByRole('radio');
+  const status = page.getByText(/^Status:/);
+  await expect(status.or(choices.first())).toBeVisible();
+  if (await choices.count()) await choices.first().check();
+  await expect(status).toBeVisible();
+}

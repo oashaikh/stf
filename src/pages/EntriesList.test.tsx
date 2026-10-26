@@ -52,7 +52,7 @@ describe('EntriesList', () => {
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <MemoryRouter>
-          <EntriesList />
+          <EntriesList onEdit={() => {}} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -104,7 +104,7 @@ describe('EntriesList', () => {
     pages[''] = { entries: [], nextCursor: null };
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <EntriesList />
+        <EntriesList onEdit={() => {}} />
       </QueryClientProvider>,
     );
     expect(await screen.findByText(/Choose Add entry/)).toBeInTheDocument();

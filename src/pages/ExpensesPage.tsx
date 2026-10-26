@@ -4,14 +4,19 @@ import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
 import {
   createEntry,
+  editEntry,
   EntryRefusedError,
+  PeriodLockedError,
   ENTRIES_QUERY_KEY,
   fetchHasVatNumber,
+  type ApiEntry,
+  type NewEntryRequest,
 } from "../lib/entriesApi";
-import { entryFigures, parseEntryAmount } from "../lib/entryForm";
+import { entryFigures, parseEntryAmount, vatRateOf } from "../lib/entryForm";
 import { formatPence } from "../lib/money";
 import type { VatRate } from "../lib/vat";
 import EntriesList from "./EntriesList";
+import { LockedMessage } from "./EntryActions";
 
 const fieldClass =
   "mt-1 min-h-[44px] w-full rounded-md border border-gray-400 px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700";
@@ -88,16 +93,32 @@ const describedBy = (id: string, error?: string, hint?: string) =>
   [error && `${id}-error`, hint && `${id}-hint`].filter(Boolean).join(" ") ||
   undefined;
 
-function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
+// With `entry` the form edits that entry (PUT) instead of adding a new one; `onDone` closes it after a save or Cancel.
+function AddEntryForm({
+  hasVatNumber,
+  entry,
+  onDone,
+}: {
+  hasVatNumber: boolean;
+  entry?: ApiEntry;
+  onDone: () => void;
+}) {
   const queryClient = useQueryClient();
-  const [kind, setKind] = useState<Kind>("expense");
-  const [date, setDate] = useState(todayIso);
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
+  const [kind, setKind] = useState<Kind>(entry?.kind ?? "expense");
+  const [date, setDate] = useState(entry?.date ?? todayIso());
+  const [description, setDescription] = useState(entry?.description ?? "");
+  // The list holds the gross figure, so the amount is edited as gross.
+  const [amount, setAmount] = useState(
+    entry ? formatPence(entry.grossPence) : "",
+  );
   const [amountIs, setAmountIs] = useState<"gross" | "net">("gross");
-  const [vatRate, setVatRate] = useState<VatRate>(0);
-  const [categoryId, setCategoryId] = useState("");
-  const [reference, setReference] = useState("");
+  const [vatRate, setVatRate] = useState<VatRate>(
+    entry ? vatRateOf(entry.netPence, entry.vatPence) : 0,
+  );
+  const [categoryId, setCategoryId] = useState(entry?.categoryAccountId ?? "");
+  const [reference, setReference] = useState(entry?.reference ?? "");
+  // An edited entry that already carries VAT keeps its rate even if the VAT number was removed since.
+  const showVat = hasVatNumber || vatRate !== 0;
   const [errors, setErrors] = useState<Errors>({});
 
   const accounts = useQuery({
@@ -111,11 +132,12 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
   const parsedAmount = parseEntryAmount(amount);
   const figures =
     "pence" in parsedAmount
-      ? entryFigures(parsedAmount.pence, amountIs, hasVatNumber ? vatRate : 0)
+      ? entryFigures(parsedAmount.pence, amountIs, showVat ? vatRate : 0)
       : null;
 
   const save = useMutation({
-    mutationFn: createEntry,
+    mutationFn: (request: NewEntryRequest) =>
+      entry ? editEntry(entry.id, request) : createEntry(request),
     onSuccess: async () => {
       setDescription("");
       setAmount("");
@@ -123,6 +145,7 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
       setReference("");
       setErrors({});
       await queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY });
+      if (entry) onDone();
     },
     onError: (error) => {
       const fields =
@@ -158,8 +181,9 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
       categoryAccountId: categoryId,
       amountPence: parsedAmount.pence,
       amountIs,
-      vatRatePercent: hasVatNumber ? vatRate : 0,
-      status: "draft",
+      vatRatePercent: showVat ? vatRate : 0,
+      // A reconciled entry is confirmed as far as the edit API is concerned.
+      status: entry && entry.status !== "draft" ? "confirmed" : "draft",
     });
   }
 
@@ -260,7 +284,7 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
         ))}
       </fieldset>
 
-      {hasVatNumber && (
+      {showVat && (
         <Field id="entry-vat" label="VAT rate" error={errors.vat}>
           <select
             id="entry-vat"
@@ -330,6 +354,12 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
         </dl>
       )}
 
+      {save.error instanceof PeriodLockedError && (
+        <div className="md:col-span-2">
+          <LockedMessage />
+        </div>
+      )}
+
       {errors.form && (
         <p role="alert" className="text-red-800 md:col-span-2">
           {errors.form}
@@ -341,14 +371,28 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
         disabled={save.isPending}
         className="min-h-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-60 md:col-span-2 md:justify-self-start"
       >
-        {save.isPending ? "Saving…" : "Save as draft"}
+        {save.isPending
+          ? "Saving…"
+          : entry
+            ? "Save changes"
+            : "Save as draft"}
       </button>
+      {entry && (
+        <button
+          type="button"
+          onClick={onDone}
+          className="min-h-[44px] rounded-md border border-gray-400 px-4 text-gray-900 hover:bg-gray-100 md:justify-self-start"
+        >
+          Cancel
+        </button>
+      )}
     </form>
   );
 }
 
 export default function ExpensesPage() {
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<ApiEntry | null>(null);
   const vat = useQuery({
     queryKey: ["vat-number-present"],
     queryFn: fetchHasVatNumber,
@@ -366,8 +410,22 @@ export default function ExpensesPage() {
           Add entry
         </button>
       </div>
-      {adding && <AddEntryForm hasVatNumber={vat.data === true} />}
-      <EntriesList />
+      {editing ? (
+        <AddEntryForm
+          key={editing.id}
+          hasVatNumber={vat.data === true}
+          entry={editing}
+          onDone={() => setEditing(null)}
+        />
+      ) : (
+        adding && (
+          <AddEntryForm
+            hasVatNumber={vat.data === true}
+            onDone={() => setAdding(false)}
+          />
+        )
+      )}
+      <EntriesList onEdit={setEditing} />
     </main>
   );
 }

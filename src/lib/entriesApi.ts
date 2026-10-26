@@ -25,7 +25,7 @@ export interface NewEntryRequest {
   amountPence: number;
   amountIs: 'gross' | 'net';
   vatRatePercent: VatRate;
-  status: 'draft';
+  status: 'draft' | 'confirmed';
 }
 
 /** `fields` names the request fields the server refused, so the form can show the message beside them. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { entryFigures, parseEntryAmount } from './entryForm';
+import { entryFigures, parseEntryAmount, vatRateOf } from './entryForm';
 
 describe('parseEntryAmount', () => {
   it('turns pounds into integer pence', () => {
@@ -30,5 +30,17 @@ describe('entryFigures', () => {
 
   it('has no VAT at 0%', () => {
     expect(entryFigures(999, 'gross', 0)).toEqual({ netPence: 999, vatPence: 0, grossPence: 999 });
+  });
+});
+
+describe('vatRateOf', () => {
+  it.each([
+    [10000, 0, 0],
+    [10000, 500, 5],
+    [10000, 2000, 20],
+    [833, 167, 20], // rounded pence still read back as 20%
+    [952, 48, 5],
+  ])('reads net %i with VAT %i as %i%%', (netPence, vatPence, rate) => {
+    expect(vatRateOf(netPence, vatPence)).toBe(rate);
   });
 });

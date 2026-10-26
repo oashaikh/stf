@@ -68,11 +68,28 @@ function VoidDialog({
   );
 }
 
+export function LockedMessage() {
+  return (
+    <p role="alert" className="mt-2 text-red-800">
+      This entry is in a VAT period that has been confirmed or filed, so it
+      cannot be changed.{" "}
+      <Link
+        to="/vat"
+        className="inline-flex min-h-[44px] items-center font-medium underline"
+      >
+        Go to VAT
+      </Link>
+    </p>
+  );
+}
+
 export default function EntryActions({
   entry,
+  onEdit,
   onVoided,
 }: {
   entry: ApiEntry;
+  onEdit: (entry: ApiEntry) => void;
   onVoided: (entryId: string) => void;
 }) {
   const queryClient = useQueryClient();
@@ -104,6 +121,13 @@ export default function EntryActions({
         <button
           type="button"
           className={buttonClass}
+          onClick={() => onEdit(entry)}
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          className={buttonClass}
           disabled={voiding.isPending}
           onClick={() => setVoidOpen(true)}
         >
@@ -121,16 +145,7 @@ export default function EntryActions({
         />
       )}
       {failure instanceof PeriodLockedError ? (
-        <p role="alert" className="mt-2 text-red-800">
-          This entry is in a VAT period that has been confirmed or filed, so it
-          cannot be changed.{" "}
-          <Link
-            to="/vat"
-            className="inline-flex min-h-[44px] items-center font-medium underline"
-          >
-            Go to VAT
-          </Link>
-        </p>
+        <LockedMessage />
       ) : failure ? (
         <p role="alert" className="mt-2 text-red-800">
           Something went wrong, so nothing was changed.{" "}

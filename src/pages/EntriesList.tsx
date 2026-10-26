@@ -3,7 +3,7 @@ import { useState } from "react";
 import EntryActions from "./EntryActions";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
-import { ENTRIES_QUERY_KEY, fetchEntries } from "../lib/entriesApi";
+import { ENTRIES_QUERY_KEY, fetchEntries, type ApiEntry } from "../lib/entriesApi";
 import {
   DEFAULT_ENTRY_FILTERS,
   taxYearRange,
@@ -147,7 +147,11 @@ function FilterBar({
   );
 }
 
-export default function EntriesList() {
+export default function EntriesList({
+  onEdit,
+}: {
+  onEdit: (entry: ApiEntry) => void;
+}) {
   const [filters, setFilters] = useState<EntryFilters>(DEFAULT_ENTRY_FILTERS);
   const entries = useInfiniteQuery({
     queryKey: [...ENTRIES_QUERY_KEY, filters],
@@ -250,6 +254,7 @@ export default function EntriesList() {
                 {!voidedIds.includes(entry.id) && (
                   <EntryActions
                     entry={entry}
+                    onEdit={onEdit}
                     onVoided={(id) => setVoidedIds((ids) => [...ids, id])}
                   />
                 )}

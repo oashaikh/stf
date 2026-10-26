@@ -23,3 +23,11 @@ export function entryFigures(amountPence: number, amountIs: 'gross' | 'net', rat
   }
   return { netPence: amountPence, vatPence: vatOnNet(amountPence, rate), grossPence: grossFromNet(amountPence, rate) };
 }
+
+/** Reads the rate back from the stored pence with integers only: the one of 0, 5 or 20 whose VAT on net is closest. */
+export function vatRateOf(netPence: number, vatPence: number): VatRate {
+  const rates: VatRate[] = [0, 5, 20];
+  return rates.reduce((best, rate) =>
+    Math.abs(vatPence * 100 - netPence * rate) < Math.abs(vatPence * 100 - netPence * best) ? rate : best,
+  );
+}

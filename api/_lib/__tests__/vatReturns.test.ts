@@ -62,17 +62,17 @@ function makeStore(ledger: Record<string, DrillLine[]>) {
 
 const authDeps: AuthDeps = {
   issuer: {
-    verifyToken: async (token) => (token === 'a' || token === 'b' ? `clerk_${token}` : null),
+    verifyToken: async (token) => (token === 'a' || token === 'b' ? `owner_${token}` : null),
     getEmail: async () => 'x@example.com',
   },
-  users: { findId: async (id) => id.replace('clerk_', 'user_'), createIfAbsent: async () => 'unused' },
+  users: { findId: async (id) => id.replace('owner_', 'user_'), createIfAbsent: async () => 'unused' },
 };
 
 const call = (handler: ReturnType<typeof vatConfirmHandler>, init: RequestInit & { token?: string }, path = '') =>
   withAuth(handler, authDeps)(
     new Request(`https://x.test/api/vat/return-confirm${path}`, {
       ...init,
-      headers: init.token ? { authorization: `Bearer ${init.token}` } : {},
+      headers: init.token ? { cookie: `stf_session=${init.token}` } : {},
     }),
   );
 
@@ -147,7 +147,7 @@ describe('draft routes', () => {
     const url = `?periodKey=26A1&start=2026-01-01&end=2026-03-31`;
     const get = (token: string) =>
       withAuth(vatReturnHandler(shared.store), authDeps)(
-        new Request(`https://x.test/api/vat/return${url}`, { headers: { authorization: `Bearer ${token}` } }),
+        new Request(`https://x.test/api/vat/return${url}`, { headers: { cookie: `stf_session=${token}` } }),
       );
     const mine = await (await get('a')).json();
     expect(mine.data.boxes.box1).toBe(2000);
@@ -200,7 +200,7 @@ describe('review of a confirmed return', () => {
   const review = async (shared: ReturnType<typeof makeStore>) => {
     const res = await withAuth(vatReturnHandler(shared.store), authDeps)(
       new Request(`https://x.test/api/vat/return?${new URLSearchParams({ periodKey: period.periodKey, start: period.start, end: period.end })}`, {
-        headers: { authorization: 'Bearer a' },
+        headers: { cookie: 'stf_session=a' },
       }),
     );
     return (await res.json()).data;

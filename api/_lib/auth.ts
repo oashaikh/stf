@@ -2,8 +2,8 @@ import { eq } from 'drizzle-orm';
 
 import type { ApiError } from '../../src/model/types.js';
 import { users } from '../../server/src/db/schema.js';
-import { clerkIssuer } from './clerkIssuer.js';
 import { db } from './db.js';
+import { OWNER_EMAIL, readSessionCookie, verifySessionToken } from './ownerSession.js';
 
 // Issuer-agnostic boundary: every API route authenticates through requireAuth/withAuth.
 export interface AuthIssuer {
@@ -44,10 +44,20 @@ const databaseUsers: UserStore = {
   },
 };
 
-const defaultDeps: AuthDeps = { issuer: clerkIssuer, users: databaseUsers };
+// One owner: any valid session maps to the same fixed external id.
+export const ownerIssuer: AuthIssuer = {
+  async verifyToken(token) {
+    return verifySessionToken(token);
+  },
+  async getEmail() {
+    return OWNER_EMAIL;
+  },
+};
+
+const defaultDeps: AuthDeps = { issuer: ownerIssuer, users: databaseUsers };
 
 export async function requireAuth(request: Request, deps: AuthDeps = defaultDeps): Promise<AuthIdentity> {
-  const token = /^Bearer (.+)$/i.exec(request.headers.get('authorization') ?? '')?.[1];
+  const token = readSessionCookie(request);
   if (!token) throw new UnauthorizedError();
 
   const issuerUserId = await deps.issuer.verifyToken(token);

@@ -37,7 +37,7 @@ function fakeStore(rows: Record<string, Row>): HmrcStore {
   };
 }
 
-// Bearer token "tok-<user>" signs in as that user.
+// Session cookie "tok-<user>" signs in as that user.
 const authDeps: AuthDeps = {
   issuer: {
     verifyToken: async (token) => (token.startsWith('tok-') ? token.slice(4) : null),
@@ -47,7 +47,7 @@ const authDeps: AuthDeps = {
 };
 
 const asUser = (path: string, userId?: string) =>
-  new Request(`https://app.test${path}`, { headers: userId ? { authorization: `Bearer tok-${userId}` } : {} });
+  new Request(`https://app.test${path}`, { headers: userId ? { cookie: `stf_session=tok-${userId}` } : {} });
 
 let rows: Record<string, Row>;
 let logged: string;
@@ -111,7 +111,7 @@ describe('mode', () => {
       new Request('https://app.test/api/hmrc/mode', {
         method: 'POST',
         body: JSON.stringify(body),
-        headers: userId ? { authorization: `Bearer tok-${userId}` } : {},
+        headers: userId ? { cookie: `stf_session=tok-${userId}` } : {},
       }),
     );
 

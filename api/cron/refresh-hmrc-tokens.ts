@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 
-import { refreshHmrcTokensJob } from '../../server/src/scheduled-jobs/refreshHmrcTokens';
+import { refreshHmrcTokensJob } from '../../server/src/scheduled-jobs/refreshHmrcTokens.js';
 
 // Hashing first gives equal-length buffers, so timingSafeEqual neither throws nor leaks the secret's length.
 function sha256(value: string): Buffer {

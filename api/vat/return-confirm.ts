@@ -1,4 +1,4 @@
-import { withAuth } from '../_lib/auth';
+import { withAuth } from '../_lib/auth.js';
 import {
   confirmBodySchema,
   confirmReturn,
@@ -7,7 +7,7 @@ import {
   VatReturnError,
   vatErrorResponse,
   type VatReturnStore,
-} from '../_lib/vatReturns';
+} from '../_lib/vatReturns.js';
 
 export function vatConfirmHandler(store: VatReturnStore, now: () => Date = () => new Date()) {
   return async (request: Request, auth: { userId: string }): Promise<Response> => {

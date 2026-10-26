@@ -1,5 +1,5 @@
-import { withAuth, type AuthDeps } from '../_lib/auth';
-import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore';
+import { withAuth, type AuthDeps } from '../_lib/auth.js';
+import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore.js';
 
 const refuse = (status: number, error: string, code: string) => Response.json({ ok: false, error, code }, { status });
 

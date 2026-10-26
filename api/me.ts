@@ -1,4 +1,4 @@
-import { withAuth } from './_lib/auth';
+import { withAuth } from './_lib/auth.js';
 
 // Sample protected route: proves the gate. Real routes follow the same shape.
 export default {

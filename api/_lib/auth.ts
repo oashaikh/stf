@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm';
 
-import type { ApiError } from '../../src/model/types';
+import type { ApiError } from '../../src/model/types.js';
 import { users } from '../../server/src/db/schema.js';
-import { clerkIssuer } from './clerkIssuer';
-import { db } from './db';
+import { clerkIssuer } from './clerkIssuer.js';
+import { db } from './db.js';
 
 // Issuer-agnostic boundary: every API route authenticates through requireAuth/withAuth.
 export interface AuthIssuer {

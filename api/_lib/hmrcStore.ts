@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { users } from '../../server/src/db/schema.js';
 import { decryptToken, encryptToken } from '../../server/src/lib/hmrcCrypto.js';
-import { db } from './db';
+import { db } from './db.js';
 
 export interface HmrcCredentials {
   vatNumber: string | null;

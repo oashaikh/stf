@@ -1,10 +1,10 @@
 import { and, asc, eq, isNotNull, lte } from 'drizzle-orm';
 
-import { HmrcError, refreshAccessToken, type HmrcTokenSet } from '../../../src/lib/hmrc/client';
-import { db } from '../db/client';
-import { users } from '../db/schema';
-import { decryptToken, encryptToken } from '../lib/hmrcCrypto';
-import type { ScheduledJob } from './index';
+import { HmrcError, refreshAccessToken, type HmrcTokenSet } from '../../../src/lib/hmrc/client.js';
+import { db } from '../db/client.js';
+import { users } from '../db/schema.js';
+import { decryptToken, encryptToken } from '../lib/hmrcCrypto.js';
+import type { ScheduledJob } from './index.js';
 
 // Access tokens last about four hours; refresh with plenty of margin so a missed tick is harmless.
 export const REFRESH_WINDOW_MS = 30 * 60 * 1000;

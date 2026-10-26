@@ -1,7 +1,7 @@
 import { signState } from '../../server/src/lib/hmrcCrypto.js';
-import { buildHmrcAuthUrl } from '../../src/lib/hmrc/client';
-import { withAuth, type AuthDeps } from '../_lib/auth';
-import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore';
+import { buildHmrcAuthUrl } from '../../src/lib/hmrc/client.js';
+import { withAuth, type AuthDeps } from '../_lib/auth.js';
+import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore.js';
 
 export function createConnectHandler(store: HmrcStore = databaseHmrcStore, authDeps?: AuthDeps) {
   return withAuth(async (request, auth) => {

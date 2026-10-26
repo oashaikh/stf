@@ -1,6 +1,6 @@
 import { encryptToken, verifiedStateUserId } from '../../server/src/lib/hmrcCrypto.js';
-import { exchangeAuthCode, type HmrcTokenSet } from '../../src/lib/hmrc/client';
-import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore';
+import { exchangeAuthCode, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
+import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore.js';
 
 interface CallbackDeps {
   store: HmrcStore;

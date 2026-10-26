@@ -80,7 +80,7 @@
   - Risk: Auth, per-user isolation, token refresh and outbound HMRC call: security-sensitive, so opus high.
   - Commit: `da7a56a8baa3`
 
-- [ ] **Task 5: VAT page: fetch and display due, overdue and fulfilled obligations** (after 4)
+- [x] **Task 5: VAT page: fetch and display due, overdue and fulfilled obligations** (after 4)
   - Intent: Replace the 'Coming soon' stub in src/pages/VatPage.tsx with an obligations section. Add src/lib/hmrc/vatApi.ts (mirror settingsApi.ts: getJson with Clerk bearer token, injectable fetch) that calls /api/vat/obligations and sends the x-stf-* browser headers (timezone, screens, window size, JS user agent, and a device id kept in localStorage as a random UUID) that task 1 consumes. Put the list in a new component src/pages/VatObligationsList.tsx to keep the VatPage.tsx edit minimal (STF-18 also edits VatPage.tsx). Show period key, period start-end, due date and a status label (Due, Overdue, Fulfilled) using text, not colour alone; use the shared formatting and Tailwind tokens already used by SettingsPage, shared loading/empty/error patterns, not-connected state linking to /settings, page container conventions, 44px tap targets. Dates only, no money on this screen. Tests (Vitest + Testing Library, vatApi mocked per, mirroring SettingsPage.test.tsx): renders open/overdue/fulfilled rows with period keys and due dates, shows not-connected and error states.
   - Files: `src/pages/VatPage.tsx`, `src/pages/VatObligationsList.tsx`, `src/pages/VatObligationsList.test.tsx`, `src/lib/hmrc/vatApi.ts`, `src/lib/hmrc/vatApi.test.ts`
   - Acceptance criteria the planner set:
@@ -91,3 +91,4 @@
     - VatPage.tsx diff is limited to rendering the new component so it merges cleanly with STF-18
     - npm run build, lint, typecheck, test pass; PR needs UI screenshots at 1440 and 390 px ()
   - Risk: Default tier. Merge-conflict risk with STF-18 on VatPage.tsx.
+  - Commit: `a53c4952b1a8`

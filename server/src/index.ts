@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import { startScheduledJobs } from './scheduled-jobs/index';
 
+// Local use only: on Vercel there is no always-on process and the jobs run from Vercel Cron (api/cron/).
 // Hosts scheduled jobs only. It serves no user-facing routes; those live in api/ behind the shared auth helper.
 const app = Fastify({ logger: true });
 

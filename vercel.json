@@ -5,6 +5,9 @@
   "github": {
     "enabled": false
   },
+  "crons": [
+    { "path": "/api/cron/refresh-hmrc-tokens", "schedule": "*/5 * * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

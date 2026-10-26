@@ -135,7 +135,13 @@ export const databaseDashboardStore: DashboardStore = {
       .groupBy(transactionLines.transactionId, accounts.accountType)
       .limit(RECENT_ENTRY_LINE_LIMIT);
     return headers.map((header) => {
-      const total = totals.find((candidate) => candidate.transactionId === header.id);
+      // An entry can carry both income and expense lines; label it by the larger side.
+      const total = totals
+        .filter((candidate) => candidate.transactionId === header.id)
+        .reduce<(typeof totals)[number] | undefined>(
+          (largest, candidate) => (!largest || Math.abs(Number(candidate.grossPence)) > Math.abs(Number(largest.grossPence)) ? candidate : largest),
+          undefined,
+        );
       return {
         id: header.id,
         date: header.date,

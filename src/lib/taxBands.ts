@@ -67,9 +67,9 @@ export function getTaxBands(year: string): TaxBands {
 
 /** Determine the current UK tax year string based on today's date. */
 export function currentTaxYear(now: Date = new Date()): string {
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1; // 1-indexed
-  const day = now.getDate();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth() + 1; // 1-indexed
+  const day = now.getUTCDate();
   // UK tax year runs 6 April to 5 April
   const afterApril6 = month > 4 || (month === 4 && day >= 6);
   return afterApril6 ? `${year}-${String(year + 1).slice(2)}` : `${year - 1}-${String(year).slice(2)}`;

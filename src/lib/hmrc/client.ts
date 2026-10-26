@@ -5,12 +5,13 @@
  * All HMRC interactions go through the functions exported here.
  *
  * Sandbox mode is the default. Production mode requires explicit user opt-in
- * via HMRC_SANDBOX_MODE=false in their .env.
+ * in Settings plus HMRC_SANDBOX_MODE=false in the server environment.
  *
  * OAuth 2.0 token refresh is handled transparently by withHmrcToken().
  * All submissions require user confirmation before being called.
  *
- * Fraud prevention headers are mandatory for all MTD calls.
+ * Fraud prevention headers are mandatory for all MTD calls; callers build them
+ * server-side (see fraudHeaders.ts) and pass them in.
  * See: https://developer.service.hmrc.gov.uk/guides/fraud-prevention/
  */
 
@@ -45,40 +46,23 @@ export class HmrcError extends Error {
 }
 
 /**
- * Build mandatory fraud prevention headers.
- * In a Vercel serverless environment, some headers have limited data.
- * See: https://developer.service.hmrc.gov.uk/guides/fraud-prevention/
- */
-function buildFraudPreventionHeaders(appVersion: string): Record<string, string> {
-  return {
-    'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER',
-    'Gov-Client-Screens': '1',
-    'Gov-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-    'Gov-Vendor-Version': `stf=${appVersion}`,
-    'Gov-Client-Browser-JS-User-Agent': navigator.userAgent,
-    'Gov-Client-Browser-Plugins': '',
-    'Gov-Client-Browser-Do-Not-Track': navigator.doNotTrack ?? '0',
-    'Gov-Client-Window-Size': `width=${window.innerWidth}&height=${window.innerHeight}`,
-  };
-}
-
-/**
  * Core fetch wrapper: attaches auth + fraud prevention headers, parses errors.
  */
 async function hmrcFetch<T>(
   path: string,
   accessToken: string,
+  fraudHeaders: Record<string, string>,
   options: RequestInit = {},
-  appVersion = import.meta.env.VITE_APP_VERSION ?? '0.0.0',
+  fetchFn: typeof fetch = fetch,
 ): Promise<T> {
   const url = `${hmrcApiBase()}${path}`;
-  const response = await fetch(url, {
+  const response = await fetchFn(url, {
     ...options,
     headers: {
       'Accept': 'application/vnd.hmrc.1.0+json',
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`,
-      ...buildFraudPreventionHeaders(appVersion),
+      ...fraudHeaders,
       ...(options.headers ?? {}),
     },
   });
@@ -121,10 +105,15 @@ export async function getVatObligations(
   accessToken: string,
   from: string,
   to: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
 ): Promise<{ obligations: VatObligation[] }> {
   return hmrcFetch(
     `/organisations/vat/${vrn}/obligations?from=${from}&to=${to}`,
     accessToken,
+    fraudHeaders,
+    {},
+    fetchFn,
   );
 }
 
@@ -147,14 +136,18 @@ export async function submitVatReturn(
   vrn: string,
   accessToken: string,
   payload: VatReturnPayload,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
 ): Promise<{ formBundleNumber: string; processingDate: string }> {
   return hmrcFetch(
     `/organisations/vat/${vrn}/returns`,
     accessToken,
+    fraudHeaders,
     {
       method: 'POST',
       body: JSON.stringify(payload),
     },
+    fetchFn,
   );
 }
 
@@ -169,10 +162,15 @@ export type ItsBusiness = {
 export async function listItsSelfEmploymentBusinesses(
   nino: string,
   accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
 ): Promise<{ businessDetails: ItsBusiness[] }> {
   return hmrcFetch(
     `/individuals/business/details/${nino}/list`,
     accessToken,
+    fraudHeaders,
+    {},
+    fetchFn,
   );
 }
 
@@ -255,4 +253,35 @@ export function refreshAccessToken(
   fetchFn: typeof fetch = fetch,
 ): Promise<HmrcTokenSet> {
   return postTokenRequest({ grant_type: 'refresh_token', refresh_token: refreshToken }, fetchFn);
+}
+
+// ─── Transparent token refresh ────────────────────────────────────────────────
+
+/**
+ * Run an HMRC call with the stored access token. Refreshes first if the token
+ * has expired, and once more if HMRC answers 401. The new tokens are persisted
+ * before the retry so a refresh token HMRC has rotated is never lost. A second
+ * 401 or a failed refresh is rethrown as is; HmrcError messages never carry tokens.
+ */
+export async function withHmrcToken<T>(
+  tokens: HmrcTokenSet,
+  operation: (accessToken: string) => Promise<T>,
+  persist: (refreshed: HmrcTokenSet) => Promise<void>,
+  refresh: (refreshToken: string) => Promise<HmrcTokenSet> = refreshAccessToken,
+): Promise<T> {
+  const renew = async (): Promise<HmrcTokenSet> => {
+    const refreshed = await refresh(tokens.refreshToken);
+    await persist(refreshed);
+    return refreshed;
+  };
+
+  if (tokens.expiresAt <= Date.now()) {
+    return operation((await renew()).accessToken);
+  }
+  try {
+    return await operation(tokens.accessToken);
+  } catch (error) {
+    if (!(error instanceof HmrcError) || error.apiError.statusCode !== 401) throw error;
+    return operation((await renew()).accessToken);
+  }
 }

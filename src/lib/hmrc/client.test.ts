@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildHmrcAuthUrl, exchangeAuthCode, HmrcError, refreshAccessToken } from './client';
+import {
+  buildHmrcAuthUrl,
+  exchangeAuthCode,
+  getVatObligations,
+  HmrcError,
+  refreshAccessToken,
+  withHmrcToken,
+  type HmrcTokenSet,
+} from './client';
 
 const NOW = 1_700_000_000_000;
 
@@ -95,5 +103,79 @@ describe('token calls', () => {
   it('fails clearly when credentials are missing', async () => {
     vi.stubEnv('HMRC_CLIENT_SECRET', '');
     await expect(refreshAccessToken('r', vi.fn())).rejects.toThrow(/HMRC_CLIENT_SECRET/);
+  });
+});
+
+describe('getVatObligations', () => {
+  it('sends the supplied fraud headers and bearer token', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { obligations: [] }));
+    await getVatObligations('123456789', 'tok', '2026-01-01', '2026-12-31', { 'Gov-Client-Timezone': 'UTC+00:00' }, fetchFn);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe(
+      'https://test-api.service.hmrc.gov.uk/organisations/vat/123456789/obligations?from=2026-01-01&to=2026-12-31',
+    );
+    expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
+    expect(init.headers.Authorization).toBe('Bearer tok');
+  });
+});
+
+describe('withHmrcToken', () => {
+  const tokens: HmrcTokenSet = { accessToken: 'old-access', refreshToken: 'old-refresh', expiresAt: NOW + 60_000 };
+  const fresh: HmrcTokenSet = { accessToken: 'new-access', refreshToken: 'new-refresh', expiresAt: NOW + 14_400_000 };
+  const unauthorised = () =>
+    new HmrcError({ code: 'INVALID_CREDENTIALS', message: 'Invalid Authentication information provided', statusCode: 401 });
+
+  it('refreshes, persists and retries once after a 401', async () => {
+    const operation = vi.fn().mockRejectedValueOnce(unauthorised()).mockResolvedValueOnce('ok');
+    const refresh = vi.fn().mockResolvedValue(fresh);
+    const persist = vi.fn().mockResolvedValue(undefined);
+    await expect(withHmrcToken(tokens, operation, persist, refresh)).resolves.toBe('ok');
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(refresh).toHaveBeenCalledWith('old-refresh');
+    expect(persist).toHaveBeenCalledTimes(1);
+    expect(persist).toHaveBeenCalledWith(fresh);
+    expect(operation.mock.calls.map(([token]) => token)).toEqual(['old-access', 'new-access']);
+  });
+
+  it('refreshes up front when the token has already expired', async () => {
+    const operation = vi.fn().mockResolvedValue('ok');
+    const refresh = vi.fn().mockResolvedValue(fresh);
+    await withHmrcToken({ ...tokens, expiresAt: NOW - 1 }, operation, vi.fn(), refresh);
+    expect(operation).toHaveBeenCalledTimes(1);
+    expect(operation).toHaveBeenCalledWith('new-access');
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry a second 401', async () => {
+    const operation = vi.fn().mockRejectedValue(unauthorised());
+    const refresh = vi.fn().mockResolvedValue(fresh);
+    await expect(withHmrcToken(tokens, operation, vi.fn(), refresh)).rejects.toBeInstanceOf(HmrcError);
+    expect(operation).toHaveBeenCalledTimes(2);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refresh on non-401 errors', async () => {
+    const serverError = new HmrcError({ code: 'SERVER_ERROR', message: 'boom', statusCode: 500 });
+    const operation = vi.fn().mockRejectedValue(serverError);
+    const refresh = vi.fn();
+    await expect(withHmrcToken(tokens, operation, vi.fn(), refresh)).rejects.toBe(serverError);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a refresh failure without leaking a token', async () => {
+    const operation = vi.fn().mockRejectedValue(unauthorised());
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(400, { error: 'invalid_grant', error_description: 'bad old-refresh' }));
+    const error = (await withHmrcToken(
+      tokens,
+      operation,
+      vi.fn(),
+      (refreshToken) => refreshAccessToken(refreshToken, fetchFn),
+    ).catch((e: unknown) => e)) as HmrcError;
+    expect(error).toBeInstanceOf(HmrcError);
+    expect(error.apiError.code).toBe('invalid_grant');
+    expect(`${error.message} ${JSON.stringify(error.apiError)}`).not.toMatch(/old-refresh|old-access/);
+    expect(operation).toHaveBeenCalledTimes(1);
   });
 });

@@ -102,3 +102,7 @@ Also depends on:
     - No .env file read or written; npm run lint, typecheck, test and build pass
   - Risk: STF-90 also edits e2e/mockApi.ts and e2e/journey.spec.ts; keep additions in separate hunks.
   - Commit: `2c300b9db696`
+
+- [x] **Task 6: Fix: address 16 review findings (cycle 1)** (after 5)
+  - Intent: Review left 16 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Backend and tests look correct, but the new drill-down row hides its description at 390 px. The 390 px captures show only "15 May 2026 I £500.00 + £100.00 VAT". That fails The agent is fixing them; nothing is needed from you.
+  - Commit: `9d344ca97cfc`

@@ -113,3 +113,7 @@
     - No credentials, job ids or machine paths appear
     - lint and typecheck pass
   - Commit: `1bad2bfcab7b`
+
+- [x] **Task 8: Fix: address 6 review findings (cycle 1)** (after 7)
+  - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found nothing blocking. Idempotency uses a single conditional upsert on the unique key. The mode gate requires env and user opt-in to agree, with all four c The agent is fixing them; nothing is needed from you.
+  - Commit: `73f23a889c53`

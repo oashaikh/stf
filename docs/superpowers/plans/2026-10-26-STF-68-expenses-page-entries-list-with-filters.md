@@ -56,7 +56,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Entries client and filter helpers: list params, cursor, edit, void, confirm, locked refusal**
+- [x] **Task 1: Entries client and filter helpers: list params, cursor, edit, void, confirm, locked refusal**
   - Intent: Done means src/lib/entriesApi.ts can drive every call the list needs, and a pure helper builds the filter presets. (1) Widen ApiEntry to the STF-10 list row: categoryAccountId, categoryName, netPence, vatPence, hasReceipt. (2) fetchEntries(filters, cursor) builds the query string for from, to, kind, categoryAccountId, status, search, cursor and returns { entries, nextCursor }; empty filters are left out. (3) Add editEntry (PUT /api/entries?id=), voidEntry (DELETE), confirmEntry (PATCH {status:'confirmed'}). (4) Refusals with code PERIOD_LOCKED throw a distinct PeriodLockedError carrying the server message; other refusals reuse EntryRefusedError. (5) New pure src/lib/entryFilters.ts: filter state type with defaults, conversion to request params, tax-year range from a tax-year string (2026-27 gives 2026-04-06 to 2027-04-05, reusing currentTaxYear from src/lib/taxBands.ts), and VAT-quarter range picked from the obligations (the one containing today). ENTRIES_QUERY_KEY stays the prefix so existing invalidation refreshes filtered lists. Unit tests with mocked fetch cover param building, the 5/6 April boundary, quarter selection and locked-error mapping.
   - Files: `src/lib/entriesApi.ts`, `src/lib/entryFilters.ts`, `src/lib/entryFilters.test.ts`, `src/lib/__tests__/entriesApi.test.ts`
   - Acceptance criteria the planner set:
@@ -65,6 +65,7 @@ Also depends on:
     - taxYearRange('2026-27') returns 2026-04-06 and 2027-04-05; the quarter helper returns undefined when no obligation contains today
     - No floating-point money introduced
     - npm run lint, typecheck and test pass
+  - Commit: `d512bb3bf2fa`
 
 - [ ] **Task 2: Entries list with filters, search, load more, draft badge, receipt icon and empty state** (after 1)
   - Intent: Replace the simple EntryList in src/pages/ExpensesPage.tsx with a child component src/pages/EntriesList.tsx under the form. Rows (one line, truncate with title tooltip): formatDate date, description, category name, formatPence amount (right-aligned, tabular-nums, with In/Out text), Draft badge for drafts, accessible receipt icon when hasReceipt. Collapses to labelled rows at 390 px. Filter bar: date from/to, presets 'This tax year' and 'This VAT quarter' (quarter via useVatObligations; disabled with a reason when unavailable), Money in/out/both, Category (fetchAccounts), Status, and a search box. Any filter change resets and refetches. Load more uses useInfiniteQuery with nextCursor and hides when null. Loading/error/empty states; empty state explains how to add the first entry; filtered-empty offers Clear filters. 44 px targets, visible focus, labels, colour tokens (). Update existing ExpensesPage.test.tsx fixtures to {entries, nextCursor}. Component tests (fetch mocked): each filter changes the request URL; load more sends the cursor and appends; empty states; badge and receipt icon.

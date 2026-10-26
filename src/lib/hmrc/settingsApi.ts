@@ -1,3 +1,5 @@
+import { browserFraudHeaders } from './vatApi';
+
 type FetchFn = typeof fetch;
 
 export function describeHmrcStatus(connected: boolean, callbackOutcome: string | null) {
@@ -72,4 +74,27 @@ export async function saveVatNumber(vatNumber: string, fetchFn: FetchFn = fetch)
   const body = await response.json();
   if (!response.ok) throw new VatNumberRefusedError(body.code);
   return body.masked ?? null;
+}
+
+export interface FraudHeaderFinding {
+  headers: string[];
+  message: string;
+}
+
+export interface FraudCheckOutcome {
+  outcome: 'pass' | 'fail';
+  message: string;
+  errors: FraudHeaderFinding[];
+  warnings: FraudHeaderFinding[];
+}
+
+export async function runFraudHeadersCheck(fetchFn: FetchFn = fetch): Promise<FraudCheckOutcome> {
+  const response = await fetchFn('/api/vat/fraud-headers-check', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: browserFraudHeaders(),
+  });
+  if (!response.ok) throw new Error('Request to /api/vat/fraud-headers-check failed');
+  const { data } = await response.json();
+  return data;
 }

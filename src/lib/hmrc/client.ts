@@ -306,3 +306,89 @@ export async function withHmrcToken<T>(
     return operation((await renew()).accessToken);
   }
 }
+
+// ─── Test Fraud Prevention Headers (sandbox only) ─────────────────────────────
+
+// Always the sandbox: the validator does not exist on the live API, and a check
+// must never touch live filing whatever HMRC_SANDBOX_MODE says.
+const HMRC_SANDBOX_API_BASE = 'https://test-api.service.hmrc.gov.uk';
+
+export type FraudHeaderFinding = { headers: string[]; message: string };
+
+export type FraudHeaderValidation = {
+  code: string;
+  message: string;
+  errors: FraudHeaderFinding[];
+  warnings: FraudHeaderFinding[];
+};
+
+/**
+ * The validator is application-restricted, so it takes a client_credentials
+ * token for the app rather than a user's token. Callers hold it only for the
+ * duration of one check.
+ */
+export async function getApplicationToken(fetchFn: typeof fetch = fetch): Promise<string> {
+  const response = await fetchFn(`${HMRC_SANDBOX_API_BASE}/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: requireEnv('HMRC_CLIENT_ID'),
+      client_secret: requireEnv('HMRC_CLIENT_SECRET'),
+    }).toString(),
+  });
+  if (!response.ok) {
+    throw new HmrcError(
+      { code: 'TOKEN_REQUEST_FAILED', message: 'HMRC application token request rejected', statusCode: response.status },
+      `HMRC application token request failed (${response.status})`,
+    );
+  }
+  const { access_token } = (await response.json()) as { access_token?: string };
+  if (!access_token) {
+    throw new HmrcError({ code: 'TOKEN_REQUEST_FAILED', message: 'HMRC returned no access token', statusCode: 502 });
+  }
+  return access_token;
+}
+
+function toFindings(entries: unknown): FraudHeaderFinding[] {
+  if (!Array.isArray(entries)) return [];
+  return entries.map((entry: { headers?: unknown; message?: unknown }) => ({
+    headers: Array.isArray(entry.headers) ? entry.headers.filter((h): h is string => typeof h === 'string') : [],
+    message: typeof entry.message === 'string' ? entry.message : '',
+  }));
+}
+
+/**
+ * Ask HMRC to check the given fraud headers. HMRC answers 400 with the same
+ * body shape when it finds errors, so a body carrying a code is a result, not
+ * a failure; anything else non-2xx throws without echoing the response.
+ */
+export async function validateFraudHeaders(
+  fraudHeaders: Record<string, string>,
+  fetchFn: typeof fetch = fetch,
+): Promise<FraudHeaderValidation> {
+  const accessToken = await getApplicationToken(fetchFn);
+  const response = await fetchFn(`${HMRC_SANDBOX_API_BASE}/test/fraud-prevention-headers/validate`, {
+    headers: {
+      Accept: HMRC_JSON_HEADERS.Accept,
+      Authorization: `Bearer ${accessToken}`,
+      ...fraudHeaders,
+    },
+  });
+  const body = (await response.json().catch(() => null)) as
+    | { code?: unknown; message?: unknown; errors?: unknown; warnings?: unknown }
+    | null;
+  const isResult = typeof body?.code === 'string' && (response.ok || response.status === 400);
+  if (!isResult) {
+    throw new HmrcError(
+      { code: 'VALIDATION_REQUEST_FAILED', message: 'HMRC header validation request failed', statusCode: response.status },
+      `HMRC fraud header validation failed (${response.status})`,
+    );
+  }
+  return {
+    code: body.code as string,
+    message: typeof body.message === 'string' ? body.message : '',
+    errors: toFindings(body.errors),
+    warnings: toFindings(body.warnings),
+  };
+}

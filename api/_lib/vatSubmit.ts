@@ -1,6 +1,6 @@
-import { buildFraudHeaders, vendorVersion } from '../../src/lib/hmrc/fraudHeaders.js';
 import { getVatObligations, HmrcError, refreshAccessToken, submitVatReturn, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
 import { boxesToHmrcPayload } from '../../src/lib/vat.js';
+import { requestFraudHeaders } from './hmrcCall.js';
 import { databaseHmrcStore, type HmrcStore } from './hmrcStore.js';
 import { databaseStore, requireConfirmedReturn, VatReturnError, type Period, type VatReturnStore } from './vatReturns.js';
 
@@ -38,13 +38,7 @@ export async function prepareSubmission(
   if (!credentials) throw new VatReturnError(409, 'HMRC_NOT_CONNECTED', 'HMRC is not connected');
   if (!credentials.vatNumber) throw new VatReturnError(409, 'VAT_NUMBER_MISSING', 'No VAT number is set');
 
-  const fraudHeaders = buildFraudHeaders({
-    request,
-    userId,
-    appVersion: vendorVersion(),
-    vendorPublicIp: process.env.HMRC_VENDOR_PUBLIC_IP,
-    now: now(),
-  });
+  const fraudHeaders = requestFraudHeaders(request, userId, now());
   const payload = boxesToHmrcPayload(boxes, period.periodKey, true);
 
   return { sandbox, vatNumber: credentials.vatNumber, credentials, fraudHeaders, payload };

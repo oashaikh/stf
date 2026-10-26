@@ -92,7 +92,10 @@ export const transactions = pgTable('transactions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
-});
+}, (table) => ({
+  // Backs the dashboard totals and recent list, which filter on the owner and order or range by date.
+  userDateIdx: index('transactions_user_date_idx').on(table.userId, table.date),
+}));
 
 // Ledger lines. Immutable children of a transaction; voided via the parent's
 // deleted_at/status rather than an independent deleted_at.

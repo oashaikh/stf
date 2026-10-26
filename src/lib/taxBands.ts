@@ -66,8 +66,7 @@ export function getTaxBands(year: string): TaxBands {
 }
 
 /** Determine the current UK tax year string based on today's date. */
-export function currentTaxYear(): string {
-  const now = new Date();
+export function currentTaxYear(now: Date = new Date()): string {
   const year = now.getFullYear();
   const month = now.getMonth() + 1; // 1-indexed
   const day = now.getDate();

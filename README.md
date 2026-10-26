@@ -58,7 +58,9 @@ npm run build && npm run test:journey:mock
 
 Screenshots go to `e2e/artifacts/<run>/`, one per step. `<run>` is a timestamp unless you set `JOURNEY_RUN_NAME`. Set `JOURNEY_CHROMIUM_PATH` to use an existing Chrome instead of Playwright's own (`npx playwright install chromium`).
 
-The first open VAT return must already be confirmed, because the preview button only appears then and the test will not confirm it. Opening an unconfirmed return makes the app save a draft; the test blocks that write and fails at the preview step.
+The VAT step takes whatever state the live data is in and logs it as `JOURNEY_VAT_BRANCH`: no open obligation (checks the "nothing due" message), an unconfirmed return (checks the nine boxes and the declaration), a confirmed return (runs "Preview what will be sent"), or a filed return (checks the receipt). It never confirms or submits. The only other write it allows is the draft save the app makes when it first opens a never-reviewed return.
+
+The base URL falls back to `AIP_JOURNEY_URL` when `JOURNEY_BASE_URL` is unset, and screenshots go to `AIP_EVIDENCE_DIR` when set. A failing step prints `JOURNEY_FAILED_STEP: <name>`.
 
 ---
 

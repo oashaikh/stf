@@ -112,3 +112,7 @@ Also depends on:
     - Only invented records shown
     - lint, typecheck, test and build pass on final tree
   - Commit: `70471587cb4f`
+
+- [x] **Task 6: Fix: address 23 review findings (cycle 1)** (after 5)
+  - Intent: Review left 23 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness of the list, filters, load more, edit (PUT), void, confirm and locked-period handling checks out against api/entries.ts and the entry list query schema. Two pr The agent is fixing them; nothing is needed from you.
+  - Commit: `eef0bf86b45a`

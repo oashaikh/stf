@@ -4,7 +4,7 @@ vi.mock('../db', () => ({ db: {} }));
 
 import { createEntriesHandler } from '../../entries';
 import type { AuthDeps } from '../auth';
-import type { Entry, EntryStore, PostingContext } from '../entries';
+import { summariseEntry, type Entry, type EntryStore, type PostingContext } from '../entries';
 import { getReturnReview, type DrillLine, type VatReturnStore } from '../vatReturns';
 
 const authDeps: AuthDeps = {
@@ -51,7 +51,10 @@ describe('entries route', () => {
       return saved.find((entry) => entry.userId === userId && entry.id === entryId);
     },
     async list(userId) {
-      return saved.filter((entry) => entry.userId === userId).reverse();
+      return saved
+        .filter((entry) => entry.userId === userId)
+        .reverse()
+        .map(({ lines, id, date, description, reference, status }) => ({ id, date, description, reference, status, ...summariseEntry(lines, [BANK, DEBTORS]) }));
     },
   };
   const call = (method: string, body?: unknown, userId?: string, query = '') =>

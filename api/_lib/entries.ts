@@ -32,6 +32,13 @@ export interface Entry extends EntryHeader {
   lines: PostedLine[];
 }
 
+/** What the list shows: direction and gross total come from the settle line, never from row order. */
+export interface EntrySummary extends EntryHeader {
+  id: string;
+  kind: 'income' | 'expense';
+  grossPence: number;
+}
+
 export interface PostingContext {
   /** Undefined when the account does not exist or belongs to someone else. */
   category: Pick<AccountRow, 'accountType' | 'archivedAt'> | undefined;
@@ -48,7 +55,7 @@ export interface EntryStore {
   create(userId: string, header: EntryHeader, lines: PostedLine[]): Promise<Entry>;
   get(userId: string, entryId: string): Promise<Entry | undefined>;
   /** Newest first, at most ENTRY_LIST_LIMIT entries. */
-  list(userId: string): Promise<Entry[]>;
+  list(userId: string): Promise<EntrySummary[]>;
 }
 
 export class EntryRuleError extends Error {
@@ -84,6 +91,13 @@ export type NewEntry = z.infer<typeof newEntrySchema>;
 export function assertDateNotTooFarAhead(date: string, now: Date): void {
   const latest = new Date(now.getTime() + MAX_DAYS_AHEAD * 86_400_000).toISOString().slice(0, 10);
   if (date > latest) throw new EntryRuleError(400, 'BAD_REQUEST', `Date cannot be more than ${MAX_DAYS_AHEAD} days ahead`, 'date');
+}
+
+/** The settle line (bank or trade debtors) closes every entry: money in debits it, money out credits it. */
+export function summariseEntry(lines: PostedLine[], settleAccountIds: string[]): Pick<EntrySummary, 'kind' | 'grossPence'> {
+  const settleLine = lines.find((line) => settleAccountIds.includes(line.accountId));
+  if (!settleLine) throw new Error('Entry has no settle line');
+  return { kind: settleLine.amountPence > 0 ? 'income' : 'expense', grossPence: Math.abs(settleLine.amountPence) };
 }
 
 /** The route does no arithmetic: lines come only from postEntry. */
@@ -205,14 +219,22 @@ export const databaseEntryStore: EntryStore = {
       .orderBy(desc(transactions.date), desc(transactions.createdAt))
       .limit(ENTRY_LIST_LIMIT);
     if (headers.length === 0) return [];
-    const lines = await db
-      .select({ transactionId: transactionLines.transactionId, ...lineColumns })
-      .from(transactionLines)
-      .where(inArray(transactionLines.transactionId, headers.map((header) => header.id)))
-      .limit(ENTRY_LIST_LIMIT * ENTRY_LINE_LIMIT);
-    return headers.flatMap((header) =>
-      header.status === 'draft' || header.status === 'confirmed'
-        ? [{ ...header, status: header.status, source: 'manual' as const, lines: toPostedLines(lines.filter((line) => line.transactionId === header.id)) }]
+    const [lines, settleAccounts] = await Promise.all([
+      db
+        .select({ transactionId: transactionLines.transactionId, ...lineColumns })
+        .from(transactionLines)
+        .where(inArray(transactionLines.transactionId, headers.map((header) => header.id)))
+        .limit(ENTRY_LIST_LIMIT * ENTRY_LINE_LIMIT),
+      db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(and(eq(accounts.userId, userId), inArray(accounts.code, [BANK_ACCOUNT_CODE, TRADE_DEBTORS_CODE])))
+        .limit(2),
+    ]);
+    const settleAccountIds = settleAccounts.map((account) => account.id);
+    return headers.flatMap(({ status, ...header }) =>
+      status === 'draft' || status === 'confirmed'
+        ? [{ ...header, status, ...summariseEntry(toPostedLines(lines.filter((line) => line.transactionId === header.id)), settleAccountIds) }]
         : [],
     );
   },

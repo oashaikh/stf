@@ -6,7 +6,8 @@ export interface ApiEntry {
   description: string;
   reference: string | null;
   status: 'draft' | 'confirmed';
-  lines: Array<{ accountId: string; amountPence: number }>;
+  kind: 'income' | 'expense';
+  grossPence: number;
 }
 
 export interface NewEntryRequest {
@@ -32,12 +33,6 @@ export class EntryRefusedError extends Error {
 }
 
 export const ENTRIES_QUERY_KEY = ['entries'];
-
-/** The bank line closes every entry: money in debits it, money out credits it. */
-export function entryAmount(entry: ApiEntry): { kind: 'income' | 'expense'; grossPence: number } {
-  const bankLine = entry.lines[entry.lines.length - 1];
-  return { kind: bankLine.amountPence > 0 ? 'income' : 'expense', grossPence: Math.abs(bankLine.amountPence) };
-}
 
 export async function fetchEntries(): Promise<ApiEntry[]> {
   const response = await fetch('/api/entries', { credentials: 'same-origin' });

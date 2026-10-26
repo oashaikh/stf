@@ -28,7 +28,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Add accounts.archived_at column and migration 0006**
+- [x] **Task 1: Add accounts.archived_at column and migration 0006**
   - Intent: Add a nullable archivedAt timestamptz column to the accounts table in schema.ts. Hand-write migration 0006 (ALTER TABLE accounts ADD COLUMN IF NOT EXISTS archived_at timestamp with time zone) and add its journal entry. Add a 0006 snapshot copied from 0005 with the new column, so drizzle-kit generate stays a no-op and the graph keeps a single head. It must apply on a fresh database and on one at 0005. The unique (user_id, code) index already backs the owner filter and the code ordering, so no new index is needed; say so in a comment.
   - Files: `server/src/db/schema.ts`, `server/src/db/migrations/0006_accounts_archived_at.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0006_snapshot.json`, `server/src/db/schema.test.ts`
   - Acceptance criteria the planner set:
@@ -38,6 +38,7 @@
     - A schema.test.ts assertion checks that migrations contain archived_at on accounts
     - npm run typecheck and npm test pass
   - Risk: Opus at high: schema and migration work. The hand-built snapshot must match what drizzle-kit would generate. No Docker is available, so the orchestrator validates applying it to a database.
+  - Commit: `adabcbd38ce4`
 
 - [ ] **Task 2: Default UK sole-trader chart of accounts constant**
   - Intent: Create src/lib/chartOfAccounts.ts: a typed readonly DEFAULT_ACCOUNTS list of about 18 entries with code, name, accountType, taxCategory slug and isSystem. Income: sales, other business income. Expenses map to HMRC self-employment categories: cost-of-goods, travel, premises, admin-office, advertising, professional-fees, finance-costs, other-allowable, plus a disallowable account. System accounts: bank (asset), trade debtors (asset), VAT control (liability), owner's capital and drawings (equity). Reuse the AccountInsert type from the schema; add no new abstraction. A test checks codes are unique, size is 15 to 20, every expense has a taxCategory, and every system account has isSystem set.

@@ -5,7 +5,7 @@ export interface ApiEntry {
   date: string;
   description: string;
   reference: string | null;
-  status: 'draft' | 'confirmed';
+  status: 'draft' | 'confirmed' | 'reconciled';
   kind: 'income' | 'expense';
   grossPence: number;
 }

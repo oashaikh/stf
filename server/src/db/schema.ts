@@ -96,27 +96,34 @@ export const transactions = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => ({
-    // Entries list: one user's transactions newest first, with a LIMIT.
+    // Entries list and VAT loader: one owner's rows by date, with a LIMIT.
     userDateIdx: index('transactions_user_date_idx').on(table.userId, table.date),
   }),
 );
 
 // Ledger lines. Immutable children of a transaction; voided via the parent's
 // deleted_at/status rather than an independent deleted_at.
-export const transactionLines = pgTable('transaction_lines', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  transactionId: uuid('transaction_id')
-    .notNull()
-    .references(() => transactions.id),
-  accountId: uuid('account_id')
-    .notNull()
-    .references(() => accounts.id),
-  amountPence: integer('amount_pence').notNull(),
-  vatPence: integer('vat_pence').notNull().default(0),
-  vatRatePercent: integer('vat_rate_percent').notNull().default(0),
-  description: text('description'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const transactionLines = pgTable(
+  'transaction_lines',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    transactionId: uuid('transaction_id')
+      .notNull()
+      .references(() => transactions.id),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id),
+    amountPence: integer('amount_pence').notNull(),
+    vatPence: integer('vat_pence').notNull().default(0),
+    vatRatePercent: integer('vat_rate_percent').notNull().default(0),
+    description: text('description'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // Lines of one entry: the list join, the entry loader and the VAT loader.
+    transactionIdx: index('transaction_lines_transaction_id_idx').on(table.transactionId),
+  }),
+);
 
 // Receipt file metadata and its AI draft. Confidence uses integer thousandths
 // (0-1000) so no floating-point or numeric database type is persisted.

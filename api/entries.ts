@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { withAuth, type AuthDeps } from './_lib/auth.js';
-import { confirmEntry, createEntry, editEntry, voidEntry, databaseEntryStore, EntryRuleError, newEntrySchema, type EntryStore } from './_lib/entries.js';
+import { confirmEntry, createEntry, decodeCursor, entryListQuerySchema, listEntries, editEntry, voidEntry, databaseEntryStore, EntryRuleError, newEntrySchema, type EntryStore } from './_lib/entries.js';
 
 const refuse = (status: number, error: string, code: string, fields: string[] = []) =>
   Response.json({ ok: false, error, code, fields }, { status });
@@ -19,8 +19,7 @@ export function createEntriesHandler(store: EntryStore = databaseEntryStore, aut
         throw error;
       }
     };
-    const idParam = new URL(request.url).searchParams.get('id');
-    const entryId = idParam ?? '';
+    const entryId = new URL(request.url).searchParams.get('id') ?? '';
     const readBody = () => request.json().catch(() => null);
 
     if (request.method === 'POST') {
@@ -29,8 +28,16 @@ export function createEntriesHandler(store: EntryStore = databaseEntryStore, aut
       return run(async () => Response.json({ ok: true, entry: await createEntry(store, auth.userId, parsed.data, now()) }));
     }
 
+    if (request.method === 'GET' && !entryId) {
+      const parsed = entryListQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
+      if (!parsed.success) return refuse(400, 'Invalid list query', 'BAD_REQUEST');
+      const { limit, cursor, ...filters } = parsed.data;
+      const after = cursor ? decodeCursor(cursor) : undefined;
+      if (cursor && !after) return refuse(400, 'Invalid cursor', 'BAD_REQUEST');
+      return Response.json({ ok: true, ...(await listEntries(store, auth.userId, filters, after, limit)) });
+    }
+
     if (request.method === 'GET') {
-      if (idParam === null) return Response.json({ ok: true, entries: await store.list(auth.userId) });
       if (!UUID.test(entryId)) return refuse(400, 'Entry id must be a uuid', 'BAD_REQUEST');
       const entry = await store.get(auth.userId, entryId);
       return entry ? Response.json({ ok: true, entry }) : refuse(404, 'Entry not found', 'NOT_FOUND');

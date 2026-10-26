@@ -117,7 +117,7 @@ describe("schema migrations", () => {
   });
 
   it("indexes transactions by (user_id, date) for the entries list", () => {
-    expect(readFileSync(new URL("./migrations/0007_transactions_user_date_index.sql", import.meta.url), "utf8")).toMatch(
+    expect(readFileSync(new URL("./migrations/0007_entries_list_indexes.sql", import.meta.url), "utf8")).toMatch(
       /CREATE INDEX IF NOT EXISTS "transactions_user_date_idx" ON "transactions" \("user_id","date"\)/,
     );
   });

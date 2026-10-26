@@ -4,7 +4,7 @@ vi.mock('../db', () => ({ db: {} }));
 
 import { createEntriesHandler } from '../../entries';
 import type { AuthDeps } from '../auth';
-import { summariseEntry, type Entry, type EntryStore, type PostingContext } from '../entries';
+import type { Entry, EntryListRow, EntryStore, PostingContext } from '../entries';
 import { getReturnReview, type DrillLine, type VatReturnStore } from '../vatReturns';
 
 const authDeps: AuthDeps = {
@@ -81,7 +81,13 @@ describe('entries route', () => {
       return saved
         .filter((entry) => entry.userId === userId)
         .reverse()
-        .map(({ lines, id, date, description, reference, status }) => ({ id, date, description, reference, status, ...summariseEntry(lines, [BANK, DEBTORS]) }));
+        .map(({ lines, id, date, description, reference, status }): EntryListRow => {
+          const category = lines.find((line) => line.accountId in accountTypes)!;
+          const vatPence = Math.abs(category.vatPence);
+          const netPence = Math.abs(category.amountPence);
+          const kind = accountTypes[category.accountId];
+          return { id, date, description, reference, kind, categoryAccountId: category.accountId, categoryName: kind, grossPence: netPence + vatPence, netPence, vatPence, status, hasReceipt: false };
+        });
     },
   };
   const call = (method: string, body?: unknown, userId?: string, query = '') =>

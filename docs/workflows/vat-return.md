@@ -20,6 +20,12 @@ A line is included when its transaction is `confirmed` or `reconciled`, has no
 `deleted_at`, and its date falls inside the period (both ends inclusive). Only
 `income` and `expense` accounts contribute. `amount_pence` is the net, ex-VAT amount.
 
+Pass lines with the raw ledger signs: debit positive, credit negative, and `vat_pence`
+signed like its `amount_pence`. Income is a credit, so the function flips its sign;
+expense is a debit and is summed as is. A sales credit note (a debit on an income
+account) therefore reduces boxes 1 and 6, and a purchase credit note reduces boxes 4
+and 7. The loader must not take absolute values.
+
 ## The nine boxes
 
 | Box | Meaning | Source |

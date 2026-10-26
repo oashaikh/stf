@@ -6,8 +6,8 @@ const period = { start: '2026-07-01', end: '2026-09-30' };
 const line = (overrides: Partial<LedgerLine>): LedgerLine => ({
   date: '2026-08-15',
   accountType: 'income',
-  amountPence: 10000,
-  vatPence: 2000,
+  amountPence: -10000,
+  vatPence: -2000,
   status: 'confirmed',
   deletedAt: null,
   ...overrides,
@@ -23,7 +23,7 @@ describe('buildVatReturnFromLedger', () => {
     const boxes = buildVatReturnFromLedger(
       [
         line({}),
-        line({ amountPence: 5000, vatPence: 1000 }),
+        line({ amountPence: -5000, vatPence: -1000 }),
         line({ accountType: 'expense', amountPence: 4000, vatPence: 800 }),
       ],
       period,
@@ -55,6 +55,22 @@ describe('buildVatReturnFromLedger', () => {
     expect(boxes.box1).toBe(4000);
   });
 
+  it('reads the schema sign convention: income credits are negative, expense debits positive', () => {
+    const boxes = buildVatReturnFromLedger(
+      [
+        line({ amountPence: -10000, vatPence: -2000 }),
+        line({ accountType: 'expense', amountPence: 4000, vatPence: 800 }),
+        // a credit note against a purchase is a credit on an expense account
+        line({ accountType: 'expense', amountPence: -1000, vatPence: -200 }),
+      ],
+      period,
+    );
+    expect(boxes).toEqual({
+      box1: 2000, box2: 0, box3: 2000, box4: 600, box5: 1400,
+      box6: 10000, box7: 3000, box8: 0, box9: 0,
+    });
+  });
+
   it('ignores draft, voided, soft-deleted and non-P&L lines', () => {
     const boxes = buildVatReturnFromLedger(
       [
@@ -62,7 +78,7 @@ describe('buildVatReturnFromLedger', () => {
         line({ status: 'voided' }),
         line({ deletedAt: '2026-09-01T00:00:00Z' }),
         line({ accountType: 'asset' }),
-        line({ status: 'reconciled', amountPence: 100, vatPence: 20 }),
+        line({ status: 'reconciled', amountPence: -100, vatPence: -20 }),
       ],
       period,
     );

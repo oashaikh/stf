@@ -85,6 +85,8 @@ export function buildVatReturnBoxes(lines: VatReturnLines): VatReturnBoxes {
 export interface LedgerLine {
   date: string; // YYYY-MM-DD, the transaction date
   accountType: 'income' | 'expense' | 'asset' | 'liability' | 'equity';
+  // Raw ledger signs (architectures.md): debit positive, credit negative. VAT carries the
+  // same sign as its amount. Income is a credit, expense a debit.
   amountPence: number; // net, ex VAT
   vatPence: number;
   status: 'draft' | 'confirmed' | 'reconciled' | 'voided';
@@ -114,8 +116,9 @@ export function buildVatReturnFromLedger(
       line.date <= period.end;
     if (!counts) continue;
     if (line.accountType === 'income') {
-      totals.salesNetPence += line.amountPence;
-      totals.salesVatPence += line.vatPence;
+      // credits are negative in the ledger; flip so sales are positive
+      totals.salesNetPence -= line.amountPence;
+      totals.salesVatPence -= line.vatPence;
     } else if (line.accountType === 'expense') {
       totals.purchasesNetPence += line.amountPence;
       totals.purchasesVatPence += line.vatPence;

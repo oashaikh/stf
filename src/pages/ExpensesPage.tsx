@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
 import {
@@ -120,6 +120,11 @@ function AddEntryForm({
   // An edited entry that already carries VAT keeps its rate even if the VAT number was removed since.
   const showVat = hasVatNumber || vatRate !== 0;
   const [errors, setErrors] = useState<Errors>({});
+  const dateRef = useRef<HTMLInputElement>(null);
+  // Editing opens the form above a possibly long list, so bring it into view and put focus in it.
+  useEffect(() => {
+    if (entry) dateRef.current?.focus();
+  }, [entry]);
 
   const accounts = useQuery({
     queryKey: ["accounts", "active"],
@@ -193,6 +198,11 @@ function AddEntryForm({
       noValidate
       className="mt-4 grid gap-4 rounded-lg border border-gray-300 bg-white p-4 md:grid-cols-2"
     >
+      {entry && (
+        <h2 className="text-lg font-semibold text-gray-900 md:col-span-2">
+          Edit entry: {entry.description}
+        </h2>
+      )}
       <div
         role="group"
         aria-label="Money in or out"
@@ -226,6 +236,7 @@ function AddEntryForm({
           value={date}
           onChange={(event) => setDate(event.target.value)}
           className={fieldClass}
+          ref={dateRef}
           aria-describedby={describedBy("entry-date", errors.date, date)}
           aria-invalid={Boolean(errors.date)}
         />

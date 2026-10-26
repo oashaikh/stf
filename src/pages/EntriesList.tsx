@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import EntryActions from "./EntryActions";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
@@ -87,7 +87,7 @@ function FilterBar({
           This VAT quarter
         </button>
         {quarterReason && (
-          <span className="text-sm text-gray-700">{quarterReason}</span>
+          <span className="w-full text-sm text-gray-700">{quarterReason}</span>
         )}
       </div>
       <label className="block text-sm">
@@ -140,6 +140,7 @@ function FilterBar({
           value={filters.search}
           onChange={(event) => set({ search: event.target.value })}
           placeholder="Description"
+          maxLength={100}
           className={fieldClass}
         />
       </label>
@@ -153,22 +154,37 @@ export default function EntriesList({
   onEdit: (entry: ApiEntry) => void;
 }) {
   const [filters, setFilters] = useState<EntryFilters>(DEFAULT_ENTRY_FILTERS);
+  // The API refuses a range that ends before it starts, so wait until the dates make sense.
+  const rangeReversed = Boolean(
+    filters.from && filters.to && filters.from > filters.to,
+  );
   const entries = useInfiniteQuery({
+    enabled: !rangeReversed,
     queryKey: [...ENTRIES_QUERY_KEY, filters],
     queryFn: ({ pageParam }) => fetchEntries(filters, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
   // The list API drops voided entries, so a voided row stays here until the next refetch.
+  const sectionRef = useRef<HTMLElement>(null);
   const [voidedIds, setVoidedIds] = useState<string[]>([]);
   const rows = entries.data?.pages.flatMap((page) => page.entries) ?? [];
   const isFiltered =
     JSON.stringify(filters) !== JSON.stringify(DEFAULT_ENTRY_FILTERS);
 
   return (
-    <section aria-label="Entries" className="mt-6">
+    <section
+      ref={sectionRef}
+      tabIndex={-1}
+      aria-label="Entries"
+      className="mt-6 focus:outline-none"
+    >
       <FilterBar filters={filters} onChange={setFilters} />
-      {entries.isPending ? (
+      {rangeReversed ? (
+        <p role="alert" className="mt-6 text-red-800">
+          The From date is after the To date. Change one of them to see entries.
+        </p>
+      ) : entries.isPending ? (
         <p role="status" className="mt-6 text-gray-700">
           Loading entries…
         </p>
@@ -202,7 +218,7 @@ export default function EntriesList({
             {rows.map((entry) => (
               <li
                 key={entry.id}
-                className="grid min-h-[44px] gap-1 px-4 py-2 md:grid-cols-[7rem_minmax(0,1fr)_10rem_9rem] md:items-center md:gap-3"
+                className="grid min-h-[44px] gap-1 px-4 py-2 md:grid-cols-[7rem_minmax(0,1fr)_10rem_9rem_16rem] md:items-center md:gap-3"
               >
                 <span>
                   <span className="text-sm text-gray-700 md:hidden">Date: </span>
@@ -255,7 +271,11 @@ export default function EntriesList({
                   <EntryActions
                     entry={entry}
                     onEdit={onEdit}
-                    onVoided={(id) => setVoidedIds((ids) => [...ids, id])}
+                    onVoided={(id) => {
+                      setVoidedIds((ids) => [...ids, id]);
+                      // The row's buttons disappear, so move focus somewhere that still exists.
+                      sectionRef.current?.focus();
+                    }}
                   />
                 )}
               </li>

@@ -114,6 +114,15 @@ describe('EntriesList', () => {
     expect(lastParams().get('search')).toBeNull();
   });
 
+  it('explains a From date after the To date instead of asking the API', async () => {
+    await renderList();
+    const requests = entryUrls.length;
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-06-01' } });
+    fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-05-01' } });
+    expect(await screen.findByText(/From date is after the To date/)).toBeInTheDocument();
+    expect(entryUrls.length).toBe(requests + 1);
+  });
+
   describe('row actions', () => {
     const voidButton = () => screen.getByRole('button', { name: 'Void' });
 

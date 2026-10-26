@@ -168,6 +168,8 @@ describe('ExpensesPage edit entry', () => {
       </QueryClientProvider>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    expect(await screen.findByRole('heading', { name: /Edit entry/ })).toBeInTheDocument();
+    expect(screen.getByLabelText('Date')).toHaveFocus();
     await within(screen.getByLabelText('Category')).findByRole('option', { name: 'Travel' });
   }
 

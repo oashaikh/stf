@@ -70,12 +70,12 @@ function VoidDialog({
 
 export function LockedMessage() {
   return (
-    <p role="alert" className="mt-2 text-red-800">
+    <p role="alert" className="text-red-800 md:col-span-full">
       This entry is in a VAT period that has been confirmed or filed, so it
       cannot be changed.{" "}
       <Link
         to="/vat"
-        className="inline-flex min-h-[44px] items-center font-medium underline"
+        className="block min-h-[44px] content-center font-medium underline"
       >
         Go to VAT
       </Link>
@@ -106,7 +106,7 @@ export default function EntryActions({
   const failure = confirm.error ?? voiding.error;
 
   return (
-    <div className="md:col-span-full">
+    <>
       <div className="flex flex-wrap gap-2">
         {entry.status === "draft" && (
           <button
@@ -147,7 +147,7 @@ export default function EntryActions({
       {failure instanceof PeriodLockedError ? (
         <LockedMessage />
       ) : failure ? (
-        <p role="alert" className="mt-2 text-red-800">
+        <p role="alert" className="text-red-800 md:col-span-full">
           Something went wrong, so nothing was changed.{" "}
           <button
             type="button"
@@ -160,6 +160,6 @@ export default function EntryActions({
           </button>
         </p>
       ) : null}
-    </div>
+    </>
   );
 }

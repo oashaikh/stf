@@ -107,9 +107,10 @@ export async function getVatObligations(
   to: string,
   fraudHeaders: Record<string, string>,
   fetchFn?: typeof fetch,
+  status?: VatObligation['status'],
 ): Promise<{ obligations: VatObligation[] }> {
   return hmrcFetch(
-    `/organisations/vat/${vrn}/obligations?from=${from}&to=${to}`,
+    `/organisations/vat/${vrn}/obligations?from=${from}&to=${to}${status ? `&status=${status}` : ''}`,
     accessToken,
     fraudHeaders,
     {},

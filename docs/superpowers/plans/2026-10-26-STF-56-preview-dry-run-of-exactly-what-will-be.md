@@ -28,7 +28,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Extract the shared submission-preparation step from submitVatReturnForUser**
+- [x] **Task 1: Extract the shared submission-preparation step from submitVatReturnForUser**
   - Intent: Pull the code that submit runs before the claim into one function in api/_lib/vatSubmit.ts: requireConfirmedReturn, the user/env mode-match check, credentials and VAT-number checks, buildFraudHeaders, and boxesToHmrcPayload(boxes, periodKey, true). It returns { sandbox, vatNumber, credentials, fraudHeaders, payload }. submitVatReturnForUser calls it, so submit and preview cannot drift (). The obligations check, claimSubmission and token refresh stay in submit only. Behaviour of submit is unchanged; the existing vatSubmit and vatSubmitRoute tests must pass untouched.
   - Files: `api/_lib/vatSubmit.ts`, `api/_lib/__tests__/vatSubmit.test.ts`
   - Acceptance criteria the planner set:
@@ -36,6 +36,7 @@
     - Existing vatSubmit.test.ts and vatSubmitRoute.test.ts pass without edits to their assertions
     - npm run typecheck and npm run lint pass
   - Risk: Refactor of the money-filing path; a regression would break real submissions, so high effort and full existing tests as the guard.
+  - Commit: `d792b3685ae4`
 
 - [ ] **Task 2: Add previewVatReturnForUser with masked endpoint, header list and audit event** (after 1)
   - Intent: New api/_lib/vatPreview.ts exports previewVatReturnForUser({userId, period, request}, deps). It calls the shared prepare function from task 1, then stops: no claimSubmission, no fetch, no token refresh, no obligations check, no DB write except one audit_events insert (actor_type user, action 'vat_return.previewed', resource_type 'vat_return', metadata {periodKey, sandbox}; no body, headers or tokens). The audit write is an injectable dependency defaulting to a db insert into auditEvents (reuse the table; no new migration). Returns { endpoint, body, headers }: endpoint is the method plus the full URL built from the same base URL and path template the client uses for submitVatReturn (reuse or export that from src/lib/hmrc/client.ts rather than retyping it), with the VRN replaced by asterisks except its last 3 digits, and sandbox vs live shown; body is the exact payload object; headers are the fraud headers plus Content-Type/Accept as hmrcFetch sets them, with Authorization listed as 'Bearer (hidden)'. Tests (injected fakes, no network): preview body deep-equals the body the submit sends to a mocked fetch for the same return, including a nil return (all boxes 0); preview calls fetch zero times and claimSubmission zero times; response and console output contain no access or refresh token string; VRN masked; refusals (NOT_CONFIRMED, MODE_MISMATCH, VAT_NUMBER_MISSING) propagate as VatReturnError and write no audit event.

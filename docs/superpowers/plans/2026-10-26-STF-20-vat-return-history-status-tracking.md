@@ -27,7 +27,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Add history index migration on vat_return_drafts**
+- [x] **Task 1: Add history index migration on vat_return_drafts**
   - Intent: The history list reads one user's drafts newest first with a LIMIT, so it needs an index on (user_id, period_end) behind the filter and sort (). Add the index in schema.ts and as migration 0004, with the drizzle snapshot and journal entry. 0004 must be the only head and parent on 0003. No new table or column: history reads the existing vat_return_drafts and vat_submissions (operator: no second store). Run `npm run db:generate` if it works offline, otherwise hand-write the files in the style of 0003.
   - Files: `server/src/db/schema.ts`, `server/src/db/migrations/0004_vat_return_drafts_history_index.sql`, `server/src/db/migrations/meta/0004_snapshot.json`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/schema.test.ts`
   - Acceptance criteria the planner set:
@@ -36,6 +36,7 @@
     - server/src/db/schema.test.ts has an assertion that the index exists in the migration SQL
     - npm run typecheck and npm test pass
   - Risk: Schema/migration work: the journal and snapshot must stay consistent with a single head.
+  - Commit: `4fec61ba2ae3`
 
 - [ ] **Task 2: Server: per-user VAT return history query, status derivation and GET /api/vat/history** (after 1)
   - Intent: Add `listReturnHistory(userId)` to VatReturnStore in api/_lib/vatReturns.ts and implement it in databaseStore. It reads vat_return_drafts for the user ordered by period_end desc with a LIMIT (e.g. 40). It reads that user's vat_submissions for those period keys in one extra query, not one per row. Status is derived by one pure function: 'draft' for a draft row, 'confirmed' for a confirmed row, 'submitted' when a submission is pending (sent, outcome not confirmed), and 'accepted' when a submission is 'submitted' with a stored receipt. Failed submissions fall back to the draft status. Each item returns periodKey, start, end, status, the stored box values (integer pence from the draft row, never recomputed from the ledger), and the receipt (formBundleNumber, processingDate ISO, sandbox) when present. A live receipt outranks a sandbox one, as in getReturnReview. Reuse that selection logic by extracting it into a shared function rather than duplicating it. Add `api/vat/history.ts`: a GET-only handler wrapped in withAuth (the vatReturnHandler/default-export pattern), scoped by auth.userId, with no userId from the client. Select only the needed columns. Update the fake VatReturnStore objects in existing tests so typecheck passes.

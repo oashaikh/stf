@@ -23,8 +23,8 @@ Set these in your Vercel project settings. Never commit them to the repository.
 - `HMRC_REDIRECT_URI` — the callback URL registered in your HMRC developer application: `https://<your-domain>/api/hmrc/callback`
 - `HMRC_TOKEN_ENCRYPTION_KEY` — Base64 of 32 random bytes (AES-256-GCM key for storing HMRC tokens); generate with `openssl rand -base64 32`
 - `HMRC_STATE_SECRET` — Base64 of 32 random bytes (signs OAuth state); generate with `openssl rand -base64 32`
-- `HMRC_VENDOR_PUBLIC_IP` — (optional) your server's public IPv4 or IPv6 egress address for HMRC fraud prevention. On Vercel, this is your account's fixed IP if you have one. Extracted from the outbound connection when making HMRC calls. Sent as the `Gov-Vendor-Public-IP` header.
-- `HMRC_VENDOR_LICENSE_ID` — (optional) a unique licence id for this deployment. Only the SHA-256 hash is sent to HMRC, never the id itself. Sent as the `Gov-Vendor-License-IDs` header: `stf=<SHA256-hex>`. Example: an internal ticket id or serial number.
+- `HMRC_VENDOR_PUBLIC_IP` — (optional) your server's public IPv4 or IPv6 egress address for HMRC fraud prevention. On Vercel, set this if your account has a fixed outbound IP (a paid feature). Vercel does not expose the outbound IP on the request object, so you must provide it. The header is omitted if not set, which is fine; it is optional and not required for submissions. Example: `203.0.113.5` or `2001:db8::1`.
+- `HMRC_VENDOR_LICENSE_ID` — (optional) a unique licence id for this deployment. Only the SHA-256 hash is sent to HMRC, never the id itself. Set this if you license this deployment to customers or organizations and need to track which instance made which submission. Example values: an internal serial number, customer account id, deployment UUID, or ticket id. Sent as the `Gov-Vendor-License-IDs` header: `stf=<SHA256-hex>`.
 
 ### Receipt storage
 
@@ -70,19 +70,43 @@ The HMRC token refresh runs as a Vercel Cron job (scheduled serverless function)
 
 ## Fraud prevention headers
 
-All HMRC calls require fraud prevention headers that identify the connection method, application, user, and browser. STF uses the `WEB_APP_VIA_SERVER` connection method and builds the headers server-side (see `docs/workflows/vat-return.md` for the full header table).
+All HMRC calls require fraud prevention headers that identify the connection method, application, user, and browser. STF uses the `WEB_APP_VIA_SERVER` connection method. The headers are built server-side by `src/lib/hmrc/fraudHeaders.ts::buildFraudHeaders()` using application config, the request object, and browser values sent as `x-stf-*` headers from the SPA.
 
-**Vercel-specific notes:**
+**Complete reference:** See `docs/fraud-prevention-headers.md` for the full header table with sources and formats, HMRC's official specification link, and percent-encoding rules.
 
-- `HMRC_VENDOR_PUBLIC_IP` is optional. Vercel does not expose the egress IP on the request, so you must provide it if you have a fixed outbound IP. The header improves HMRC's fraud detection but is not required.
-- `HMRC_VENDOR_LICENSE_ID` is optional. If set, only its SHA-256 hash is sent to HMRC (the id itself is never transmitted). Example use cases: internal serial number, license key, or deployment identifier for accounting purposes.
-- Browser-supplied values (device ID, timezone, screen dimensions, user agent) are gathered by the SPA and sent as `x-stf-*` headers. Malformed values are dropped by the server, not forwarded.
+### Configuration
 
-**Testing the headers:**
+**`HMRC_VENDOR_PUBLIC_IP`** (optional)
 
-Before going live, sign in to Settings and click "Check HMRC fraud headers" under the HMRC section. This calls HMRC's sandbox validator (not a real submission) and reports any errors or warnings with the header names and HMRC's messages. Fix any issues and recheck. A passing check means the headers conform to HMRC's spec and are ready for live submissions.
+Your server's public egress IP address (IPv4 or IPv6) for the `Gov-Vendor-Public-IP` header.
 
-The check result is recorded as an audit event (`hmrc.fraud_headers.validated`) for compliance. Header values are not logged; only names are stored.
+- **On Vercel:** Set this only if your account has a fixed outbound IP (a paid feature). Vercel does not expose the outbound IP on the request, so you must provide it explicitly. Unset: the header is omitted (acceptable, as it is optional).
+- **On self-hosted:** Set to your server's public IP if it is static.
+- **Format:** IPv4 (e.g., `203.0.113.5`) or IPv6 (e.g., `2001:db8::1`).
+- **Impact:** Helps HMRC detect spoofed submissions by verifying the origin server is consistently reachable at that address.
+
+**`HMRC_VENDOR_LICENSE_ID`** (optional)
+
+A unique licence id for this deployment. Only its SHA-256 hash is sent to HMRC in the `Gov-Vendor-License-IDs` header; the id itself never leaves your deployment.
+
+- **When to set:** Required if you license this deployment to customers or organizations and need to track which instance made which submission.
+- **Example values:** Internal serial number, customer account id, deployment UUID, ticket id, or any unique identifier.
+- **Sent as:** `stf=<SHA256-HEX>`, where the hash is the uppercase hex of the SHA-256 of your id.
+- **Impact:** Allows HMRC support to correlate your submissions with your account and lets you track submissions from each deployment if you run multiple instances.
+
+### Validating the headers
+
+Before filing VAT returns to HMRC, use the built-in validation check:
+
+1. Sign in to Settings.
+2. Scroll to the HMRC section.
+3. Click "Check HMRC fraud headers".
+4. The check calls HMRC's sandbox Test Fraud Prevention Headers validator (not a real submission).
+5. Result: a clear pass, or a list of each error and warning with the affected header name and HMRC's message.
+
+This check uses the same header-building code path as a real submission, ensuring consistency. Fix any errors and recheck. A passing check means the headers conform to HMRC's spec and are ready for VAT submissions.
+
+**Audit trail:** Each validation run is recorded in `audit_events` with action `hmrc.fraud_headers.validated`. The snapshot includes the outcome, HMRC's response code, and the names of all headers sent (values are not logged, per DP-8).
 
 ## Local development
 

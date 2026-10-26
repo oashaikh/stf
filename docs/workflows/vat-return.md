@@ -138,54 +138,56 @@ Drafts and confirmed returns are edited on the review above, not in the history.
 
 Every HMRC MTD call (obligations, preview, submit) includes mandatory fraud prevention headers that identify the connection method, user, and device. HMRC checks these headers to prevent spoofed submissions. STF uses the `WEB_APP_VIA_SERVER` connection method.
 
-### Header sources and format
+**Full reference:** See `docs/fraud-prevention-headers.md` for the complete header table, vendor IP and licence ID configuration, percent-encoding rules, and HMRC's official specification link.
 
-The complete WEB_APP_VIA_SERVER header set is built by `src/lib/hmrc/fraudHeaders.ts::buildFraudHeaders()` and sent by every route that calls HMRC. The headers are assembled from three sources: server config, the incoming request, and the browser (via `x-stf-*` request headers sent from the SPA).
+### Building the headers
 
-| Header | Source | Format | Notes |
-|---|---|---|---|
-| **Gov-Client-Connection-Method** | Server constant | `WEB_APP_VIA_SERVER` | Required. Identifies this as a web app via a server backend. |
-| **Gov-Client-User-IDs** | Server (user database) | `stf=<user-id>` | Required. The user's internal STF id (never an email address). Percent-encoded. |
-| **Gov-Vendor-Product-Name** | Server constant | `stf` | Required. Identifies the application. |
-| **Gov-Vendor-Version** | Server (package.json + git) | `stf=0.1.0` or `stf=0.1.0+abc1234` | Required. Package version; short commit SHA appended when available. |
-| **Gov-Client-Public-IP** | Request headers | Client's IPv4 or IPv6 address | Optional. Extracted from `x-vercel-forwarded-for` (Vercel first), falls back to `x-forwarded-for`. First entry only. Validated with `isIP()`. |
-| **Gov-Client-Public-IP-Timestamp** | Server (time) | ISO 8601 with milliseconds, e.g. `2026-10-26T09:30:00.123Z` | Optional. Set when the client IP is present. |
-| **Gov-Vendor-Public-IP** | Environment (HMRC_VENDOR_PUBLIC_IP) | Server's egress IPv4 or IPv6 address | Optional. Configured for Vercel deployments. |
-| **Gov-Vendor-Forwarded** | Request + environment | `by=<vendor-ip>&for=<client-ip>` | Optional. Set only when both vendor and client IPs are known. Percent-encoded. |
-| **Gov-Vendor-License-IDs** | Environment (HMRC_VENDOR_LICENSE_ID) | `stf=<SHA256-uppercase>` | Optional. SHA-256 hash of the licence id; never sends the id itself. |
-| **Gov-Client-Device-ID** | Browser (x-stf-device-id) | UUID v4 | Optional. Browser device id. Dropped if malformed. |
-| **Gov-Client-Timezone** | Browser (x-stf-timezone) | `UTC±HH:MM` | Optional. Browser timezone. Dropped if malformed. |
-| **Gov-Client-Screens** | Browser (x-stf-screens) | Comma-separated list: `width=N&height=N&scaling-factor=N.N&colour-depth=N` | Optional. Each display's screen info. Dropped if any entry is malformed. |
-| **Gov-Client-Window-Size** | Browser (x-stf-window-size) | `width=N&height=N` | Optional. Current window size. Dropped if malformed. |
-| **Gov-Client-Browser-Do-Not-Track** | Browser (x-stf-do-not-track) | `true` or `false` | Optional. Dropped if neither. |
-| **Gov-Client-Browser-JS-User-Agent** | Browser (x-stf-js-user-agent) | User-Agent string | Optional. Percent-encoded. |
+The complete header set for WEB_APP_VIA_SERVER is built by `src/lib/hmrc/fraudHeaders.ts::buildFraudHeaders()`. The function reads from three sources:
 
-**Multi-factor authentication header:** `Gov-Client-Multi-Factor` is never sent. HMRC specifies this header only when multi-factor authentication is used; STF uses password-only authentication, so the header is omitted.
+1. **Server config:** Application name, version (from package.json + git), user ID from the database
+2. **Request headers:** Client IP from `x-vercel-forwarded-for` (Vercel) or `x-forwarded-for`; vendor IP from `HMRC_VENDOR_PUBLIC_IP` environment variable
+3. **Browser values:** Device ID, timezone, screen dimensions, window size, DNT preference, User-Agent; sent by the SPA as `x-stf-*` headers
 
-**Malformed browser values:** If a browser-supplied header (x-stf-*) does not match HMRC's format, it is dropped rather than forwarded. This prevents silent validation failures at HMRC.
+Malformed browser-supplied values (those that don't match HMRC's format) are dropped rather than forwarded, preventing silent validation failures at HMRC.
 
-**Percent encoding:** All header values that contain user input (userId, appVersion, device id, user agent) are percent-encoded per HMRC's spec, including special characters like spaces, ampersands and equals signs.
+### Header set for WEB_APP_VIA_SERVER
+
+| Header | Mandatory | Source |
+|---|---|---|
+| `Gov-Client-Connection-Method` | Yes | Server constant (`WEB_APP_VIA_SERVER`) |
+| `Gov-Client-User-IDs` | Yes | User database (internal STF id, percent-encoded) |
+| `Gov-Vendor-Product-Name` | Yes | Server constant (`stf`) |
+| `Gov-Vendor-Version` | Yes | package.json version, plus short git commit SHA when available (e.g., `stf=0.1.0+abc1234`) |
+| `Gov-Client-Public-IP` | No | Client IP (extracted from request headers, validated with `isIP()`) |
+| `Gov-Client-Public-IP-Timestamp` | No | ISO 8601 with milliseconds (set when client IP is present) |
+| `Gov-Vendor-Public-IP` | No | Server's public egress IP (from `HMRC_VENDOR_PUBLIC_IP` env var) |
+| `Gov-Vendor-Forwarded` | No | `by=<vendor-ip>&for=<client-ip>` (set when both IPs are known, percent-encoded) |
+| `Gov-Vendor-License-IDs` | No | SHA-256 hash of licence id (from `HMRC_VENDOR_LICENSE_ID` env var; never sends the id itself) |
+| `Gov-Client-Device-ID` | No | UUID v4 from browser (dropped if malformed) |
+| `Gov-Client-Timezone` | No | Browser timezone in `UTC±HH:MM` format (dropped if malformed) |
+| `Gov-Client-Screens` | No | Comma-separated list of display dimensions (dropped if any entry is malformed) |
+| `Gov-Client-Window-Size` | No | Application window size as `width=N&height=N` (dropped if malformed) |
+| `Gov-Client-Browser-Do-Not-Track` | No | `true` or `false` (dropped if neither) |
+| `Gov-Client-Browser-JS-User-Agent` | No | Browser User-Agent string (percent-encoded) |
+
+**Multi-factor authentication:** `Gov-Client-Multi-Factor` is never sent. HMRC specifies this header only when multi-factor authentication is used. STF uses password-only authentication, so the header is omitted per HMRC's guidance.
 
 ### Fraud headers validation check
 
-STF provides a server-side check that validates the fraud headers against HMRC's sandbox Test Fraud Prevention Headers API. This is not a real submission; it only tests that the headers conform to HMRC's spec.
+Before submitting VAT returns to HMRC, use the built-in fraud headers check to validate that all headers conform to HMRC's spec.
 
-**Running the check:**
+**To run the check:**
 1. Sign in to Settings.
-2. Under "HMRC", click "Check HMRC fraud headers".
-3. The check runs, calls HMRC's sandbox validator, and displays the result:
+2. Scroll to the HMRC section.
+3. Click "Check HMRC fraud headers".
+4. The check calls HMRC's sandbox Test Fraud Prevention Headers validator (not a real submission) and displays the result:
    - **Pass:** All headers are valid. The app is ready for VAT submissions.
-   - **Fail:** HMRC reports errors or warnings. Each entry names the affected header and HMRC's message. Fix the header and recheck.
+   - **Errors:** HMRC reports which headers are invalid, with a message for each. Fix the header and recheck.
+   - **Warnings:** HMRC reports suggestions; warnings do not block submissions.
 
-**Audit trail:** Each validation run is recorded in `audit_events` with action `hmrc.fraud_headers.validated`. The snapshot includes:
-- The outcome (`pass` or `fail`)
-- HMRC's response code
-- Error and warning messages
-- The names of all headers sent (not their values, per DP-8)
+**Audit trail:** Each validation run is recorded in `audit_events` with action `hmrc.fraud_headers.validated`. The snapshot includes the outcome, HMRC's response code, and the names of all headers sent (values are not logged, per DP-8).
 
-Tokens are never stored in audit events or logs.
-
-**Sandbox only:** The validator is available only in the HMRC sandbox. It is called at `POST /api/vat/fraud-headers-check` and requires the user to be signed in.
+**Sandbox only:** The validator is available only in the HMRC sandbox. The endpoint is `POST /api/vat/fraud-headers-check` and requires the user to be signed in.
 
 ## Units
 

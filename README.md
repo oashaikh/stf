@@ -44,6 +44,24 @@ npm run dev:server
 
 ---
 
+## Journey test against a deployed URL
+
+One Playwright spec signs in as the owner and walks Dashboard, Expenses, VAT (review of the first open obligation, then "Preview what will be sent") and Settings at 390 px. It fails on any console error and names the step, the URL and the screenshot. It never presses Submit or Confirm: any request other than GET, the login, and the preview is blocked and fails the run.
+
+```bash
+# Against a deployed app (read-only apart from the login)
+JOURNEY_BASE_URL=https://your-app.example JOURNEY_OWNER_PASSWORD=... npm run test:journey
+
+# Locally, against the built preview with a mocked API
+npm run build && npm run test:journey:mock
+```
+
+Screenshots go to `e2e/artifacts/<run>/`, one per step. `<run>` is a timestamp unless you set `JOURNEY_RUN_NAME`. Set `JOURNEY_CHROMIUM_PATH` to use an existing Chrome instead of Playwright's own (`npx playwright install chromium`).
+
+The first open VAT return must already be confirmed, because the preview button only appears then and the test will not confirm it. Opening an unconfirmed return makes the app save a draft; the test blocks that write and fails at the preview step.
+
+---
+
 ## Required API keys
 
 You supply all keys. STF does not phone home.

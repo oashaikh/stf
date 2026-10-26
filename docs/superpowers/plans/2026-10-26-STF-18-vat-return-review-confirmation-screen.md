@@ -96,3 +96,7 @@
 - [x] **Task 9: Fix: address 6 review findings (cycle 3)** (after 8)
   - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. The server enforces the acceptance criterion: confirm needs a literal declaration:true (422 otherwise), recomputes the boxes and The agent is fixing them; nothing is needed from you.
   - Commit: (none — no code change for this task)
+
+- [x] **Task 10: Fix: address 7 review findings (cycle 4)** (after 9)
+  - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. Confirm returns 422 unless the body has a literal declaration:true, recomputes boxes server-side and ignores client boxes. requi The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

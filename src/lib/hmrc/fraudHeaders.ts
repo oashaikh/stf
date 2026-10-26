@@ -5,6 +5,9 @@
  * See: https://developer.service.hmrc.gov.uk/guides/fraud-prevention/
  */
 
+import { createHash } from 'node:crypto';
+import { isIP } from 'node:net';
+
 export type FraudHeaderInput = {
   request: Request;
   /** Internal STF user id. Never an email address. */
@@ -12,6 +15,8 @@ export type FraudHeaderInput = {
   appVersion: string;
   /** Egress IP of this server; Vercel does not expose it on the request. */
   vendorPublicIp?: string;
+  /** Raw licence id of this deployment; only its SHA-256 is sent. */
+  vendorLicenseId?: string;
   now: Date;
 };
 
@@ -36,23 +41,31 @@ function encodeValue(value: string): string {
   return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
-// Structured headers such as "width=1920&height=1080" keep their separators;
-// only each key and value is encoded.
-function encodePairs(pairs: string): string {
-  return pairs
-    .split('&')
-    .map((pair) => {
-      const separatorIndex = pair.indexOf('=');
-      if (separatorIndex === -1) return encodeValue(pair);
-      return `${encodeValue(pair.slice(0, separatorIndex))}=${encodeValue(pair.slice(separatorIndex + 1))}`;
-    })
-    .join('&');
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TIMEZONE = /^UTC[+-]\d{2}:\d{2}$/;
+const WINDOW_SIZE = /^width=\d+&height=\d+$/;
+const SCREEN = /^width=\d+&height=\d+&scaling-factor=\d+(\.\d+)?&colour-depth=\d+$/;
+const DO_NOT_TRACK = /^(true|false)$/;
+
+// Browser values are untrusted input: one that does not match HMRC's format is dropped, not forwarded.
+function matching(value: string | undefined, pattern: RegExp): string | undefined {
+  return value && pattern.test(value) ? value : undefined;
 }
 
 export function buildFraudHeaders(input: FraudHeaderInput): Record<string, string> {
-  const { request, userId, appVersion, vendorPublicIp, now } = input;
+  const { request, userId, appVersion, vendorPublicIp, vendorLicenseId, now } = input;
   const incoming = (name: string) => request.headers.get(name)?.trim() || undefined;
 
+  // Vercel sets x-vercel-forwarded-for even behind a proxy; the first x-forwarded-for entry is the client.
+  const clientIp = (incoming('x-vercel-forwarded-for') ?? incoming('x-forwarded-for'))?.split(',')[0].trim();
+  const publicClientIp = clientIp && isIP(clientIp) ? clientIp : undefined;
+  const vendorIp = vendorPublicIp && isIP(vendorPublicIp) ? vendorPublicIp : undefined;
+  const screens = incoming('x-stf-screens');
+  const jsUserAgent = incoming('x-stf-js-user-agent');
+
+  // Gov-Client-Multi-Factor is deliberately never sent: HMRC says to send it only when multi-factor
+  // authentication is used, and "if you authenticate with username and password only, you will not be
+  // able to collect a value" (guides/fraud-prevention, WEB_APP_VIA_SERVER).
   const headers: Record<string, string> = {
     'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER',
     'Gov-Client-User-IDs': `stf=${encodeValue(userId)}`,
@@ -60,22 +73,31 @@ export function buildFraudHeaders(input: FraudHeaderInput): Record<string, strin
     'Gov-Vendor-Product-Name': encodeValue(PRODUCT_NAME),
   };
 
-  const optional: Array<[string, string | undefined, (value: string) => string]> = [
-    // The first x-forwarded-for entry is the client; later ones are proxies.
-    ['Gov-Client-Public-IP', incoming('x-forwarded-for')?.split(',')[0].trim() || undefined, encodeValue],
-    ['Gov-Vendor-Public-IP', vendorPublicIp, encodeValue],
-    ['Gov-Client-Device-ID', incoming('x-stf-device-id'), encodeValue],
-    ['Gov-Client-Timezone', incoming('x-stf-timezone'), encodeValue],
-    ['Gov-Client-Screens', incoming('x-stf-screens'), encodePairs],
-    ['Gov-Client-Window-Size', incoming('x-stf-window-size'), encodePairs],
-    ['Gov-Client-Browser-JS-User-Agent', incoming('x-stf-js-user-agent'), encodeValue],
+  const optional: Array<[string, string | undefined]> = [
+    ['Gov-Client-Public-IP', publicClientIp],
+    ['Gov-Vendor-Public-IP', vendorIp],
+    // Each IP is percent-encoded so an IPv6 address cannot be mistaken for a separator.
+    [
+      'Gov-Vendor-Forwarded',
+      vendorIp && publicClientIp ? `by=${encodeValue(vendorIp)}&for=${encodeValue(publicClientIp)}` : undefined,
+    ],
+    [
+      'Gov-Vendor-License-IDs',
+      vendorLicenseId
+        ? `${encodeValue(PRODUCT_NAME)}=${createHash('sha256').update(vendorLicenseId).digest('hex').toUpperCase()}`
+        : undefined,
+    ],
+    ['Gov-Client-Device-ID', matching(incoming('x-stf-device-id'), UUID)],
+    ['Gov-Client-Timezone', matching(incoming('x-stf-timezone'), TIMEZONE)],
+    ['Gov-Client-Screens', screens?.split(',').every((screen) => SCREEN.test(screen)) ? screens : undefined],
+    ['Gov-Client-Window-Size', matching(incoming('x-stf-window-size'), WINDOW_SIZE)],
+    ['Gov-Client-Browser-Do-Not-Track', matching(incoming('x-stf-do-not-track'), DO_NOT_TRACK)],
+    ['Gov-Client-Browser-JS-User-Agent', jsUserAgent && encodeValue(jsUserAgent)],
   ];
-  for (const [name, value, encode] of optional) {
-    if (value) headers[name] = encode(value);
+  for (const [name, value] of optional) {
+    if (value) headers[name] = value;
   }
 
-  if (headers['Gov-Client-Public-IP']) {
-    headers['Gov-Client-Public-IP-Timestamp'] = now.toISOString();
-  }
+  if (publicClientIp) headers['Gov-Client-Public-IP-Timestamp'] = now.toISOString();
   return headers;
 }

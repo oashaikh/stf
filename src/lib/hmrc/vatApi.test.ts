@@ -22,6 +22,7 @@ describe('fetchVatObligations', () => {
     expect(init.headers['x-stf-screens']).toContain('width=');
     expect(init.headers['x-stf-window-size']).toContain('height=');
     expect(init.headers['x-stf-js-user-agent']).toBe(navigator.userAgent);
+    expect(init.headers['x-stf-do-not-track']).toMatch(/^(true|false)$/);
     expect(init.headers['x-stf-device-id']).toMatch(/^[0-9a-f-]{36}$/);
   });
 

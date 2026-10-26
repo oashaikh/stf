@@ -362,14 +362,14 @@ function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: B
     <>
       <tr className="border-b border-gray-100">
         <td className="py-1 pr-4 text-gray-900">{box}</td>
-        <td className="max-w-0 truncate py-1 pr-4 text-gray-900" title={label}>
+        <td className="py-1 pr-4 text-gray-900">
           {lines ? (
             <button
               type="button"
               aria-expanded={expanded}
               aria-controls={detailId}
               onClick={onToggle}
-              className="min-h-[44px] max-w-full truncate text-left text-blue-700 underline"
+              className="min-h-[44px] text-left text-blue-700 underline"
             >
               {label}
             </button>

@@ -2,8 +2,8 @@
 
 **Full project plan for AI agents and human contributors.**
 
-Last updated: 2026-07-21
-Status: Active development — Phase 1
+Last updated: 2026-10-26
+Status: Active development — Phase 1 and Phase 2 partly done
 
 ---
 
@@ -32,16 +32,17 @@ AI (Claude Haiku) automates the tedious parts: reading receipts, suggesting expe
 | Frontend | React 18 + TypeScript + Vite | Same as URDF; proven stack |
 | Styling | Tailwind CSS | Fast, consistent, small bundle |
 | State | Zustand | Lightweight; no Redux overhead |
-| Backend API | Vercel serverless (TypeScript) | Zero-ops for self-hosters; edge-friendly |
-| Control plane | Fastify (Node.js) | Scheduled jobs, HMRC token refresh |
-| Database | PostgreSQL (via Drizzle ORM) | Relational integrity for financial data |
+| Backend API | Vercel serverless routes in `api/` (TypeScript), London region (`lhr1`) | Zero-ops hosting |
+| Scheduled jobs | Vercel Cron (`vercel.json`, routes in `api/cron/`) | HMRC token refresh |
+| Local control plane | Fastify (`server/`) | Runs the scheduled jobs locally only; serves no user routes |
+| Database | Neon Postgres (London) via Drizzle ORM | Relational integrity for financial data |
 | Auth | Single-owner password | Signed session cookie; OWNER_PASSWORD + SESSION_SECRET |
 | AI | Anthropic Claude Haiku | Vision for receipts; fast; cheap; user-supplied key |
 | PDF generation | `@react-pdf/renderer` | Invoice PDF export |
 | Object storage | S3-compatible (MinIO for self-host) | Receipt/document storage |
 | Open banking | TrueLayer or GoCardless (user-supplied) | Bank transaction feed (Phase 3) |
 | HMRC | MTD VAT API v1, MTD Income Tax v2 | Tax submissions |
-| Testing | Vitest + Playwright | Unit + E2E |
+| Testing | Vitest | Unit tests (Playwright E2E is not set up yet) |
 | CI/CD | GitHub Actions + Vercel | Matches URDF pipeline |
 
 ---
@@ -53,9 +54,9 @@ AI (Claude Haiku) automates the tedious parts: reading receipts, suggesting expe
 **Goal:** A working local app where a sole trader can record income and expenses, see their P&L, and export a URDF-style report.
 
 Milestone checklist:
-- [ ] Project scaffold (done — you're reading this)
-- [ ] Database schema + migrations (Drizzle)
-- [ ] Auth — single-owner password login
+- [x] Project scaffold
+- [x] Database schema + migrations (Drizzle)
+- [x] Auth — single-owner password login
 - [ ] Chart of accounts (seeded defaults, user-editable)
 - [ ] Manual transaction entry (income + expense)
 - [ ] Receipt upload (image/PDF)
@@ -63,21 +64,21 @@ Milestone checklist:
 - [ ] Basic P&L report (date range, income vs expenses)
 - [ ] Invoice creation and PDF export
 - [ ] Expense list with search and filter
-- [ ] Unit tests: money arithmetic, VAT calculation
-- [ ] `.env.example` with all required keys documented
-- [ ] `docker-compose.yml` for local Postgres + MinIO
+- [x] Unit tests: money arithmetic, VAT calculation
+- [x] `.env.example` with all required keys documented
+- [x] `docker-compose.yml` for local Postgres + MinIO
 
 ### Phase 2 — VAT
 
 **Goal:** Full VAT return workflow with HMRC MTD submission.
 
 Milestone checklist:
-- [ ] HMRC OAuth flow (user connects their Government Gateway account)
-- [ ] MTD VAT obligations fetch (what returns are due)
-- [ ] VAT return builder (pulls transactions by period, computes nine boxes)
+- [x] HMRC OAuth flow (user connects their Government Gateway account)
+- [x] MTD VAT obligations fetch (what returns are due)
+- [x] VAT return builder (pulls transactions by period, computes nine boxes)
 - [x] User review and confirmation screen
-- [ ] HMRC MTD VAT submit (sandbox first, then production)
-- [ ] VAT return history and status tracking
+- [x] HMRC MTD VAT submit (sandbox first, then production)
+- [x] VAT return history and status tracking
 - [ ] Flat Rate Scheme support
 - [ ] Cash accounting basis support
 - [ ] Integration tests against HMRC sandbox
@@ -108,18 +109,7 @@ Milestone checklist:
 - [ ] Bank reconciliation workflow (match imported to recorded)
 - [ ] Unmatched transaction alerts
 
-### Phase 5 — Corporation Tax (Limited Companies)
-
-**Goal:** Support limited companies alongside sole traders.
-
-Milestone checklist:
-- [ ] Business type: limited company
-- [ ] Company accounts structure (directors' loan, dividends, etc.)
-- [ ] Corporation Tax calculation (main rate + associated companies rule)
-- [ ] HMRC Corporation Tax API integration
-- [ ] iXBRL accounts generation (or integration with HMRC's online filing)
-
-### Phase 6 — Advanced Automation
+### Phase 5 — Advanced Automation
 
 **Goal:** Reduce manual entry to near-zero for common workflows.
 
@@ -129,7 +119,6 @@ Milestone checklist:
 - [ ] Mileage log (HMRC approved mileage rates)
 - [ ] AI anomaly detection (unusual amounts, duplicate receipts)
 - [ ] Automated VAT return draft (scheduled, requires user approval before submit)
-- [ ] Multi-user (accountant access — read-only view of client books)
 
 ---
 
@@ -137,7 +126,7 @@ Milestone checklist:
 
 ### Receipt extraction (Claude Haiku)
 
-**Agent SOP:** `docs/agents/receipt-extraction.md`
+**Agent SOP:** to be written in the agent SOP folder when this feature is built (see Agent SOPs below)
 
 Flow:
 1. User uploads image or PDF of a receipt.
@@ -205,17 +194,9 @@ National Insurance: £XXX
 Set aside: £X,XXX (suggested 30% of profit)
 ```
 
-Tax bands for current year (2025/26):
-- Personal allowance: £12,570
-- Basic rate: 20% (£12,571 – £50,270)
-- Higher rate: 40% (£50,271 – £125,140)
-- Additional rate: 45% (over £125,140)
+Income tax and Class 4 NIC bands, rates and allowances live in `src/lib/taxBands.ts`, keyed by tax year. Do not copy the figures into docs.
 
-Class 4 NIC rates:
-- 6% on profits £12,570 – £50,270
-- 2% on profits over £50,270
-
-All band values must be stored as constants in `src/lib/taxBands.ts` with the tax year as a key. Never hard-code them in components.
+Never hard-code band values in components.
 
 ---
 
@@ -235,7 +216,7 @@ Flow:
 3. User signs in with Government Gateway and grants access.
 4. HMRC redirects back with `code`.
 5. Server exchanges `code` for `access_token` + `refresh_token`.
-6. Tokens stored encrypted in `users` table.
+6. Tokens stored encrypted in the database.
 7. Server refreshes access token automatically before expiry (scheduled job).
 
 **HMRC sandbox:** Uses separate client credentials. Default for all new installations.
@@ -306,11 +287,11 @@ See `coding-standards.md`.
 
 ## Agent SOPs
 
-Located in `docs/agents/`. Required before any AI feature is built:
+The agent SOP folder (`docs/agents/`) does not exist yet; create it when the first SOP is written. Each SOP is required before its AI feature is built. Planned:
 
-- `docs/agents/receipt-extraction.md` — Haiku OCR SOP
-- `docs/agents/categorisation.md` — expense category suggestion SOP (Phase 2)
-- `docs/agents/anomaly-detection.md` — duplicate/unusual transaction SOP (Phase 6)
+- receipt-extraction — Haiku OCR SOP
+- categorisation — expense category suggestion SOP
+- anomaly-detection — duplicate/unusual transaction SOP (Phase 5)
 
 Each SOP must define:
 1. What data the agent may read.
@@ -324,81 +305,47 @@ Each SOP must define:
 
 ## Repository structure
 
+Only folders that exist today are listed. `docs/agents/`, `docs/adr/`, `src/store/`, `src/features/`, `src/hooks/`, `e2e/`, `infra/` and `scripts/` will be created when first needed.
+
 ```
 stf/
-├── AI.md                        # AI agent operating instructions
-├── architectures.md             # Architecture patterns and data model
-├── PLAN.md                      # This file
-├── README.md                    # Quick start
-├── coding-standards.md          # Code style and rules
-├── package.json                 # Frontend + API workspace
-├── vite.config.ts
-├── tsconfig.json
-├── docker-compose.yml
+├── AI.md, architectures.md, PLAN.md, README.md, CLAUDE.md, coding-standards.md
+├── package.json, vite.config.ts, tsconfig.json, vercel.json, drizzle.config.ts
+├── docker-compose.yml           # local Postgres + MinIO
 ├── .env.example
-├── .gitignore
 │
 ├── src/                         # React frontend
-│   ├── main.tsx
-│   ├── App.tsx
-│   ├── styles.css
+│   ├── main.tsx, App.tsx
+│   ├── styles/
 │   ├── components/              # Shared UI components
 │   ├── pages/                   # Route-level pages
-│   ├── features/                # Feature modules
-│   │   ├── expenses/
-│   │   ├── invoices/
-│   │   ├── receipts/
-│   │   ├── vat/
-│   │   ├── tax/
-│   │   ├── reports/
-│   │   ├── bank/
-│   │   └── settings/
-│   ├── hooks/                   # React hooks
 │   ├── lib/                     # Pure domain logic
 │   │   ├── money.ts             # formatPence, parsePence
 │   │   ├── vat.ts               # VAT calculation functions
 │   │   ├── taxBands.ts          # Income tax + NIC bands by year
 │   │   ├── receiptPrompt.ts     # Haiku prompt builder
-│   │   └── hmrc/
-│   │       ├── client.ts        # HMRC API client
-│   │       ├── fraudHeaders.ts  # MTD fraud prevention headers
-│   │       └── vatReturn.ts     # VAT return payload builder
-│   ├── model/                   # TypeScript types (mirror DB schema)
-│   └── store/                   # Zustand stores
+│   │   ├── session.ts, dates.ts
+│   │   └── hmrc/                # client.ts, fraudHeaders.ts, vatApi.ts, settingsApi.ts
+│   └── model/                   # TypeScript types (mirror DB schema)
 │
-├── api/                         # Vercel serverless functions
-│   ├── _lib/                    # Shared API utilities
-│   │   ├── auth.ts              # signed-cookie session verification
-│   │   ├── db.ts                # DB connection
-│   │   └── errors.ts            # Error response helpers
-│   ├── receipts/
-│   │   ├── upload.ts            # Upload endpoint
-│   │   └── extract.ts           # Haiku extraction endpoint
-│   ├── hmrc/
-│   │   ├── connect.ts           # OAuth start
-│   │   ├── callback.ts          # OAuth callback
-│   │   └── vat/
-│   │       ├── obligations.ts   # Fetch due returns
-│   │       └── submit.ts        # Submit return
-│   ├── invoices/
-│   │   ├── [id]/pdf.ts          # Generate PDF
-│   └── export.ts                # Data export
+├── api/                         # Vercel serverless routes (London region)
+│   ├── _lib/                    # Shared API code: auth.ts, db.ts, VAT and HMRC helpers
+│   ├── auth/                    # login.ts, logout.ts
+│   ├── cron/                    # refresh-hmrc-tokens.ts (Vercel Cron)
+│   ├── hmrc/                    # connect.ts, callback.ts, mode.ts, status.ts
+│   ├── vat/                     # obligations.ts, preview.ts, filed.ts, history.ts, submit.ts
+│   ├── settings/                # vat-number.ts
+│   └── me.ts
 │
-├── server/                      # Fastify control plane
+├── server/                      # Local control plane (Fastify), local scheduled jobs only
 │   └── src/
-│       ├── db/                  # DB connection + migrations
-│       ├── jobs/                # Scheduled jobs (token refresh, etc.)
-│       └── api/                 # Admin + internal API routes
+│       ├── db/                  # schema.ts, client.ts, migrations/
+│       ├── scheduled-jobs/      # Token refresh job
+│       └── lib/
 │
-├── docs/
-│   ├── adr/                     # Architecture Decision Records
-│   ├── agents/                  # AI agent SOPs
-│   ├── workflows/               # Workflow state machines
-│   └── runbooks/                # Operational runbooks
-│
-├── e2e/                         # Playwright end-to-end tests
-├── infra/                       # Docker, k3s, AWS manifests
-└── scripts/                     # Dev and ops scripts
+└── docs/
+    ├── workflows/               # Workflow write-ups
+    └── runbooks/                # Operational runbooks
 ```
 
 ---

@@ -16,39 +16,46 @@ The governing principle:
 2. `architectures.md` (this file)
 3. `PLAN.md`
 4. `docs/workflows/<workflow-name>.md`
-5. `docs/data-model.md`
-6. `docs/adr/*.md` (relevant)
-7. Source code
+5. `docs/runbooks/*.md` (relevant)
+6. Source code
+
+`docs/data-model.md` and `docs/adr/` do not exist yet. Create them when first needed.
 
 ---
 
 ## System boundary
 
+### Hosting
+
+- Frontend and API: Vercel, with serverless routes in `api/` running in the London region (`lhr1`, set in `vercel.json`).
+- Database: Neon Postgres in London.
+- Auth: one owner password (`OWNER_PASSWORD`) and a signed session cookie (`SESSION_SECRET`). No sign-up, no other users, no third-party identity provider.
+- Scheduled jobs: Vercel Cron calls routes in `api/cron/`. The Fastify control plane in `server/src/` exists only to run scheduled jobs locally.
+
 ### Owns
 - All financial records (transactions, expenses, invoices, receipts)
-- All tax calculations (VAT, Income Tax, Corporation Tax)
+- All tax calculations (VAT now; Income Tax planned)
 - All HMRC submission workflows
 - Audit trail for all mutations and submissions
 - AI extraction drafts and their confirmation status
 
 ### Does not own
-- Payment processing (Stripe owns card processing)
 - HMRC identity verification (HMRC owns OAuth)
-- Email delivery (email provider owns transport)
-- Bank transaction feed (Open Banking provider owns the feed)
+- Email delivery (planned; the email provider will own transport)
+- Bank transaction feed (planned; the Open Banking provider will own the feed)
 
 ### Upstream systems
 | System | Sends | Trust level | Failure behaviour |
 |---|---|---|---|
 | HMRC MTD API | Tax obligations, submission receipts | High (authoritative) | Store last-known state; surface error to user |
-| Open Banking API | Transaction feed | Medium | Queue retry; flag transactions as unsynced |
+| Open Banking API (planned) | Transaction feed | Medium | Queue retry; flag transactions as unsynced |
 | Anthropic API (Haiku) | Receipt extractions | Low (draft only) | Fall back to manual entry; log failure |
 
 ### Downstream systems
 | System | Receives | Dependency | Failure behaviour |
 |---|---|---|---|
 | HMRC MTD | VAT returns, income tax updates | Hard (prod) | Surface error; prevent re-submit; audit log |
-| Email provider | Notifications, invoice PDFs | Soft | Queue and retry; never block the main flow |
+| Email provider (planned) | Notifications, invoice PDFs | Soft | Queue and retry; never block the main flow |
 
 ---
 
@@ -74,11 +81,16 @@ VAT is calculated as: `vatPence = Math.round(netPence * vatRate)` where `vatRate
 
 ### Core tables
 
+The source of truth is `server/src/db/schema.ts` and the migrations beside it. The SQL below is the original design sketch and has drifted in places:
+- the VAT return is stored as `vat_return_drafts` plus `vat_submissions`, not one `vat_returns` table;
+- `login_attempts` (login throttle) is not shown;
+- `users.clerk_user_id` keeps its old name but holds the fixed owner id, to avoid a rename migration.
+
 ```sql
 -- The single owner row; created on first login
 CREATE TABLE users (
     id UUID PRIMARY KEY,
-    clerk_user_id TEXT NOT NULL UNIQUE,
+    clerk_user_id TEXT NOT NULL UNIQUE, -- legacy name; holds the fixed owner id
     email TEXT NOT NULL,
     display_name TEXT NULL,
     business_name TEXT NULL,
@@ -263,12 +275,13 @@ CREATE TABLE audit_events (
 |---|---|---|
 | Domain / business rules | `src/lib/` | Pure TS: money arithmetic, VAT calculation, tax bands, HMRC payload builders |
 | Data model types | `src/model/` | TypeScript types mirroring DB schema |
-| State | `src/store/` | Zustand stores; no financial logic here |
-| API routes | `api/` | Vercel serverless functions; thin — call domain layer |
-| Control plane | `server/src/` | Fastify; handles jobs, HMRC token refresh, scheduled tasks |
+| Schema and migrations | `server/src/db/` | Drizzle schema and SQL migrations |
+| API routes | `api/` | Vercel serverless functions (London); thin — call domain layer |
+| Scheduled jobs | `api/cron/` | Run by Vercel Cron (`vercel.json`) |
+| Local control plane | `server/src/` | Fastify; runs the scheduled jobs locally only. Serves no user routes |
 | UI | `src/components/` + `src/pages/` | React; display only |
-| AI agents | `api/receipts/` + `docs/agents/` | Haiku extraction; always draft |
-| Infra | `infra/` | Docker compose (local), k3s (self-hosted), AWS Fargate |
+| AI agents | `api/receipts/` + `docs/agents/` (both to be created with the first receipt feature) | Haiku extraction; always draft |
+| Local infra | `docker-compose.yml` | Postgres and MinIO for local work |
 
 ---
 
@@ -276,7 +289,7 @@ CREATE TABLE audit_events (
 
 ### Receipt extraction agent
 
-SOP: `docs/agents/receipt-extraction.md`
+Planned: not built yet. The SOP will be `docs/agents/receipt-extraction.md`, written before the feature.
 
 ```
 User uploads receipt image/PDF
@@ -316,11 +329,10 @@ If the image is not a receipt, Haiku must return `{ "error": "not_a_receipt" }`.
 HMRC Making Tax Digital APIs used:
 - MTD VAT API v1 — VAT return obligations, submission, view
 - MTD Income Tax API v2 — self-employment income, allowances (future)
-- Corporation Tax API (future)
 
 All HMRC calls go through `src/lib/hmrc/client.ts` which:
-- Reads user's token from DB (decrypted)
-- Refreshes the token if expired (via server job)
+- Reads the owner's token from DB (decrypted)
+- Refreshes the token if expired (Vercel Cron job in `api/cron/`)
 - Adds `Authorization: Bearer <token>` header
 - Logs full request + response to audit_events
 - Throws structured `HmrcError` with HMRC error code on failure
@@ -333,17 +345,15 @@ All HMRC calls go through `src/lib/hmrc/client.ts` which:
 
 ## Permission model
 
-All records are user-scoped. The permission model at launch is simple:
+STF has one owner. The permission model is simple:
 
-- Authenticated = can access own records
-- Unauthenticated = no access
+- Signed in with the owner password = full access
+- Not signed in = no access
 
-Every API route must extract `userId` from the signed session cookie server-side and scope all queries to that userId. No frontend-passed userId is trusted.
+Every API route must verify the signed session cookie server-side (`api/_lib/auth.ts`). The exceptions are login, logout, the HMRC OAuth callback (verifies its signed state) and the cron route (verifies the cron secret). No frontend-passed userId is trusted.
 
 ---
 
 ## ADR naming convention
 
-`docs/adr/NNNN-short-title.md`
-
-Start at `0001`. Use the same ADR template as URDF Studio (`architectures.md` in that repo).
+`docs/adr/` does not exist yet; create it with the first ADR. Name files `NNNN-short-title.md`, starting at `0001`.

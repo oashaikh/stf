@@ -23,7 +23,7 @@ Before making any change, read in order:
 
 ```bash
 npm run dev              # frontend dev server (http://localhost:5173)
-npm run dev:server       # Fastify control plane
+npm run dev:server       # local control plane (Fastify), local scheduled jobs only
 npm test                 # Vitest unit tests
 npm run build            # typecheck + bundle
 npm run push -- -a -m "message"  # safe commit + push
@@ -38,11 +38,13 @@ src/lib/vat.ts           — pure VAT calculation functions
 src/lib/taxBands.ts      — income tax and NIC bands by tax year
 src/lib/receiptPrompt.ts — Haiku prompt builder
 src/lib/hmrc/client.ts   — HMRC API client (all HMRC calls go through here)
-api/_lib/auth.ts         — Clerk token verification for API routes
+api/_lib/auth.ts         — signed-cookie owner session check for API routes
 api/_lib/db.ts           — DB connection
-docs/agents/             — AI agent SOPs (read before touching AI features)
-docs/adr/                — Architecture Decision Records
+docs/workflows/          — workflow write-ups (vat-return.md)
+docs/runbooks/           — operational runbooks (Vercel deploy, HMRC sandbox)
 ```
+
+`docs/agents/` (AI agent SOPs) and `docs/adr/` (decision records) do not exist yet. Create them when the first SOP or ADR is written.
 
 ## Remote access (Claude Code tunnels)
 

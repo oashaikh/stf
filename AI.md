@@ -37,7 +37,7 @@ Any feature that touches transaction amounts, VAT, tax calculations, or HMRC sub
 
 ### HMRC rule
 
-HMRC API calls (MTD VAT, MTD Income Tax, Corporation Tax) are **irreversible in most cases**.
+HMRC API calls (MTD VAT, and MTD Income Tax later) are **irreversible in most cases**.
 
 - Every HMRC API call must be preceded by a user-visible confirmation step.
 - Every HMRC API call must be logged with full request/response, user ID, and timestamp.
@@ -61,6 +61,12 @@ STF is open source. Users supply their own API keys.
 - All environment variables must be documented in `.env.example`.
 - The app must function with any valid Anthropic API key; it must not phone home.
 - HMRC credentials are always user-supplied and stored in user config, never in the repo.
+
+### Hosting rule
+
+- STF runs on Vercel serverless routes in `api/` (London region, `lhr1`), with Neon Postgres in London.
+- Login is a single owner password and a signed session cookie.
+- Scheduled jobs run through Vercel Cron (`vercel.json`, routes in `api/cron/`). The Fastify control plane in `server/` is only for running the same jobs locally.
 
 ---
 
@@ -87,9 +93,10 @@ Before planning or coding, read in order:
 2. `architectures.md`
 3. `PLAN.md`
 4. `docs/workflows/` (relevant workflow)
-5. `docs/data-model.md` (when it exists)
-6. `docs/adr/` (relevant ADRs)
-7. Relevant source code
+5. `docs/runbooks/` (relevant runbook)
+6. Relevant source code
+
+`docs/data-model.md` and `docs/adr/` do not exist yet; create them when first needed and add them here.
 
 ---
 
@@ -117,9 +124,9 @@ Every transaction, invoice, expense, receipt, and tax record must have a single 
 
 ### Layer 3: Access governance
 
-- User-scoped: every record belongs to exactly one user. No cross-user data access.
-- Admin routes (future multi-tenancy) must be separately gated.
-- HMRC credentials are user-supplied and stored encrypted per user.
+- STF is single-owner: one password login (`OWNER_PASSWORD`) and a signed session cookie (`SESSION_SECRET`). There is no sign-up and no second user.
+- Every route under `api/` must check the owner session server-side, except login, logout, the HMRC OAuth callback (checks its signed state) and the cron route (checks `CRON_SECRET`).
+- HMRC credentials are user-supplied and stored encrypted (AES-256-GCM).
 
 ### Layer 4: Minimal dependency policy
 
@@ -167,7 +174,7 @@ Every HMRC integration must have a sandbox fallback. Every bulk operation must b
 
 ### Layer 12: AI/automation
 
-AI agents (receipt extraction, categorisation suggestion) are Layer 1 read-only agents until measured accuracy justifies promotion. See agent SOPs in `docs/agents/`.
+AI agents (receipt extraction, categorisation suggestion) are Layer 1 read-only agents until measured accuracy justifies promotion. Agent SOPs will live in `docs/agents/`, created when the first AI agent SOP is written.
 
 ---
 

@@ -68,6 +68,9 @@ export const accounts = pgTable(
     accountType: accountTypeEnum('account_type').notNull(),
     taxCategory: text('tax_category'),
     isSystem: boolean('is_system').notNull().default(false),
+    // Archive instead of delete. The unique (user_id, code) index already backs
+    // the owner filter and code ordering of account queries, so no new index.
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({

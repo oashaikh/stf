@@ -30,6 +30,8 @@ export interface ReviewState {
   receipt: (SubmissionReceipt & { heading: string }) | null;
   /** Tells the user not to retry; set when the outcome could not be confirmed. */
   warning: string | null;
+  /** A nil return still needs confirming only until it is confirmed (and fresh) or filed. */
+  needsConfirming: boolean;
 }
 
 /** Boxes with contributing transactions; 2, 8 and 9 are always zero so have nothing to expand. */
@@ -77,5 +79,6 @@ export function reviewState(input: ReviewStateInput): ReviewState {
     warning: outcomeUnknown
       ? 'We could not confirm whether HMRC received this return. Do not submit again. Check your HMRC online account before trying again.'
       : null,
+    needsConfirming: !alreadyConfirmed && submission === null,
   };
 }

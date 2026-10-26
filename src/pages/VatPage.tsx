@@ -192,7 +192,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
           </p>
           {review.data.boxes.box5 === 0 && review.data.boxes.box6 === 0 && review.data.boxes.box7 === 0 && (
             <p className="mt-2 text-sm text-gray-500">
-              No VAT-relevant transactions in this period. This is a nil return and still needs confirming.
+              No VAT-relevant transactions in this period.{state.needsConfirming && ' This is a nil return and still needs confirming.'}
             </p>
           )}
 

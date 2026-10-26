@@ -72,6 +72,13 @@ describe('reviewState submit', () => {
   it('renders a nil return like any other', () => {
     expect(reviewState(confirmed).canSubmit).toBe(true);
   });
+  it('asks for confirmation of a nil return only while it is unconfirmed and unfiled', () => {
+    expect(reviewState(base).needsConfirming).toBe(true);
+    expect(reviewState({ ...base, status: null }).needsConfirming).toBe(true);
+    expect(reviewState({ ...confirmed, stale: true }).needsConfirming).toBe(true);
+    expect(reviewState(confirmed).needsConfirming).toBe(false);
+    expect(reviewState({ ...base, submission: receipt }).needsConfirming).toBe(false);
+  });
 });
 
 describe('boxLabel', () => {

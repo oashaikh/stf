@@ -48,7 +48,7 @@ Clerk enforces that session tokens carry an `azp` (authorized party) claim match
 https://app.example.com
 ```
 
-And set `APP_ORIGIN` to the same value. Both must match without `https://` and include no trailing slash.
+And set `APP_ORIGIN` to the same value. Use the full origin, including `https://` and with no trailing slash, for both.
 
 ## HMRC redirect URI
 

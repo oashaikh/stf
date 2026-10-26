@@ -38,7 +38,7 @@ describe('refresh-hmrc-tokens cron route', () => {
   });
 
   it('runs the refresh once with the correct secret', async () => {
-    const run = vi.fn().mockResolvedValue(undefined);
+    const run = vi.fn().mockResolvedValue({ attempted: 2, failed: 1 });
     const response = await createRefreshCronHandler(run, SECRET)(request(`Bearer ${SECRET}`));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
@@ -50,5 +50,21 @@ describe('refresh-hmrc-tokens cron route', () => {
     const response = await createRefreshCronHandler(run, SECRET)(request(`Bearer ${SECRET}`));
     expect(response.status).toBe(500);
     expect(await response.text()).not.toContain('abc123');
+  });
+
+  it('returns 500 when every attempted refresh failed, but 200 when none were due', async () => {
+    const handler = (summary: { attempted: number; failed: number }) =>
+      createRefreshCronHandler(vi.fn().mockResolvedValue(summary), SECRET)(request(`Bearer ${SECRET}`));
+    expect((await handler({ attempted: 3, failed: 3 })).status).toBe(500);
+    expect((await handler({ attempted: 0, failed: 0 })).status).toBe(200);
+  });
+
+  it('logs the error class but not the message when the refresh throws', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await createRefreshCronHandler(vi.fn().mockRejectedValue(new TypeError('token abc123 leaked')), SECRET)(request(`Bearer ${SECRET}`));
+    const logged = String(log.mock.calls[0]?.[0]);
+    expect(logged).toContain('TypeError');
+    expect(logged).not.toContain('abc123');
+    log.mockRestore();
   });
 });

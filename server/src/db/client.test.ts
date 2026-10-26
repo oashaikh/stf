@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { buildClientOptions } from './client';
 
@@ -12,5 +12,11 @@ describe('buildClientOptions', () => {
     const options = buildClientOptions(`postgres://postgres:postgres@${host}:5432/stf`);
     expect(options.ssl).toBeUndefined();
     expect(options).toMatchObject({ max: 1, idle_timeout: 20, prepare: false });
+  });
+
+  it.each([undefined, 'not a url'])('throws for %s on Vercel instead of dialling localhost', (url) => {
+    vi.stubEnv('VERCEL', '1');
+    expect(() => buildClientOptions(url)).toThrow('DATABASE_URL');
+    vi.unstubAllEnvs();
   });
 });

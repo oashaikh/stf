@@ -74,10 +74,16 @@ function defaultLogError(message: string, userId: string): void {
   console.error(`[refresh-hmrc-tokens] ${message} user=${userId}`);
 }
 
-export async function refreshDueTokens(deps: RefreshDeps): Promise<void> {
+export interface RefreshSummary {
+  attempted: number;
+  failed: number;
+}
+
+export async function refreshDueTokens(deps: RefreshDeps): Promise<RefreshSummary> {
   const { store, refresh, now, logError = defaultLogError } = deps;
   const dueUsers = await store.findDue(new Date(now().getTime() + REFRESH_WINDOW_MS), REFRESH_BATCH_LIMIT);
 
+  let failed = 0;
   for (const user of dueUsers) {
     try {
       // The HMRC call runs with no transaction open.
@@ -93,17 +99,25 @@ export async function refreshDueTokens(deps: RefreshDeps): Promise<void> {
         try {
           await store.clearTokens(user.id, user.refreshToken);
         } catch {
+          failed += 1;
           logError('could not clear revoked tokens', user.id);
         }
         continue;
       }
+      failed += 1;
       logError('token refresh failed', user.id);
     }
   }
+  return { attempted: dueUsers.length, failed };
 }
+
+export const runHmrcTokenRefresh = (): Promise<RefreshSummary> =>
+  refreshDueTokens({ store: databaseStore, refresh: (token) => refreshAccessToken(token), now: () => new Date() });
 
 export const refreshHmrcTokensJob: ScheduledJob = {
   name: 'refresh-hmrc-tokens',
   intervalMs: TICK_INTERVAL_MS,
-  run: () => refreshDueTokens({ store: databaseStore, refresh: (token) => refreshAccessToken(token), now: () => new Date() }),
+  run: async () => {
+    await runHmrcTokenRefresh();
+  },
 };

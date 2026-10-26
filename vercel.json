@@ -5,6 +5,9 @@
   "github": {
     "enabled": false
   },
+  "functions": {
+    "api/cron/refresh-hmrc-tokens.ts": { "maxDuration": 60 }
+  },
   "crons": [
     { "path": "/api/cron/refresh-hmrc-tokens", "schedule": "*/5 * * * *" }
   ],

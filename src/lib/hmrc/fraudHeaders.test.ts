@@ -44,8 +44,27 @@ describe('buildFraudHeaders', () => {
     });
   });
 
-  it('never sends Gov-Client-Multi-Factor: HMRC says to send it only when MFA is used, and sign-in is password only', () => {
+  it('omits Gov-Client-Multi-Factor when the session has no second factor', () => {
     expect(buildFraudHeaders(fullInput)).not.toHaveProperty('Gov-Client-Multi-Factor');
+  });
+
+  it('sends Gov-Client-Multi-Factor in HMRC format from the session record', () => {
+    const referenceHash = 'AB'.repeat(32);
+    const headers = buildFraudHeaders({
+      ...fullInput,
+      secondFactor: { type: 'TOTP', time: new Date('2026-10-26T09:15:30.456Z'), uniqueReference: referenceHash },
+    });
+    expect(headers['Gov-Client-Multi-Factor']).toBe(
+      `type=TOTP&timestamp=2026-10-26T09%3A15%3A30.456Z&unique-reference=${referenceHash}`,
+    );
+  });
+
+  it('percent-encodes every Gov-Client-Multi-Factor value', () => {
+    const headers = buildFraudHeaders({
+      ...fullInput,
+      secondFactor: { type: 'TOTP', time: now, uniqueReference: 'a b&c=d(1)' },
+    });
+    expect(headers['Gov-Client-Multi-Factor']).toContain('unique-reference=a%20b%26c%3Dd%281%29');
   });
 
   it('takes the client IP from x-forwarded-for when x-vercel-forwarded-for is absent, first entry only', () => {

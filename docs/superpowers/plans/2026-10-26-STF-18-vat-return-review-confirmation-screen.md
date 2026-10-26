@@ -88,3 +88,7 @@
 - [x] **Task 7: Fix: address 12 review findings (cycle 1)** (after 6)
   - Intent: Review left 12 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Server-side confirm and gate logic is sound: it needs a literal declaration:true, recomputes boxes server-side, scopes by user, and requireConfirmedReturn rejects missing, The agent is fixing them; nothing is needed from you.
   - Commit: `b46500b4eed0`
+
+- [x] **Task 8: Fix: address 10 review findings (cycle 2)** (after 7)
+  - Intent: Review left 10 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. I read the diff only and did not re-run the orchestrator's passing validation. Every cycle-1 correctness finding is fixed in thi The agent is fixing them; nothing is needed from you.
+  - Commit: `986e7f603506`

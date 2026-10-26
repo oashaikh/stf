@@ -6,13 +6,12 @@ import {
   createEntry,
   EntryRefusedError,
   ENTRIES_QUERY_KEY,
-  fetchEntries,
   fetchHasVatNumber,
 } from "../lib/entriesApi";
 import { entryFigures, parseEntryAmount } from "../lib/entryForm";
-import { DEFAULT_ENTRY_FILTERS } from "../lib/entryFilters";
 import { formatPence } from "../lib/money";
 import type { VatRate } from "../lib/vat";
+import EntriesList from "./EntriesList";
 
 const fieldClass =
   "mt-1 min-h-[44px] w-full rounded-md border border-gray-400 px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700";
@@ -348,58 +347,6 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
   );
 }
 
-function EntryList() {
-  const entries = useQuery({
-    queryKey: ENTRIES_QUERY_KEY,
-    queryFn: async () => (await fetchEntries(DEFAULT_ENTRY_FILTERS)).entries,
-  });
-  if (entries.isPending)
-    return (
-      <p role="status" className="mt-6 text-gray-700">
-        Loading entries…
-      </p>
-    );
-  if (entries.isError)
-    return (
-      <p role="alert" className="mt-6 text-red-800">
-        Could not load your entries. Please try again.
-      </p>
-    );
-  if (entries.data.length === 0)
-    return (
-      <p className="mt-6 text-gray-700">
-        No entries yet. Add your first one above.
-      </p>
-    );
-  return (
-    <ul className="mt-6 divide-y divide-gray-200 rounded-lg border border-gray-300 bg-white">
-      {entries.data.map((entry) => (
-        <li
-          key={entry.id}
-          className="flex min-h-[44px] items-center gap-3 px-4 py-2"
-        >
-          <span className="min-w-0 flex-1">
-            <span
-              className="block truncate font-medium"
-              title={entry.description}
-            >
-              {entry.description}
-            </span>
-            <span className="block text-sm text-gray-700">
-              {formatDate(entry.date)} ·{" "}
-              {entry.status === "draft" ? "Draft" : "Confirmed"}
-            </span>
-          </span>
-          <span className="text-right tabular-nums">
-            {entry.kind === "income" ? "In " : "Out "}
-            {formatPence(entry.grossPence)}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export default function ExpensesPage() {
   const [adding, setAdding] = useState(false);
   const vat = useQuery({
@@ -420,7 +367,7 @@ export default function ExpensesPage() {
         </button>
       </div>
       {adding && <AddEntryForm hasVatNumber={vat.data === true} />}
-      <EntryList />
+      <EntriesList />
     </main>
   );
 }

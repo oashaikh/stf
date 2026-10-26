@@ -53,7 +53,7 @@ describe('ExpensesPage add entry form', () => {
       </QueryClientProvider>,
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
-    await screen.findByRole('option', { name: 'Travel' });
+    await within(screen.getByLabelText('Category')).findByRole('option', { name: 'Travel' });
   }
   const type = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
   const fillValid = () => {

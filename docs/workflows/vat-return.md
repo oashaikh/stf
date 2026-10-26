@@ -116,6 +116,16 @@ The submission process writes two audit events (action, resource type, resource 
 
 **Testing note:** Every test mocks the HMRC API via the `submitVatReturn` function. Live HMRC is never called in any test. Sandbox filing is tested end-to-end with mocked responses; live filing is tested only via the mode mismatch gate and does not interact with HMRC.
 
+## History
+
+`GET /api/vat/history` lists the newest returns for the signed-in user. The VAT page shows them under
+"VAT return history" with a status of Draft, Confirmed, Submitted or Accepted, the period and net VAT due (box 5).
+Sandbox receipts carry a "Sandbox" label.
+
+Submitted and accepted returns are immutable. Opening one shows a view-only copy of boxes 1 to 9 and the stored
+HMRC receipt (form bundle number, processing date), with no Edit, Reopen, Confirm or Submit control.
+Drafts and confirmed returns are edited on the review above, not in the history.
+
 ## Units
 
 Everything is integer pence internally. Pounds appear only in `boxesToHmrcPayload`;

@@ -74,7 +74,7 @@ Also depends on:
     - No network or live database; npm test passes
   - Commit: `e8a3c4f3b1f0`
 
-- [ ] **Task 3: VAT drill-down links to the Expenses list, truthful nil-return message, component tests** (after 1)
+- [x] **Task 3: VAT drill-down links to the Expenses list, truthful nil-return message, component tests** (after 1)
   - Intent: In the DrillLine rows of BoxRows in src/pages/VatPage.tsx show date (UK format), description and amount (formatPence, right-aligned, tabular figures, one-line truncation with title tooltip, 44px tap target, labelled rows on phone), each linking with react-router Link to the Expenses page using STF-10's filter query: /expenses?from=<date>&to=<date>&search=<description> plus #entry-<id>, so it lands on the list STF-68 is building. Do not build a second list or edit ExpensesPage.tsx. Show the 'No VAT-relevant transactions' nil message only when entryCount is 0. Component tests: lines render with links, nil message hidden when entries exist but boxes net to zero, shown when count is 0.
   - Files: `src/pages/VatPage.tsx`, `src/pages/VatPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -83,6 +83,7 @@ Also depends on:
     - Link target for a known line is asserted in a test
     - npm run lint, typecheck and test pass
   - Risk: VatPage.tsx is shared with other VAT tickets; keep hunks local.
+  - Commit: `768a3e14d22c`
 
 - [ ] **Task 4: Update docs/workflows/vat-return.md on how entries reach the return** (after 2, 3)
   - Intent: Document the path: an entry is created through the posting rules, only confirmed or reconciled non-deleted entries are counted by loadLedgerLines, period dates are inclusive, entry lines map to boxes 1 to 9, how a refund shows in box 5, edit after confirming makes the confirmation stale, the STF-66 period lock after filing, the preview payload fields, and the drill-down link to the Expenses page and its filter query. Must match the code as built.

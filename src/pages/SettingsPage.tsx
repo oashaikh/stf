@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
+import { LegalLinks } from './LegalPages';
 import {
   describeHmrcStatus,
   fetchHmrcConnected,
@@ -252,6 +253,10 @@ export default function SettingsPage() {
           </>
         )}
         {modeFailed && <p className="mt-2 text-red-800" role="alert">Could not change the setting. Please try again.</p>}
+      </section>
+      <section className="mt-6 max-w-xl" aria-labelledby="legal-heading">
+        <h2 id="legal-heading" className="text-lg font-semibold text-gray-900">Privacy and terms</h2>
+        <LegalLinks />
       </section>
     </main>
   );

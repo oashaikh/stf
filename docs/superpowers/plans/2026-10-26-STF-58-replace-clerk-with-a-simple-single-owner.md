@@ -84,9 +84,10 @@
     - npm ci, lint, typecheck, test, build pass
   - Commit: `eeb70641d6bc`
 
-- [ ] **Task 6: Capture login and VAT page screenshots at 390 and 1440 px** (after 5)
+- [x] **Task 6: Capture login and VAT page screenshots at 390 and 1440 px** (after 5)
   - Intent: Run the app against a throwaway local data store with invented data and an invented OWNER_PASSWORD/SESSION_SECRET, then save screenshots of the login page and of the VAT page after login at 390 and 1440 px under browser-evidence/ following the existing layout. If no database can be started (no Docker), mock the API at the browser level and say so in the report. Screenshots must show no real data or secrets.
   - Files: `browser-evidence/login/screenshot-390.png`, `browser-evidence/login/screenshot-1440.png`, `browser-evidence/vat/screenshot-390.png`, `browser-evidence/vat/screenshot-1440.png`
   - Acceptance criteria the planner set:
     - Four PNGs exist at the stated paths with the right widths
     - Login page and post-login VAT page both visible; no secrets shown
+  - Commit: `33c2a1a665cd`

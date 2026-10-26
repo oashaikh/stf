@@ -75,13 +75,14 @@
     - lint, typecheck, test, build pass
   - Commit: `8264f031f8b8`
 
-- [ ] **Task 5: Remove Clerk packages, env vars and docs; add OWNER_PASSWORD and SESSION_SECRET** (after 4)
+- [x] **Task 5: Remove Clerk packages, env vars and docs; add OWNER_PASSWORD and SESSION_SECRET** (after 4)
   - Intent: Uninstall @clerk/backend and @clerk/clerk-react from package.json and package-lock.json (lockfile edit only, no other upgrades note in PR). In .env.example drop the Clerk block and add OWNER_PASSWORD= and SESSION_SECRET= with no values and a generation hint. Update docs/runbooks/vercel-deploy.md (remove Clerk vars and the 'Clerk allowed origins' section, add the two new vars and 'reset password by changing OWNER_PASSWORD'), and the Clerk mentions in README.md, CLAUDE.md-independent docs AI.md, architectures.md, PLAN.md. Confirm envExample.test.ts passes.
   - Files: `package.json`, `package-lock.json`, `.env.example`, `docs/runbooks/vercel-deploy.md`, `README.md`, `AI.md`, `architectures.md`, `PLAN.md`, `src/lib/__tests__/envExample.test.ts`
   - Acceptance criteria the planner set:
     - grep -ri clerk over package.json, .env.example, runbook and src/api returns nothing (historical migrations and old plan docs excepted)
     - OWNER_PASSWORD and SESSION_SECRET appear in .env.example with empty values
     - npm ci, lint, typecheck, test, build pass
+  - Commit: `eeb70641d6bc`
 
 - [ ] **Task 6: Capture login and VAT page screenshots at 390 and 1440 px** (after 5)
   - Intent: Run the app against a throwaway local data store with invented data and an invented OWNER_PASSWORD/SESSION_SECRET, then save screenshots of the login page and of the VAT page after login at 390 and 1440 px under browser-evidence/ following the existing layout. If no database can be started (no Docker), mock the API at the browser level and say so in the report. Screenshots must show no real data or secrets.

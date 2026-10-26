@@ -219,6 +219,8 @@ export const vatReturnDrafts = pgTable(
   (table) => ({
     // Also the lookup index: every query filters on (user_id, period_key).
     userPeriodUnique: unique().on(table.userId, table.periodKey),
+    // History list: one user's drafts newest first, with a LIMIT.
+    userPeriodEndIdx: index('vat_return_drafts_user_period_end_idx').on(table.userId, table.periodEnd),
   }),
 );
 

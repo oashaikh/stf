@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchVatObligations, NotConnectedError, SubmitVatError, submitVatReturn, VatNumberMissingError } from './vatApi';
+import { fetchVatHistory, fetchVatObligations, NotConnectedError, SubmitVatError, submitVatReturn, VatNumberMissingError } from './vatApi';
 
 const obligation = { periodKey: '18A1', start: '2026-01-01', end: '2026-03-31', due: '2026-05-07', status: 'O', overdue: false };
 
@@ -72,5 +72,23 @@ describe('submitVatReturn', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false, code: 'OUTCOME_UNKNOWN', error: 'Do not resubmit' }, 502));
     await expect(submitVatReturn('tok', period, fetchMock)).rejects.toMatchObject({ code: 'OUTCOME_UNKNOWN' });
     await expect(submitVatReturn('tok', period, fetchMock)).rejects.toBeInstanceOf(SubmitVatError);
+  });
+});
+
+describe('fetchVatHistory', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('sends the bearer token and returns the history items', async () => {
+    const item = { periodKey: '26A1', status: 'draft' };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, data: [item] }));
+    expect(await fetchVatHistory('tok', fetchMock)).toEqual([item]);
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe('/api/vat/history');
+    expect(init.headers.Authorization).toBe('Bearer tok');
+  });
+
+  it('throws when the request fails', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false }, 500));
+    await expect(fetchVatHistory('tok', fetchMock)).rejects.toThrow('Request to /api/vat/history failed');
   });
 });

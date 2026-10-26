@@ -104,6 +104,12 @@ describe("schema migrations", () => {
     });
   });
 
+  it("indexes vat_return_drafts by (user_id, period_end) for the history list", () => {
+    expect(sql).toMatch(
+      /CREATE INDEX IF NOT EXISTS "vat_return_drafts_user_period_end_idx" ON "vat_return_drafts" \("user_id","period_end"\)/,
+    );
+  });
+
   it("keeps the migration journal a single linear chain", () => {
     const journal = JSON.parse(
       readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"),

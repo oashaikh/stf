@@ -1,67 +1,77 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { verifyClerkToken } from '../auth';
+import { describe, expect, it, vi } from 'vitest';
+import { requireAuth, UnauthorizedError, withAuth, type AuthDeps } from '../auth';
 
-vi.mock('@clerk/backend', () => ({
-  verifyToken: vi.fn(),
-}));
+function makeDeps(verified: string | null = 'user_abc'): AuthDeps {
+  const rows = new Map<string, string>();
+  return {
+    issuer: {
+      verifyToken: vi.fn(async () => verified),
+      getEmail: vi.fn(async () => 'a@example.com'),
+    },
+    users: {
+      findId: vi.fn(async (issuerUserId: string) => rows.get(issuerUserId)),
+      createIfAbsent: vi.fn(async (issuerUserId: string) => {
+        if (!rows.has(issuerUserId)) rows.set(issuerUserId, `internal-${rows.size + 1}`);
+        return rows.get(issuerUserId) as string;
+      }),
+    },
+  };
+}
 
-import * as clerkBackend from '@clerk/backend';
-
-describe('verifyClerkToken', () => {
-  const originalEnv = process.env.CLERK_SECRET_KEY;
-
-  beforeEach(() => {
-    process.env.CLERK_SECRET_KEY = 'test-secret-key';
-    vi.clearAllMocks();
+const withBearer = (token?: string) =>
+  new Request('https://x.test/api/me', {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
   });
 
-  afterEach(() => {
-    if (originalEnv) {
-      process.env.CLERK_SECRET_KEY = originalEnv;
-    } else {
-      delete process.env.CLERK_SECRET_KEY;
-    }
+describe('requireAuth', () => {
+  it('rejects a request with no token without touching the issuer or database', async () => {
+    const deps = makeDeps();
+    await expect(requireAuth(withBearer(), deps)).rejects.toBeInstanceOf(UnauthorizedError);
+    expect(deps.issuer.verifyToken).not.toHaveBeenCalled();
+    expect(deps.users.findId).not.toHaveBeenCalled();
   });
 
-  it('should return error when token is missing', async () => {
-    const result = await verifyClerkToken('');
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('Missing authentication token');
+  it('rejects an invalid or expired token and creates no user', async () => {
+    const deps = makeDeps(null);
+    await expect(requireAuth(withBearer('bad'), deps)).rejects.toBeInstanceOf(UnauthorizedError);
+    expect(deps.users.createIfAbsent).not.toHaveBeenCalled();
   });
 
-  it('should return error when CLERK_SECRET_KEY is not set', async () => {
-    delete process.env.CLERK_SECRET_KEY;
-    const result = await verifyClerkToken('some-token');
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('Server misconfiguration: CLERK_SECRET_KEY not set');
+  it('provisions a user on first sign-in and reuses it afterwards', async () => {
+    const deps = makeDeps();
+    const first = await requireAuth(withBearer('good'), deps);
+    const second = await requireAuth(withBearer('good'), deps);
+    expect(first).toEqual({ userId: 'internal-1', issuerUserId: 'user_abc' });
+    expect(second.userId).toBe(first.userId);
+    expect(deps.users.createIfAbsent).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('withAuth', () => {
+  it('returns a 401 envelope and skips the handler when unauthenticated', async () => {
+    const handler = vi.fn();
+    const response = await withAuth(handler, makeDeps())(withBearer());
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ ok: false, error: 'Unauthorized', code: 'UNAUTHORIZED' });
+    expect(handler).not.toHaveBeenCalled();
   });
 
-  it('should return error when token is invalid', async () => {
-    const mockVerifyToken = vi.mocked(clerkBackend.verifyToken);
-    mockVerifyToken.mockRejectedValueOnce(new Error('Invalid token'));
-
-    const result = await verifyClerkToken('invalid-token');
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('Invalid or expired token');
+  it('passes the server-derived identity to the handler', async () => {
+    const handler = vi.fn(async () => new Response('ok'));
+    await withAuth(handler, makeDeps())(withBearer('good'));
+    expect(handler).toHaveBeenCalledWith(expect.any(Request), {
+      userId: 'internal-1',
+      issuerUserId: 'user_abc',
+    });
   });
 
-  it('should return error when decoded token has no userId', async () => {
-    const mockVerifyToken = vi.mocked(clerkBackend.verifyToken);
-    mockVerifyToken.mockResolvedValueOnce({ sub: undefined } as any);
-
-    const result = await verifyClerkToken('token-without-userid');
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('Invalid token: missing user ID');
-  });
-
-  it('should return userId for valid token', async () => {
-    const mockVerifyToken = vi.mocked(clerkBackend.verifyToken);
-    const testUserId = 'user_12345abcde';
-    mockVerifyToken.mockResolvedValueOnce({ sub: testUserId } as any);
-
-    const result = await verifyClerkToken('valid-token');
-    expect(result.success).toBe(true);
-    expect(result.userId).toBe(testUserId);
-    expect(result.error).toBeUndefined();
+  it('returns a generic 500 envelope when something other than auth fails', async () => {
+    const deps = makeDeps();
+    deps.issuer.verifyToken = vi.fn(async () => {
+      throw new Error('CLERK_SECRET_KEY secret-value missing');
+    });
+    const response = await withAuth(vi.fn(), deps)(withBearer('good'));
+    expect(response.status).toBe(500);
+    expect(JSON.stringify(await response.json())).not.toContain('secret-value');
   });
 });

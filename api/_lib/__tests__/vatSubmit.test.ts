@@ -59,6 +59,7 @@ function makeVatStore(ledger: Record<string, DrillLine[]>, confirmedFor: string[
       calls.receipts.push(receipt);
       calls.audits.push(audit);
     },
+    listReturnHistory: async () => [],
     markFailed: async (_userId, id, audit) => {
       submissions.delete(id);
       calls.failed.push(audit);

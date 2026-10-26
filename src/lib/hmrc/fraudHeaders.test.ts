@@ -58,6 +58,29 @@ describe('buildFraudHeaders', () => {
     expect(buildFraudHeaders({ ...baseInput, request })['Gov-Client-Public-IP']).toBe('2001:db8::1');
   });
 
+  it.each([
+    ['203.0.113.7:51234', '203.0.113.7', '51234'],
+    ['[2001:db8::1]:443', '2001:db8::1', '443'],
+    ['203.0.113.7:0', '203.0.113.7', '0'],
+    ['203.0.113.7:65535', '203.0.113.7', '65535'],
+  ])('takes the client IP and port from a forwarded value of %s', (forwarded, ip, port) => {
+    const headers = buildFraudHeaders({ ...baseInput, request: requestWith({ 'x-vercel-forwarded-for': forwarded }) });
+    expect(headers['Gov-Client-Public-IP']).toBe(ip);
+    expect(headers['Gov-Client-Public-Port']).toBe(port);
+  });
+
+  it.each(['203.0.113.7:65536', '203.0.113.7:abc', '203.0.113.7:-1', '203.0.113.7:12.5'])(
+    'drops Gov-Client-Public-Port when the forwarded port is malformed (%s)',
+    (forwarded) => {
+      const headers = buildFraudHeaders({ ...baseInput, request: requestWith({ 'x-forwarded-for': forwarded }) });
+      expect(headers).not.toHaveProperty('Gov-Client-Public-Port');
+    },
+  );
+
+  it('omits Gov-Client-Public-Port when the platform forwards only an IP (Vercel sends no client port)', () => {
+    expect(buildFraudHeaders({ ...baseInput, request: populated })).not.toHaveProperty('Gov-Client-Public-Port');
+  });
+
   it('omits headers it cannot source instead of faking them', () => {
     const headers = buildFraudHeaders({ ...baseInput, request: requestWith({}) });
     expect(Object.keys(headers).sort()).toEqual([

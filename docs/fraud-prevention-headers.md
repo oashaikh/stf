@@ -13,6 +13,7 @@ STF uses the `WEB_APP_VIA_SERVER` connection method, where a web application (th
 | `Gov-Vendor-Product-Name` | `stf` | Server constant | Yes | The application name. |
 | `Gov-Vendor-Version` | `0.1.0` or `0.1.0+abc1234` | package.json + git | Yes | Package version; short commit SHA appended when available (e.g., on Vercel via `VERCEL_GIT_COMMIT_SHA`). |
 | `Gov-Client-Public-IP` | Client IPv4 or IPv6 | Request headers | No | The client's real IP address, extracted from `x-vercel-forwarded-for` (Vercel) or `x-forwarded-for`. First entry only. Validated with `isIP()`. |
+| `Gov-Client-Public-Port` | Integer 0 to 65535 | Request headers | No | The client's source port. Vercel documents no client-port header (`x-forwarded-port` is the port the client connected to, not its source port), so it is sent only when the forwarded entry carries one as `ip:port` or `[ip]:port`. Otherwise it is omitted and HMRC's validator may report it as missing. |
 | `Gov-Client-Public-IP-Timestamp` | ISO 8601 timestamp | Server time | No | Set whenever `Gov-Client-Public-IP` is present. Format: `2026-10-26T09:30:00.123Z` (with milliseconds). |
 | `Gov-Vendor-Public-IP` | Server egress IPv4 or IPv6 | `HMRC_VENDOR_PUBLIC_IP` env var | No | The server's public egress IP address. On Vercel, set if your account has a fixed outbound IP. If not set, the header is omitted. |
 | `Gov-Vendor-Forwarded` | `by=<vendor-ip>&for=<client-ip>` | Combined from above | No | Set only when both the vendor and client IPs are known. Both values are percent-encoded. |

@@ -159,6 +159,7 @@ Malformed browser-supplied values (those that don't match HMRC's format) are dro
 | `Gov-Vendor-Product-Name` | Yes | Server constant (`stf`) |
 | `Gov-Vendor-Version` | Yes | package.json version, plus short git commit SHA when available (e.g., `stf=0.1.0+abc1234`) |
 | `Gov-Client-Public-IP` | No | Client IP (extracted from request headers, validated with `isIP()`) |
+| `Gov-Client-Public-Port` | No | Client source port, only when the forwarded entry carries one (`ip:port`); Vercel exposes none |
 | `Gov-Client-Public-IP-Timestamp` | No | ISO 8601 with milliseconds (set when client IP is present) |
 | `Gov-Vendor-Public-IP` | No | Server's public egress IP (from `HMRC_VENDOR_PUBLIC_IP` env var) |
 | `Gov-Vendor-Forwarded` | No | `by=<vendor-ip>&for=<client-ip>` (set when both IPs are known, percent-encoded) |

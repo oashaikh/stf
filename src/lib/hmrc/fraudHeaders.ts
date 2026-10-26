@@ -57,8 +57,18 @@ export function buildFraudHeaders(input: FraudHeaderInput): Record<string, strin
   const incoming = (name: string) => request.headers.get(name)?.trim() || undefined;
 
   // Vercel sets x-vercel-forwarded-for even behind a proxy; the first x-forwarded-for entry is the client.
-  const clientIp = (incoming('x-vercel-forwarded-for') ?? incoming('x-forwarded-for'))?.split(',')[0].trim();
+  // Vercel documents no client-port header (x-forwarded-port is the port the client connected to), so the
+  // port is only sent when the forwarded entry carries one as "ip:port" or "[ip]:port". Otherwise it is omitted.
+  const forwardedEntry = (incoming('x-vercel-forwarded-for') ?? incoming('x-forwarded-for'))?.split(',')[0].trim();
+  const [, bracketedIp, bracketedPort] = forwardedEntry?.match(/^\[([^\]]+)\]:(.*)$/) ?? [];
+  const [, ipv4, ipv4Port] = forwardedEntry?.match(/^(\d{1,3}(?:\.\d{1,3}){3}):(.*)$/) ?? [];
+  const clientIp = bracketedIp ?? ipv4 ?? forwardedEntry;
+  const forwardedPort = bracketedPort ?? ipv4Port;
   const publicClientIp = clientIp && isIP(clientIp) ? clientIp : undefined;
+  const publicClientPort =
+    publicClientIp && forwardedPort && /^\d{1,5}$/.test(forwardedPort) && Number(forwardedPort) <= 65535
+      ? String(Number(forwardedPort))
+      : undefined;
   const vendorIp = vendorPublicIp && isIP(vendorPublicIp) ? vendorPublicIp : undefined;
   const screens = incoming('x-stf-screens');
   const jsUserAgent = incoming('x-stf-js-user-agent');
@@ -75,6 +85,7 @@ export function buildFraudHeaders(input: FraudHeaderInput): Record<string, strin
 
   const optional: Array<[string, string | undefined]> = [
     ['Gov-Client-Public-IP', publicClientIp],
+    ['Gov-Client-Public-Port', publicClientPort],
     ['Gov-Vendor-Public-IP', vendorIp],
     // Each IP is percent-encoded so an IPv6 address cannot be mistaken for a separator.
     [

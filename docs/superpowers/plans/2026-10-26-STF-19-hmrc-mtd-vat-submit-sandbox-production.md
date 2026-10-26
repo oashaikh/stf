@@ -94,7 +94,7 @@
   - Risk: Flips the switch that permits live tax filing; permission-related, so opus high for the endpoint and store change.
   - Commit: `91b4149b76c7`
 
-- [ ] **Task 6: Submit button, receipt display and API client on the VAT page** (after 4)
+- [x] **Task 6: Submit button, receipt display and API client on the VAT page** (after 4)
   - Intent: Wire the UI: add submitVatReturn call to src/lib/hmrc/vatApi.ts, extend reviewState (vatReviewState.ts) with submit states (confirmed and not stale -> can submit; submitting; submitted showing form bundle number and processing date; sandbox label 'Sandbox test submission' so a rehearsal is never mistaken for a real filing; unknown-outcome state telling the user not to retry and to check HMRC). VatPage shows a submit button after confirmation with a confirm dialog that states the period, net VAT in the page's money format (formatPence, right aligned, tabular) and whether this goes to HMRC sandbox or live; no HMRC submit without the dialog (). Uses shared loading/error components and the existing query patterns; no new dependency. Tests: vatReviewState.test.ts for each state, vatApi.test.ts with fetch mocked.
   - Files: `src/lib/hmrc/vatApi.ts`, `src/lib/hmrc/vatApi.test.ts`, `src/pages/vatReviewState.ts`, `src/pages/vatReviewState.test.ts`, `src/pages/VatPage.tsx`
   - Acceptance criteria the planner set:
@@ -103,6 +103,7 @@
     - Receipt (form bundle number, processing date) renders after success and on reload
     - Nil return renders and submits without special casing
     - lint, typecheck, test, build pass
+  - Commit: `ed4cd2e08088`
 
 - [ ] **Task 7: Docs and env example for submission** (after 4)
   - Intent: Document the flow: update docs/workflows/vat-return.md with the submit step, the double gate (HMRC_SANDBOX_MODE=false AND Settings opt-in), idempotency states (pending/submitted/failed and what 'outcome unknown' means), audit event names and what is stored, and that every test mocks HMRC. Add an .env.example comment on HMRC_SANDBOX_MODE (default true; production needs the Settings opt-in too) only if not already documented. No secrets, no real values.

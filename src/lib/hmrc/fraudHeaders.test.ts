@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFraudHeaders } from './fraudHeaders';
+import { buildFraudHeaders, vendorVersion } from './fraudHeaders';
 
 const now = new Date('2026-10-26T09:30:00.123Z');
 
@@ -62,5 +62,15 @@ describe('buildFraudHeaders', () => {
     expect(headers['Gov-Client-Device-ID']).toBe('x%20y');
     expect(headers['Gov-Client-User-IDs']).toBe('stf=id%20with%26odd%3Dchars');
     expect(headers['Gov-Vendor-Version']).toBe('stf=1%202');
+  });
+});
+
+describe('vendorVersion', () => {
+  it.each([undefined, '', '   '])('is the package version, never empty, for sha %j', (sha) => {
+    expect(vendorVersion(sha)).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it('appends the short commit when present', () => {
+    expect(vendorVersion('0123456789abcdef')).toMatch(/^\d+\.\d+\.\d+\+0123456$/);
   });
 });

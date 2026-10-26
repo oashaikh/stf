@@ -61,7 +61,7 @@ describe('VatHistoryList', () => {
     fireEvent.click(await screen.findByRole('button', { name: /25B2/ }));
     const detail = screen.getByRole('region', { name: /Return 25B2/ });
     expect(within(detail).getByText('256660290587')).toBeInTheDocument();
-    expect(within(detail).getByText('2026-04-20')).toBeInTheDocument();
+    expect(within(detail).getByText('20 Apr 2026')).toBeInTheDocument();
     expect(within(detail).getByText(/Box 1: VAT due on sales/)).toBeInTheDocument();
     expect(within(detail).getAllByText(/£/)).toHaveLength(9);
     expect(within(detail).queryByRole('button', { name: /edit|reopen|confirm|submit/i })).toBeNull();

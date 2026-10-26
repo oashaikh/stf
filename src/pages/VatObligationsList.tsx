@@ -1,3 +1,4 @@
+import { formatDate } from '../lib/dates';
 import { Link } from 'react-router-dom';
 import { NotConnectedError, VatNumberMissingError, type VatObligationRow } from '../lib/hmrc/vatApi';
 import { useVatObligations } from './useVatObligations';
@@ -58,11 +59,11 @@ export default function VatObligationsList() {
                 </td>
                 <td className="flex justify-between gap-4 py-1 sm:table-cell sm:py-2 sm:pr-4 text-gray-700">
                   <span className="text-gray-500 sm:hidden">Period</span>
-                  <span className="text-right sm:text-left">{obligation.start} to {obligation.end}</span>
+                  <span className="text-right sm:text-left">{formatDate(obligation.start)} to {formatDate(obligation.end)}</span>
                 </td>
                 <td className="flex justify-between gap-4 py-1 sm:table-cell sm:py-2 sm:pr-4 text-gray-700">
                   <span className="text-gray-500 sm:hidden">Due date</span>
-                  <span>{obligation.due}</span>
+                  <span>{formatDate(obligation.due)}</span>
                 </td>
                 <td className={`flex justify-between gap-4 py-1 sm:table-cell sm:py-2 font-medium ${obligation.overdue ? 'text-red-800' : 'text-gray-900'}`}>
                   <span className="font-normal text-gray-500 sm:hidden">Status</span>

@@ -1,4 +1,4 @@
-import { buildFraudHeaders } from '../../src/lib/hmrc/fraudHeaders.js';
+import { buildFraudHeaders, vendorVersion } from '../../src/lib/hmrc/fraudHeaders.js';
 import { getVatObligations, HmrcError, refreshAccessToken, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
 import { withAuth, type AuthDeps } from '../_lib/auth.js';
 import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore.js';
@@ -68,7 +68,7 @@ export function createObligationsHandler(
     const fraudHeaders = buildFraudHeaders({
       request,
       userId: auth.userId,
-      appVersion: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
+      appVersion: vendorVersion(),
       vendorPublicIp: process.env.HMRC_VENDOR_PUBLIC_IP,
       now: now(),
     });

@@ -45,7 +45,7 @@ describe('VatObligationsList', () => {
     expect(screen.getByText('Due')).toBeInTheDocument();
     expect(screen.getByText('Overdue')).toBeInTheDocument();
     expect(screen.getByText('Fulfilled')).toBeInTheDocument();
-    expect(screen.getByText('2025-02-07')).toBeInTheDocument();
+    expect(screen.getByText('7 Feb 2025')).toBeInTheDocument();
   });
 
   it('puts each phone-card label and value in separate elements', async () => {

@@ -23,6 +23,7 @@ export interface SubmissionReceipt {
 
 export interface ReviewState {
   statusLabel: string;
+  alreadyConfirmed: boolean;
   canConfirm: boolean;
   canSubmit: boolean;
   submitLabel: string;
@@ -70,6 +71,7 @@ export function reviewState(input: ReviewStateInput): ReviewState {
   const filed = submission !== null && (!submission.sandbox || !input.live);
   return {
     statusLabel,
+    alreadyConfirmed,
     canConfirm: input.declarationTicked && !input.confirmPending && !alreadyConfirmed,
     canSubmit: alreadyConfirmed && !input.submitPending && !filed && !outcomeUnknown,
     submitLabel: input.submitPending ? 'Submitting…' : input.live ? 'Submit to HMRC' : 'Submit to HMRC sandbox',

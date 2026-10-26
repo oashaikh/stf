@@ -1,4 +1,4 @@
-import { buildFraudHeaders } from '../../src/lib/hmrc/fraudHeaders.js';
+import { buildFraudHeaders, vendorVersion } from '../../src/lib/hmrc/fraudHeaders.js';
 import { getVatObligations, HmrcError, refreshAccessToken, submitVatReturn, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
 import { boxesToHmrcPayload } from '../../src/lib/vat.js';
 import { databaseHmrcStore, type HmrcStore } from './hmrcStore.js';
@@ -41,7 +41,7 @@ export async function prepareSubmission(
   const fraudHeaders = buildFraudHeaders({
     request,
     userId,
-    appVersion: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
+    appVersion: vendorVersion(),
     vendorPublicIp: process.env.HMRC_VENDOR_PUBLIC_IP,
     now: now(),
   });
@@ -94,11 +94,13 @@ export async function submitVatReturnForUser(
     );
 
   // The client picks the period, so only HMRC's own list of this user's open obligations can authorise it.
-  // Checked before the claim so a lookup failure leaves nothing pending.
+  // Checked before the claim so a lookup failure leaves nothing pending. No status filter is sent: the
+  // obligations list the user sees is unfiltered, and the sandbox's static data answers a status=O query
+  // differently (the period it listed as open came back missing). Status is checked locally instead.
   let openObligations;
   try {
     ({ obligations: openObligations } = await callHmrc((accessToken) =>
-      getVatObligations(vatNumber, accessToken, period.start, period.end, fraudHeaders, fetchFn, 'O'),
+      getVatObligations(vatNumber, accessToken, period.start, period.end, fraudHeaders, fetchFn),
     ));
   } catch (error) {
     if (!(error instanceof HmrcError)) throw error;
@@ -112,7 +114,16 @@ export async function submitVatReturnForUser(
       obligation.start === period.start &&
       obligation.end === period.end,
   );
-  if (!isOpen) throw new VatReturnError(409, 'PERIOD_NOT_OPEN', 'This period is not an open HMRC obligation');
+  if (!isOpen) {
+    console.error(
+      'HMRC obligations check refused period',
+      period.periodKey,
+      period.start,
+      period.end,
+      JSON.stringify(openObligations.map(({ periodKey, start, end, status }) => ({ periodKey, start, end, status }))),
+    );
+    throw new VatReturnError(409, 'PERIOD_NOT_OPEN', 'This period is not an open HMRC obligation');
+  }
 
   const submissionId = await vatStore.claimSubmission(userId, period.periodKey, sandbox);
   if (!submissionId) throw new VatReturnError(409, 'ALREADY_SUBMITTED', 'This period has already been submitted or is being submitted');

@@ -51,7 +51,7 @@
   - Risk: STF-20 also edits VatPage.tsx, vatReviewState.ts and vatApi.ts; keep edits localised to reduce merge conflicts.
   - Commit: `86bc2580b21a`
 
-- [ ] **Task 3: Fix nil-return text and phone-width obligations table labels** (after 2)
+- [x] **Task 3: Fix nil-return text and phone-width obligations table labels** (after 2)
   - Intent: (a) In VatPage.tsx the line 'This is a nil return and still needs confirming' must only show while the return is unconfirmed and unsubmitted: after confirming (status confirmed and not stale) or once a submission receipt exists, show only the 'no VAT-relevant transactions' part (or a neutral line). Prefer driving this from reviewState in vatReviewState.ts (e.g. a field) so it is unit tested; extend vatReviewState.test.ts. (b) In VatObligationsList.tsx fix the mobile card rows so label and value never run together ('Period key26C3', 'StatusDue'): investigate why the flex td rows collapse (cells are display:flex with a bare text node as value; wrap each value in its own span and add an explicit gap/min-w so text content and layout separate), and add a VatObligationsList.test.tsx assertion that each label and value are separate elements.
   - Files: `src/pages/VatPage.tsx`, `src/pages/vatReviewState.ts`, `src/pages/vatReviewState.test.ts`, `src/pages/VatObligationsList.tsx`, `src/pages/VatObligationsList.test.tsx`
   - Acceptance criteria the planner set:
@@ -59,6 +59,7 @@
     - Obligations table label and value render in separate elements with visible spacing at 390 px
     - New tests fail on the old code
     - npm run lint, typecheck, test pass
+  - Commit: `01faf7dfcb5a`
 
 - [ ] **Task 4: Screenshots at 390 and 1440 px, docs, and full check run** (after 1, 3)
   - Intent: Update docs/workflows/vat-return.md to say the period comes from the selected open HMRC obligation and the server rejects non-open periods. Run the app with HMRC stubbed (open obligation 26C3, 1 Jul to 30 Sep 2026, due 7 Nov) and capture VAT page screenshots at 390 and 1440 px (obligation selected review, no-obligations state, obligations table on phone) for the PR using invented data only; keep them out of committed repo files unless the repo already stores such artefacts. Run npm run lint, typecheck, test, build.

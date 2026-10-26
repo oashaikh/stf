@@ -917,7 +917,8 @@
           "columns": [
             "hmrc_token_expires_at"
           ],
-          "isUnique": false
+          "isUnique": false,
+          "where": "\"users\".\"hmrc_refresh_token\" is not null"
         }
       },
       "foreignKeys": {},

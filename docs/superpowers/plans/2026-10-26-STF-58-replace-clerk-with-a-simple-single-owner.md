@@ -28,7 +28,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Add login_attempts table, migration and lockout store**
+- [x] **Task 1: Add login_attempts table, migration and lockout store**
   - Intent: Add a small Postgres table recording failed owner-login attempts, plus a pure lockout helper that decides whether logins are refused (5 failures within 15 minutes means refuse for 15 minutes, counted from the latest failure). Table has only attempted_at (and id); no IP or password data (). Hand-write migration 0005 with a fresh journal entry and snapshot parented on 0004 (single head). Add the DB-backed store functions (record failure, count recent failures, clear on success, prune old rows so retention is bounded) in an api/_lib module that takes the db as a dependency so tests use a fake. Also update the schema.ts comment for users (no longer mirrors Clerk); keep the clerk_user_id column name unchanged to avoid a rename migration. The query filters on an indexed attempted_at and uses a LIMIT/bounded count.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0005_login_attempts.sql`, `server/src/db/migrations/meta/0005_snapshot.json`, `server/src/db/migrations/meta/_journal.json`, `api/_lib/loginThrottle.ts`, `api/_lib/__tests__/loginThrottle.test.ts`
   - Acceptance criteria the planner set:
@@ -37,6 +37,7 @@
     - Success clears the counter; stale rows are pruned
     - npm run lint, typecheck, test pass
   - Risk: opus/high: brute-force protection and a schema migration; a wrong window or unindexed query weakens the login control.
+  - Commit: `27b9c4c7a6ad`
 
 - [ ] **Task 2: Swap Clerk verifier for signed-cookie owner session behind requireAuth**
   - Intent: Create api/_lib/ownerSession.ts: scrypt-hash-then-timingSafeEqual password check against OWNER_PASSWORD (fail closed if unset or empty), HMAC-SHA256 signed session token with expiry (30 days) using SESSION_SECRET (fail closed if unset/short), timingSafeEqual signature check, and Set-Cookie builders (HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000) and a clearing cookie. Change api/_lib/auth.ts so requireAuth reads the session cookie instead of the Bearer header, resolves to the single owner users row created on first login with a fixed external id (stored in clerk_user_id, email a fixed placeholder), keeping the exports requireAuth, withAuth, UnauthorizedError, AuthIdentity and the AuthIssuer/UserStore/AuthDeps shape so no route file changes. Tampered, malformed or expired cookies yield 401 via withAuth before any handler runs. Delete api/_lib/clerkIssuer.ts and its test. Update auth.test.ts and the route tests that send Bearer headers/mention Clerk (vatPreviewRoute, vatSubmitRoute, vatReturns, vatHistory) to use a cookie or the injected deps. No log line or error body may contain password, cookie or secret.

@@ -88,7 +88,7 @@ async function openVatReview(page: Page) {
 // Mock mode only: it turns the second factor on and signs out, which the read-only deployed journey must never do.
 test('owner sets up the authenticator, signs out, and signs back in with password then code', async ({ page }) => {
   test.skip(!mocked, 'Writes settings and signs out, so it only runs against the mock (JOURNEY_MOCK=1)');
-  const evidenceDir = path.join('docs', 'screenshots', 'stf-90');
+  const evidenceDir = path.join('browser-evidence', 'STF-90');
   mkdirSync(evidenceDir, { recursive: true });
   await mockApi(page, ownerPassword!);
 
@@ -98,9 +98,11 @@ test('owner sets up the authenticator, signs out, and signs back in with passwor
     const original = page.viewportSize();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });
-      // A full-page capture paints fixed bars at the viewport offset, mid-page over the content being shown.
-      await page.addStyleTag({ content: '.sticky, .fixed { position: static !important; }' });
-      await page.screenshot({ path: path.join(evidenceDir, `${String(stepNumber).padStart(2, '0')}-${name}-${width}.png`), fullPage: true });
+      // A full-page capture paints the sticky header and fixed tab bar at the viewport offset, mid-page over the content being shown.
+      // Hiding them keeps the page at the real viewport width; making it static puts both bars in one row and widens the page.
+      const hideFixedBars = await page.addStyleTag({ content: '.sticky, .fixed { display: none !important; }' });
+      await page.screenshot({ path: path.join(evidenceDir, `${String(stepNumber).padStart(2, '0')}-${name}-${width}-light.png`), fullPage: true });
+      await hideFixedBars.evaluate((node) => node.remove());
     }
     if (original) await page.setViewportSize(original);
   }

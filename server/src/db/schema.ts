@@ -100,7 +100,7 @@ export const transactions = pgTable(
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => ({
-    // Entries list and VAT loader: one owner's rows by date, with a LIMIT.
+    // Entries list, VAT loader and dashboard: one owner's rows by date.
     userDateIdx: index('transactions_user_date_idx').on(table.userId, table.date),
   }),
 );

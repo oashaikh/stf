@@ -101,7 +101,7 @@ type Period = { start: string; end: string };
  * expense lines inside the inclusive period. Drafts are unreviewed, and the return must
  * never include voided records. Totals and drill-down both use this so they cannot disagree.
  */
-function contributesToReturn(line: LedgerLine, period: Period): boolean {
+export function contributesToReturn(line: LedgerLine, period: Period): boolean {
   return (
     (line.status === 'confirmed' || line.status === 'reconciled') &&
     line.deletedAt === null &&

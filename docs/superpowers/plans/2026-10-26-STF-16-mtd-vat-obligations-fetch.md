@@ -66,7 +66,7 @@
   - Risk: Touches encrypted HMRC token storage and rotation races; security/data work, so opus high.
   - Commit: `e4d248424768`
 
-- [ ] **Task 4: GET /api/vat/obligations route** (after 1, 2, 3)
+- [x] **Task 4: GET /api/vat/obligations route** (after 1, 2, 3)
   - Intent: Add api/vat/obligations.ts following the api/hmrc/status.ts pattern: withAuth (STF-3 helper, no second sign-in check), factory createObligationsHandler(store, authDeps, hmrcDeps) for injection, default export { fetch }. Only GET. Resolve the user from auth.userId only, never from a query parameter. Load credentials via the store; 409 with a clear code when HMRC is not connected or no VAT number is set. Validate optional from/to query params as YYYY-MM-DD (default: last 12 months to today, HMRC's from/to range maximum is one year) and optionally status=O|F; reject others with 400. Build fraud headers (task 1) from the Request, decrypt the stored tokens, call getVatObligations through withHmrcToken (task 2) so an expired token refreshes transparently, retries once and the new tokens are saved encrypted via the CAS store method. Map HmrcError to a sanitised JSON response (code and status, no token, no VRN in logs). Response returns only periodKey, start, end, due, status, received plus a derived overdue flag computed server-side against today's date (injectable clock). Tests with mocked HMRC and fake store: sandbox obligations returned; expired token path refreshes, retries and saves; unauthenticated is 401; user B never sees user A's credentials (/); not connected; bad dates; log capture contains no token. Add the x-stf-* request headers list used by task 1 to .env.example only if any config is needed (expected: HMRC_PRODUCT_NAME not required, skip).
   - Files: `api/vat/obligations.ts`, `api/_lib/__tests__/vatObligations.test.ts`
   - Acceptance criteria the planner set:
@@ -78,6 +78,7 @@
     - No database transaction is open during the HMRC call (single-statement store calls only)
     - typecheck, lint, test pass
   - Risk: Auth, per-user isolation, token refresh and outbound HMRC call: security-sensitive, so opus high.
+  - Commit: `da7a56a8baa3`
 
 - [ ] **Task 5: VAT page: fetch and display due, overdue and fulfilled obligations** (after 4)
   - Intent: Replace the 'Coming soon' stub in src/pages/VatPage.tsx with an obligations section. Add src/lib/hmrc/vatApi.ts (mirror settingsApi.ts: getJson with Clerk bearer token, injectable fetch) that calls /api/vat/obligations and sends the x-stf-* browser headers (timezone, screens, window size, JS user agent, and a device id kept in localStorage as a random UUID) that task 1 consumes. Put the list in a new component src/pages/VatObligationsList.tsx to keep the VatPage.tsx edit minimal (STF-18 also edits VatPage.tsx). Show period key, period start-end, due date and a status label (Due, Overdue, Fulfilled) using text, not colour alone; use the shared formatting and Tailwind tokens already used by SettingsPage, shared loading/empty/error patterns, not-connected state linking to /settings, page container conventions, 44px tap targets. Dates only, no money on this screen. Tests (Vitest + Testing Library, vatApi mocked per, mirroring SettingsPage.test.tsx): renders open/overdue/fulfilled rows with period keys and due dates, shows not-connected and error states.

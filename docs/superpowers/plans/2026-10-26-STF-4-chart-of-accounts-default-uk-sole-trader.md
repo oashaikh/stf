@@ -66,7 +66,7 @@
   - Risk: Opus at high: tenant isolation, auditing and a transactional write path.
   - Commit: `9dc4058e4fba`
 
-- [ ] **Task 4: Accounts API route with auth, 409 handling and route tests** (after 3)
+- [x] **Task 4: Accounts API route with auth, 409 handling and route tests** (after 3)
   - Intent: Add api/accounts.ts, default-exporting { fetch: createAccountsHandler(store, authDeps) } wrapped in withAuth, like api/settings/vat-number.ts. GET lists accounts, seeding defaults first on the first call (never in the login path), with ?archived=true for archived. POST creates; PATCH renames or archives by a uuid id in the JSON body. Use the refuse() { ok:false, error, code } shape: 400 bad input, 404 unknown or other-owner id, 405 other methods, 409 with a clear message for a duplicate code, and a refusal for archiving or retyping a system account. Never read userId from the body or query. Route tests (vi.mock('../db')) cover: every method refused without a token, duplicate 409, archive then list, system archive refused, system rename allowed, another user's id refused, seed on first GET. Use .js relative imports so apiRoutes.test.ts passes.
   - Files: `api/accounts.ts`, `api/_lib/__tests__/accountsRoute.test.ts`
   - Acceptance criteria the planner set:
@@ -77,3 +77,4 @@
     - A second user's account id is refused
     - npm run lint, typecheck, test and build all pass
   - Risk: Opus at high: authorisation on a route that takes record ids.
+  - Commit: `79ffb7b9699b`

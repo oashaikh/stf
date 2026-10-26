@@ -56,7 +56,7 @@
   - Risk: opus/high: cryptography and CSRF state, a security path.
   - Commit: `d8d706d19a69`
 
-- [ ] **Task 3: HMRC client: server-safe config, correct authorize URL, code exchange and refresh**
+- [x] **Task 3: HMRC client: server-safe config, correct authorize URL, code exchange and refresh**
   - Intent: src/lib/hmrc/client.ts builds fraud headers from browser globals and has no OAuth helpers. Add buildHmrcAuthUrl, exchangeAuthCode and refreshAccessToken as server-safe functions (no browser globals touched at import), with fetch injected so tests never hit the network. Sandbox mode uses the test-www authorize host and live uses www.tax.service.gov.uk; scope is `read:vat write:vat`; state and redirect_uri are included. Token calls post form data (grant_type, client_id, client_secret, code or refresh_token). Client id and secret are read from HMRC_CLIENT_ID and HMRC_CLIENT_SECRET. A 400 invalid_grant throws HmrcError with a message that contains no token or secret. Live mode requires HMRC_SANDBOX_MODE=false.
   - Files: `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`, `.env.example`
   - Acceptance criteria the planner set:
@@ -66,6 +66,7 @@
     - No test makes a live network call
     - `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass
   - Risk: Default sonnet/medium. Shared HMRC client, but no auth or storage logic.
+  - Commit: `c1cc735e85cc`
 
 - [ ] **Task 4: HMRC connect, callback and status API routes using STF-3 auth and db helpers** (after 1, 2, 3)
   - Intent: Blocked on STF-3: first run `git merge dev` and confirm STF-3's shared auth helper and database helper exist in the serverless API folder (api/_lib/). Read their real exports before coding; do not write a second sign-in check. Add serverless routes under api/hmrc/, matching PLAN.md. (1) connect, authenticated by the STF-3 auth helper: refuse live mode unless HMRC_SANDBOX_MODE=false AND users.hmrc_sandbox_mode is false; otherwise return `{ url }` from buildHmrcAuthUrl with signState for that user. (2) callback (browser redirect from HMRC, no bearer header; identity comes from the signed state, and the route sits on the explicit public list per STF-3's convention): verifyState first, on failure respond 400 with no HMRC call. Then exchange the code, encrypt both tokens, and update only that user's row (access token, refresh token, expiry, updated_at) through the db helper. The HMRC call happens outside any transaction. Redirect to `${APP_ORIGIN}/settings?hmrc=connected` or `?hmrc=error`. (3) status, authenticated: return `{ connected, expiresAt }` only, never tokens. Set .env.example HMRC_REDIRECT_URI to the `/api/hmrc/callback` path and add APP_ORIGIN. Make sure root typecheck/lint cover the api folder, extending them only if STF-3 did not. Tests use a mocked HMRC token endpoint (fake fetch) and a fake db, no live HMRC or database. Cover: valid flow stores only ciphertext; forged, expired or other-user state refused with no token exchange; unauthenticated connect and status refused; a second user cannot read the first user's status; logs capture nothing sensitive.

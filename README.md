@@ -14,10 +14,16 @@ cd stf
 cp .env.example .env.local
 # Fill in your keys (see .env.example for instructions)
 
-docker compose up -d          # starts Postgres + MinIO
+docker compose up -d          # starts Postgres + MinIO; creates the stf-receipts bucket
 npm install
+# drizzle-kit does not read .env.local, so pass the URL explicitly
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/stf npm run db:migrate
 npm run dev                   # opens http://localhost:5173
 ```
+
+Data lives in the `postgres_data` and `minio_data` Docker volumes and survives
+`docker compose down` and restarts. `docker compose down -v` wipes both. The MinIO
+console is at http://localhost:9001 (minioadmin / minioadmin, local only).
 
 In a second terminal (for the control plane — scheduled jobs, HMRC token refresh):
 

@@ -26,8 +26,27 @@ const mockQr = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.
 
 const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, json: body });
 
+/** The VAT page states the journey must cope with on live data: no open obligation, an unreviewed return, a confirmed one, a filed one. */
+export type MockVatState = 'none' | 'draft' | 'confirmed' | 'filed';
+export const mockVatStates: MockVatState[] = ['none', 'draft', 'confirmed', 'filed'];
+
+const filedReceipt = { formBundleNumber: '000000000000', processingDate: '2026-07-02T09:00:00Z', sandbox: true };
+
+function mockReturn(vatState: MockVatState) {
+  const confirmed = vatState === 'confirmed' || vatState === 'filed';
+  return {
+    boxes,
+    drillDown: noLines,
+    drillDownTotals: boxes,
+    status: confirmed ? 'confirmed' : 'draft',
+    confirmedAt: confirmed ? '2026-07-01T09:00:00Z' : null,
+    stale: false,
+    submission: vatState === 'filed' ? filedReceipt : null,
+  };
+}
+
 /** A fake of the deployed API, so the journey can run against a built preview with no server behind it. */
-export async function mockApi(page: Page, ownerPassword: string) {
+export async function mockApi(page: Page, ownerPassword: string, vatState: MockVatState = 'confirmed') {
   let signedIn = false;
   let authenticatorEnabled = false;
   let codePending = false;
@@ -65,12 +84,9 @@ export async function mockApi(page: Page, ownerPassword: string) {
         return json(route, authenticatorEnabled ? { ok: true, enabled: true, recoveryCodes: mockRecoveryCodes } : { ok: true, enabled: false });
       }
       case 'GET /api/vat/obligations':
-        return json(route, { obligations: [{ ...period, due: '2026-08-07', status: 'O', overdue: false }] });
+        return json(route, { obligations: vatState === 'none' ? [] : [{ ...period, due: '2026-08-07', status: 'O', overdue: false }] });
       case 'GET /api/vat/return':
-        return json(route, {
-          ok: true,
-          data: { boxes, drillDown: noLines, drillDownTotals: boxes, status: 'confirmed', confirmedAt: '2026-07-01T09:00:00Z', stale: false, submission: null },
-        });
+        return json(route, { ok: true, data: mockReturn(vatState) });
       case 'GET /api/vat/history':
         return json(route, { data: [] });
       case 'POST /api/vat/preview':

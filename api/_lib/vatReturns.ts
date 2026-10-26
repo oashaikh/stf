@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lte, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte, isNull, ne } from 'drizzle-orm';
 import { z } from 'zod';
 
 import type { ApiError } from '../../src/model/types.js';
@@ -48,6 +48,20 @@ export interface VatReturnStore {
   recordReceipt(userId: string, submissionId: string, receipt: SubmissionReceipt, audit: SubmissionAudit, now: Date): Promise<void>;
   /** For definite HMRC rejections only: releases the claim and writes vat_return.submit_failed. Ambiguous outcomes must not call this. */
   markFailed(userId: string, submissionId: string, audit: SubmissionAudit): Promise<void>;
+  /** The newest HISTORY_LIMIT returns by period end: two queries in all, never one per row. */
+  listReturnHistory(userId: string): Promise<HistoryItem[]>;
+}
+
+export type HistoryStatus = 'draft' | 'confirmed' | 'submitted' | 'accepted';
+export interface HistoryReceipt {
+  formBundleNumber: string;
+  processingDate: string;
+  sandbox: boolean;
+}
+export interface HistoryItem extends Period {
+  status: HistoryStatus;
+  boxes: VatReturnBoxes;
+  receipt: HistoryReceipt | null;
 }
 
 export type SubmissionStatus = 'pending' | 'submitted' | 'failed';
@@ -79,6 +93,8 @@ export function submissionSnapshot(audit: SubmissionAudit) {
 // Truncating would silently understate the return, so exceeding this fails loudly instead.
 export const LEDGER_LINE_LIMIT = 10000;
 const DRILL_DOWN_LINES_PER_BOX = 50;
+
+export const HISTORY_LIMIT = 40;
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const periodSchema = z
@@ -126,6 +142,26 @@ async function recompute(store: VatReturnStore, userId: string, period: Period) 
   return { lines, boxes: buildVatReturnFromLedger(lines, period) };
 }
 
+/** A live filing outranks a sandbox rehearsal; pending and failed attempts have no receipt to show. */
+export function pickReceipt(live?: SubmissionLookup, sandbox?: SubmissionLookup): HistoryReceipt | null {
+  const filed = [live && { ...live, sandbox: false }, sandbox && { ...sandbox, sandbox: true }].find(
+    (row) => row?.status === 'submitted' && row.formBundleNumber && row.processingDate,
+  );
+  return filed
+    ? { formBundleNumber: filed.formBundleNumber!, processingDate: filed.processingDate!.toISOString(), sandbox: filed.sandbox }
+    : null;
+}
+
+/** Failed attempts are ignored, so the return falls back to its draft or confirmed status. */
+export function deriveHistoryStatus(
+  draftStatus: 'draft' | 'confirmed',
+  attempts: SubmissionLookup[],
+  receipt: HistoryReceipt | null,
+): HistoryStatus {
+  if (receipt) return 'accepted';
+  return attempts.some((attempt) => attempt.status === 'pending') ? 'submitted' : draftStatus;
+}
+
 export async function getReturnReview(store: VatReturnStore, userId: string, period: Period) {
   const [{ lines, boxes }, draft, liveFiling, sandboxFiling] = await Promise.all([
     recompute(store, userId, period),
@@ -133,13 +169,7 @@ export async function getReturnReview(store: VatReturnStore, userId: string, per
     store.findSubmission(userId, period.periodKey, false),
     store.findSubmission(userId, period.periodKey, true),
   ]);
-  // A live filing outranks a sandbox rehearsal; pending and failed attempts have no receipt to show.
-  const filed = [liveFiling && { ...liveFiling, sandbox: false }, sandboxFiling && { ...sandboxFiling, sandbox: true }].find(
-    (row) => row?.status === 'submitted' && row.formBundleNumber && row.processingDate,
-  );
-  const submission = filed
-    ? { formBundleNumber: filed.formBundleNumber, processingDate: filed.processingDate!.toISOString(), sandbox: filed.sandbox }
-    : null;
+  const submission = pickReceipt(liveFiling, sandboxFiling);
   const boxLines = boxKeys.map((_, index) => linesForBox(lines, period, (index + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9));
   const drillDown = Object.fromEntries(
     boxKeys.map((key, index) => [
@@ -369,6 +399,67 @@ export const databaseStore: VatReturnStore = {
         resourceId: submissionId,
         afterSnapshot: { ...submissionSnapshot(audit), receipt },
       });
+    });
+  },
+
+  async listReturnHistory(userId) {
+    const drafts = await db
+      .select({
+        periodKey: vatReturnDrafts.periodKey,
+        periodStart: vatReturnDrafts.periodStart,
+        periodEnd: vatReturnDrafts.periodEnd,
+        status: vatReturnDrafts.status,
+        box1Pence: vatReturnDrafts.box1Pence,
+        box2Pence: vatReturnDrafts.box2Pence,
+        box3Pence: vatReturnDrafts.box3Pence,
+        box4Pence: vatReturnDrafts.box4Pence,
+        box5Pence: vatReturnDrafts.box5Pence,
+        box6Pence: vatReturnDrafts.box6Pence,
+        box7Pence: vatReturnDrafts.box7Pence,
+        box8Pence: vatReturnDrafts.box8Pence,
+        box9Pence: vatReturnDrafts.box9Pence,
+      })
+      .from(vatReturnDrafts)
+      .where(eq(vatReturnDrafts.userId, userId))
+      .orderBy(desc(vatReturnDrafts.periodEnd))
+      .limit(HISTORY_LIMIT);
+    if (drafts.length === 0) return [];
+    // At most one live and one sandbox row per period, so the limit is exact.
+    const submissions = await db
+      .select({
+        periodKey: vatSubmissions.periodKey,
+        sandbox: vatSubmissions.sandbox,
+        status: vatSubmissions.status,
+        formBundleNumber: vatSubmissions.formBundleNumber,
+        processingDate: vatSubmissions.processingDate,
+      })
+      .from(vatSubmissions)
+      .where(and(eq(vatSubmissions.userId, userId), inArray(vatSubmissions.periodKey, drafts.map((row) => row.periodKey))))
+      .limit(drafts.length * 2);
+    return drafts.map((row) => {
+      const attempts = submissions.filter((submission) => submission.periodKey === row.periodKey);
+      const receipt = pickReceipt(
+        attempts.find((attempt) => !attempt.sandbox),
+        attempts.find((attempt) => attempt.sandbox),
+      );
+      return {
+        periodKey: row.periodKey,
+        start: row.periodStart,
+        end: row.periodEnd,
+        status: deriveHistoryStatus(row.status, attempts, receipt),
+        boxes: {
+          box1: row.box1Pence,
+          box2: row.box2Pence,
+          box3: row.box3Pence,
+          box4: row.box4Pence,
+          box5: row.box5Pence,
+          box6: row.box6Pence,
+          box7: row.box7Pence,
+          box8: row.box8Pence,
+          box9: row.box9Pence,
+        },
+        receipt,
+      };
     });
   },
 

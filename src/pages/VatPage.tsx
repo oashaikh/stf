@@ -7,6 +7,7 @@ import { NotConnectedError, SubmitVatError, submitVatReturn, VatNumberMissingErr
 import { formatPence } from '../lib/money';
 import type { VatReturnBoxes } from '../lib/vat';
 import type { ApiResponse } from '../model/types';
+import VatHistoryList from './VatHistoryList';
 import VatObligationsList from './VatObligationsList';
 import { useVatObligations } from './useVatObligations';
 import { boxLabel, DRILLABLE_BOXES, reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
@@ -98,6 +99,7 @@ export default function VatPage() {
       {/* Keyed by period so switching obligations drops the ticked declaration, mutation state and open dialog. */}
       {selected && <VatReturnReview key={selected.periodKey} period={selected} />}
 
+      <VatHistoryList />
       <VatObligationsList />
     </main>
   );

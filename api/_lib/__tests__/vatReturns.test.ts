@@ -54,6 +54,7 @@ function makeStore(ledger: Record<string, DrillLine[]>) {
     },
     claimSubmission: async () => undefined,
     recordReceipt: async () => undefined,
+    listReturnHistory: async () => [],
     markFailed: async () => undefined,
   };
   return { store, drafts, audit, ledger, submissions };

@@ -7,9 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import VatPage from './VatPage';
 
 const fetchVatObligations = vi.fn();
+const fetchVatHistory = vi.fn();
 vi.mock('../lib/hmrc/vatApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/hmrc/vatApi')>()),
   fetchVatObligations: (...args: unknown[]) => fetchVatObligations(...args),
+  fetchVatHistory: (...args: unknown[]) => fetchVatHistory(...args),
 }));
 vi.mock('../lib/hmrc/settingsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/hmrc/settingsApi')>()),
@@ -53,6 +55,8 @@ describe('VatPage', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-26T10:00:00Z') });
     fetchVatObligations.mockReset();
+    fetchVatHistory.mockReset();
+    fetchVatHistory.mockResolvedValue([]);
     fetchMock.mockReset();
     fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data: review })));
     vi.stubGlobal('fetch', fetchMock);

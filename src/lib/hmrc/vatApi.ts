@@ -1,3 +1,5 @@
+import type { VatReturnBoxes } from '../vat';
+
 type FetchFn = typeof fetch;
 
 export interface VatObligationRow {
@@ -69,6 +71,18 @@ export interface VatReceipt {
   sandbox: boolean;
 }
 
+export type VatHistoryStatus = 'draft' | 'confirmed' | 'submitted' | 'accepted';
+
+/** Mirrors HistoryItem in api/_lib/vatReturns.ts; amounts are integer pence. */
+export interface VatHistoryItem {
+  periodKey: string;
+  start: string;
+  end: string;
+  status: VatHistoryStatus;
+  boxes: VatReturnBoxes;
+  receipt: VatReceipt | null;
+}
+
 export class SubmitVatError extends Error {
   constructor(
     /** The server's error code, e.g. OUTCOME_UNKNOWN or ALREADY_SUBMITTED. */
@@ -92,4 +106,10 @@ export async function submitVatReturn(
   const body = await response.json().catch(() => null);
   if (!body?.ok) throw new SubmitVatError(body?.code ?? 'REQUEST_FAILED', body?.error ?? 'Submission failed');
   return body.data;
+}
+
+export async function fetchVatHistory(token: string, fetchFn: FetchFn = fetch): Promise<VatHistoryItem[]> {
+  const response = await fetchFn('/api/vat/history', { headers: { Authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error('Request to /api/vat/history failed');
+  return (await response.json()).data;
 }

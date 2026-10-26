@@ -44,6 +44,10 @@ export const users = pgTable('users', {
   hmrcRefreshToken: text('hmrc_refresh_token'),
   hmrcTokenExpiresAt: timestamp('hmrc_token_expires_at', { withTimezone: true }),
   hmrcSandboxMode: boolean('hmrc_sandbox_mode').notNull().default(true),
+  // Authenticator-app second factor: secret is encryptToken output; last_step blocks code reuse.
+  totpSecretEncrypted: text('totp_secret_encrypted'),
+  totpEnabledAt: timestamp('totp_enabled_at', { withTimezone: true }),
+  totpLastStep: integer('totp_last_step'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
@@ -294,6 +298,21 @@ export const loginAttempts = pgTable(
   },
   (table) => ({
     attemptedAtIdx: index('login_attempts_attempted_at_idx').on(table.attemptedAt),
+  }),
+);
+
+// One-time recovery codes for the second factor. Only SHA-256 hashes are stored. Credentials, not
+// financial records: a used code keeps used_at, and disabling the second factor deletes the rows.
+export const recoveryCodes = pgTable(
+  'recovery_codes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => users.id),
+    codeHash: text('code_hash').notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+  },
+  (table) => ({
+    userCodeIdx: index('recovery_codes_user_id_code_hash_idx').on(table.userId, table.codeHash),
   }),
 );
 

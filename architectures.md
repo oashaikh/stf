@@ -29,7 +29,7 @@ The governing principle:
 
 - Frontend and API: Vercel, with serverless routes in `api/` running in the London region (`lhr1`, set in `vercel.json`).
 - Database: Neon Postgres in London.
-- Auth: one owner password (`OWNER_PASSWORD`) and a signed session cookie (`SESSION_SECRET`). No sign-up, no other users, no third-party identity provider.
+- Auth: one owner password (`OWNER_PASSWORD`) and a signed session cookie (`SESSION_SECRET`). No sign-up, no other users, no third-party identity provider. An optional authenticator-app second factor (TOTP, RFC 6238) sits behind the password: the secret is stored encrypted with the existing token encryption helper, recovery codes are stored as hashes, and the second factor is recorded on the session, which is where `Gov-Client-Multi-Factor` is built from.
 - Scheduled jobs: Vercel Cron calls routes in `api/cron/`. The Fastify control plane in `server/src/` exists only to run scheduled jobs locally.
 
 ### Owns

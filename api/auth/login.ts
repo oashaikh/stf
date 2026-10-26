@@ -1,13 +1,23 @@
 import type { ApiError } from '../../src/model/types.js';
 import { databaseUsers, type UserStore } from '../_lib/auth.js';
 import { loginThrottle } from '../_lib/loginThrottle.js';
-import { createSessionToken, OWNER_EMAIL, OWNER_EXTERNAL_ID, sessionCookie, verifyOwnerPassword } from '../_lib/ownerSession.js';
+import {
+  challengeCookie,
+  createChallengeToken,
+  createSessionToken,
+  OWNER_EMAIL,
+  OWNER_EXTERNAL_ID,
+  sessionCookie,
+  verifyOwnerPassword,
+} from '../_lib/ownerSession.js';
+import { totp } from '../_lib/totpStore.js';
 
 const MAX_PASSWORD_LENGTH = 1024;
 
 export interface LoginDeps {
   throttle: Pick<typeof loginThrottle, 'lockedUntil' | 'recordFailure' | 'clear'>;
   users: UserStore;
+  totp: Pick<typeof totp, 'isEnabled'>;
   env: NodeJS.ProcessEnv;
   now: () => Date;
 }
@@ -38,8 +48,15 @@ export function createLoginHandler(deps: LoginDeps) {
         return refuse(401, 'Invalid password', 'UNAUTHORIZED');
       }
 
+      const userId = await deps.users.createIfAbsent(OWNER_EXTERNAL_ID, OWNER_EMAIL);
+      if (await deps.totp.isEnabled(userId)) {
+        // Failures stay on record: clearing them here would give a password holder unlimited code guesses.
+        return Response.json(
+          { ok: true, mfaRequired: true },
+          { headers: { 'Set-Cookie': challengeCookie(createChallengeToken(now, deps.env)) } },
+        );
+      }
       await deps.throttle.clear();
-      await deps.users.createIfAbsent(OWNER_EXTERNAL_ID, OWNER_EMAIL);
       const token = createSessionToken(now, deps.env);
       return Response.json({ ok: true }, { headers: { 'Set-Cookie': sessionCookie(token) } });
     } catch (error) {
@@ -51,5 +68,5 @@ export function createLoginHandler(deps: LoginDeps) {
 }
 
 export default {
-  fetch: createLoginHandler({ throttle: loginThrottle, users: databaseUsers, env: process.env, now: () => new Date() }),
+  fetch: createLoginHandler({ throttle: loginThrottle, users: databaseUsers, totp, env: process.env, now: () => new Date() }),
 };

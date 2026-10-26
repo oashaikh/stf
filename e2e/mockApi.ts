@@ -57,12 +57,36 @@ function vatReturn(entries: SavedEntry[]) {
 // The server sends the preview in pounds.
 const pounds = (pence: number) => pence / 100;
 
+function previewBody(entries: SavedEntry[]) {
+  const { boxes } = vatReturn(entries);
+  return {
+    periodKey: period.periodKey,
+    vatDueSales: pounds(boxes.box1),
+    vatDueAcquisitions: 0,
+    totalVatDue: pounds(boxes.box3),
+    vatReclaimedCurrPeriod: pounds(boxes.box4),
+    netVatDue: pounds(Math.abs(boxes.box5)),
+    totalValueSalesExVAT: pounds(boxes.box6),
+    totalValuePurchasesExVAT: pounds(boxes.box7),
+    totalValueGoodsSuppliedExVAT: 0,
+    totalAcquisitionsExVAT: 0,
+    finalised: true,
+  };
+}
+
+// Invented values; the QR is a plain placeholder square, not a scannable code.
+export const mockMfaCode = '123456';
+const mockRecoveryCodes = ['aaaa-1111', 'bbbb-2222', 'cccc-3333', 'dddd-4444', 'eeee-5555', 'ffff-6666', 'gggg-7777', 'hhhh-8888'];
+const mockQr = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><rect width="192" height="192" fill="#fff"/><rect x="16" y="16" width="160" height="160" fill="#111"/><rect x="48" y="48" width="96" height="96" fill="#fff"/></svg>')}`;
+
 const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, json: body });
 
 /** A fake of the deployed API, so the journey can run against a built preview with no server behind it. */
 export async function mockApi(page: Page, ownerPassword: string) {
   let signedIn = false;
   const entries: SavedEntry[] = [];
+  let authenticatorEnabled = false;
+  let codePending = false;
   await page.route('**/api/**', (route) => {
     const request = route.request();
     const key = `${request.method()} ${new URL(request.url()).pathname}`;
@@ -70,8 +94,32 @@ export async function mockApi(page: Page, ownerPassword: string) {
       case 'GET /api/me':
         return json(route, { ok: signedIn }, signedIn ? 200 : 401);
       case 'POST /api/auth/login':
-        signedIn = request.postDataJSON().password === ownerPassword;
-        return json(route, { ok: signedIn }, signedIn ? 200 : 401);
+        {
+          const passwordOk = request.postDataJSON().password === ownerPassword;
+          codePending = passwordOk && authenticatorEnabled;
+          signedIn = passwordOk && !authenticatorEnabled;
+          if (codePending) return json(route, { ok: true, mfaRequired: true });
+          return json(route, { ok: signedIn }, signedIn ? 200 : 401);
+        }
+      case 'POST /api/auth/mfa':
+        if (!codePending || request.postDataJSON().code !== mockMfaCode) return json(route, { ok: false, error: 'Invalid code' }, 401);
+        codePending = false;
+        signedIn = true;
+        return json(route, { ok: true });
+      case 'POST /api/auth/logout':
+        signedIn = false;
+        return json(route, { ok: true });
+      case 'GET /api/settings/authenticator':
+        return json(route, { ok: true, enabled: authenticatorEnabled });
+      case 'POST /api/settings/authenticator': {
+        const action = new URL(request.url()).searchParams.get('action');
+        if (action === 'start') {
+          return json(route, { ok: true, otpauthUri: 'otpauth://totp/STF?secret=MOCKSECRETMOCK234', qrDataUrl: mockQr, secret: 'MOCKSECRETMOCK234' });
+        }
+        if (request.postDataJSON().code !== mockMfaCode) return json(route, { ok: false, error: 'Invalid code' }, 401);
+        authenticatorEnabled = action === 'confirm';
+        return json(route, authenticatorEnabled ? { ok: true, enabled: true, recoveryCodes: mockRecoveryCodes } : { ok: true, enabled: false });
+      }
       case 'GET /api/vat/obligations':
         return json(route, { obligations: [{ ...period, due: '2026-08-07', status: 'O', overdue: false }] });
       case 'GET /api/entries':
@@ -93,35 +141,23 @@ export async function mockApi(page: Page, ownerPassword: string) {
         });
       case 'GET /api/vat/history':
         return json(route, { data: [] });
-      case 'POST /api/vat/preview': {
-        const { boxes } = vatReturn(entries);
+      case 'POST /api/vat/preview':
         return json(route, {
           ok: true,
           data: {
             endpoint: { method: 'POST', url: 'https://test-api.service.hmrc.gov.uk/organisations/vat/000000000/returns', sandbox: true },
-            body: {
-              periodKey: period.periodKey,
-              vatDueSales: pounds(boxes.box1),
-              vatDueAcquisitions: 0,
-              totalVatDue: pounds(boxes.box3),
-              vatReclaimedCurrPeriod: pounds(boxes.box4),
-              netVatDue: pounds(Math.abs(boxes.box5)),
-              totalValueSalesExVAT: pounds(boxes.box6),
-              totalValuePurchasesExVAT: pounds(boxes.box7),
-              totalValueGoodsSuppliedExVAT: 0,
-              totalAcquisitionsExVAT: 0,
-              finalised: true,
-            },
+            body: previewBody(entries),
             headers: { 'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER' },
           },
         });
-      }
       case 'GET /api/hmrc/status':
         return json(route, { connected: true });
       case 'GET /api/hmrc/mode':
         return json(route, { live: false, envLive: false });
       case 'GET /api/settings/vat-number':
         return json(route, { masked: '*******000' });
+      case 'GET /api/vat/filed':
+        return json(route, { ok: true, data: previewBody(entries) });
       case 'GET /api/accounts':
         return json(route, { accounts: [incomeAccount] });
       default:

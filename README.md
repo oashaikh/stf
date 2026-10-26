@@ -87,7 +87,7 @@ HMRC sandbox mode is **on by default**. No live submissions happen until you exp
 
 ## Hosting
 
-STF runs on Vercel serverless routes in the `api/` folder (London region), with Neon Postgres in London. Login is a single owner password and a signed session cookie; there is no sign-up. Scheduled jobs run through Vercel Cron.
+STF runs on Vercel serverless routes in the `api/` folder (London region), with Neon Postgres in London. Login is a single owner password, optionally followed by an authenticator-app code, and a signed session cookie; there is no sign-up. Scheduled jobs run through Vercel Cron.
 
 ---
 

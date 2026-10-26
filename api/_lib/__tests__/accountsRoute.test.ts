@@ -96,6 +96,14 @@ describe('accounts route', () => {
     expect(archived.accounts.map((a: Account) => a.id)).toEqual([account.id]);
   });
 
+  it('restores an archived account with archived: false', async () => {
+    const { account } = await (await call('POST', newAccount, 'u1')).json();
+    await call('PATCH', { id: account.id, archived: true }, 'u1');
+    expect((await call('PATCH', { id: account.id, archived: false }, 'u1')).status).toBe(200);
+    const active = await (await call('GET', undefined, 'u1')).json();
+    expect(active.accounts.map((a: Account) => a.id)).toContain(account.id);
+  });
+
   it('refuses archiving or retyping a system account but allows renaming it', async () => {
     await call('GET', undefined, 'u1');
     const system = rows[0];

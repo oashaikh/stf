@@ -66,6 +66,7 @@ describe('live filing opt-in', () => {
           return jsonResponse({ ok: true, live: body.live, envLive: true });
         }
         if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: liveOptIn, envLive: true });
+        if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
         return jsonResponse({ ok: true, connected: true });
       }),
     );
@@ -146,6 +147,7 @@ describe('VAT registration number', () => {
           saved = '••••••' + vatNumber.slice(-3);
           return jsonResponse({ ok: true, masked: saved });
         }
+        if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
         if (path === '/api/settings/vat-number') return jsonResponse({ ok: true, masked: saved });
         if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: false, envLive: false });
         return jsonResponse({ ok: true, connected: true });

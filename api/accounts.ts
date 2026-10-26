@@ -7,6 +7,7 @@ import {
   DuplicateAccountCodeError,
   listAccounts,
   renameAccount,
+  unarchiveAccount,
   validateAccountName,
   validateNewAccount,
   type AccountStore,
@@ -39,7 +40,7 @@ export function createAccountsHandler(store: AccountStore = databaseAccountStore
       if (typeof body?.id !== 'string' || !UUID.test(body.id)) return refuse(400, 'Account id must be a uuid', 'BAD_REQUEST');
       const name = body.name === undefined ? undefined : validateAccountName(body.name);
       if (name === null) return refuse(400, 'Name must be 1 to 100 characters', 'BAD_REQUEST');
-      if (body.archived !== true && name === undefined) return refuse(400, 'Send a name or archived: true', 'BAD_REQUEST');
+      if (typeof body.archived !== 'boolean' && name === undefined) return refuse(400, 'Send a name or archived: true or false', 'BAD_REQUEST');
 
       const existing = await store.get(auth.userId, body.id);
       if (!existing) return refuse(404, 'Account not found', 'NOT_FOUND');
@@ -48,7 +49,9 @@ export function createAccountsHandler(store: AccountStore = databaseAccountStore
         const account =
           body.archived === true
             ? await archiveAccount(store, auth.userId, body.id)
-            : await renameAccount(store, auth.userId, body.id, name as string);
+            : body.archived === false
+              ? await unarchiveAccount(store, auth.userId, body.id)
+              : await renameAccount(store, auth.userId, body.id, name as string);
         if (!account) return refuse(404, 'Account not found', 'NOT_FOUND');
         return Response.json({ ok: true, account });
       } catch (error) {

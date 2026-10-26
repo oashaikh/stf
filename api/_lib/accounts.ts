@@ -7,7 +7,7 @@ import { db } from './db.js';
 /** Explicit columns only (SEC-12). */
 export type Account = Pick<AccountRow, 'id' | 'code' | 'name' | 'accountType' | 'taxCategory' | 'isSystem' | 'archivedAt'>;
 
-export type AccountAction = 'account.create' | 'account.rename' | 'account.archive';
+export type AccountAction = 'account.create' | 'account.rename' | 'account.archive' | 'account.unarchive';
 
 export interface NewAccount {
   code: string;
@@ -16,7 +16,7 @@ export interface NewAccount {
   taxCategory: string | null;
 }
 
-export type AccountChange = { name: string } | { archivedAt: Date };
+export type AccountChange = { name: string } | { archivedAt: Date | null };
 
 export interface AccountStore {
   seedDefaults(userId: string): Promise<void>;
@@ -85,6 +85,9 @@ export async function archiveAccount(store: AccountStore, userId: string, id: st
   if (existing.isSystem) throw new AccountRuleError('System accounts cannot be archived');
   return store.update(userId, id, { archivedAt: new Date() }, 'account.archive');
 }
+
+export const unarchiveAccount = (store: AccountStore, userId: string, id: string) =>
+  store.update(userId, id, { archivedAt: null }, 'account.unarchive');
 
 /** Account types are fixed after creation; a retype request is refused outright. */
 export function assertNoRetype(existing: Account, requestedType: unknown): void {

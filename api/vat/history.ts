@@ -1,5 +1,5 @@
-import { withAuth } from '../_lib/auth';
-import { databaseStore, vatErrorResponse, type VatReturnStore } from '../_lib/vatReturns';
+import { withAuth } from '../_lib/auth.js';
+import { databaseStore, vatErrorResponse, type VatReturnStore } from '../_lib/vatReturns.js';
 
 export function vatHistoryHandler(store: VatReturnStore) {
   return async (request: Request, auth: { userId: string }): Promise<Response> => {

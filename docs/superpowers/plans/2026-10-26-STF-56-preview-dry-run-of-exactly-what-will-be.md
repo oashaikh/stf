@@ -52,7 +52,7 @@
   - Risk: Handles credentials adjacent to a response and logs; the no-token guarantee is the core security property, so high effort.
   - Commit: `7e6347b21ff0`
 
-- [ ] **Task 3: Add POST /api/vat/preview route with auth and ownership tests** (after 2)
+- [x] **Task 3: Add POST /api/vat/preview route with auth and ownership tests** (after 2)
   - Intent: New api/vat/preview.ts modelled on api/vat/submit.ts: withAuth, POST only, body validated with periodSchema (no confirm flag needed, nothing is filed), calls previewVatReturnForUser, maps VatReturnError via vatErrorResponse, never logs error messages that could carry tokens. Returns { ok: true, data }. Route test mirrors vatSubmitRoute.test.ts: unauthenticated refused, wrong method 405, bad body 400, a second user cannot preview the first user's period (409 NOT_CONFIRMED, since drafts are scoped by user id), and the response has no token. Add the same ponytail rate-limit note only if it is not already covered by a shared comment.
   - Files: `api/vat/preview.ts`, `api/_lib/__tests__/vatPreviewRoute.test.ts`
   - Acceptance criteria the planner set:
@@ -61,6 +61,7 @@
     - apiRoutes.test.ts still passes (add the new route there if it lists routes)
     - npm test, typecheck and lint pass
   - Risk: New authenticated route reading a user's financial and credential-adjacent data; opus per the auth/permission rule.
+  - Commit: `f6c550922ef7`
 
 - [ ] **Task 4: Add previewVatReturn client call in vatApi.ts** (after 3)
   - Intent: Add a typed previewVatReturn(token, period, fetchFn) and VatPreview type in src/lib/hmrc/vatApi.ts that POSTs to /api/vat/preview with browserFraudHeaders as submitVatReturn does, and throws SubmitVatError-style errors with the server code. Add unit tests beside the existing vatApi tests. STF-20 also edits vatApi.ts, so keep the addition as one appended block to avoid conflicts.

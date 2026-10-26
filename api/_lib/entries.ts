@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, lte, gte, or, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
@@ -7,6 +7,8 @@ import {
   transactionLines,
   transactions,
   users,
+  vatReturnDrafts,
+  vatSubmissions,
   type AccountRow,
 } from '../../server/src/db/schema.js';
 import { BANK_ACCOUNT_CODE, TRADE_DEBTORS_CODE, VAT_CONTROL_CODE } from '../../src/lib/chartOfAccounts.js';
@@ -46,6 +48,14 @@ export interface EntryStore {
   /** Writes the transaction, its lines and the entry.create audit event in one database transaction. */
   create(userId: string, header: EntryHeader, lines: PostedLine[]): Promise<Entry>;
   get(userId: string, entryId: string): Promise<Entry | undefined>;
+  /** True when the date sits in a period with a confirmed VAT return draft or a submitted VAT submission. */
+  isDateLocked(userId: string, date: string): Promise<boolean>;
+  /** Voids the old transaction and writes the replacement plus one entry.edit audit event, in one database transaction. Undefined when the entry is not the owner's live entry. */
+  replace(userId: string, entryId: string, header: EntryHeader, lines: PostedLine[]): Promise<Entry | undefined>;
+  /** Soft-deletes the entry (status voided, deleted_at set) and writes entry.void. False when not found. */
+  void(userId: string, entryId: string): Promise<boolean>;
+  /** Flips a draft to confirmed and writes entry.confirm. Undefined when it is not the owner's live draft. */
+  confirm(userId: string, entryId: string): Promise<Entry | undefined>;
 }
 
 export class EntryRuleError extends Error {
@@ -81,9 +91,17 @@ export function assertDateNotTooFarAhead(date: string, now: Date): void {
   if (date > latest) throw new EntryRuleError(400, 'BAD_REQUEST', `Date cannot be more than ${MAX_DAYS_AHEAD} days ahead`);
 }
 
+export const PERIOD_LOCKED_MESSAGE =
+  'This date is inside a VAT period that is confirmed or filed. Reopen the return first, or record a correction in the current period.';
+
+async function assertDateOpen(store: EntryStore, userId: string, date: string): Promise<void> {
+  if (await store.isDateLocked(userId, date)) throw new EntryRuleError(409, 'PERIOD_LOCKED', PERIOD_LOCKED_MESSAGE);
+}
+
 /** The route does no arithmetic: lines come only from postEntry. */
-export async function createEntry(store: EntryStore, userId: string, input: NewEntry, now: Date): Promise<Entry> {
+async function buildEntry(store: EntryStore, userId: string, input: NewEntry, now: Date) {
   assertDateNotTooFarAhead(input.date, now);
+  await assertDateOpen(store, userId, input.date);
   const context = await store.loadPostingContext(userId, input.categoryAccountId);
   if (!context.category || context.category.archivedAt !== null || context.category.accountType !== input.kind) {
     throw new EntryRuleError(422, 'INVALID_ACCOUNT', 'Category must be one of your active accounts matching the entry kind');
@@ -99,7 +117,41 @@ export async function createEntry(store: EntryStore, userId: string, input: NewE
     vatControlAccountId: context.vatControlAccountId,
     debtorsAccountId: context.debtorsAccountId,
   });
-  return store.create(userId, { date: input.date, description: input.description, reference: input.reference ?? null, status: input.status }, lines);
+  const header: EntryHeader = { date: input.date, description: input.description, reference: input.reference ?? null, status: input.status };
+  return { header, lines };
+}
+
+export async function createEntry(store: EntryStore, userId: string, input: NewEntry, now: Date): Promise<Entry> {
+  const { header, lines } = await buildEntry(store, userId, input, now);
+  return store.create(userId, header, lines);
+}
+
+async function loadOpenEntry(store: EntryStore, userId: string, entryId: string): Promise<Entry> {
+  const entry = await store.get(userId, entryId);
+  if (!entry) throw new EntryRuleError(404, 'NOT_FOUND', 'Entry not found');
+  await assertDateOpen(store, userId, entry.date);
+  return entry;
+}
+
+export async function editEntry(store: EntryStore, userId: string, entryId: string, input: NewEntry, now: Date): Promise<Entry> {
+  await loadOpenEntry(store, userId, entryId);
+  const { header, lines } = await buildEntry(store, userId, input, now);
+  const replacement = await store.replace(userId, entryId, header, lines);
+  if (!replacement) throw new EntryRuleError(404, 'NOT_FOUND', 'Entry not found');
+  return replacement;
+}
+
+export async function voidEntry(store: EntryStore, userId: string, entryId: string): Promise<void> {
+  await loadOpenEntry(store, userId, entryId);
+  if (!(await store.void(userId, entryId))) throw new EntryRuleError(404, 'NOT_FOUND', 'Entry not found');
+}
+
+export async function confirmEntry(store: EntryStore, userId: string, entryId: string): Promise<Entry> {
+  const entry = await loadOpenEntry(store, userId, entryId);
+  if (entry.status !== 'draft') throw new EntryRuleError(409, 'NOT_DRAFT', 'Only a draft entry can be confirmed');
+  const confirmed = await store.confirm(userId, entryId);
+  if (!confirmed) throw new EntryRuleError(409, 'NOT_DRAFT', 'Only a draft entry can be confirmed');
+  return confirmed;
 }
 
 const lineColumns = {
@@ -112,8 +164,59 @@ const lineColumns = {
 const toPostedLines = (rows: Array<{ accountId: string; amountPence: number; vatPence: number; vatRatePercent: number }>) =>
   rows.map((row) => ({ ...row, vatRatePercent: row.vatRatePercent === 0 ? null : (row.vatRatePercent as PostedLine['vatRatePercent']) }));
 
+// Works on the pool or inside a transaction.
+type Executor = Pick<typeof db, 'select' | 'insert' | 'update'>;
+
+async function insertEntry(executor: Executor, userId: string, header: EntryHeader, lines: PostedLine[]): Promise<Entry> {
+  const [row] = await executor
+    .insert(transactions)
+    .values({ userId, ...header, source: 'manual' })
+    .returning({ id: transactions.id });
+  await executor.insert(transactionLines).values(
+    lines.map((line) => ({
+      transactionId: row.id,
+      accountId: line.accountId,
+      amountPence: line.amountPence,
+      vatPence: line.vatPence,
+      vatRatePercent: line.vatRatePercent ?? 0,
+    })),
+  );
+  return { id: row.id, ...header, source: 'manual', lines };
+}
+
+async function loadEntry(executor: Executor, userId: string, entryId: string): Promise<Entry | undefined> {
+  const [header] = await executor
+    .select({
+      id: transactions.id,
+      date: transactions.date,
+      description: transactions.description,
+      reference: transactions.reference,
+      status: transactions.status,
+    })
+    .from(transactions)
+    .where(and(eq(transactions.id, entryId), eq(transactions.userId, userId), isNull(transactions.deletedAt)))
+    .limit(1);
+  if (!header || (header.status !== 'draft' && header.status !== 'confirmed')) return undefined;
+  const lines = await executor.select(lineColumns).from(transactionLines).where(eq(transactionLines.transactionId, entryId)).limit(ENTRY_LINE_LIMIT);
+  return { ...header, status: header.status, source: 'manual', lines: toPostedLines(lines) };
+}
+
+/** Marks the owner's live entry voided and returns its prior state; undefined if there is none. */
+async function voidLiveEntry(executor: Executor, userId: string, entryId: string): Promise<Entry | undefined> {
+  const before = await loadEntry(executor, userId, entryId);
+  if (!before) return undefined;
+  const now = new Date();
+  const voided = await executor
+    .update(transactions)
+    .set({ status: 'voided', deletedAt: now, updatedAt: now })
+    .where(and(eq(transactions.id, entryId), eq(transactions.userId, userId), isNull(transactions.deletedAt)))
+    .returning({ id: transactions.id });
+  return voided.length ? before : undefined;
+}
+
 // Query audit: transactions are read by primary key and user_id; lines by the transaction_id foreign key
-// with a LIMIT; accounts by the unique (user_id, code) index. The category lookup is by primary key and user_id.
+// with a LIMIT; accounts by the unique (user_id, code) index. The lock check uses the (user_id, period_key) unique
+// index on drafts and submissions, with a LIMIT of 1. The category lookup is by primary key and user_id.
 export const databaseEntryStore: EntryStore = {
   async loadPostingContext(userId, categoryAccountId) {
     await databaseAccountStore.seedDefaults(userId);
@@ -147,26 +250,13 @@ export const databaseEntryStore: EntryStore = {
 
   async create(userId, header, lines) {
     return db.transaction(async (tx) => {
-      const [row] = await tx
-        .insert(transactions)
-        .values({ userId, ...header, source: 'manual' })
-        .returning({ id: transactions.id });
-      await tx.insert(transactionLines).values(
-        lines.map((line) => ({
-          transactionId: row.id,
-          accountId: line.accountId,
-          amountPence: line.amountPence,
-          vatPence: line.vatPence,
-          vatRatePercent: line.vatRatePercent ?? 0,
-        })),
-      );
-      const entry: Entry = { id: row.id, ...header, source: 'manual', lines };
+      const entry = await insertEntry(tx, userId, header, lines);
       await tx.insert(auditEvents).values({
         userId,
         actorType: 'user',
         action: 'entry.create',
         resourceType: 'transaction',
-        resourceId: row.id,
+        resourceId: entry.id,
         afterSnapshot: entry,
       });
       return entry;
@@ -174,19 +264,91 @@ export const databaseEntryStore: EntryStore = {
   },
 
   async get(userId, entryId) {
-    const [header] = await db
-      .select({
-        id: transactions.id,
-        date: transactions.date,
-        description: transactions.description,
-        reference: transactions.reference,
-        status: transactions.status,
-      })
-      .from(transactions)
-      .where(and(eq(transactions.id, entryId), eq(transactions.userId, userId), isNull(transactions.deletedAt)))
+    return loadEntry(db, userId, entryId);
+  },
+
+  async isDateLocked(userId, date) {
+    // Submissions carry only a period key, so the dates come from the draft with the same key.
+    const [locked] = await db
+      .select({ id: vatReturnDrafts.id })
+      .from(vatReturnDrafts)
+      .leftJoin(
+        vatSubmissions,
+        and(
+          eq(vatSubmissions.userId, vatReturnDrafts.userId),
+          eq(vatSubmissions.periodKey, vatReturnDrafts.periodKey),
+          eq(vatSubmissions.status, 'submitted'),
+        ),
+      )
+      .where(
+        and(
+          eq(vatReturnDrafts.userId, userId),
+          lte(vatReturnDrafts.periodStart, date),
+          gte(vatReturnDrafts.periodEnd, date),
+          or(eq(vatReturnDrafts.status, 'confirmed'), isNotNull(vatSubmissions.id)),
+        ),
+      )
       .limit(1);
-    if (!header || (header.status !== 'draft' && header.status !== 'confirmed')) return undefined;
-    const lines = await db.select(lineColumns).from(transactionLines).where(eq(transactionLines.transactionId, entryId)).limit(ENTRY_LINE_LIMIT);
-    return { ...header, status: header.status, source: 'manual', lines: toPostedLines(lines) };
+    return Boolean(locked);
+  },
+
+  async replace(userId, entryId, header, lines) {
+    return db.transaction(async (tx) => {
+      const before = await voidLiveEntry(tx, userId, entryId);
+      if (!before) return undefined;
+      const after = await insertEntry(tx, userId, header, lines);
+      await tx.insert(auditEvents).values({
+        userId,
+        actorType: 'user',
+        action: 'entry.edit',
+        resourceType: 'transaction',
+        resourceId: after.id,
+        beforeSnapshot: before,
+        afterSnapshot: after,
+        metadata: { voidedId: before.id, replacementId: after.id },
+      });
+      return after;
+    });
+  },
+
+  async void(userId, entryId) {
+    return db.transaction(async (tx) => {
+      const before = await voidLiveEntry(tx, userId, entryId);
+      if (!before) return false;
+      await tx.insert(auditEvents).values({
+        userId,
+        actorType: 'user',
+        action: 'entry.void',
+        resourceType: 'transaction',
+        resourceId: entryId,
+        beforeSnapshot: before,
+        afterSnapshot: { ...before, status: 'voided' },
+      });
+      return true;
+    });
+  },
+
+  async confirm(userId, entryId) {
+    return db.transaction(async (tx) => {
+      const before = await loadEntry(tx, userId, entryId);
+      if (!before || before.status !== 'draft') return undefined;
+      const [updated] = await tx
+        .update(transactions)
+        .set({ status: 'confirmed', updatedAt: new Date() })
+        .where(and(eq(transactions.id, entryId), eq(transactions.userId, userId), eq(transactions.status, 'draft'), isNull(transactions.deletedAt)))
+        .returning({ id: transactions.id });
+      if (!updated) return undefined;
+      const after: Entry = { ...before, status: 'confirmed' };
+      await tx.insert(auditEvents).values({
+        userId,
+        actorType: 'user',
+        action: 'entry.confirm',
+        resourceType: 'transaction',
+        resourceId: entryId,
+        beforeSnapshot: before,
+        afterSnapshot: after,
+      });
+      return after;
+    });
   },
 };

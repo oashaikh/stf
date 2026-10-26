@@ -12,7 +12,7 @@ interface SavedEntry {
   date: string;
   description: string;
   reference: string | null;
-  status: 'draft';
+  status: 'draft' | 'confirmed';
   kind: 'income' | 'expense';
   grossPence: number;
   netPence: number;
@@ -36,7 +36,8 @@ function saveEntry(body: NewEntryBody, id: string): SavedEntry {
 }
 
 function vatReturn(entries: SavedEntry[]) {
-  const sales = entries.filter((entry) => entry.kind === 'income' && entry.date >= period.start && entry.date <= period.end);
+  // Like the real ledger loader, only confirmed entries count; a draft does not reach the return.
+  const sales = entries.filter((entry) => entry.status === 'confirmed' && entry.kind === 'income' && entry.date >= period.start && entry.date <= period.end);
   const box1 = sales.reduce((sum, entry) => sum + entry.vatPence, 0);
   const box6 = sales.reduce((sum, entry) => sum + entry.netPence, 0);
   const boxes = { box1, box2: 0, box3: box1, box4: baseBox4, box5: box1 - baseBox4, box6, box7: baseBox7, box8: 0, box9: 0 };
@@ -78,6 +79,12 @@ export async function mockApi(page: Page, ownerPassword: string) {
       case 'POST /api/entries': {
         entries.push(saveEntry(request.postDataJSON(), `entry-${entries.length + 1}`));
         return json(route, { ok: true }, 201);
+      }
+      case 'PATCH /api/entries': {
+        const entry = entries.find((candidate) => candidate.id === new URL(request.url()).searchParams.get('id'));
+        if (!entry) return json(route, { ok: false }, 404);
+        entry.status = 'confirmed';
+        return json(route, { ok: true, entry });
       }
       case 'GET /api/vat/return':
         return json(route, {

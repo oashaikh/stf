@@ -9,7 +9,7 @@ const runName = process.env.JOURNEY_RUN_NAME ?? new Date().toISOString().replace
 const screenshotDir = path.join('e2e', 'artifacts', runName);
 
 // The login and the one entry added through the form are the only writes the journey may make; the preview is a POST that computes and stores nothing.
-const ALLOWED_WRITES = new Set(['POST /api/auth/login', 'POST /api/entries', 'POST /api/vat/preview']);
+const ALLOWED_WRITES = new Set(['POST /api/auth/login', 'POST /api/entries', 'PATCH /api/entries', 'POST /api/vat/preview']);
 // Set to commit the VAT screens as review evidence: <width>-light-<step>.png.
 const evidenceDir = process.env.JOURNEY_EVIDENCE_DIR;
 const evidenceWidths = [1440, 390];
@@ -80,6 +80,8 @@ test('owner signs in and walks Dashboard, Expenses, VAT preview and Settings', a
       await page.getByLabel('Category').selectOption({ label: 'Sales' });
       await page.getByRole('button', { name: 'Save as draft' }).click();
       await expect(page.getByText('Invoice 1001 website build')).toBeVisible();
+      // The form saves drafts and has no confirm control yet; a draft is not in the return, so confirm through the API as the ledger needs.
+      await page.evaluate(() => fetch('/api/entries?id=entry-1', { method: 'PATCH', body: JSON.stringify({ status: 'confirmed' }) }));
     });
   }
   await step('vat-obligations', openPage('/vat', 'VAT Returns'));
@@ -125,7 +127,10 @@ async function captureEvidence(page: Page, name: string) {
   const original = page.viewportSize()!;
   for (const width of evidenceWidths) {
     await page.setViewportSize({ width, height: 900 });
+    // Fixed chrome would be drawn mid-page in a full-page capture and hide content.
+    const hideChrome = await page.addStyleTag({ content: 'header, nav { position: static !important; }' });
     await page.screenshot({ path: path.join(evidenceDir, `${width}-light-${name}.png`), fullPage: true });
+    await hideChrome.evaluate((node) => node.remove());
   }
   await page.setViewportSize(original);
 }

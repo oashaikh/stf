@@ -406,10 +406,10 @@ function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: B
                   <li key={line.lineId}>
                     <Link
                       to={expensesLink(line)}
-                      className="flex min-h-[44px] flex-wrap items-center gap-x-4 text-blue-700 hover:underline sm:flex-nowrap"
+                      className="flex min-h-[44px] flex-wrap items-center gap-x-4 py-1 text-blue-700 hover:underline sm:flex-nowrap"
                     >
                       <span className="shrink-0 tabular-nums">{formatDate(line.date)}</span>
-                      <span className="min-w-0 flex-1 truncate" title={line.description ?? undefined}>
+                      <span className="order-last min-w-0 basis-full truncate sm:order-none sm:basis-0 sm:flex-1" title={line.description ?? undefined}>
                         {line.description ?? ''}
                       </span>
                       <span className="shrink-0 text-right tabular-nums">

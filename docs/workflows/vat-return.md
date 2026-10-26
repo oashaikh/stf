@@ -61,10 +61,9 @@ it, and never do tax arithmetic themselves.
 
 ## Entries and the posting rules
 
-An entry groups related invoice lines (e.g., a sales invoice split by VAT rate). When an entry
-is created or edited, the posting rules (`src/lib/postingRules.ts`) generate journal lines from it:
-one line per VAT rate and account pair. Each journal line records a debit (expense/asset) or
-credit (income/liability) with an optional VAT component.
+An entry is one income or expense with a single VAT rate. When it is created or edited, the posting
+rules (`src/lib/postingRules.ts`) turn it into balanced ledger lines: debit positive, credit negative,
+with the VAT amount carried on each line and the same sign as its amount.
 
 An entry has a status: `draft` (temporary, not confirmed) or `confirmed` (ready to count towards
 returns and commitments). `POST /api/entries` and `PUT /api/entries?id=<entryId>` create and
@@ -158,10 +157,9 @@ The preview payload includes:
 - `netVatDue` — box 5 (box 3 - box 4, signed; absolute value in whole pounds sent to HMRC)
 - `totalValueSalesExVAT` — box 6 (total sales ex VAT) in whole pounds
 - `totalValuePurchasesExVAT` — box 7 (total purchases ex VAT) in whole pounds
-- `totalValueSuppliesExVAT` — box 8 (always 0)
+- `totalValueGoodsSuppliedExVAT` — box 8 (always 0)
 - `totalAcquisitionsExVAT` — box 9 (always 0)
 - `finalised` — true (the return is being filed)
-- `periodKey` — matches the confirmed period
 
 ## Drill-down links
 
@@ -175,10 +173,9 @@ The link to the Expenses page is:
 /expenses?from={date}&to={date}[&search={description}]#entry-{transactionId}
 ```
 
-The `from` and `to` filter parameters match the entry's date, so the Expenses list shows only that day.
-If the entry has a description, a `search` parameter adds it as a search filter.
-The hash fragment `#entry-{transactionId}` highlights the entry row in the list.
-The operator noted (STF-68) that this exact fragment name is used to highlight the entry on the Expenses page.
+`from` and `to` are the entry's date and `search` is its description. The Expenses page is meant to filter on them
+and highlight the row named by `#entry-{transactionId}`; that reading is being built under STF-68 and is not in
+effect yet, so for now the link opens the Expenses page unfiltered.
 
 ## History
 

@@ -136,3 +136,28 @@ export async function previewVatReturn(
   if (!body?.ok) throw new SubmitVatError(body?.code ?? 'REQUEST_FAILED', body?.error ?? 'Preview failed');
   return body.data;
 }
+
+/** HMRC sends pounds with at most two decimals; round after scaling so 20.1 becomes 2010, not 2009.999. */
+const toPence = (pounds: number) => Math.round(pounds * 100);
+
+/** The nine boxes of a return as HMRC holds it, in integer pence. */
+export async function fetchFiledVatReturn(periodKey: string, fetchFn: FetchFn = fetch): Promise<VatReturnBoxes> {
+  const response = await fetchFn(`/api/vat/filed?periodKey=${encodeURIComponent(periodKey)}`, {
+    credentials: 'same-origin',
+    headers: browserFraudHeaders(),
+  });
+  const body = await response.json().catch(() => null);
+  if (!body?.ok) throw new Error('Could not get the return from HMRC');
+  const filed = body.data;
+  return {
+    box1: toPence(filed.vatDueSales),
+    box2: toPence(filed.vatDueAcquisitions),
+    box3: toPence(filed.totalVatDue),
+    box4: toPence(filed.vatReclaimedCurrPeriod),
+    box5: toPence(filed.netVatDue),
+    box6: toPence(filed.totalValueSalesExVAT),
+    box7: toPence(filed.totalValuePurchasesExVAT),
+    box8: toPence(filed.totalValueGoodsSuppliedExVAT),
+    box9: toPence(filed.totalAcquisitionsExVAT),
+  };
+}

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchVatHistory, fetchVatObligations, NotConnectedError, previewVatReturn, SubmitVatError, submitVatReturn, VatNumberMissingError } from './vatApi';
+import { fetchFiledVatReturn, fetchVatHistory, fetchVatObligations, NotConnectedError, previewVatReturn, SubmitVatError, submitVatReturn, VatNumberMissingError } from './vatApi';
 
 const obligation = { periodKey: '18A1', start: '2026-01-01', end: '2026-03-31', due: '2026-05-07', status: 'O', overdue: false };
 
@@ -117,5 +117,35 @@ describe('previewVatReturn', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false, code: 'NOT_CONNECTED', error: 'Connect HMRC' }, 409));
     await expect(previewVatReturn(period, fetchMock)).rejects.toMatchObject({ code: 'NOT_CONNECTED' });
     await expect(previewVatReturn(period, fetchMock)).rejects.toBeInstanceOf(SubmitVatError);
+  });
+});
+
+describe('fetchFiledVatReturn', () => {
+  const filed = {
+    vatDueSales: 20.1,
+    vatDueAcquisitions: 0,
+    totalVatDue: 20.1,
+    vatReclaimedCurrPeriod: 0.29,
+    netVatDue: 19.81,
+    totalValueSalesExVAT: 100,
+    totalValuePurchasesExVAT: 50,
+    totalValueGoodsSuppliedExVAT: 0,
+    totalAcquisitionsExVAT: 0,
+  };
+
+  it('maps the nine HMRC fields to integer pence without float drift', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, data: filed }));
+    expect(await fetchFiledVatReturn('#001', fetchMock)).toEqual({
+      box1: 2010, box2: 0, box3: 2010, box4: 29, box5: 1981, box6: 10000, box7: 5000, box8: 0, box9: 0,
+    });
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe('/api/vat/filed?periodKey=%23001');
+    expect(init.credentials).toBe('same-origin');
+    expect(init.headers['x-stf-device-id']).toBeTruthy();
+  });
+
+  it('throws when the server reports a failure', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false, code: 'HMRC_NOT_CONNECTED' }, 409));
+    await expect(fetchFiledVatReturn('26A1', fetchMock)).rejects.toThrow();
   });
 });

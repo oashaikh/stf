@@ -1,6 +1,7 @@
 import { formatDate } from '../lib/dates';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import type { VatHistoryItem, VatHistoryStatus } from '../lib/hmrc/vatApi';
+import { fetchFiledVatReturn, type VatHistoryItem, type VatHistoryStatus } from '../lib/hmrc/vatApi';
 import { formatPence } from '../lib/money';
 import { useVatHistory } from './useVatHistory';
 import { BOX_LABELS, boxLabel } from './vatReviewState';
@@ -15,6 +16,54 @@ const STATUS_LABELS: Record<VatHistoryStatus, string> = {
 // Only filed returns have a stored receipt worth showing; drafts and confirmed ones are edited on the review above.
 function isFiled(item: VatHistoryItem): boolean {
   return item.status === 'submitted' || item.status === 'accepted';
+}
+
+// Asks HMRC only after the user clicks, so opening a return never makes an HMRC call by itself.
+function FiledWithHmrc({ periodKey }: { periodKey: string }) {
+  const [requested, setRequested] = useState(false);
+  const filed = useQuery({
+    queryKey: ['vat-filed', periodKey],
+    queryFn: () => fetchFiledVatReturn(periodKey),
+    enabled: requested,
+    retry: false,
+  });
+
+  return (
+    <div className="mt-4 border-t border-gray-200 pt-3 text-sm text-gray-700">
+      {!requested && (
+        <button
+          type="button"
+          onClick={() => setRequested(true)}
+          className="min-h-[44px] rounded-md border border-gray-400 px-4 text-gray-900 hover:bg-gray-100"
+        >
+          View as filed with HMRC
+        </button>
+      )}
+      {filed.isPending && requested && <p role="status">Asking HMRC for this return…</p>}
+      {filed.isError && (
+        <p role="alert" className="text-red-800">
+          Could not get this return from HMRC. Check HMRC is connected in Settings, then try again.
+        </p>
+      )}
+      {filed.data && (
+        <>
+          <h4 className="font-semibold text-gray-900">As filed with HMRC</h4>
+          <dl className="mt-2">
+            {Object.keys(BOX_LABELS).map((key) => {
+              const box = Number(key);
+              const pence = filed.data[`box${box}` as keyof typeof filed.data];
+              return (
+                <div key={box} className="flex justify-between gap-4 py-1">
+                  <dt>Box {box}: {boxLabel(box, pence)}</dt>
+                  <dd className="text-right tabular-nums">{formatPence(pence)}</dd>
+                </div>
+              );
+            })}
+          </dl>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function VatHistoryList() {
@@ -118,6 +167,7 @@ export default function VatHistoryList() {
           ) : (
             <p className="mt-4 border-t border-gray-200 pt-3 text-sm text-gray-700">Awaiting HMRC confirmation.</p>
           )}
+          <FiledWithHmrc key={opened.periodKey} periodKey={opened.periodKey} />
         </section>
       )}
     </section>

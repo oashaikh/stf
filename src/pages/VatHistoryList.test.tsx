@@ -7,9 +7,11 @@ import VatHistoryList from './VatHistoryList';
 import type { VatHistoryItem } from '../lib/hmrc/vatApi';
 
 const fetchVatHistory = vi.fn();
+const fetchFiledVatReturn = vi.fn();
 vi.mock('../lib/hmrc/vatApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/hmrc/vatApi')>()),
   fetchVatHistory: (...args: unknown[]) => fetchVatHistory(...args),
+  fetchFiledVatReturn: (...args: unknown[]) => fetchFiledVatReturn(...args),
 }));
 
 function item(periodKey: string, status: VatHistoryItem['status'], box5: number, receipt: VatHistoryItem['receipt'] = null): VatHistoryItem {
@@ -37,6 +39,28 @@ describe('VatHistoryList', () => {
   afterEach(cleanup);
   beforeEach(() => {
     fetchVatHistory.mockReset();
+    fetchFiledVatReturn.mockReset();
+  });
+
+  it('asks HMRC for a filed return only on click, then shows its nine boxes', async () => {
+    fetchVatHistory.mockResolvedValue([item('25B2', 'accepted', 75000, liveReceipt)]);
+    fetchFiledVatReturn.mockResolvedValue({ box1: 111100, box2: 0, box3: 111100, box4: 2000, box5: 109100, box6: 500000, box7: 125000, box8: 0, box9: 0 });
+    renderList();
+    fireEvent.click(await screen.findByRole('button', { name: '25B2' }));
+    expect(fetchFiledVatReturn).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'View as filed with HMRC' }));
+    expect(await screen.findByText('As filed with HMRC')).toBeInTheDocument();
+    expect(fetchFiledVatReturn).toHaveBeenCalledWith('25B2');
+    expect(screen.getByText('£1,091.00')).toBeInTheDocument();
+  });
+
+  it('says so when HMRC cannot be reached', async () => {
+    fetchVatHistory.mockResolvedValue([item('25B2', 'accepted', 75000, liveReceipt)]);
+    fetchFiledVatReturn.mockRejectedValue(new Error('nope'));
+    renderList();
+    fireEvent.click(await screen.findByRole('button', { name: '25B2' }));
+    fireEvent.click(screen.getByRole('button', { name: 'View as filed with HMRC' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not get this return from HMRC');
   });
 
   it('shows a text status label and formatted net VAT for every status', async () => {

@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
+import { LegalLinks } from './LegalPages';
 import { SESSION_QUERY_KEY, login, type LoginResult } from '../lib/session';
 
 const MESSAGES: Record<Exclude<LoginResult, 'ok'>, string> = {
@@ -56,6 +57,9 @@ export default function LoginPage() {
           Sign in
         </button>
       </form>
+      <footer className="mt-8">
+        <LegalLinks />
+      </footer>
     </main>
   );
 }

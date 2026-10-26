@@ -1,6 +1,6 @@
-import { buildFraudHeaders, vendorVersion } from '../../src/lib/hmrc/fraudHeaders.js';
-import { getVatObligations, HmrcError, refreshAccessToken, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
+import { getVatObligations, refreshAccessToken, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
 import { withAuth, type AuthDeps } from '../_lib/auth.js';
+import { callHmrcAsUser } from '../_lib/hmrcCall.js';
 import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore.js';
 
 export interface ObligationsHmrcDeps {
@@ -63,59 +63,41 @@ export function createObligationsHandler(
     const credentials = await store.credentials(auth.userId);
     if (!credentials) return failure(409, 'HMRC_NOT_CONNECTED', 'HMRC is not connected');
     if (!credentials.vatNumber) return failure(409, 'VAT_NUMBER_MISSING', 'No VAT number is set');
-    const { vatNumber, storedRefreshToken } = credentials;
+    const { vatNumber } = credentials;
 
-    const fraudHeaders = buildFraudHeaders({
-      request,
-      userId: auth.userId,
-      appVersion: vendorVersion(),
-      vendorPublicIp: process.env.HMRC_VENDOR_PUBLIC_IP,
-      now: now(),
-    });
-
-    try {
-      const { obligations } = await withHmrcToken(
-        {
-          accessToken: credentials.accessToken,
-          refreshToken: credentials.refreshToken,
-          expiresAt: credentials.expiresAt.getTime(),
+    return callHmrcAsUser(
+      {
+        request,
+        userId: auth.userId,
+        credentials,
+        store,
+        label: 'obligations',
+        call: async (accessToken, fraudHeaders) => {
+          const { obligations } = await getVatObligations(
+            vatNumber,
+            accessToken,
+            query.from,
+            query.to,
+            fraudHeaders,
+            fetchFn,
+            query.status,
+          );
+          return Response.json({
+            ok: true,
+            obligations: obligations.map(({ periodKey, start, end, due, status, received }) => ({
+              periodKey,
+              start,
+              end,
+              due,
+              status,
+              received,
+              overdue: status === 'O' && due < today,
+            })),
+          });
         },
-        (accessToken) =>
-          getVatObligations(vatNumber, accessToken, query.from, query.to, fraudHeaders, fetchFn, query.status),
-        // A lost compare-and-swap means a concurrent request already rotated the stored tokens; ours still serve this retry.
-        // A failed save must not fail the request: the rotated token is still valid for this call.
-        async (refreshed) => {
-          try {
-            await store.saveRefreshedTokens(auth.userId, storedRefreshToken, {
-              accessToken: refreshed.accessToken,
-              refreshToken: refreshed.refreshToken,
-              expiresAt: new Date(refreshed.expiresAt),
-            });
-          } catch {
-            // The error text can echo tokens, so log a fixed message only. The user may need to reconnect HMRC.
-            console.error('HMRC refreshed tokens could not be saved');
-          }
-        },
-        refresh,
-      );
-      return Response.json({
-        ok: true,
-        obligations: obligations.map(({ periodKey, start, end, due, status, received }) => ({
-          periodKey,
-          start,
-          end,
-          due,
-          status,
-          received,
-          overdue: status === 'O' && due < today,
-        })),
-      });
-    } catch (error) {
-      if (!(error instanceof HmrcError)) throw error;
-      // Log the HMRC code and status only: its message can echo tokens or the VAT number.
-      console.error('HMRC obligations error', error.apiError.code, error.apiError.statusCode);
-      return failure(502, error.apiError.code, 'HMRC request failed', { hmrcStatus: error.apiError.statusCode });
-    }
+      },
+      { refresh, now },
+    );
   }, authDeps);
 }
 

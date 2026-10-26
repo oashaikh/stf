@@ -93,7 +93,7 @@ Also depends on:
     - Statements match the tests in vatFromEntries.test.ts
   - Commit: `dcbeedbad693`
 
-- [ ] **Task 5: E2E journey with the real add-entry form, plus screenshots at 390 and 1440 px** (after 3)
+- [x] **Task 5: E2E journey with the real add-entry form, plus screenshots at 390 and 1440 px** (after 3)
   - Intent: Extend e2e/mockApi.ts so entries created through the STF-67 form on /expenses are held by the mock and flow into the VAT review (box 1, box 6, drill-down line with transactionId) and the preview (vatDueSales, totalValueSalesExVAT). Add a journey step to e2e/journey.spec.ts: sign in, open Expenses, use the real Add entry form to add an income entry with 20% VAT dated inside the open period, open VAT, assert box 1 and box 6, expand the drill-down and assert the line and its link, click Preview what will be sent and assert vatDueSales and totalValueSalesExVAT. Capture screenshots of the VAT page, drill-down and preview at 390 and 1440 px, light, committed as browser-evidence/STF-71/<width>-light-<step>.png. Invented data only.
   - Files: `e2e/mockApi.ts`, `e2e/journey.spec.ts`, `browser-evidence/STF-71`
   - Acceptance criteria the planner set:
@@ -101,3 +101,4 @@ Also depends on:
     - Screenshots exist for each changed screen at 390 and 1440 px named browser-evidence/STF-71/<width>-light-<step>.png
     - No .env file read or written; npm run lint, typecheck, test and build pass
   - Risk: STF-90 also edits e2e/mockApi.ts and e2e/journey.spec.ts; keep additions in separate hunks.
+  - Commit: `2c300b9db696`

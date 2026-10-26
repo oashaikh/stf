@@ -90,7 +90,7 @@ export default function DashboardPage() {
               <h2 className="text-lg font-medium text-gray-900">Latest entries</h2>
               <ul className="mt-2 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
                 {data.recentEntries.map((entry) => (
-                  <li key={entry.id} className="flex items-center justify-between gap-4 p-3">
+                  <li key={entry.id} className="flex items-center justify-between gap-2 p-3">
                     <span className="text-sm text-gray-600">{entry.date}</span>
                     <span className="min-w-0 flex-1 truncate text-gray-900" title={entry.description}>
                       {entry.description}

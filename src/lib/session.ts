@@ -6,7 +6,7 @@ export async function fetchSignedIn(): Promise<boolean> {
   return response.ok;
 }
 
-export type LoginResult = 'ok' | 'wrong-password' | 'locked' | 'error';
+export type LoginResult = 'ok' | 'code-required' | 'wrong-password' | 'locked' | 'error';
 
 export async function login(password: string): Promise<LoginResult> {
   const response = await fetch('/api/auth/login', {
@@ -16,8 +16,27 @@ export async function login(password: string): Promise<LoginResult> {
     body: JSON.stringify({ password }),
   }).catch(() => null);
   if (!response) return 'error';
-  if (response.ok) return 'ok';
+  if (response.ok) {
+    const body = await response.json().catch(() => null);
+    return body?.mfaRequired === true ? 'code-required' : 'ok';
+  }
   if (response.status === 401) return 'wrong-password';
+  return response.status === 429 ? 'locked' : 'error';
+}
+
+export type MfaResult = 'ok' | 'wrong-code' | 'locked' | 'error';
+
+/** Second login step: an authenticator code or a recovery code, sent with the challenge cookie from login. */
+export async function submitMfaCode(code: string): Promise<MfaResult> {
+  const response = await fetch('/api/auth/mfa', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  }).catch(() => null);
+  if (!response) return 'error';
+  if (response.ok) return 'ok';
+  if (response.status === 401) return 'wrong-code';
   return response.status === 429 ? 'locked' : 'error';
 }
 

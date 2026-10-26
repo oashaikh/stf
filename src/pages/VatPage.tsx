@@ -435,9 +435,9 @@ function SubmitDialog({ open, periodLabel, netVatPence, live, preview, onCancel,
       ref={dialogRef}
       aria-labelledby="vat-submit-dialog-title"
       onClose={onCancel}
-      className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded p-0 backdrop:bg-black/50"
+      className="w-full max-w-2xl max-h-[90vh] flex-col rounded p-0 open:flex backdrop:bg-black/50"
     >
-      <div className="p-6">
+      <div className="min-h-0 flex-1 overflow-y-auto p-6">
         <h2 id="vat-submit-dialog-title" className="text-lg font-semibold text-gray-900">
           {live ? 'Submit this VAT return to HMRC?' : 'Submit this VAT return to the HMRC sandbox?'}
         </h2>
@@ -458,7 +458,7 @@ function SubmitDialog({ open, periodLabel, netVatPence, live, preview, onCancel,
         {live && <p className="mt-4 text-sm text-gray-900">A live submission cannot be undone.</p>}
         <PreviewResult mutation={preview} />
       </div>
-      <div className="flex justify-end gap-3 border-t border-gray-200 p-4">
+      <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 p-4">
         <button type="button" onClick={onCancel} className="min-h-[44px] rounded border border-gray-300 px-6 text-sm font-medium text-gray-900">
           Cancel
         </button>

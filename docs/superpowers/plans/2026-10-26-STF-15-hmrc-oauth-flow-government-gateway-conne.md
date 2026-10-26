@@ -32,7 +32,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Minimal Fastify entrypoint for scheduled jobs (no HTTP auth)**
+- [x] **Task 1: Minimal Fastify entrypoint for scheduled jobs (no HTTP auth)**
   - Intent: server/ has only a db folder, and `npm run dev:server` points at a server/package.json that does not exist. Add the smallest runnable Fastify process whose only job is hosting scheduled jobs: server/src/index.ts creates the Fastify instance, starts it, and calls a `startScheduledJobs(app)` registry in the new server/src/scheduled-jobs/index.ts (empty registry now; Task 5 adds the refresh job). No HTTP routes and no Clerk hook or auth check, because STF-3's auth helper protects the user-facing routes in the serverless API folder. Fix the `dev:server` script to run the entrypoint. Add `fastify` as a dependency. Add `tsx` as a devDependency only if needed to run TS in dev, and say why in the commit. Clear timers on app close. Add .env.example entries for the control plane port.
   - Files: `package.json`, `package-lock.json`, `server/src/index.ts`, `server/src/scheduled-jobs/index.ts`, `server/src/scheduled-jobs/index.test.ts`, `.env.example`
   - Acceptance criteria the planner set:
@@ -42,6 +42,7 @@
     - Lock file is committed and `npm ci` works
     - `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass
   - Risk: Default sonnet/medium. Dependency add only; no auth logic.
+  - Commit: `a3392938ee9f`
 
 - [ ] **Task 2: Token encryption and signed OAuth state helpers**
   - Intent: Pure server-side helpers shared by the API routes and the refresh job, placed where both can import them (e.g. server/src/lib/hmrcCrypto.ts, or api/_lib/ if the server tsconfig can import it after merging dev). encryptToken/decryptToken use AES-256-GCM from node:crypto with a random IV per call and the key from HMRC_TOKEN_ENCRYPTION_KEY, failing closed if the key is missing or not 32 bytes. signState/verifyState produce an HMAC-signed, user-bound value with a 10 minute expiry and a nonce; verifyState uses a constant-time compare and rejects forged, expired, malformed or other-user state. No logging of values. Add HMRC_TOKEN_ENCRYPTION_KEY and the state-signing secret to .env.example as placeholders only. Tests cover round-trip, tamper detection, wrong key, expiry via a faked clock, and other-user state.

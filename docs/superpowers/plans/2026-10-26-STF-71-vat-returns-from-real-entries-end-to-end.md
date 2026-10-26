@@ -51,7 +51,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Merge dev, then carry the entry id and an entry count through the VAT review**
+- [x] **Task 1: Merge dev, then carry the entry id and an entry count through the VAT review**
   - Intent: Merge origin/dev into the branch first (brings STF-67 add-entry form, STF-10 list API; resolve conflicts, keep this branch's plan doc). Then DrillLine gets transactionId: loadLedgerLines in api/_lib/vatReturns.ts selects transactions.id and getReturnReview passes it through drillDown. Add a per-period count of counted entries to the review response so the UI can tell 'no entries' from 'entries netting to zero'. Same single joined query, still bounded by LEDGER_LINE_LIMIT, no new query. Existing in-memory fakes in vatReturns/vatPreviewRoute tests are updated to supply the id. Done when review JSON exposes transactionId per line plus entryCount, and typecheck and tests pass after the merge.
   - Files: `api/_lib/vatReturns.ts`, `api/_lib/__tests__/vatReturns.test.ts`, `api/_lib/__tests__/vatPreviewRoute.test.ts`, `api/_lib/__tests__/entriesRoute.test.ts`, `src/pages/VatPage.tsx`, `src/pages/VatPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -61,6 +61,7 @@ Also depends on:
     - Test shows a period whose entries net to zero has entryCount > 0 and a period with none has 0
     - Owner scoping of the ledger query is unchanged
   - Risk: opus/high: touches the owner-scoped ledger loader every VAT path (review, confirm, preview, submit) uses, and carries a merge with conflict resolution. VatPage.tsx edit here is only the type so it still typechecks.
+  - Commit: `fd9d95fdaf48`
 
 - [ ] **Task 2: End-to-end VAT tests from real entries (all boxes, refund, boundaries, stale, lock)** (after 1)
   - Intent: New api/_lib/__tests__/vatFromEntries.test.ts wiring one in-memory EntryStore and one in-memory VatReturnStore over the same saved rows (reuse the fake pattern in entriesRoute.test.ts). Create entries through createEntry and the entries handler, then run getReturnReview, confirmReturn, requireConfirmedReturn and previewVatReturnForUser. Cases: standard 20%, reduced 5%, zero-rated sales and purchases, asserting boxes 1 to 9 at least once; a refund period with box 5 negative as implemented in src/lib/vat.ts; entries on the first and last day of the period counted, day before and after excluded; editing an entry after confirmation makes requireConfirmedReturn refuse with the existing stale error; create, edit and void inside a filed period refused with PERIOD_LOCKED from STF-66; preview shows vatDueSales and totalValueSalesExVAT from the entries. Integer pence only, invented data. Check real exported names first; if a case exposes a real bug, report it rather than widening scope.

@@ -84,6 +84,9 @@ export function createTotpService(rows: TotpRows) {
       await rows.enable(userId, now, step, codes.map(hashRecoveryCode));
       return codes;
     },
+    async isEnabled(userId: string): Promise<boolean> {
+      return Boolean((await rows.find(userId))?.enabledAt);
+    },
     async verifyLogin(userId: string, code: string, now: Date): Promise<boolean> {
       const found = await rows.find(userId);
       if (!found?.enabledAt) return false;

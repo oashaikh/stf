@@ -94,6 +94,13 @@ const receiptBody = { formBundleNumber: '256616960283', processingDate: '2026-10
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const request = new Request('https://app.test/api/vat/submit', { method: 'POST' });
 
+// Obligations GETs are answered here; every other call goes to `fetchFn`, which therefore only sees submit POSTs.
+let openObligations: unknown[];
+let obligationsFetch: Mock<[url: string], Promise<Response>>;
+const routeFetch = (submitFetch: FetchMock) =>
+  ((url: string, init: unknown) =>
+    url.includes('/obligations?') ? obligationsFetch(url) : submitFetch(url, init as never)) as unknown as typeof fetch;
+
 const submit = (
   vat: ReturnType<typeof makeVatStore>,
   hmrc: ReturnType<typeof makeHmrcStore>,
@@ -103,7 +110,7 @@ const submit = (
 ) =>
   submitVatReturnForUser(
     { userId, period, request },
-    { vatStore: vat.store, hmrcStore: hmrc.store, fetchFn: fetchFn as unknown as typeof fetch, refresh, now: () => NOW },
+    { vatStore: vat.store, hmrcStore: hmrc.store, fetchFn: routeFetch(fetchFn), refresh, now: () => NOW },
   );
 
 const rejects = async (promise: Promise<unknown>, status: number, code: string) =>
@@ -115,6 +122,8 @@ beforeEach(() => {
   vi.stubEnv('HMRC_SANDBOX_MODE', 'true');
   vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'abc123');
   fetchFn = vi.fn(async () => json(receiptBody)) as unknown as FetchMock;
+  openObligations = [{ periodKey: '26A1', start: '2026-01-01', end: '2026-03-31', due: '2026-05-07', status: 'O' }];
+  obligationsFetch = vi.fn(async (_url: string) => json({ obligations: openObligations }));
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 afterEach(() => {
@@ -167,6 +176,66 @@ describe('submitVatReturnForUser', () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
     expect(fetchFn.mock.calls[1][1].headers.Authorization).toBe(`Bearer ${NEW_ACCESS}`);
     expect(hmrc.saved).toEqual([NEW_ACCESS]);
+  });
+
+  describe('open obligation gate', () => {
+    const refused = async (code = 'PERIOD_NOT_OPEN') => {
+      const vat = makeVatStore({ user_a: sales });
+      await rejects(submit(vat, makeHmrcStore(true), fetchFn), 409, code);
+      expect(fetchFn).not.toHaveBeenCalled();
+      expect(vat.submissions.size).toBe(0);
+    };
+
+    it('asks HMRC for open obligations over the period range', async () => {
+      await submit(makeVatStore({ user_a: sales }), makeHmrcStore(true), fetchFn);
+      expect(obligationsFetch).toHaveBeenCalledWith(
+        'https://test-api.service.hmrc.gov.uk/organisations/vat/123456789/obligations?from=2026-01-01&to=2026-03-31&status=O',
+      );
+    });
+
+    it('refuses a period key that is not among the open obligations', async () => {
+      openObligations = [{ periodKey: '26A2', start: '2026-01-01', end: '2026-03-31', due: '2026-05-07', status: 'O' }];
+      await refused();
+    });
+
+    it('refuses the right key with different dates', async () => {
+      openObligations = [{ periodKey: '26A1', start: '2026-01-01', end: '2026-04-30', due: '2026-05-07', status: 'O' }];
+      await refused();
+    });
+
+    it('refuses a fulfilled obligation and an empty list', async () => {
+      openObligations = [{ periodKey: '26A1', start: '2026-01-01', end: '2026-03-31', due: '2026-05-07', status: 'F' }];
+      await refused();
+      openObligations = [];
+      await refused();
+    });
+
+    it('files the open 26C3 obligation for July to September', async () => {
+      const julySeptember: Period = { periodKey: '26C3', start: '2026-07-01', end: '2026-09-30' };
+      openObligations = [{ ...julySeptember, due: '2026-11-07', status: 'O' }];
+      const vat = makeVatStore({ user_a: [] });
+      vat.drafts.set('user_a:26C3', {
+        status: 'confirmed',
+        periodStart: julySeptember.start,
+        periodEnd: julySeptember.end,
+        boxes: buildVatReturnFromLedger([], julySeptember),
+        confirmedAt: NOW.toISOString(),
+      });
+      await submitVatReturnForUser(
+        { userId: 'user_a', period: julySeptember, request },
+        { vatStore: vat.store, hmrcStore: makeHmrcStore(true).store, fetchFn: routeFetch(fetchFn), now: () => NOW },
+      );
+      expect(JSON.parse(fetchFn.mock.calls[0][1].body).periodKey).toBe('26C3');
+      expect(vat.calls.receipts).toHaveLength(1);
+    });
+
+    it('surfaces an HMRC failure on the lookup without claiming or posting', async () => {
+      obligationsFetch.mockResolvedValue(json({ code: 'SERVER_ERROR', message: 'x' }, 500));
+      const vat = makeVatStore({ user_a: sales });
+      await rejects(submit(vat, makeHmrcStore(true), fetchFn), 502, 'SERVER_ERROR');
+      expect(fetchFn).not.toHaveBeenCalled();
+      expect(vat.submissions.size).toBe(0);
+    });
   });
 
   describe('mode gate', () => {

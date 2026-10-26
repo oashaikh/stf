@@ -6,6 +6,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
+import { DASHBOARD_QUERY_KEY } from "../lib/dashboardApi";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
 import {
@@ -155,7 +156,10 @@ function AddEntryForm({
       setCategoryId("");
       setReference("");
       setErrors({});
-      await queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY }),
+      ]);
       if (entry) onDone();
     },
     onError: (error) => {

@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import EntryActions from "./EntryActions";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
@@ -153,7 +154,13 @@ export default function EntriesList({
 }: {
   onEdit: (entry: ApiEntry) => void;
 }) {
-  const [filters, setFilters] = useState<EntryFilters>(DEFAULT_ENTRY_FILTERS);
+  // The dashboard links here with ?status=draft to show the drafts waiting for confirmation.
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<EntryFilters>(() =>
+    searchParams.get("status") === "draft"
+      ? { ...DEFAULT_ENTRY_FILTERS, status: "draft" }
+      : DEFAULT_ENTRY_FILTERS,
+  );
   // The API refuses a range that ends before it starts, so wait until the dates make sense.
   const rangeReversed = Boolean(
     filters.from && filters.to && filters.from > filters.to,

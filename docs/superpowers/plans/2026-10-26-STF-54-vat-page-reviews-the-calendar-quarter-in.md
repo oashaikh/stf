@@ -61,7 +61,7 @@
     - npm run lint, typecheck, test pass
   - Commit: `01faf7dfcb5a`
 
-- [ ] **Task 4: Screenshots at 390 and 1440 px, docs, and full check run** (after 1, 3)
+- [x] **Task 4: Screenshots at 390 and 1440 px, docs, and full check run** (after 1, 3)
   - Intent: Update docs/workflows/vat-return.md to say the period comes from the selected open HMRC obligation and the server rejects non-open periods. Run the app with HMRC stubbed (open obligation 26C3, 1 Jul to 30 Sep 2026, due 7 Nov) and capture VAT page screenshots at 390 and 1440 px (obligation selected review, no-obligations state, obligations table on phone) for the PR using invented data only; keep them out of committed repo files unless the repo already stores such artefacts. Run npm run lint, typecheck, test, build.
   - Files: `docs/workflows/vat-return.md`
   - Acceptance criteria the planner set:
@@ -69,3 +69,4 @@
     - Screenshots at 390 and 1440 px exist for the PR
     - lint, typecheck, test and build all pass
   - Risk: STF-20 also edits docs/workflows/vat-return.md; small additive edit only.
+  - Commit: `fdc580d6face`

@@ -28,7 +28,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Serverless-safe Postgres client shared by api/ and the refresh job**
+- [x] **Task 1: Serverless-safe Postgres client shared by api/ and the refresh job**
   - Intent: One lazily-connected postgres-js client for a pooled (Neon pooler) URL: TLS required outside local dev, max 1 connection, short idle timeout, and prepared statements off because PgBouncer transaction mode cannot hold them. Today api/_lib/db.ts and server/src/db/client.ts each build their own client with default options, so fix the options once in server/src/db/client.ts and make api/_lib/db.ts re-export it (check no test mocks the old path first). Document DATABASE_URL in .env.example for the pooled Neon URL, with no values, and note the direct (unpooled) URL is the one used for migrations. Add a small unit test that the option builder returns ssl/max/idle_timeout/prepare:false for a hosted URL and leaves a localhost URL without TLS.
   - Files: `server/src/db/client.ts`, `server/src/db/client.test.ts`, `api/_lib/db.ts`, `.env.example`
   - Acceptance criteria the planner set:
@@ -38,6 +38,7 @@
     - .env.example comments describe a pooled Neon URL with sslmode=require and contain no real values; the envExample test still passes.
     - npm run lint, typecheck and test pass.
   - Risk: Opus/high: the database connection and TLS settings affect every route and the data path.
+  - Commit: `23f4440ae713`
 
 - [ ] **Task 2: Vercel Cron function for HMRC token refresh, secured by CRON_SECRET** (after 1)
   - Intent: Add api/cron/refresh-hmrc-tokens.ts, a fetch-style default export matching the other api routes. It must reject any request whose Authorization header is not exactly `Bearer ${CRON_SECRET}`, using a constant-time compare, and fail closed when CRON_SECRET is unset. With the right header it runs the existing refresh job and returns a small JSON ok body. No secret or error text in logs or the response. Keep server/src/index.ts and the Fastify scheduler as the local-only path, with a comment saying so. Add a vercel.json crons entry for the route on `*/5 * * * *`, matching TICK_INTERVAL_MS. Add CRON_SECRET to .env.example (no value). Export a handler factory with injectable job and secret, as the other routes do, so the test needs no database. Tests: no header refused and refresh not called; wrong secret refused; unset env secret refused; correct secret runs refresh once.

@@ -62,6 +62,7 @@ function makeVatStore() {
 const hmrcStore = (sandbox: boolean | undefined = true): HmrcStore =>
   ({
     sandboxMode: async () => sandbox,
+    setSandboxMode: vi.fn(),
     credentials: async () => ({
       vatNumber: '123456789',
       accessToken: ACCESS,

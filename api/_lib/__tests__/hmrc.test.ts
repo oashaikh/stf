@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decryptToken, signState } from '../../../server/src/lib/hmrcCrypto';
 import { createCallbackHandler } from '../../hmrc/callback';
 import { createConnectHandler } from '../../hmrc/connect';
+import { createModeHandler } from '../../hmrc/mode';
 import { createStatusHandler } from '../../hmrc/status';
 import type { AuthDeps } from '../auth';
 import type { HmrcStore } from '../hmrcStore';
@@ -21,6 +22,9 @@ interface Row {
 function fakeStore(rows: Record<string, Row>): HmrcStore {
   return {
     sandboxMode: async (userId) => rows[userId]?.sandbox,
+    setSandboxMode: async (userId, sandbox) => {
+      if (rows[userId]) rows[userId].sandbox = sandbox;
+    },
     saveTokens: vi.fn(async (userId, tokens) => {
       Object.assign(rows[userId], tokens);
     }),
@@ -98,6 +102,39 @@ describe('connect', () => {
     rows.u1.sandbox = false;
     const response = await createConnectHandler(fakeStore(rows), authDeps)(asUser('/api/hmrc/connect', 'u1'));
     expect((await response.json()).url).toContain('https://www.tax.service.gov.uk/');
+  });
+});
+
+describe('mode', () => {
+  const post = (body: unknown, userId?: string) =>
+    createModeHandler(fakeStore(rows), authDeps)(
+      new Request('https://app.test/api/hmrc/mode', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: userId ? { authorization: `Bearer tok-${userId}` } : {},
+      }),
+    );
+
+  it('defaults to not opted in to live and reports the env mode', async () => {
+    const body = await (await createModeHandler(fakeStore(rows), authDeps)(asUser('/api/hmrc/mode', 'u1'))).json();
+    expect(body).toMatchObject({ live: false, envLive: false });
+  });
+
+  it('requires sign-in', async () => {
+    expect((await post({ live: true })).status).toBe(401);
+  });
+
+  it.each([[{ live: 'yes' }], [{}], [null]])('rejects a non-boolean body %j', async (body) => {
+    expect((await post(body, 'u1')).status).toBe(400);
+    expect(rows.u1.sandbox).toBe(true);
+  });
+
+  it('opts the caller in and out without touching another user', async () => {
+    expect((await post({ live: true }, 'u1')).status).toBe(200);
+    expect(rows.u1.sandbox).toBe(false);
+    expect(rows.u2.sandbox).toBe(true);
+    await post({ live: false }, 'u1');
+    expect(rows.u1.sandbox).toBe(true);
   });
 });
 

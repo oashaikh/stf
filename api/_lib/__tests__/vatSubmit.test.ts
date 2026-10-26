@@ -71,6 +71,7 @@ function makeHmrcStore(sandbox: boolean | undefined, overrides: Partial<HmrcCred
   const saved: string[] = [];
   const store: HmrcStore = {
     sandboxMode: async () => sandbox,
+    setSandboxMode: vi.fn(),
     saveTokens: async () => undefined,
     credentials: async () => ({
       vatNumber: '123456789',

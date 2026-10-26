@@ -1,5 +1,19 @@
-import { describe, expect, it, vi } from 'vitest';
-import { describeHmrcStatus, fetchHmrcConnectUrl, fetchHmrcConnected } from '../lib/hmrc/settingsApi';
+// @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  describeHmrcStatus,
+  fetchHmrcConnectUrl,
+  fetchHmrcConnected,
+  saveHmrcLiveOptIn,
+} from '../lib/hmrc/settingsApi';
+import SettingsPage, { LIVE_CONFIRMATION_TEXT } from './SettingsPage';
+
+// Stable getToken: the page's effect depends on it, so a fresh function per render would loop.
+const getToken = async () => 'tok';
+vi.mock('@clerk/clerk-react', () => ({ useAuth: () => ({ getToken }) }));
 
 function jsonResponse(body: unknown, ok = true) {
   return { ok, json: async () => body } as Response;
@@ -35,5 +49,74 @@ describe('HMRC api calls', () => {
   it('throws when the connect route refuses', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: false }, false));
     await expect(fetchHmrcConnectUrl('tok', fetchMock)).rejects.toThrow();
+  });
+});
+
+describe('live filing opt-in', () => {
+  const posts: unknown[] = [];
+  let liveOptIn = false;
+
+  // Fake backend: the page only talks to these three routes.
+  beforeEach(() => {
+    posts.length = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string, init?: RequestInit) => {
+        if (path === '/api/hmrc/mode' && init?.method === 'POST') {
+          const body = JSON.parse(init.body as string);
+          posts.push(body);
+          return jsonResponse({ ok: true, live: body.live, envLive: true });
+        }
+        if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: liveOptIn, envLive: true });
+        return jsonResponse({ ok: true, connected: true });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+    liveOptIn = false;
+  });
+
+  const renderPage = () =>
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>,
+    );
+
+  it('starts off and shows sandbox as the effective mode', async () => {
+    renderPage();
+    expect(await screen.findByRole('checkbox', { name: /allow live filing/i })).not.toBeChecked();
+    expect(screen.getByText('Sandbox (test)')).toBeInTheDocument();
+  });
+
+  it('needs the confirmation text before switching on', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('checkbox', { name: /allow live filing/i }));
+    const confirm = screen.getByRole('button', { name: 'Turn on live filing' });
+    expect(confirm).toBeDisabled();
+    expect(posts).toEqual([]);
+
+    fireEvent.change(screen.getByLabelText('Confirmation text'), { target: { value: LIVE_CONFIRMATION_TEXT } });
+    fireEvent.click(confirm);
+    await waitFor(() => expect(posts).toEqual([{ live: true }]));
+    expect(await screen.findByText('Live')).toBeInTheDocument();
+  });
+
+  it('switches off without confirmation', async () => {
+    liveOptIn = true;
+    renderPage();
+    fireEvent.click(await screen.findByRole('checkbox', { name: /allow live filing/i }));
+    await waitFor(() => expect(posts).toEqual([{ live: false }]));
+  });
+});
+
+describe('HMRC mode api calls', () => {
+  it('posts a boolean to the mode route with the bearer token', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, live: true, envLive: false }));
+    expect(await saveHmrcLiveOptIn('tok', true, fetchMock)).toEqual({ live: true, envLive: false });
+    expect(fetchMock).toHaveBeenCalledWith('/api/hmrc/mode', expect.objectContaining({ method: 'POST', body: '{"live":true}' }));
   });
 });

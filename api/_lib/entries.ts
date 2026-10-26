@@ -1,9 +1,10 @@
-import { and, asc, eq, inArray, isNull, lte, gte, or, isNotNull } from 'drizzle-orm';
+import { and, asc, desc, eq, exists, ilike, inArray, isNull, lte, gte, or, isNotNull, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
   accounts,
   auditEvents,
+  receipts,
   transactionLines,
   transactions,
   users,
@@ -56,6 +57,42 @@ export interface EntryStore {
   void(userId: string, entryId: string): Promise<boolean>;
   /** Flips a draft to confirmed and writes entry.confirm. Undefined when it is not the owner's live draft. */
   confirm(userId: string, entryId: string): Promise<Entry | undefined>;
+  /** One page of the owner's live entries, newest first by (date, id), starting after the cursor. Returns at most `limit` rows. */
+  list(userId: string, filters: EntryListFilters, after: EntryCursor | undefined, limit: number): Promise<EntryListRow[]>;
+}
+
+export const ENTRY_LIST_MAX_PAGE = 50;
+
+export interface EntryListFilters {
+  from?: string;
+  to?: string;
+  kind: 'income' | 'expense' | 'both';
+  categoryAccountId?: string;
+  status?: 'draft' | 'confirmed';
+  /** Inclusive bounds on the gross amount. */
+  minAmountPence?: number;
+  maxAmountPence?: number;
+  search?: string;
+}
+
+export interface EntryListRow {
+  id: string;
+  date: string;
+  description: string;
+  reference: string | null;
+  kind: 'income' | 'expense';
+  categoryAccountId: string;
+  categoryName: string;
+  grossPence: number;
+  netPence: number;
+  vatPence: number;
+  status: 'draft' | 'confirmed' | 'reconciled';
+  hasReceipt: boolean;
+}
+
+export interface EntryCursor {
+  date: string;
+  id: string;
 }
 
 export class EntryRuleError extends Error {
@@ -71,7 +108,10 @@ export class EntryRuleError extends Error {
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => new Date(`${value}T00:00:00Z`).toISOString().startsWith(value), 'Not a calendar date');
+  .refine((value) => {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
+  }, 'Not a calendar date');
 
 export const newEntrySchema = z.object({
   date: isoDate,
@@ -85,6 +125,44 @@ export const newEntrySchema = z.object({
   status: z.enum(['draft', 'confirmed']).default('confirmed'),
 });
 export type NewEntry = z.infer<typeof newEntrySchema>;
+
+const optionalNonNegativeInt = z.coerce.number().int().min(0).max(MAX_AMOUNT_PENCE * 2).optional();
+
+// The query string is the only input; the owner comes from the session, never from here.
+export const entryListQuerySchema = z
+  .object({
+    from: isoDate.optional(),
+    to: isoDate.optional(),
+    kind: z.enum(['income', 'expense', 'both']).default('both'),
+    categoryAccountId: z.string().uuid().optional(),
+    status: z.enum(['draft', 'confirmed']).optional(),
+    minAmountPence: optionalNonNegativeInt,
+    maxAmountPence: optionalNonNegativeInt,
+    search: z.string().trim().max(100).optional(),
+    cursor: z.string().max(200).optional(),
+    limit: z.coerce.number().int().min(1).transform((value) => Math.min(value, ENTRY_LIST_MAX_PAGE)).default(ENTRY_LIST_MAX_PAGE),
+  })
+  .refine((query) => !query.from || !query.to || query.from <= query.to, 'from is after to')
+  .refine((query) => query.minAmountPence === undefined || query.maxAmountPence === undefined || query.minAmountPence <= query.maxAmountPence, 'min is above max');
+
+export const encodeCursor = (cursor: EntryCursor) => Buffer.from(JSON.stringify(cursor)).toString('base64url');
+
+export function decodeCursor(value: string): EntryCursor | undefined {
+  try {
+    const parsed = z.object({ date: isoDate, id: z.string().uuid() }).safeParse(JSON.parse(Buffer.from(value, 'base64url').toString()));
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Fetches one extra row to learn whether another page exists, then trims it. */
+export async function listEntries(store: EntryStore, userId: string, filters: EntryListFilters, after: EntryCursor | undefined, limit: number) {
+  const rows = await store.list(userId, filters, after, limit + 1);
+  const entries = rows.slice(0, limit);
+  const last = entries[entries.length - 1];
+  return { entries, nextCursor: rows.length > limit && last ? encodeCursor({ date: last.date, id: last.id }) : null };
+}
 
 export function assertDateNotTooFarAhead(date: string, now: Date): void {
   const latest = new Date(now.getTime() + MAX_DAYS_AHEAD * 86_400_000).toISOString().slice(0, 10);
@@ -164,6 +242,31 @@ const lineColumns = {
 const toPostedLines = (rows: Array<{ accountId: string; amountPence: number; vatPence: number; vatRatePercent: number }>) =>
   rows.map((row) => ({ ...row, vatRatePercent: row.vatRatePercent === 0 ? null : (row.vatRatePercent as PostedLine['vatRatePercent']) }));
 
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, '\\$&');
+
+// Each entry has exactly one income or expense line (the category); the join to accounts picks it out.
+const LIVE_STATUSES = ['draft', 'confirmed', 'reconciled'] as const;
+const grossPenceSql = sql<number>`abs(${transactionLines.amountPence}) + abs(${transactionLines.vatPence})`;
+
+export function entryListConditions(userId: string, filters: EntryListFilters, after: EntryCursor | undefined): SQL[] {
+  const search = filters.search ? `%${escapeLike(filters.search)}%` : undefined;
+  const conditions: Array<SQL | undefined> = [
+    eq(transactions.userId, userId),
+    isNull(transactions.deletedAt),
+    // voided is excluded by listing the live statuses rather than negating, so a new status is opt-in.
+    inArray(transactions.status, filters.status === 'draft' ? ['draft'] : filters.status === 'confirmed' ? ['confirmed', 'reconciled'] : [...LIVE_STATUSES]),
+    filters.kind === 'both' ? inArray(accounts.accountType, ['income', 'expense']) : eq(accounts.accountType, filters.kind),
+    filters.from ? gte(transactions.date, filters.from) : undefined,
+    filters.to ? lte(transactions.date, filters.to) : undefined,
+    filters.categoryAccountId ? eq(accounts.id, filters.categoryAccountId) : undefined,
+    filters.minAmountPence !== undefined ? sql`${grossPenceSql} >= ${filters.minAmountPence}` : undefined,
+    filters.maxAmountPence !== undefined ? sql`${grossPenceSql} <= ${filters.maxAmountPence}` : undefined,
+    search ? or(ilike(transactions.description, search), ilike(transactions.reference, search)) : undefined,
+    after ? sql`(${transactions.date}, ${transactions.id}) < (${after.date}, ${after.id})` : undefined,
+  ];
+  return conditions.filter((condition): condition is SQL => condition !== undefined);
+}
+
 // Works on the pool or inside a transaction.
 type Executor = Pick<typeof db, 'select' | 'insert' | 'update'>;
 
@@ -216,7 +319,8 @@ async function voidLiveEntry(executor: Executor, userId: string, entryId: string
 
 // Query audit: transactions are read by primary key and user_id; lines by the transaction_id foreign key
 // with a LIMIT; accounts by the unique (user_id, code) index. The lock check uses the (user_id, period_key) unique
-// index on drafts and submissions, with a LIMIT of 1. The category lookup is by primary key and user_id.
+// index on drafts and submissions, with a LIMIT of 1. The list is served by transactions_user_date_idx (user_id, date)
+// with lines found by transaction_lines_transaction_id_idx and receipts by their transaction_id; it always has a LIMIT. The category lookup is by primary key and user_id.
 export const databaseEntryStore: EntryStore = {
   async loadPostingContext(userId, categoryAccountId) {
     await databaseAccountStore.seedDefaults(userId);
@@ -265,6 +369,32 @@ export const databaseEntryStore: EntryStore = {
 
   async get(userId, entryId) {
     return loadEntry(db, userId, entryId);
+  },
+
+  async list(userId, filters, after, limit) {
+    return db
+      .select({
+        id: transactions.id,
+        date: transactions.date,
+        description: transactions.description,
+        reference: transactions.reference,
+        kind: sql<'income' | 'expense'>`${accounts.accountType}`,
+        categoryAccountId: accounts.id,
+        categoryName: accounts.name,
+        grossPence: grossPenceSql.mapWith(Number),
+        netPence: sql<number>`abs(${transactionLines.amountPence})`.mapWith(Number),
+        vatPence: sql<number>`abs(${transactionLines.vatPence})`.mapWith(Number),
+        status: sql<EntryListRow['status']>`${transactions.status}`,
+        hasReceipt: sql<boolean>`${exists(
+          db.select({ one: sql`1` }).from(receipts).where(and(eq(receipts.transactionId, transactions.id), isNull(receipts.deletedAt))),
+        )}`,
+      })
+      .from(transactions)
+      .innerJoin(transactionLines, eq(transactionLines.transactionId, transactions.id))
+      .innerJoin(accounts, eq(accounts.id, transactionLines.accountId))
+      .where(and(...entryListConditions(userId, filters, after)))
+      .orderBy(desc(transactions.date), desc(transactions.id))
+      .limit(limit);
   },
 
   async isDateLocked(userId, date) {

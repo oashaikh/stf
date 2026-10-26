@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { withAuth, type AuthDeps } from './_lib/auth.js';
-import { confirmEntry, createEntry, editEntry, voidEntry, databaseEntryStore, EntryRuleError, newEntrySchema, type EntryStore } from './_lib/entries.js';
+import { confirmEntry, createEntry, decodeCursor, entryListQuerySchema, listEntries, editEntry, voidEntry, databaseEntryStore, EntryRuleError, newEntrySchema, type EntryStore } from './_lib/entries.js';
 
 const refuse = (status: number, error: string, code: string) => Response.json({ ok: false, error, code }, { status });
 const confirmBodySchema = z.object({ status: z.literal('confirmed') });
@@ -24,6 +24,15 @@ export function createEntriesHandler(store: EntryStore = databaseEntryStore, aut
       const parsed = newEntrySchema.safeParse(await readBody());
       if (!parsed.success) return refuse(400, 'Invalid entry', 'BAD_REQUEST');
       return run(async () => Response.json({ ok: true, entry: await createEntry(store, auth.userId, parsed.data, now()) }));
+    }
+
+    if (request.method === 'GET' && !entryId) {
+      const parsed = entryListQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
+      if (!parsed.success) return refuse(400, 'Invalid list query', 'BAD_REQUEST');
+      const { limit, cursor, ...filters } = parsed.data;
+      const after = cursor ? decodeCursor(cursor) : undefined;
+      if (cursor && !after) return refuse(400, 'Invalid cursor', 'BAD_REQUEST');
+      return Response.json({ ok: true, ...(await listEntries(store, auth.userId, filters, after, limit)) });
     }
 
     if (request.method === 'GET') {

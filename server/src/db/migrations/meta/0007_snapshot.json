@@ -1,5 +1,5 @@
 {
-  "id": "7379c86b-6aa7-4e7b-a380-ed62aa8196ea",
+  "id": "c32b23a4-ab85-4298-ac67-70896fc8ba5e",
   "prevId": "74ba189f-ceef-4b42-abd4-fdd2a4fc837d",
   "version": "6",
   "dialect": "postgresql",
@@ -671,7 +671,15 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "transaction_lines_transaction_id_idx": {
+          "name": "transaction_lines_transaction_id_idx",
+          "columns": [
+            "transaction_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "transaction_lines_transaction_id_transactions_id_fk": {
           "name": "transaction_lines_transaction_id_transactions_id_fk",
@@ -775,7 +783,16 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "transactions_user_date_idx": {
+          "name": "transactions_user_date_idx",
+          "columns": [
+            "user_id",
+            "date"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "transactions_user_id_users_id_fk": {
           "name": "transactions_user_id_users_id_fk",
@@ -901,24 +918,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": true
-        },
-        "totp_secret_encrypted": {
-          "name": "totp_secret_encrypted",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "totp_enabled_at": {
-          "name": "totp_enabled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "totp_last_step": {
-          "name": "totp_last_step",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -1245,64 +1244,6 @@
         }
       },
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
-    "public.recovery_codes": {
-      "name": "recovery_codes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "code_hash": {
-          "name": "code_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "used_at": {
-          "name": "used_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "recovery_codes_user_id_code_hash_idx": {
-          "name": "recovery_codes_user_id_code_hash_idx",
-          "columns": [
-            "user_id",
-            "code_hash"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "recovery_codes_user_id_users_id_fk": {
-          "name": "recovery_codes_user_id_users_id_fk",
-          "tableFrom": "recovery_codes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     }

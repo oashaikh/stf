@@ -51,6 +51,9 @@ describe('entries route', () => {
     async get(userId, entryId) {
       return saved.find((entry) => entry.userId === userId && entry.id === entryId && !entry.voidedAt);
     },
+    async list() {
+      return [];
+    },
     async isDateLocked(_userId, date) {
       return lockedPeriods.some((period) => date >= period.start && date <= period.end);
     },

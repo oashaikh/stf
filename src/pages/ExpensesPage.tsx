@@ -10,6 +10,7 @@ import {
   fetchHasVatNumber,
 } from "../lib/entriesApi";
 import { entryFigures, parseEntryAmount } from "../lib/entryForm";
+import { DEFAULT_ENTRY_FILTERS } from "../lib/entryFilters";
 import { formatPence } from "../lib/money";
 import type { VatRate } from "../lib/vat";
 
@@ -350,7 +351,7 @@ function AddEntryForm({ hasVatNumber }: { hasVatNumber: boolean }) {
 function EntryList() {
   const entries = useQuery({
     queryKey: ENTRIES_QUERY_KEY,
-    queryFn: fetchEntries,
+    queryFn: async () => (await fetchEntries(DEFAULT_ENTRY_FILTERS)).entries,
   });
   if (entries.isPending)
     return (

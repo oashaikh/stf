@@ -31,7 +31,7 @@ describe('ExpensesPage add entry form', () => {
           const body = JSON.parse(init.body as string);
           posts.push(body);
           entries = [
-            { id: 'e1', date: body.date, description: body.description, reference: null, status: 'draft', kind: body.kind, grossPence: body.amountPence },
+            { id: 'e1', date: body.date, description: body.description, reference: null, status: 'draft', kind: body.kind, grossPence: body.amountPence, categoryAccountId: body.categoryAccountId, categoryName: '', netPence: body.amountPence, vatPence: 0, hasReceipt: false },
             ...entries,
           ];
           return reply({ ok: true });

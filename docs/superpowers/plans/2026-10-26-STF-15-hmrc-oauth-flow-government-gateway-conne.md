@@ -44,7 +44,7 @@
   - Risk: Default sonnet/medium. Dependency add only; no auth logic.
   - Commit: `a3392938ee9f`
 
-- [ ] **Task 2: Token encryption and signed OAuth state helpers**
+- [x] **Task 2: Token encryption and signed OAuth state helpers**
   - Intent: Pure server-side helpers shared by the API routes and the refresh job, placed where both can import them (e.g. server/src/lib/hmrcCrypto.ts, or api/_lib/ if the server tsconfig can import it after merging dev). encryptToken/decryptToken use AES-256-GCM from node:crypto with a random IV per call and the key from HMRC_TOKEN_ENCRYPTION_KEY, failing closed if the key is missing or not 32 bytes. signState/verifyState produce an HMAC-signed, user-bound value with a 10 minute expiry and a nonce; verifyState uses a constant-time compare and rejects forged, expired, malformed or other-user state. No logging of values. Add HMRC_TOKEN_ENCRYPTION_KEY and the state-signing secret to .env.example as placeholders only. Tests cover round-trip, tamper detection, wrong key, expiry via a faked clock, and other-user state.
   - Files: `server/src/lib/hmrcCrypto.ts`, `server/src/lib/hmrcCrypto.test.ts`, `.env.example`
   - Acceptance criteria the planner set:
@@ -54,6 +54,7 @@
     - Missing or wrong-length key throws at use, never falls back to plaintext
     - `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` all pass
   - Risk: opus/high: cryptography and CSRF state, a security path.
+  - Commit: `d8d706d19a69`
 
 - [ ] **Task 3: HMRC client: server-safe config, correct authorize URL, code exchange and refresh**
   - Intent: src/lib/hmrc/client.ts builds fraud headers from browser globals and has no OAuth helpers. Add buildHmrcAuthUrl, exchangeAuthCode and refreshAccessToken as server-safe functions (no browser globals touched at import), with fetch injected so tests never hit the network. Sandbox mode uses the test-www authorize host and live uses www.tax.service.gov.uk; scope is `read:vat write:vat`; state and redirect_uri are included. Token calls post form data (grant_type, client_id, client_secret, code or refresh_token). Client id and secret are read from HMRC_CLIENT_ID and HMRC_CLIENT_SECRET. A 400 invalid_grant throws HmrcError with a message that contains no token or secret. Live mode requires HMRC_SANDBOX_MODE=false.

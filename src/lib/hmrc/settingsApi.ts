@@ -50,3 +50,26 @@ export const saveHmrcLiveOptIn = (live: boolean, fetchFn: FetchFn = fetch) =>
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ live }),
   });
+
+/** The saved VAT number as the server shows it: masked, or null when none is saved. */
+export async function fetchVatNumberMask(fetchFn: FetchFn = fetch): Promise<string | null> {
+  return (await getJson('/api/settings/vat-number', fetchFn)).masked ?? null;
+}
+
+export class VatNumberRefusedError extends Error {
+  constructor(readonly code: string) {
+    super('VAT number refused');
+  }
+}
+
+export async function saveVatNumber(vatNumber: string, fetchFn: FetchFn = fetch): Promise<string | null> {
+  const response = await fetchFn('/api/settings/vat-number', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vatNumber }),
+  });
+  const body = await response.json();
+  if (!response.ok) throw new VatNumberRefusedError(body.code);
+  return body.masked ?? null;
+}

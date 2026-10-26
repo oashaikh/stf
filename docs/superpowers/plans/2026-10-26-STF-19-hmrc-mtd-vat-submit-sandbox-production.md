@@ -57,7 +57,7 @@
   - Risk: Idempotency, audit integrity and token-leak avoidance in a financial submission path; opus high.
   - Commit: `8885ddc945df`
 
-- [ ] **Task 3: Submit domain function with confirmed gate and sandbox/production gate** (after 2)
+- [x] **Task 3: Submit domain function with confirmed gate and sandbox/production gate** (after 2)
   - Intent: Add submitVatReturnForUser in a new api/_lib/vatSubmit.ts (kept out of vatReturns.ts to stay near the size guide). Flow: (1) requireConfirmed from STF-18 recomputes boxes server-side and rejects NOT_CONFIRMED/STALE_CONFIRMATION, so client-sent boxes are never trusted; (2) mode gate: sandbox unless process.env.HMRC_SANDBOX_MODE==='false' AND the user's stored opt-in (users.hmrc_sandbox_mode===false via HmrcStore.sandboxMode) are BOTH set; if the user flag and env disagree, refuse with 409 (same rule as api/hmrc/connect.ts) and never fall through to production; (3) require HMRC connected and vatNumber; (4) claim the submission; (5) build payload with the existing boxesToHmrcPayload (finalised true, periodKey from the request, which comes from STF-16 obligations) and call submitVatReturn through withHmrcToken with the same refresh/persist pattern as api/vat/obligations.ts and buildFraudHeaders (WEB_APP_VIA_SERVER, Gov-Client-User-IDs, Gov-Vendor-Version); (6) on success record receipt + audit; on HmrcError 4xx mark failed; on anything else leave pending and return an explicit 'outcome unknown, do not resubmit' error. Duplicate HMRC response (DUPLICATE_SUBMISSION) is treated as submitted-elsewhere, not retried. Tests use fake fetch and fake stores only, never live HMRC, and include: a nil return (all nine boxes zero) end to end, 401 refresh-and-retry, mode-gate matrix (env x opt-in, all four combos), double submit refused, ledger-changed refused, other-user refused.
   - Files: `api/_lib/vatSubmit.ts`, `api/_lib/__tests__/vatSubmit.test.ts`, `src/lib/vat.ts`
   - Acceptance criteria the planner set:
@@ -69,6 +69,7 @@
     - No test reaches the network; npm test passes
     - If boxesToHmrcPayload is touched, its doc comment path is corrected and existing vat.test.ts still passes
   - Risk: Money going to a tax authority plus the production gate and token handling; opus high.
+  - Commit: `7a1a90092a46`
 
 - [ ] **Task 4: POST /api/vat/submit route** (after 3)
   - Intent: Add api/vat/submit.ts as a thin handler wrapped in withAuth (), validating the body with periodSchema (periodKey/start/end) plus a literal confirm check, rejecting non-POST with 405, mapping VatReturnError/HmrcError to the shared vatErrorResponse shape, and returning only the receipt (formBundleNumber, processingDate, sandbox) per. Handler is injectable (store, hmrc store, fetchFn, refresh, now) following api/vat/obligations.ts and return-confirm.ts. Rate limit follows whatever the repo uses for other vat routes (note if none exists). Route tests cover 401 unauthenticated, 405, 400 bad body, 409 states, 200 receipt, and a second user's period being refused.

@@ -28,6 +28,7 @@ const review = {
   boxes: zeroBoxes,
   drillDown: Object.fromEntries(Object.keys(zeroBoxes).map((box) => [box, []])),
   drillDownTotals: zeroBoxes,
+  entryCount: 0,
   status: 'draft',
   confirmedAt: null,
   stale: false,

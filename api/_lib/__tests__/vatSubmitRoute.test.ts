@@ -23,6 +23,7 @@ const authDeps: AuthDeps = {
 
 const salesLine: DrillLine = {
   lineId: 's1',
+  transactionId: 't1',
   date: '2026-02-01',
   accountType: 'income',
   amountPence: -10000,

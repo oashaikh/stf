@@ -22,6 +22,7 @@ import { boxLabel, DRILLABLE_BOXES, reviewState, type ReviewStatus, type Submiss
 
 interface DrillLine {
   lineId: string;
+  transactionId: string;
   date: string;
   amountPence: number;
   vatPence: number;
@@ -32,6 +33,7 @@ interface ReturnReview {
   boxes: VatReturnBoxes;
   drillDown: Record<keyof VatReturnBoxes, DrillLine[]>;
   drillDownTotals: Record<keyof VatReturnBoxes, number>;
+  entryCount: number;
   status: ReviewStatus;
   confirmedAt: string | null;
   stale: boolean;

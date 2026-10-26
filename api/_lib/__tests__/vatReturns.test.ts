@@ -24,6 +24,7 @@ const period: Period = { periodKey: '26A1', start: '2026-01-01', end: '2026-03-3
 
 const line = (lineId: string, accountType: 'income' | 'expense', amountPence: number, vatPence: number): DrillLine => ({
   lineId,
+  transactionId: `t-${lineId}`,
   date: '2026-02-01',
   accountType,
   amountPence,
@@ -151,11 +152,13 @@ describe('draft routes', () => {
       );
     const mine = await (await get('a')).json();
     expect(mine.data.boxes.box1).toBe(2000);
+    expect(mine.data.entryCount).toBe(2);
     expect(mine.data.drillDown.box1).toEqual([
-      { lineId: 's1', date: '2026-02-01', amountPence: -10000, vatPence: -2000, description: 's1' },
+      { lineId: 's1', transactionId: 't-s1', date: '2026-02-01', amountPence: -10000, vatPence: -2000, description: 's1' },
     ]);
     const theirs = await (await get('b')).json();
     expect(theirs.data.boxes.box1).toBe(0);
+    expect(theirs.data.entryCount).toBe(0);
     expect(theirs.data.status).toBeNull();
     expect(theirs.data.drillDown.box1).toEqual([]);
   });
@@ -212,6 +215,12 @@ describe('review of a confirmed return', () => {
     expect((await review(shared)).stale).toBe(false);
     shared.ledger.user_a.push(line('s2', 'income', -500, -100));
     expect((await review(shared)).stale).toBe(true);
+  });
+
+  it('counts entries that net to zero, and only an empty period has none', async () => {
+    const netted = [line('s1', 'income', -10000, -2000), line('r1', 'income', 10000, 2000)];
+    expect((await review(makeStore({ user_a: netted }))).entryCount).toBe(2);
+    expect((await review(makeStore({ user_a: [] }))).entryCount).toBe(0);
   });
 
   it('reports the full line count when the drill-down is cut short', async () => {

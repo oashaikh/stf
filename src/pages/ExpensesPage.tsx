@@ -159,6 +159,11 @@ function AddEntryForm({
       if (entry) onDone();
     },
     onError: (error) => {
+      // A locked period is permanent; LockedMessage explains it, so no retry text.
+      if (error instanceof PeriodLockedError) {
+        setErrors({});
+        return;
+      }
       const fields =
         error instanceof EntryRefusedError
           ? error.fields.flatMap((field) => FORM_FIELD[field] ?? [])

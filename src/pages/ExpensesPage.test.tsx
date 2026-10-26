@@ -208,5 +208,6 @@ describe('ExpensesPage edit entry', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(await screen.findByText(/VAT period that has been confirmed or filed/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Go to VAT' })).toHaveAttribute('href', '/vat');
+    expect(screen.queryByText(/Please try again/)).not.toBeInTheDocument();
   });
 });

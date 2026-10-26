@@ -81,12 +81,15 @@ let fetchFn: Mock<[], Promise<Response>>;
 const routedFetch = ((url: string) =>
   url.includes('/obligations?') ? Promise.resolve(Response.json({ obligations: openObligations })) : fetchFn()) as unknown as typeof fetch;
 beforeEach(() => {
+  // withHmrcToken compares token expiry with Date.now(); pin it to NOW so the fixed fixtures stay valid.
+  vi.useFakeTimers({ toFake: ['Date'], now: NOW });
   vi.stubEnv('HMRC_SANDBOX_MODE', 'true');
   openObligations = [{ ...period, due: '2026-05-07', status: 'O' }];
   fetchFn = vi.fn(async () => new Response(JSON.stringify({ ...receiptBody, chargeRefNumber: 'raw-only' })));
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });

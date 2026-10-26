@@ -23,8 +23,8 @@ Set these in your Vercel project settings. Never commit them to the repository.
 - `HMRC_REDIRECT_URI` — the callback URL registered in your HMRC developer application: `https://<your-domain>/api/hmrc/callback`
 - `HMRC_TOKEN_ENCRYPTION_KEY` — Base64 of 32 random bytes (AES-256-GCM key for storing HMRC tokens); generate with `openssl rand -base64 32`
 - `HMRC_STATE_SECRET` — Base64 of 32 random bytes (signs OAuth state); generate with `openssl rand -base64 32`
-- `HMRC_VENDOR_PUBLIC_IP` — (optional) your server's public IPv4 or IPv6 egress address for HMRC fraud prevention. On Vercel, set this if your account has a fixed outbound IP (a paid feature). Vercel does not expose the outbound IP on the request object, so you must provide it. The header is omitted if not set, which is fine; it is optional and not required for submissions. Example: `203.0.113.5` or `2001:db8::1`.
-- `HMRC_VENDOR_LICENSE_ID` — (optional) a unique licence id for this deployment. Only the SHA-256 hash is sent to HMRC, never the id itself. Set this if you license this deployment to customers or organizations and need to track which instance made which submission. Example values: an internal serial number, customer account id, deployment UUID, or ticket id. Sent as the `Gov-Vendor-License-IDs` header: `stf=<SHA256-hex>`.
+- `HMRC_VENDOR_PUBLIC_IP` — (required for HMRC production credentials) the public IPv4 or IPv6 address of the servers clients connect to, for HMRC fraud prevention. Vercel does not expose the edge IP to the function, so you must set it, including on preview deploys. If unset, `Gov-Vendor-Public-IP` and `Gov-Vendor-Forwarded` are omitted and HMRC's validator reports both as missing. Example: `203.0.113.5` or `2001:db8::1`.
+- `HMRC_VENDOR_LICENSE_ID` — (optional) a unique licence id for this deployment. Only the SHA-256 hash is sent to HMRC, never the id itself. `Gov-Vendor-License-IDs` is always sent; when this is unset it carries the hash of the owner's user id. Example values: an internal serial number, customer account id, deployment UUID, or ticket id. Sent as the `Gov-Vendor-License-IDs` header: `stf=<SHA256-hex>`.
 
 ### Receipt storage
 
@@ -76,11 +76,11 @@ All HMRC calls require fraud prevention headers that identify the connection met
 
 ### Configuration
 
-**`HMRC_VENDOR_PUBLIC_IP`** (optional)
+**`HMRC_VENDOR_PUBLIC_IP`** (required for HMRC production)
 
 Your server's public egress IP address (IPv4 or IPv6) for the `Gov-Vendor-Public-IP` header.
 
-- **On Vercel:** Set this only if your account has a fixed outbound IP (a paid feature). Vercel does not expose the outbound IP on the request, so you must provide it explicitly. Unset: the header is omitted (acceptable, as it is optional).
+- **On Vercel:** Set to the public IP of the servers clients connect to. Vercel does not expose the edge IP to the function, so you must provide it explicitly, including on preview deploys. Unset: `Gov-Vendor-Public-IP` and `Gov-Vendor-Forwarded` are omitted and HMRC's validator reports both as missing.
 - **On self-hosted:** Set to your server's public IP if it is static.
 - **Format:** IPv4 (e.g., `203.0.113.5`) or IPv6 (e.g., `2001:db8::1`).
 - **Impact:** Helps HMRC detect spoofed submissions by verifying the origin server is consistently reachable at that address.
@@ -89,7 +89,7 @@ Your server's public egress IP address (IPv4 or IPv6) for the `Gov-Vendor-Public
 
 A unique licence id for this deployment. Only its SHA-256 hash is sent to HMRC in the `Gov-Vendor-License-IDs` header; the id itself never leaves your deployment.
 
-- **When to set:** Required if you license this deployment to customers or organizations and need to track which instance made which submission.
+- **When to set:** Optional. The header is always sent; when unset it carries the hash of the owner's user id. Set it if you license this deployment and need to track which instance made which submission.
 - **Example values:** Internal serial number, customer account id, deployment UUID, ticket id, or any unique identifier.
 - **Sent as:** `stf=<SHA256-HEX>`, where the hash is the uppercase hex of the SHA-256 of your id.
 - **Impact:** Allows HMRC support to correlate your submissions with your account and lets you track submissions from each deployment if you run multiple instances.

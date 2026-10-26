@@ -41,6 +41,8 @@ function encodeValue(value: string): string {
   return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
+const sha256Upper = (value: string) => createHash('sha256').update(value).digest('hex').toUpperCase();
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIMEZONE = /^UTC[+-]\d{2}:\d{2}$/;
 const WINDOW_SIZE = /^width=\d+&height=\d+$/;
@@ -92,18 +94,15 @@ export function buildFraudHeaders(input: FraudHeaderInput): Record<string, strin
       'Gov-Vendor-Forwarded',
       vendorIp && publicClientIp ? `by=${encodeValue(vendorIp)}&for=${encodeValue(publicClientIp)}` : undefined,
     ],
-    [
-      'Gov-Vendor-License-IDs',
-      vendorLicenseId
-        ? `${encodeValue(PRODUCT_NAME)}=${createHash('sha256').update(vendorLicenseId).digest('hex').toUpperCase()}`
-        : undefined,
-    ],
+    // STF has no licence keys, so without a configured id the per-installation id (the single owner's user id) is hashed.
+    ['Gov-Vendor-License-IDs', `${encodeValue(PRODUCT_NAME)}=${sha256Upper(vendorLicenseId || userId)}`],
     ['Gov-Client-Device-ID', matching(incoming('x-stf-device-id'), UUID)],
     ['Gov-Client-Timezone', matching(incoming('x-stf-timezone'), TIMEZONE)],
     ['Gov-Client-Screens', screens?.split(',').every((screen) => SCREEN.test(screen)) ? screens : undefined],
     ['Gov-Client-Window-Size', matching(incoming('x-stf-window-size'), WINDOW_SIZE)],
     ['Gov-Client-Browser-Do-Not-Track', matching(incoming('x-stf-do-not-track'), DO_NOT_TRACK)],
-    ['Gov-Client-Browser-JS-User-Agent', jsUserAgent && encodeValue(jsUserAgent)],
+    // HMRC rejects a percent-encoded value here: the user agent goes out exactly as the browser reported it.
+    ['Gov-Client-Browser-JS-User-Agent', jsUserAgent],
   ];
   for (const [name, value] of optional) {
     if (value) headers[name] = value;

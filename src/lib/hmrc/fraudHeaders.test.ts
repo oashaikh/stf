@@ -27,7 +27,7 @@ describe('buildFraudHeaders', () => {
   it('builds the full WEB_APP_VIA_SERVER header set for a populated request', () => {
     expect(buildFraudHeaders(fullInput)).toEqual({
       'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER',
-      'Gov-Client-Browser-JS-User-Agent': 'Mozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29',
+      'Gov-Client-Browser-JS-User-Agent': 'Mozilla/5.0 (X11; Linux x86_64)',
       'Gov-Client-Browser-Do-Not-Track': 'false',
       'Gov-Client-Device-ID': 'beec798b-b366-47fa-b1f8-92cede14a1ce',
       'Gov-Client-Screens': 'width=1920&height=1080&scaling-factor=1&colour-depth=24',
@@ -86,9 +86,22 @@ describe('buildFraudHeaders', () => {
     expect(Object.keys(headers).sort()).toEqual([
       'Gov-Client-Connection-Method',
       'Gov-Client-User-IDs',
+      'Gov-Vendor-License-IDs',
       'Gov-Vendor-Product-Name',
       'Gov-Vendor-Version',
     ]);
+  });
+
+  it('sends the user agent exactly as the browser reported it, with no percent-encoding', () => {
+    const headers = buildFraudHeaders({ ...baseInput, request: populated });
+    expect(headers['Gov-Client-Browser-JS-User-Agent']).toBe('Mozilla/5.0 (X11; Linux x86_64)');
+  });
+
+  it('hashes the user id as the licence id when no licence is configured', () => {
+    const headers = buildFraudHeaders({ ...baseInput, request: requestWith({}) });
+    expect(headers['Gov-Vendor-License-IDs']).toBe(
+      `stf=${createHash('sha256').update('user_abc').digest('hex').toUpperCase()}`,
+    );
   });
 
   it('omits Gov-Vendor-Forwarded unless both the vendor and client IP are known', () => {
@@ -122,12 +135,11 @@ describe('buildFraudHeaders', () => {
 
   it('percent-encodes spaces, ampersands and equals signs in values', () => {
     const headers = buildFraudHeaders({
-      request: requestWith({ 'x-stf-js-user-agent': 'a b&c=d' }),
+      request: requestWith({}),
       userId: 'id with&odd=chars',
       appVersion: '1 2',
       now,
     });
-    expect(headers['Gov-Client-Browser-JS-User-Agent']).toBe('a%20b%26c%3Dd');
     expect(headers['Gov-Client-User-IDs']).toBe('stf=id%20with%26odd%3Dchars');
     expect(headers['Gov-Vendor-Version']).toBe('stf=1%202');
   });

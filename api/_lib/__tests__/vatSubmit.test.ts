@@ -14,6 +14,7 @@ const NEW_ACCESS = 'access-NEW-secret';
 
 const line = (lineId: string, accountType: 'income' | 'expense', amountPence: number, vatPence: number): DrillLine => ({
   lineId,
+  transactionId: `t-${lineId}`,
   date: '2026-02-01',
   accountType,
   amountPence,

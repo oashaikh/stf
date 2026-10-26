@@ -19,7 +19,7 @@ export interface Period {
   end: string;
 }
 
-export type DrillLine = LedgerLine & { lineId: string; description: string | null };
+export type DrillLine = LedgerLine & { lineId: string; transactionId: string; description: string | null };
 
 export interface SavedDraft {
   status: 'draft' | 'confirmed';
@@ -176,6 +176,7 @@ export async function getReturnReview(store: VatReturnStore, userId: string, per
       key,
       boxLines[index].slice(0, DRILL_DOWN_LINES_PER_BOX).map((line) => ({
         lineId: (line as DrillLine).lineId,
+        transactionId: (line as DrillLine).transactionId,
         date: line.date,
         amountPence: line.amountPence,
         vatPence: line.vatPence,
@@ -185,8 +186,10 @@ export async function getReturnReview(store: VatReturnStore, userId: string, per
   );
   // Lets the UI say when a drill-down list is cut short and so will not sum to its box.
   const drillDownTotals = Object.fromEntries(boxKeys.map((key, index) => [key, boxLines[index].length]));
+  // Counts entries, not lines, so the UI can tell an empty period from entries that net to zero.
+  const entryCount = new Set(lines.map((line) => (line as DrillLine).transactionId)).size;
   const stale = draft?.status === 'confirmed' && !matchesConfirmation(draft, period, boxes);
-  return { boxes, drillDown, drillDownTotals, status: draft?.status ?? null, confirmedAt: draft?.confirmedAt ?? null, stale, submission };
+  return { boxes, entryCount, drillDown, drillDownTotals, status: draft?.status ?? null, confirmedAt: draft?.confirmedAt ?? null, stale, submission };
 }
 
 // Only live filings lock a period: a sandbox rehearsal must never block the real one.
@@ -255,6 +258,7 @@ export const databaseStore: VatReturnStore = {
     const rows = await db
       .select({
         lineId: transactionLines.id,
+        transactionId: transactions.id,
         date: transactions.date,
         accountType: accounts.accountType,
         amountPence: transactionLines.amountPence,

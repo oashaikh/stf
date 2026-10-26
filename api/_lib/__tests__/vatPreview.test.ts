@@ -14,7 +14,7 @@ const ACCESS = 'access-secret-1';
 const REFRESH = 'refresh-secret-1';
 
 const line = (lineId: string, accountType: 'income' | 'expense', amountPence: number, vatPence: number): DrillLine => ({
-  lineId, date: '2026-02-01', accountType, amountPence, vatPence, status: 'confirmed', deletedAt: null, description: lineId,
+  lineId, transactionId: lineId, date: '2026-02-01', accountType, amountPence, vatPence, status: 'confirmed', deletedAt: null, description: lineId,
 });
 const ledgers = {
   normal: [line('s1', 'income', -10000, -2000), line('p1', 'expense', 4000, 800)],

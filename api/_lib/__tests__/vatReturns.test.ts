@@ -1,12 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('../db', () => ({ db: {} }));
+const fakeDb = vi.hoisted(() => ({ calls: [] as string[], results: [] as unknown[][], db: {} as Record<string, unknown> }));
+vi.mock('../db', () => ({ db: fakeDb.db }));
 
 import type { AuthDeps } from '../auth';
 import { withAuth } from '../auth';
 import { vatConfirmHandler } from '../../vat/return-confirm';
 import { vatReturnHandler } from '../../vat/return';
 import {
+  confirmReturn,
+  databaseStore,
+  saveReturnDraft,
+  submissionSnapshot,
   requireConfirmedReturn,
   VatReturnError,
   type DrillLine,
@@ -31,6 +36,7 @@ const line = (lineId: string, accountType: 'income' | 'expense', amountPence: nu
 function makeStore(ledger: Record<string, DrillLine[]>) {
   const drafts = new Map<string, SavedDraft>();
   const audit: string[] = [];
+  const submissions = new Map<string, 'pending' | 'submitted' | 'failed'>();
   const store: VatReturnStore = {
     loadLedgerLines: async (userId) => ledger[userId] ?? [],
     findDraft: async (userId, key) => drafts.get(`${userId}:${key}`),
@@ -42,8 +48,15 @@ function makeStore(ledger: Record<string, DrillLine[]>) {
       drafts.set(`${userId}:${p.periodKey}`, { status: 'confirmed', periodStart: p.start, periodEnd: p.end, boxes, confirmedAt: now.toISOString() });
       audit.push(`${userId}:vat_return.confirmed`);
     },
+    findSubmission: async (userId, key, sandbox) => {
+      const status = submissions.get(`${userId}:${key}:${sandbox}`);
+      return status && { status };
+    },
+    claimSubmission: async () => undefined,
+    recordReceipt: async () => undefined,
+    markFailed: async () => undefined,
   };
-  return { store, drafts, audit, ledger };
+  return { store, drafts, audit, ledger, submissions };
 }
 
 const authDeps: AuthDeps = {
@@ -205,5 +218,128 @@ describe('review of a confirmed return', () => {
     const data = await review(makeStore({ user_a: many }));
     expect(data.drillDown.box1).toHaveLength(50);
     expect(data.drillDownTotals.box1).toBe(60);
+  });
+
+  it('returns the HMRC receipt of a submitted period, preferring live over sandbox', async () => {
+    const shared = makeStore({ user_a: sales });
+    expect((await review(shared)).submission).toBeNull();
+    const processingDate = new Date('2026-04-02T10:00:00Z');
+    shared.store.findSubmission = async (_userId, _key, sandbox) => ({
+      status: 'submitted',
+      formBundleNumber: sandbox ? 'SANDBOX-1' : 'LIVE-1',
+      processingDate,
+    });
+    expect((await review(shared)).submission).toEqual({
+      formBundleNumber: 'LIVE-1',
+      processingDate: processingDate.toISOString(),
+      sandbox: false,
+    });
+  });
+});
+
+
+describe('a period filed with HMRC', () => {
+  const confirmed = async (shared: ReturnType<typeof makeStore>) => {
+    await confirmReturn(shared.store, 'user_a', period, new Date());
+  };
+
+  it.each(['pending', 'submitted'] as const)('cannot be reopened or re-confirmed once live and %s', async (status) => {
+    const shared = makeStore({ user_a: sales });
+    await confirmed(shared);
+    shared.submissions.set('user_a:26A1:false', status);
+    await expect(saveReturnDraft(shared.store, 'user_a', period, true)).rejects.toMatchObject({ code: 'ALREADY_SUBMITTED' });
+    await expect(confirmReturn(shared.store, 'user_a', period, new Date())).rejects.toMatchObject({ code: 'ALREADY_SUBMITTED' });
+    expect(shared.drafts.get('user_a:26A1')?.status).toBe('confirmed');
+  });
+
+  it('can be edited after a sandbox submission or a failed live attempt', async () => {
+    const shared = makeStore({ user_a: sales });
+    await confirmed(shared);
+    shared.submissions.set('user_a:26A1:true', 'submitted');
+    shared.submissions.set('user_a:26A1:false', 'failed');
+    await expect(saveReturnDraft(shared.store, 'user_a', period, true)).resolves.toMatchObject({ status: 'draft' });
+    await expect(confirmReturn(shared.store, 'user_a', period, new Date())).resolves.toMatchObject({ status: 'confirmed' });
+  });
+});
+
+describe('submission audit snapshot', () => {
+  it('keeps request, response and fraud headers but drops any Authorization value', () => {
+    const snapshot = submissionSnapshot({
+      periodKey: '26A1',
+      sandbox: true,
+      request: { periodKey: '26A1', vatDueSales: 10 },
+      response: { formBundleNumber: '123' },
+      fraudHeaders: { 'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER', Authorization: 'Bearer secret-token' },
+    });
+    expect(snapshot.request).toEqual({ periodKey: '26A1', vatDueSales: 10 });
+    expect(snapshot.response).toEqual({ formBundleNumber: '123' });
+    expect(snapshot.fraudHeaders).toEqual({ 'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER' });
+    expect(JSON.stringify(snapshot)).not.toContain('secret-token');
+  });
+});
+
+describe('databaseStore submission statements', () => {
+  // Every builder method returns the chain; awaiting it yields the next queued result.
+  const chain = (name: string): unknown =>
+    new Proxy(() => undefined, {
+      get: (_, method) => {
+        if (method === 'then') return (resolve: (rows: unknown[]) => void) => resolve(fakeDb.results.shift() ?? []);
+        fakeDb.calls.push(`${name}.${String(method)}`);
+        return () => chain(name);
+      },
+    });
+  const begin = (results: unknown[][]) => {
+    fakeDb.calls.length = 0;
+    fakeDb.results = results;
+    Object.assign(fakeDb.db, {
+      insert: () => (fakeDb.calls.push('insert'), chain('insert')),
+      update: () => (fakeDb.calls.push('update'), chain('update')),
+      transaction: async (run: (tx: unknown) => Promise<void>) => {
+        fakeDb.calls.push('begin');
+        await run({ insert: fakeDb.db.insert, update: fakeDb.db.update });
+        fakeDb.calls.push('commit');
+      },
+    });
+  };
+  const audit = { periodKey: '26A1', sandbox: true, request: {}, response: {}, fraudHeaders: {} };
+
+  it('claims with one conditional upsert and no transaction', async () => {
+    begin([[{ id: 'sub1' }]]);
+    await expect(databaseStore.claimSubmission('user_a', '26A1', false)).resolves.toBe('sub1');
+    expect(fakeDb.calls.filter((call) => call === 'insert')).toHaveLength(1);
+    expect(fakeDb.calls).toContain('insert.onConflictDoUpdate');
+    expect(fakeDb.calls).not.toContain('begin');
+  });
+
+  it('returns undefined when a pending or submitted row holds the period', async () => {
+    begin([[]]);
+    await expect(databaseStore.claimSubmission('user_a', '26A1', false)).resolves.toBeUndefined();
+  });
+
+  it('writes the receipt and the audit event inside one transaction', async () => {
+    begin([[{ id: 'sub1' }], []]);
+    await databaseStore.recordReceipt('user_a', 'sub1', { formBundleNumber: '1', processingDate: new Date() }, audit, new Date());
+    const order = fakeDb.calls.filter((call) => ['begin', 'update', 'insert', 'commit'].includes(call));
+    expect(order).toEqual(['begin', 'update', 'insert', 'commit']);
+  });
+
+  it('writes no audit event when the claim is not pending', async () => {
+    begin([[]]);
+    await expect(
+      databaseStore.recordReceipt('user_a', 'sub1', { formBundleNumber: '1', processingDate: new Date() }, audit, new Date()),
+    ).rejects.toThrow();
+    expect(fakeDb.calls).not.toContain('insert');
+    expect(fakeDb.calls).not.toContain('commit');
+  });
+
+  it('releases the claim and audits a rejection in one transaction', async () => {
+    begin([[{ id: 'sub1' }], []]);
+    await databaseStore.markFailed('user_a', 'sub1', audit);
+    expect(fakeDb.calls.filter((call) => ['begin', 'update', 'insert', 'commit'].includes(call))).toEqual([
+      'begin',
+      'update',
+      'insert',
+      'commit',
+    ]);
   });
 });

@@ -16,6 +16,8 @@ export interface HmrcCredentials {
 export interface HmrcStore {
   /** Undefined when the user row does not exist. */
   sandboxMode(userId: string): Promise<boolean | undefined>;
+  /** Writes only the caller's row; the flag is true for sandbox (opt-in off). */
+  setSandboxMode(userId: string, sandbox: boolean): Promise<void>;
   saveTokens(userId: string, tokens: { accessToken: string; refreshToken: string; expiresAt: Date }): Promise<void>;
   /** Decrypted tokens for route-internal use only; undefined when the user is not connected. */
   credentials(userId: string): Promise<HmrcCredentials | undefined>;
@@ -33,6 +35,10 @@ export const databaseHmrcStore: HmrcStore = {
   async sandboxMode(userId) {
     const [row] = await db.select({ sandbox: users.hmrcSandboxMode }).from(users).where(eq(users.id, userId)).limit(1);
     return row?.sandbox;
+  },
+
+  async setSandboxMode(userId, sandbox) {
+    await db.update(users).set({ hmrcSandboxMode: sandbox, updatedAt: new Date() }).where(eq(users.id, userId));
   },
 
   async saveTokens(userId, tokens) {

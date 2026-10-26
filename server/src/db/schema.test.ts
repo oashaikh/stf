@@ -75,6 +75,35 @@ describe("schema migrations", () => {
     });
   });
 
+  describe("vat_submissions", () => {
+    const tableBody = () => {
+      const match = sql.match(/CREATE TABLE IF NOT EXISTS "vat_submissions" \(([\s\S]*?)\n\);/);
+      expect(match, "could not find CREATE TABLE statement for vat_submissions").not.toBeNull();
+      return match![1];
+    };
+
+    it("locks one submission per user, period and HMRC environment", () => {
+      expect(tableBody()).toContain('UNIQUE("user_id","period_key","sandbox")');
+    });
+
+    it("defines the status enum values", () => {
+      expect(sql).toMatch(
+        /CREATE TYPE "public"\."vat_submission_status" AS ENUM\('pending', 'submitted', 'failed'\)/,
+      );
+    });
+
+    it("stores only the receipt fields, never tokens or headers", () => {
+      const body = tableBody();
+      expect(body).toMatch(/"form_bundle_number" text/);
+      expect(body).toMatch(/"processing_date" timestamp with time zone/);
+      expect(body).not.toMatch(/token|authorization/i);
+    });
+
+    it("has no deleted_at, since failed attempts are flipped, never removed", () => {
+      expect(tableBody()).not.toContain("deleted_at");
+    });
+  });
+
   it("keeps the migration journal a single linear chain", () => {
     const journal = JSON.parse(
       readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"),

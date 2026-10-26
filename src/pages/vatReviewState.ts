@@ -6,11 +6,30 @@ export interface ReviewStateInput {
   confirmPending: boolean;
   /** The server found the ledger or period no longer matches what was confirmed. */
   stale?: boolean;
+  /** The receipt HMRC gave for this period, if it has been filed. */
+  submission?: SubmissionReceipt | null;
+  submitPending?: boolean;
+  /** HMRC may have accepted the return but we could not confirm it. */
+  outcomeUnknown?: boolean;
+  /** Both the deployment and the user's opt-in allow live filing. */
+  live?: boolean;
+}
+
+export interface SubmissionReceipt {
+  formBundleNumber: string;
+  processingDate: string;
+  sandbox: boolean;
 }
 
 export interface ReviewState {
   statusLabel: string;
   canConfirm: boolean;
+  canSubmit: boolean;
+  submitLabel: string;
+  /** Set once filed; sandbox receipts carry a label so a rehearsal is never mistaken for a real filing. */
+  receipt: (SubmissionReceipt & { heading: string }) | null;
+  /** Tells the user not to retry; set when the outcome could not be confirmed. */
+  warning: string | null;
 }
 
 /** Boxes with contributing transactions; 2, 8 and 9 are always zero so have nothing to expand. */
@@ -57,8 +76,20 @@ export function reviewState(input: ReviewStateInput): ReviewState {
         ? 'Draft, not yet confirmed'
         : 'Not yet reviewed';
   const alreadyConfirmed = input.status === 'confirmed' && !stale;
+  const submission = input.submission ?? null;
+  const outcomeUnknown = input.outcomeUnknown === true;
+  // A sandbox rehearsal never blocks the live filing, so only a live receipt (or a sandbox one while live is off) locks submit.
+  const filed = submission !== null && (!submission.sandbox || !input.live);
   return {
     statusLabel,
     canConfirm: input.declarationTicked && !input.confirmPending && !alreadyConfirmed,
+    canSubmit: alreadyConfirmed && !input.submitPending && !filed && !outcomeUnknown,
+    submitLabel: input.submitPending ? 'Submitting…' : input.live ? 'Submit to HMRC' : 'Submit to HMRC sandbox',
+    receipt: submission
+      ? { ...submission, heading: submission.sandbox ? 'Sandbox test submission' : 'Submitted to HMRC' }
+      : null,
+    warning: outcomeUnknown
+      ? 'We could not confirm whether HMRC received this return. Do not submit again. Check your HMRC online account before trying again.'
+      : null,
   };
 }

@@ -21,6 +21,8 @@ export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'pai
 
 export const vatReturnDraftStatusEnum = pgEnum('vat_return_draft_status', ['draft', 'confirmed']);
 
+export const vatSubmissionStatusEnum = pgEnum('vat_submission_status', ['pending', 'submitted', 'failed']);
+
 export const auditActorTypeEnum = pgEnum('audit_actor_type', ['user', 'system', 'ai_agent']);
 
 // Mirrors Clerk identity; created on first sign-in. All money is integer pence.
@@ -220,6 +222,33 @@ export const vatReturnDrafts = pgTable(
   }),
 );
 
+// One row per attempt to file a period with HMRC. The unique key is the
+// idempotency lock: a period has at most one row per user and HMRC environment,
+// so a sandbox rehearsal never blocks the live filing. Rows are never deleted;
+// a failed attempt is flipped to 'failed'. Stores the HMRC receipt only, never
+// tokens or request headers.
+export const vatSubmissions = pgTable(
+  'vat_submissions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    periodKey: text('period_key').notNull(),
+    sandbox: boolean('sandbox').notNull(),
+    status: vatSubmissionStatusEnum('status').notNull().default('pending'),
+    formBundleNumber: text('form_bundle_number'),
+    processingDate: timestamp('processing_date', { withTimezone: true }),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // Also the lookup index: every query filters on (user_id, period_key, sandbox).
+    userPeriodSandboxUnique: unique().on(table.userId, table.periodKey, table.sandbox),
+  }),
+);
+
 // Append-only audit trail. Never updated or deleted.
 export const auditEvents = pgTable('audit_events', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -266,6 +295,9 @@ export type InvoiceLineInsert = typeof invoiceLines.$inferInsert;
 
 export type VatReturnDraftRow = typeof vatReturnDrafts.$inferSelect;
 export type VatReturnDraftInsert = typeof vatReturnDrafts.$inferInsert;
+
+export type VatSubmissionRow = typeof vatSubmissions.$inferSelect;
+export type VatSubmissionInsert = typeof vatSubmissions.$inferInsert;
 
 export type AuditEventRow = typeof auditEvents.$inferSelect;
 export type AuditEventInsert = typeof auditEvents.$inferInsert;

@@ -67,7 +67,7 @@ Also depends on:
     - npm run lint, typecheck and test pass
   - Commit: `d512bb3bf2fa`
 
-- [ ] **Task 2: Entries list with filters, search, load more, draft badge, receipt icon and empty state** (after 1)
+- [x] **Task 2: Entries list with filters, search, load more, draft badge, receipt icon and empty state** (after 1)
   - Intent: Replace the simple EntryList in src/pages/ExpensesPage.tsx with a child component src/pages/EntriesList.tsx under the form. Rows (one line, truncate with title tooltip): formatDate date, description, category name, formatPence amount (right-aligned, tabular-nums, with In/Out text), Draft badge for drafts, accessible receipt icon when hasReceipt. Collapses to labelled rows at 390 px. Filter bar: date from/to, presets 'This tax year' and 'This VAT quarter' (quarter via useVatObligations; disabled with a reason when unavailable), Money in/out/both, Category (fetchAccounts), Status, and a search box. Any filter change resets and refetches. Load more uses useInfiniteQuery with nextCursor and hides when null. Loading/error/empty states; empty state explains how to add the first entry; filtered-empty offers Clear filters. 44 px targets, visible focus, labels, colour tokens (). Update existing ExpensesPage.test.tsx fixtures to {entries, nextCursor}. Component tests (fetch mocked): each filter changes the request URL; load more sends the cursor and appends; empty states; badge and receipt icon.
   - Files: `src/pages/EntriesList.tsx`, `src/pages/EntriesList.test.tsx`, `src/pages/ExpensesPage.tsx`, `src/pages/ExpensesPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -78,6 +78,7 @@ Also depends on:
     - No nested scroll regions or sideways table scroll at 1440 px
     - lint, typecheck, test and build pass
   - Risk: ExpensesPage.tsx is also edited by STF-71; keep the edit here to swapping out the old EntryList so hunks merge cleanly.
+  - Commit: `dd21ea384b8c`
 
 - [ ] **Task 3: Row actions: confirm draft, void with confirmation, locked-period message** (after 2)
   - Intent: Add per-row actions. Confirm (drafts only) calls confirmEntry and invalidates ENTRIES_QUERY_KEY. Void opens a confirmation dialog naming the entry (date, description, amount) and saying it is marked voided and stays on record; dialog follows layout, traps focus, closes on Escape. On success the row stays for the session as 'Voided' (struck through, no actions) because the list API excludes voided entries and the journey says voided shows as voided; a refetch drops it. A PeriodLockedError from confirm, void or edit shows a plain-words alert ('This entry is in a VAT period that has been confirmed or filed, so it cannot be changed') with a react-router Link to /vat (44 px target). Other failures show a retryable error. Tests: cancel sends no request; confirm void sends DELETE with id and row shows Voided; confirm draft sends PATCH; 409 PERIOD_LOCKED shows message and /vat link; Escape closes dialog.

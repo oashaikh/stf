@@ -83,6 +83,8 @@ npm run preview       # serve production build
 npm run push -- -a -m "message"   # guarded commit + push
 ```
 
+For Vercel deployment, see `docs/runbooks/vercel-deploy.md`.
+
 ---
 
 ## Contributing

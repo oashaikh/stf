@@ -13,9 +13,7 @@ STF uses the `WEB_APP_VIA_SERVER` connection method, where a web application (th
 | `Gov-Vendor-Product-Name` | `stf` | Server constant | Yes | The application name. |
 | `Gov-Vendor-Version` | `0.1.0` or `0.1.0+abc1234` | package.json + git | Yes | Package version; short commit SHA appended when available (e.g., on Vercel via `VERCEL_GIT_COMMIT_SHA`). |
 | `Gov-Client-Public-IP` | Client IPv4 or IPv6 | Request headers | No | The client's real IP address, extracted from `x-vercel-forwarded-for` (Vercel) or `x-forwarded-for`. First entry only. Validated with `isIP()`. |
-| `Gov-Client-Public-Port` | Integer 0 to 65535 | Request headers | No | The client's source port. Vercel documents no client-port header (`x-forwarded-port` is the port the client connected to, not its source port), so it is sent only when the forwarded entry carries one as `ip:port` or `[ip]:port`. Otherwise it is omitted and HMRC's validator reports it as missing.
-
-**Wording for the HMRC production application:** STF runs on Vercel serverless functions, which expose the client's IP in `x-vercel-forwarded-for` but not its source port. `x-forwarded-port` is the server port (443) and HMRC says it must not be sent. We therefore cannot send `Gov-Client-Public-Port`. |
+| `Gov-Client-Public-Port` | Integer 0 to 65535 | Request headers | No | The client's source port. Vercel documents no client-port header (`x-forwarded-port` is the port the client connected to, not its source port), so it is sent only when the forwarded entry carries one as `ip:port` or `[ip]:port`. Otherwise it is omitted and HMRC's validator reports it as missing. |
 | `Gov-Client-Public-IP-Timestamp` | ISO 8601 timestamp | Server time | No | Set whenever `Gov-Client-Public-IP` is present. Format: `2026-10-26T09:30:00.123Z` (with milliseconds). |
 | `Gov-Vendor-Public-IP` | Server egress IPv4 or IPv6 | `HMRC_VENDOR_PUBLIC_IP` env var | No | The server's public egress IP address. On Vercel, set if your account has a fixed outbound IP. If not set, this header and `Gov-Vendor-Forwarded` are omitted, and HMRC's validator reports both as missing; Vercel does not expose the edge IP the request arrived on, so set the env var in production. |
 | `Gov-Vendor-Forwarded` | `by=<vendor-ip>&for=<client-ip>` | Combined from above | No | Set only when both the vendor and client IPs are known. Both values are percent-encoded. |
@@ -27,9 +25,11 @@ STF uses the `WEB_APP_VIA_SERVER` connection method, where a web application (th
 | `Gov-Client-Browser-Do-Not-Track` | `true` or `false` | Browser (x-stf-do-not-track) | No | The browser's DNT preference. Dropped if neither value is set. |
 | `Gov-Client-Browser-JS-User-Agent` | User-Agent string | Browser (x-stf-js-user-agent) | No | `navigator.userAgent` exactly as reported. Not percent-encoded: HMRC's validator rejects an encoded value. |
 
+**Wording for the HMRC production application:** STF runs on Vercel serverless functions, which expose the client's IP in `x-vercel-forwarded-for` but not its source port. `x-forwarded-port` is the server port (443) and HMRC says it must not be sent. We therefore cannot send `Gov-Client-Public-Port`.
+
 **NOT sent:** `Gov-Client-Multi-Factor` — HMRC specifies this header only when multi-factor authentication is used. STF uses password-only authentication, so this header is omitted.
 
-## Vendor IP and licence id (optional configuration)
+## Vendor IP and licence id configuration
 
 ### HMRC_VENDOR_PUBLIC_IP
 
@@ -38,7 +38,7 @@ Your server's public egress IP address for the `Gov-Vendor-Public-IP` header.
 **When to set it:**
 - On Vercel: set this if your account has a fixed outbound IP (a paid feature). Vercel does not expose the outbound IP on the request object, so you must provide it.
 - On self-hosted: set this to your server's public IP if it is static.
-- If omitted: the header is not sent, which is fine; it is optional and not required for submissions.
+- **Required for HMRC production credentials.** If omitted, `Gov-Vendor-Public-IP` and `Gov-Vendor-Forwarded` are not sent and HMRC's validator reports both as missing. Vercel does not expose the edge IP the request arrived on, so set this to the public IP of the Vercel deployment's servers (the address the deployment's domain resolves to).
 
 **Format:** IPv4 (e.g., `203.0.113.5`) or IPv6 (e.g., `2001:db8::1`). Validated with Node's `isIP()`.
 

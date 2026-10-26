@@ -1,0 +1,21 @@
+import { SignIn } from '@clerk/clerk-react';
+
+export default function SignInPage() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-md">
+        <SignIn
+          routing="path"
+          path="/sign-in"
+          appearance={{
+            elements: {
+              rootBox: 'w-full',
+              card: 'shadow-lg',
+            },
+          }}
+          redirectUrl="/dashboard"
+        />
+      </div>
+    </div>
+  );
+}

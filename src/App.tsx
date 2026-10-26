@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/clerk-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -11,6 +11,7 @@ import VatPage from './pages/VatPage.tsx';
 import TaxPage from './pages/TaxPage.tsx';
 import ReportsPage from './pages/ReportsPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
+import SignInPage from './pages/SignInPage.tsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,10 +23,14 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
+  const { isLoaded, isSignedIn } = useAuth();
+  // <Routes> only accepts <Route> children, so the sign-in gate branches here instead of wrapping routes.
+  if (!isLoaded) return null;
+
   return (
     <QueryClientProvider client={queryClient}>
-      <SignedIn>
-        <BrowserRouter>
+      <BrowserRouter>
+        {isSignedIn ? (
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -38,11 +43,13 @@ export default function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
-        </BrowserRouter>
-      </SignedIn>
-      <SignedOut>
-        <RedirectToSignIn />
-      </SignedOut>
+        ) : (
+          <Routes>
+            <Route path="/sign-in/*" element={<SignInPage />} />
+            <Route path="*" element={<Navigate to="/sign-in" replace />} />
+          </Routes>
+        )}
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

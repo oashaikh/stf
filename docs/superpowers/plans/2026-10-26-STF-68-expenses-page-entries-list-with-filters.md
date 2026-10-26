@@ -124,3 +124,7 @@ Also depends on:
 - [x] **Task 8: Fix: address 7 review findings (cycle 3)** (after 7)
   - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Fix one bug: a locked-period refusal on the edit form also shows "Could not save the entry. Please try again." under the locked message. The 390 px overflow from last cycl The agent is fixing them; nothing is needed from you.
   - Commit: `aaa2e6e604ba`
+
+- [x] **Task 9: Fix: address 4 review findings (cycle 4)** (after 8)
+  - Intent: Review left 4 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found nothing blocking. Filters, cursor paging, void confirmation, the Voided row, edit pre-fill and PUT, confirm, and PERIOD_LOCKED handling all trace corr The agent is fixing them; nothing is needed from you.
+  - Commit: `083ec1ee468d`

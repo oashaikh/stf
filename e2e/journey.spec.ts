@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { mockApi } from './mockApi';
+import { mockApi, mockMfaCode } from './mockApi';
 
 const mocked = process.env.JOURNEY_MOCK === '1';
 const ownerPassword = mocked ? 'mock-owner-password' : process.env.JOURNEY_OWNER_PASSWORD;
@@ -84,3 +84,61 @@ async function openVatReview(page: Page) {
   if (await choices.count()) await choices.first().check();
   await expect(status).toBeVisible();
 }
+
+// Mock mode only: it turns the second factor on and signs out, which the read-only deployed journey must never do.
+test('owner sets up the authenticator, signs out, and signs back in with password then code', async ({ page }) => {
+  test.skip(!mocked, 'Writes settings and signs out, so it only runs against the mock (JOURNEY_MOCK=1)');
+  const evidenceDir = path.join('docs', 'screenshots', 'stf-90');
+  mkdirSync(evidenceDir, { recursive: true });
+  await mockApi(page, ownerPassword!);
+
+  let stepNumber = 0;
+  async function capture(name: string) {
+    stepNumber += 1;
+    const original = page.viewportSize();
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.screenshot({ path: path.join(evidenceDir, `${String(stepNumber).padStart(2, '0')}-${name}-${width}.png`), fullPage: true });
+    }
+    if (original) await page.setViewportSize(original);
+  }
+
+  await page.goto('/');
+  await page.getByLabel('Password').fill(ownerPassword!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+
+  await page.goto('/settings');
+  await expect(page.getByText('Authenticator is off')).toBeVisible();
+  await capture('settings-authenticator-off');
+
+  await page.getByRole('button', { name: 'Set up authenticator' }).click();
+  await expect(page.getByAltText('QR code for setting up the authenticator app')).toBeVisible();
+  await expect(page.getByTestId('authenticator-secret')).toBeVisible();
+  await capture('scan-qr-code');
+
+  await page.getByLabel('Code from the app').fill(mockMfaCode);
+  await page.getByRole('button', { name: 'Turn on authenticator' }).click();
+  await expect(page.getByRole('heading', { name: 'Save your recovery codes' })).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: 'aaaa-1111' })).toBeVisible();
+  await capture('recovery-codes');
+
+  await page.getByLabel('I have saved these recovery codes').check();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByText('Authenticator is on')).toBeVisible();
+  await capture('authenticator-on');
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  // The gate does not swap to the login page by itself after sign-out in the built app (see report); opening the site again shows what a fresh visit sees.
+  await page.goto('/');
+  await expect(page.getByLabel('Password')).toBeVisible();
+  await page.getByLabel('Password').fill(ownerPassword!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByLabel('Authenticator code')).toBeVisible();
+  await capture('login-code-step');
+
+  await page.getByLabel('Authenticator code').fill(mockMfaCode);
+  await page.getByRole('button', { name: 'Verify' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await capture('dashboard-after-code');
+});

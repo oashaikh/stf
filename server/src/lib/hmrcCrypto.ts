@@ -51,17 +51,23 @@ export function signState(userId: string): string {
   return `${payload}.${sign(payload).toString('base64url')}`;
 }
 
-export function verifyState(state: string, userId: string): boolean {
+/** The callback has no bearer header, so the user comes from the signed state. Null for any bad state. */
+export function verifiedStateUserId(state: string): string | null {
   const parts = state.split('.');
-  if (parts.length !== 2) return false;
+  if (parts.length !== 2) return null;
   const [payload, signature] = parts;
   const expected = sign(payload);
   const provided = Buffer.from(signature, 'base64url');
-  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return false;
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return null;
   try {
     const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    return claims.u === userId && typeof claims.e === 'number' && Date.now() <= claims.e;
+    const valid = typeof claims.u === 'string' && typeof claims.e === 'number' && Date.now() <= claims.e;
+    return valid ? claims.u : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function verifyState(state: string, userId: string): boolean {
+  return verifiedStateUserId(state) === userId;
 }

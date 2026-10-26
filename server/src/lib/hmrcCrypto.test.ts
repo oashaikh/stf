@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { decryptToken, encryptToken, signState, verifyState } from './hmrcCrypto';
+import { decryptToken, encryptToken, signState, verifiedStateUserId, verifyState } from './hmrcCrypto';
 
 const KEY = Buffer.alloc(32, 7).toString('base64');
 const OTHER_KEY = Buffer.alloc(32, 9).toString('base64');
@@ -91,5 +91,15 @@ describe('oauth state', () => {
   it('fails closed without a signing secret', () => {
     vi.stubEnv('HMRC_STATE_SECRET', '');
     expect(() => signState('user_1')).toThrow(/HMRC_STATE_SECRET/);
+  });
+});
+
+describe('verifiedStateUserId', () => {
+  it('returns the signing user for a valid state and null for forged or malformed ones', () => {
+    const state = signState('user-1');
+    expect(verifiedStateUserId(state)).toBe('user-1');
+    const [payload] = state.split('.');
+    expect(verifiedStateUserId(`${payload}.AAAA`)).toBeNull();
+    expect(verifiedStateUserId('garbage')).toBeNull();
   });
 });

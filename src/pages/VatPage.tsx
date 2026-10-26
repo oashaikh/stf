@@ -3,12 +3,20 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchHmrcMode, isEffectivelyLive } from '../lib/hmrc/settingsApi';
-import { NotConnectedError, SubmitVatError, submitVatReturn, VatNumberMissingError } from '../lib/hmrc/vatApi';
+import {
+  NotConnectedError,
+  previewVatReturn,
+  SubmitVatError,
+  submitVatReturn,
+  VatNumberMissingError,
+  type VatPreview,
+} from '../lib/hmrc/vatApi';
 import { formatPence } from '../lib/money';
 import type { VatReturnBoxes } from '../lib/vat';
 import type { ApiResponse } from '../model/types';
 import VatHistoryList from './VatHistoryList';
 import VatObligationsList from './VatObligationsList';
+import VatPreviewPanel from './VatPreviewPanel';
 import { useVatObligations } from './useVatObligations';
 import { boxLabel, DRILLABLE_BOXES, reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
 
@@ -159,6 +167,10 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
     mutationFn: async () => submitVatReturn((await getToken()) ?? '', periodFields),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
+  // The page preview and the dialog preview are separate so opening one never changes what the other shows.
+  const previewMutation = () => ({ mutationFn: async () => previewVatReturn((await getToken()) ?? '', periodFields) });
+  const pagePreview = useMutation(previewMutation());
+  const dialogPreview = useMutation(previewMutation());
   // A pending claim means HMRC may already hold the return, so a refused retry reads the same as an unknown outcome.
   const outcomeUnknown =
     submit.error instanceof SubmitVatError && ['OUTCOME_UNKNOWN', 'ALREADY_SUBMITTED'].includes(submit.error.code);
@@ -281,11 +293,25 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
             <button
               type="button"
               disabled={!state.canSubmit}
-              onClick={() => setSubmitDialogOpen(true)}
-              className="mt-4 min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+              onClick={() => {
+                setSubmitDialogOpen(true);
+                dialogPreview.mutate();
+              }}
+              className="mr-3 mt-4 min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
             >
               {state.submitLabel}
             </button>
+            {state.canSubmit && (
+              <button
+                type="button"
+                disabled={pagePreview.isPending}
+                onClick={() => pagePreview.mutate()}
+                className="mt-4 min-h-[44px] rounded border border-gray-300 px-6 text-sm font-medium text-gray-900 disabled:cursor-not-allowed disabled:text-gray-600"
+              >
+                Preview what will be sent
+              </button>
+            )}
+            {state.canSubmit && <PreviewResult mutation={pagePreview} />}
           </section>
 
           <SubmitDialog
@@ -293,6 +319,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
             periodLabel={`${period.start} to ${period.end}`}
             netVatPence={review.data.boxes.box5}
             live={live}
+            preview={dialogPreview}
             onCancel={() => setSubmitDialogOpen(false)}
             onSubmit={() => {
               setSubmitDialogOpen(false);
@@ -303,6 +330,18 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
       )}
     </>
   );
+}
+
+interface PreviewResultProps {
+  mutation: { isPending: boolean; isError: boolean; data: VatPreview | undefined };
+}
+
+function PreviewResult({ mutation }: PreviewResultProps) {
+  if (mutation.isPending) return <p role="status" className="mt-4 text-sm text-gray-500">Building the preview…</p>;
+  if (mutation.isError) {
+    return <p role="alert" className="mt-4 text-sm text-red-700">Could not build the preview. Try again.</p>;
+  }
+  return mutation.data ? <VatPreviewPanel preview={mutation.data} /> : null;
 }
 
 interface BoxRowsProps {
@@ -374,12 +413,13 @@ interface SubmitDialogProps {
   periodLabel: string;
   netVatPence: number;
   live: boolean;
+  preview: PreviewResultProps['mutation'];
   onCancel: () => void;
   onSubmit: () => void;
 }
 
 // A native modal dialog gives the focus trap and Escape-to-close; nothing reaches HMRC until the footer button is pressed.
-function SubmitDialog({ open, periodLabel, netVatPence, live, onCancel, onSubmit }: SubmitDialogProps) {
+function SubmitDialog({ open, periodLabel, netVatPence, live, preview, onCancel, onSubmit }: SubmitDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -393,7 +433,7 @@ function SubmitDialog({ open, periodLabel, netVatPence, live, onCancel, onSubmit
       ref={dialogRef}
       aria-labelledby="vat-submit-dialog-title"
       onClose={onCancel}
-      className="w-full max-w-md rounded p-0 backdrop:bg-black/50"
+      className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded p-0 backdrop:bg-black/50"
     >
       <div className="p-6">
         <h2 id="vat-submit-dialog-title" className="text-lg font-semibold text-gray-900">
@@ -414,6 +454,7 @@ function SubmitDialog({ open, periodLabel, netVatPence, live, onCancel, onSubmit
           </div>
         </dl>
         {live && <p className="mt-4 text-sm text-gray-900">A live submission cannot be undone.</p>}
+        <PreviewResult mutation={preview} />
       </div>
       <div className="flex justify-end gap-3 border-t border-gray-200 p-4">
         <button type="button" onClick={onCancel} className="min-h-[44px] rounded border border-gray-300 px-6 text-sm font-medium text-gray-900">

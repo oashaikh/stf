@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import EntryActions from "./EntryActions";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
 import { ENTRIES_QUERY_KEY, fetchEntries } from "../lib/entriesApi";
@@ -154,6 +155,8 @@ export default function EntriesList() {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
+  // The list API drops voided entries, so a voided row stays here until the next refetch.
+  const [voidedIds, setVoidedIds] = useState<string[]>([]);
   const rows = entries.data?.pages.flatMap((page) => page.entries) ?? [];
   const isFiltered =
     JSON.stringify(filters) !== JSON.stringify(DEFAULT_ENTRY_FILTERS);
@@ -203,12 +206,16 @@ export default function EntriesList() {
                 </span>
                 <span className="flex min-w-0 items-center gap-2">
                   <span
-                    className="truncate font-medium"
+                    className={`truncate font-medium${voidedIds.includes(entry.id) ? " line-through" : ""}`}
                     title={entry.description}
                   >
                     {entry.description}
                   </span>
-                  {entry.status === "draft" && (
+                  {voidedIds.includes(entry.id) ? (
+                    <span className="shrink-0 rounded bg-gray-200 px-2 text-sm text-gray-900">
+                      Voided
+                    </span>
+                  ) : entry.status === "draft" && (
                     <span className="shrink-0 rounded bg-amber-100 px-2 text-sm text-amber-900">
                       Draft
                     </span>
@@ -240,6 +247,12 @@ export default function EntriesList() {
                   {entry.kind === "income" ? "In " : "Out "}
                   {formatPence(entry.grossPence)}
                 </span>
+                {!voidedIds.includes(entry.id) && (
+                  <EntryActions
+                    entry={entry}
+                    onVoided={(id) => setVoidedIds((ids) => [...ids, id])}
+                  />
+                )}
               </li>
             ))}
           </ul>

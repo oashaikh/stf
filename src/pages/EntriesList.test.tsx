@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import type { ApiEntry } from '../lib/entriesApi';
 import EntriesList from './EntriesList';
 
@@ -19,10 +20,18 @@ describe('EntriesList', () => {
 
   beforeEach(() => {
     entryUrls = [];
+    writes = [];
+    writeReply = null;
+    HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute('open', ''); };
+    HTMLDialogElement.prototype.close = function close() { this.removeAttribute('open'); };
     pages = { '': { entries: [entry('e1')], nextCursor: null } };
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (url: string) => {
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (init?.method) {
+          writes.push({ method: init.method, url });
+          return writeReply ?? reply({ ok: true });
+        }
         if (url.startsWith('/api/accounts')) return reply({ ok: true, accounts: [account('a1', 'Sales', 'income'), account('a2', 'Travel', 'expense')] });
         if (url === '/api/vat/obligations') return reply({ obligations: [{ start: '2000-01-01', end: '2999-12-31', due: '2999-12-31', status: 'O' }] });
         entryUrls.push(url);
@@ -36,11 +45,15 @@ describe('EntriesList', () => {
     vi.unstubAllGlobals();
   });
 
+  let writes: { method: string; url: string }[];
+  let writeReply: Response | null;
   const lastParams = () => new URL(entryUrls[entryUrls.length - 1], 'http://x').searchParams;
   async function renderList() {
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <EntriesList />
+        <MemoryRouter>
+          <EntriesList />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
     await screen.findByText('Entry e1');
@@ -99,5 +112,68 @@ describe('EntriesList', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Clear filters' }));
     expect(await screen.findByText(/Choose Add entry/)).toBeInTheDocument();
     expect(lastParams().get('search')).toBeNull();
+  });
+
+  describe('row actions', () => {
+    const voidButton = () => screen.getByRole('button', { name: 'Void' });
+
+    it('names the entry in the void dialog and sends nothing on cancel', async () => {
+      await renderList();
+      fireEvent.click(voidButton());
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toHaveTextContent('Entry e1');
+      expect(dialog).toHaveTextContent('£123.45');
+      expect(dialog).toHaveTextContent('stays on record');
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(writes).toEqual([]);
+    });
+
+    it('closes the dialog on Escape without sending anything', async () => {
+      await renderList();
+      fireEvent.click(voidButton());
+      fireEvent(screen.getByRole('dialog'), new Event('close'));
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(writes).toEqual([]);
+    });
+
+    it('sends DELETE with the id and then shows the row as Voided with no actions', async () => {
+      await renderList();
+      fireEvent.click(voidButton());
+      fireEvent.click(screen.getByRole('button', { name: 'Void entry' }));
+      expect(await screen.findByText('Voided')).toBeInTheDocument();
+      expect(writes).toEqual([{ method: 'DELETE', url: '/api/entries?id=e1' }]);
+      expect(screen.queryByRole('button', { name: 'Void' })).toBeNull();
+    });
+
+    it('offers Confirm on drafts only and sends PATCH', async () => {
+      pages[''] = { entries: [entry('e1', { status: 'draft' }), entry('e2')], nextCursor: null };
+      await renderList();
+      expect(screen.getAllByRole('button', { name: 'Confirm' })).toHaveLength(1);
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+      await waitFor(() => expect(writes).toEqual([{ method: 'PATCH', url: '/api/entries?id=e1' }]));
+    });
+
+    it('explains a locked period in plain words with a link to the VAT page', async () => {
+      writeReply = reply({ error: 'locked', code: 'PERIOD_LOCKED' }, 409);
+      await renderList();
+      fireEvent.click(voidButton());
+      fireEvent.click(screen.getByRole('button', { name: 'Void entry' }));
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent('in a VAT period that has been confirmed or filed');
+      expect(screen.getByRole('link', { name: 'Go to VAT' })).toHaveAttribute('href', '/vat');
+      expect(screen.queryByText('Voided')).toBeNull();
+    });
+
+    it('shows a retryable error for other failures', async () => {
+      writeReply = reply({ error: 'boom' }, 500);
+      await renderList();
+      fireEvent.click(voidButton());
+      fireEvent.click(screen.getByRole('button', { name: 'Void entry' }));
+      await screen.findByRole('button', { name: 'Try again' });
+      writeReply = null;
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+      expect(await screen.findByText('Voided')).toBeInTheDocument();
+    });
   });
 });

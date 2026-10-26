@@ -22,7 +22,6 @@ vi.mock('../lib/hmrc/settingsApi', async (importOriginal) => ({
   fetchHmrcMode: async () => ({ sandbox: true, liveOptIn: false }),
   isEffectivelyLive: () => false,
 }));
-vi.mock('@clerk/clerk-react', () => ({ useAuth: () => ({ getToken: async () => 'tok' }) }));
 
 const zeroBoxes = { box1: 0, box2: 0, box3: 0, box4: 0, box5: 0, box6: 0, box7: 0, box8: 0, box9: 0 };
 const review = {
@@ -166,7 +165,7 @@ describe('VatPage', () => {
       const sentBoxes = screen.getByRole('table', { name: 'Boxes exactly as they will be sent' });
       expect(within(sentBoxes).getAllByText('£0.00')).toHaveLength(9);
       expect(screen.getByText('Raw JSON')).toBeInTheDocument();
-      expect(previewVatReturn).toHaveBeenCalledWith('tok', { periodKey: '26C3', start: '2026-07-01', end: '2026-09-30' });
+      expect(previewVatReturn).toHaveBeenCalledWith({ periodKey: '26C3', start: '2026-07-01', end: '2026-09-30' });
       expect(submitVatReturn).not.toHaveBeenCalled();
     });
 

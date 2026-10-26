@@ -11,7 +11,6 @@ vi.mock('../lib/hmrc/vatApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/hmrc/vatApi')>()),
   fetchVatHistory: (...args: unknown[]) => fetchVatHistory(...args),
 }));
-vi.mock('@clerk/clerk-react', () => ({ useAuth: () => ({ getToken: async () => 'tok' }) }));
 
 function item(periodKey: string, status: VatHistoryItem['status'], box5: number, receipt: VatHistoryItem['receipt'] = null): VatHistoryItem {
   return {

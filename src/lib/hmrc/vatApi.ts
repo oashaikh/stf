@@ -54,9 +54,10 @@ function browserFraudHeaders(): Record<string, string> {
   };
 }
 
-export async function fetchVatObligations(token: string, fetchFn: FetchFn = fetch): Promise<VatObligationRow[]> {
+export async function fetchVatObligations(fetchFn: FetchFn = fetch): Promise<VatObligationRow[]> {
   const response = await fetchFn('/api/vat/obligations', {
-    headers: { Authorization: `Bearer ${token}`, ...browserFraudHeaders() },
+    credentials: 'same-origin',
+    headers: browserFraudHeaders(),
   });
   if (response.status === 409) {
     const body = await response.json().catch(() => ({}));
@@ -95,13 +96,13 @@ export class SubmitVatError extends Error {
 }
 
 export async function submitVatReturn(
-  token: string,
   period: { periodKey: string; start: string; end: string },
   fetchFn: FetchFn = fetch,
 ): Promise<VatReceipt> {
   const response = await fetchFn('/api/vat/submit', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...browserFraudHeaders() },
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', ...browserFraudHeaders() },
     body: JSON.stringify({ ...period, confirm: true }),
   });
   const body = await response.json().catch(() => null);
@@ -109,8 +110,8 @@ export async function submitVatReturn(
   return body.data;
 }
 
-export async function fetchVatHistory(token: string, fetchFn: FetchFn = fetch): Promise<VatHistoryItem[]> {
-  const response = await fetchFn('/api/vat/history', { headers: { Authorization: `Bearer ${token}` } });
+export async function fetchVatHistory(fetchFn: FetchFn = fetch): Promise<VatHistoryItem[]> {
+  const response = await fetchFn('/api/vat/history', { credentials: 'same-origin' });
   if (!response.ok) throw new Error('Request to /api/vat/history failed');
   return (await response.json()).data;
 }
@@ -122,13 +123,13 @@ export interface VatPreview {
 }
 
 export async function previewVatReturn(
-  token: string,
   period: { periodKey: string; start: string; end: string },
   fetchFn: FetchFn = fetch,
 ): Promise<VatPreview> {
   const response = await fetchFn('/api/vat/preview', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...browserFraudHeaders() },
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', ...browserFraudHeaders() },
     body: JSON.stringify(period),
   });
   const body = await response.json().catch(() => null);

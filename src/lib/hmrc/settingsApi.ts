@@ -9,18 +9,18 @@ export function describeHmrcStatus(connected: boolean, callbackOutcome: string |
     : { label: 'Not connected', tone: 'disconnected' as const };
 }
 
-async function getJson(path: string, token: string, fetchFn: FetchFn) {
-  const response = await fetchFn(path, { headers: { Authorization: `Bearer ${token}` } });
+async function getJson(path: string, fetchFn: FetchFn) {
+  const response = await fetchFn(path, { credentials: 'same-origin' });
   if (!response.ok) throw new Error(`Request to ${path} failed`);
   return response.json();
 }
 
-export async function fetchHmrcConnected(token: string, fetchFn: FetchFn = fetch): Promise<boolean> {
-  return (await getJson('/api/hmrc/status', token, fetchFn)).connected === true;
+export async function fetchHmrcConnected(fetchFn: FetchFn = fetch): Promise<boolean> {
+  return (await getJson('/api/hmrc/status', fetchFn)).connected === true;
 }
 
-export async function fetchHmrcConnectUrl(token: string, fetchFn: FetchFn = fetch): Promise<string> {
-  return (await getJson('/api/hmrc/connect', token, fetchFn)).url;
+export async function fetchHmrcConnectUrl(fetchFn: FetchFn = fetch): Promise<string> {
+  return (await getJson('/api/hmrc/connect', fetchFn)).url;
 }
 
 export interface HmrcModeState {
@@ -32,20 +32,20 @@ export interface HmrcModeState {
 
 export const isEffectivelyLive = (mode: HmrcModeState) => mode.live && mode.envLive;
 
-async function modeRequest(token: string, fetchFn: FetchFn, init: RequestInit = {}): Promise<HmrcModeState> {
+async function modeRequest(fetchFn: FetchFn, init: RequestInit = {}): Promise<HmrcModeState> {
   const response = await fetchFn('/api/hmrc/mode', {
     ...init,
-    headers: { ...init.headers, Authorization: `Bearer ${token}` },
+    credentials: 'same-origin',
   });
   if (!response.ok) throw new Error('Request to /api/hmrc/mode failed');
   const { live, envLive } = await response.json();
   return { live: live === true, envLive: envLive === true };
 }
 
-export const fetchHmrcMode = (token: string, fetchFn: FetchFn = fetch) => modeRequest(token, fetchFn);
+export const fetchHmrcMode = (fetchFn: FetchFn = fetch) => modeRequest(fetchFn);
 
-export const saveHmrcLiveOptIn = (token: string, live: boolean, fetchFn: FetchFn = fetch) =>
-  modeRequest(token, fetchFn, {
+export const saveHmrcLiveOptIn = (live: boolean, fetchFn: FetchFn = fetch) =>
+  modeRequest(fetchFn, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ live }),

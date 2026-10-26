@@ -27,7 +27,7 @@ const authDeps: AuthDeps = {
 };
 
 const asUser = (path: string, userId?: string, method = 'GET') =>
-  new Request(`https://app.test${path}`, { method, headers: userId ? { authorization: `Bearer tok-${userId}` } : {} });
+  new Request(`https://app.test${path}`, { method, headers: userId ? { cookie: `stf_session=tok-${userId}` } : {} });
 
 function credentials(overrides: Partial<HmrcCredentials> = {}): HmrcCredentials {
   return {

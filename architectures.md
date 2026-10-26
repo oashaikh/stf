@@ -43,7 +43,6 @@ The governing principle:
 | HMRC MTD API | Tax obligations, submission receipts | High (authoritative) | Store last-known state; surface error to user |
 | Open Banking API | Transaction feed | Medium | Queue retry; flag transactions as unsynced |
 | Anthropic API (Haiku) | Receipt extractions | Low (draft only) | Fall back to manual entry; log failure |
-| Clerk | Identity tokens | High | Block auth; surface error |
 
 ### Downstream systems
 | System | Receives | Dependency | Failure behaviour |
@@ -76,7 +75,7 @@ VAT is calculated as: `vatPence = Math.round(netPence * vatRate)` where `vatRate
 ### Core tables
 
 ```sql
--- Users mirror Clerk identity; created on first sign-in
+-- The single owner row; created on first login
 CREATE TABLE users (
     id UUID PRIMARY KEY,
     clerk_user_id TEXT NOT NULL UNIQUE,
@@ -338,9 +337,8 @@ All records are user-scoped. The permission model at launch is simple:
 
 - Authenticated = can access own records
 - Unauthenticated = no access
-- Admin metadata on Clerk user = can access admin panel (future)
 
-Every API route must extract `userId` from the Clerk token server-side and scope all queries to that userId. No frontend-passed userId is trusted.
+Every API route must extract `userId` from the signed session cookie server-side and scope all queries to that userId. No frontend-passed userId is trusted.
 
 ---
 

@@ -1,4 +1,3 @@
-import { useAuth } from '@clerk/clerk-react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -17,7 +16,6 @@ const toneIcon = { connected: '✓', disconnected: '○', error: '!' } as const;
 const toneText = { connected: 'text-green-800', disconnected: 'text-gray-700', error: 'text-red-800' } as const;
 
 export default function SettingsPage() {
-  const { getToken } = useAuth();
   const [searchParams] = useSearchParams();
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -31,9 +29,7 @@ export default function SettingsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const token = await getToken();
-        if (!token) throw new Error('No session token');
-        const [isConnected, currentMode] = await Promise.all([fetchHmrcConnected(token), fetchHmrcMode(token)]);
+        const [isConnected, currentMode] = await Promise.all([fetchHmrcConnected(), fetchHmrcMode()]);
         if (!cancelled) {
           setConnected(isConnected);
           setMode(currentMode);
@@ -47,14 +43,12 @@ export default function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [getToken]);
+  }, []);
 
   async function connect() {
     setFailed(false);
     try {
-      const token = await getToken();
-      if (!token) throw new Error('No session token');
-      window.location.assign(await fetchHmrcConnectUrl(token));
+      window.location.assign(await fetchHmrcConnectUrl());
     } catch {
       setFailed(true);
     }
@@ -63,9 +57,7 @@ export default function SettingsPage() {
   async function changeLiveOptIn(live: boolean) {
     setModeFailed(false);
     try {
-      const token = await getToken();
-      if (!token) throw new Error('No session token');
-      setMode(await saveHmrcLiveOptIn(token, live));
+      setMode(await saveHmrcLiveOptIn(live));
       setConfirming(false);
       setConfirmText('');
     } catch {

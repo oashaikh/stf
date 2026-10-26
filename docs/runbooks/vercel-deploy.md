@@ -12,9 +12,8 @@ Set these in your Vercel project settings. Never commit them to the repository.
 
 ### Authentication
 
-- `VITE_CLERK_PUBLISHABLE_KEY` — from [clerk.com](https://clerk.com)
-- `CLERK_SECRET_KEY` — from clerk.com
-- `CLERK_AUTHORIZED_PARTIES` — comma-separated origins that may mint session tokens (must match your deployed domain exactly). Example: `https://app.example.com`
+- `OWNER_PASSWORD` — the owner login password. To reset it, change this variable and redeploy
+- `SESSION_SECRET` — signs the session cookie (generate with `openssl rand -base64 32`)
 
 ### HMRC Making Tax Digital
 
@@ -36,19 +35,9 @@ Set these in your Vercel project settings. Never commit them to the repository.
 
 ### Application
 
-- `APP_ORIGIN` — the deployed URL: `https://<your-domain>` (matches `CLERK_AUTHORIZED_PARTIES`)
+- `APP_ORIGIN` — the deployed URL: `https://<your-domain>`
 - `ANTHROPIC_API_KEY` — from [console.anthropic.com](https://console.anthropic.com) for receipt scanning
 - `CRON_SECRET` — any random string (32+ bytes recommended; generate with `openssl rand -base64 32`). Vercel sends this as `Authorization: Bearer <value>` to cron routes; requests without it are refused.
-
-## Clerk allowed origins
-
-Clerk enforces that session tokens carry an `azp` (authorized party) claim matching the origin that requested them. Set `CLERK_AUTHORIZED_PARTIES` to your deployed domain:
-
-```
-https://app.example.com
-```
-
-And set `APP_ORIGIN` to the same value. Use the full origin, including `https://` and with no trailing slash, for both.
 
 ## HMRC redirect URI
 

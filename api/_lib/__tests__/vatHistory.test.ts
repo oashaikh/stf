@@ -10,10 +10,10 @@ import { databaseStore, HISTORY_LIMIT, type HistoryItem, type VatReturnStore } f
 
 const authDeps: AuthDeps = {
   issuer: {
-    verifyToken: async (token) => (token === 'a' || token === 'b' ? `clerk_${token}` : null),
+    verifyToken: async (token) => (token === 'a' || token === 'b' ? `owner_${token}` : null),
     getEmail: async () => 'x@example.com',
   },
-  users: { findId: async (id) => id.replace('clerk_', 'user_'), createIfAbsent: async () => 'unused' },
+  users: { findId: async (id) => id.replace('owner_', 'user_'), createIfAbsent: async () => 'unused' },
 };
 
 const boxes = { box1: 1, box2: 2, box3: 3, box4: 4, box5: 5, box6: 6, box7: 7, box8: 8, box9: 9 };
@@ -27,7 +27,7 @@ const item = (periodKey: string): HistoryItem => ({
 });
 
 const request = (method: string, token?: string) =>
-  new Request('https://x.test/api/vat/history', { method, headers: token ? { authorization: `Bearer ${token}` } : {} });
+  new Request('https://x.test/api/vat/history', { method, headers: token ? { cookie: `stf_session=${token}` } : {} });
 
 describe('GET /api/vat/history', () => {
   const store = {

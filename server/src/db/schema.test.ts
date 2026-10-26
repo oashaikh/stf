@@ -110,6 +110,15 @@ describe("schema migrations", () => {
     );
   });
 
+  it("creates login_attempts with only a timestamp and an attempted_at index", () => {
+    const match = sql.match(/CREATE TABLE IF NOT EXISTS "login_attempts" \(([\s\S]*?)\n\);/);
+    expect(match, "could not find CREATE TABLE statement for login_attempts").not.toBeNull();
+    expect(match![1]).not.toMatch(/ip|password|user/i);
+    expect(sql).toMatch(
+      /CREATE INDEX IF NOT EXISTS "login_attempts_attempted_at_idx" ON "login_attempts" \("attempted_at"\)/,
+    );
+  });
+
   it("keeps the migration journal a single linear chain", () => {
     const journal = JSON.parse(
       readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"),

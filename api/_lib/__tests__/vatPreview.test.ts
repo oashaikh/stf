@@ -59,10 +59,13 @@ const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200
 const noAudit = async () => undefined;
 
 beforeEach(() => {
+  // withHmrcToken compares token expiry with Date.now(); pin it to NOW so the fixed fixtures stay valid.
+  vi.useFakeTimers({ toFake: ['Date'], now: NOW });
   vi.stubEnv('HMRC_SANDBOX_MODE', 'true');
   vi.stubEnv('VERCEL_GIT_COMMIT_SHA', 'abc123');
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });

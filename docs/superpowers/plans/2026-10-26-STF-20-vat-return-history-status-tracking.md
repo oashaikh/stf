@@ -53,7 +53,7 @@
   - Risk: Per-user data access and auth route: tenant isolation must be enforced on the server and tested.
   - Commit: `6bf0db69e9f3`
 
-- [ ] **Task 3: UI: VAT return history list with read-only submitted view and HMRC receipt** (after 2)
+- [x] **Task 3: UI: VAT return history list with read-only submitted view and HMRC receipt** (after 2)
   - Intent: Add `fetchVatHistory(token)` to src/lib/hmrc/vatApi.ts (follow the existing fetch/ApiResponse pattern). Add a `VatHistoryList` component, in the style of VatObligationsList.tsx, and render it in VatPage below the review. It lists past returns with a status label (Draft, Confirmed, Submitted, Accepted), net VAT due (box5) and the period. Sandbox receipts carry a visible label. Accepted and submitted rows open a view-only detail with the stored boxes 1-9 and the stored HMRC receipt (form bundle number, processing date), and no Edit, Reopen, Confirm or Submit control. Reuse BOX_LABELS and boxLabel from vatReviewState.ts, formatPence from src/lib/money.ts, and the shared loading/empty/error components if present. Include empty, loading and error states. Money is right-aligned in tabular figures, rows are one line with truncation and a tooltip, tables collapse to labelled rows at 390px, tap targets are at least 44px, status is never colour-only, and fonts and colours use tokens. Add a short History section to docs/workflows/vat-return.md. Capture 1440 and 390 px screenshots of the list and detail with invented data for the PR ().
   - Files: `src/lib/hmrc/vatApi.ts`, `src/lib/hmrc/vatApi.test.ts`, `src/pages/VatHistoryList.tsx`, `src/pages/VatHistoryList.test.tsx`, `src/pages/VatPage.tsx`, `src/pages/vatReviewState.ts`, `docs/workflows/vat-return.md`
   - Acceptance criteria the planner set:
@@ -63,3 +63,4 @@
     - No raw hex or px font sizes, and no floats for money
     - vatApi.test.ts covers fetchVatHistory success and error
     - npm run lint, typecheck, test and build pass
+  - Commit: `58c84b61ea6b`

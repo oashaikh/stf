@@ -39,7 +39,7 @@
   - Risk: opus/high: brute-force protection and a schema migration; a wrong window or unindexed query weakens the login control.
   - Commit: `27b9c4c7a6ad`
 
-- [ ] **Task 2: Swap Clerk verifier for signed-cookie owner session behind requireAuth**
+- [x] **Task 2: Swap Clerk verifier for signed-cookie owner session behind requireAuth**
   - Intent: Create api/_lib/ownerSession.ts: scrypt-hash-then-timingSafeEqual password check against OWNER_PASSWORD (fail closed if unset or empty), HMAC-SHA256 signed session token with expiry (30 days) using SESSION_SECRET (fail closed if unset/short), timingSafeEqual signature check, and Set-Cookie builders (HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=2592000) and a clearing cookie. Change api/_lib/auth.ts so requireAuth reads the session cookie instead of the Bearer header, resolves to the single owner users row created on first login with a fixed external id (stored in clerk_user_id, email a fixed placeholder), keeping the exports requireAuth, withAuth, UnauthorizedError, AuthIdentity and the AuthIssuer/UserStore/AuthDeps shape so no route file changes. Tampered, malformed or expired cookies yield 401 via withAuth before any handler runs. Delete api/_lib/clerkIssuer.ts and its test. Update auth.test.ts and the route tests that send Bearer headers/mention Clerk (vatPreviewRoute, vatSubmitRoute, vatReturns, vatHistory) to use a cookie or the injected deps. No log line or error body may contain password, cookie or secret.
   - Files: `api/_lib/ownerSession.ts`, `api/_lib/__tests__/ownerSession.test.ts`, `api/_lib/auth.ts`, `api/_lib/__tests__/auth.test.ts`, `api/_lib/clerkIssuer.ts`, `api/_lib/__tests__/clerkIssuer.test.ts`, `api/_lib/__tests__/vatPreviewRoute.test.ts`, `api/_lib/__tests__/vatSubmitRoute.test.ts`, `api/_lib/__tests__/vatReturns.test.ts`, `api/_lib/__tests__/vatHistory.test.ts`, `api/_lib/__tests__/apiRoutes.test.ts`
   - Acceptance criteria the planner set:
@@ -50,6 +50,7 @@
     - grep finds no import of @clerk/backend in api/
     - lint, typecheck, test pass
   - Risk: opus/high: authentication, session signing and secrets handling ().
+  - Commit: `b54b683e7211`
 
 - [ ] **Task 3: Add login and logout routes with lockout** (after 1, 2)
   - Intent: Add api/auth/login.ts (POST) and api/auth/logout.ts (POST) as the explicit public routes (). Login validates the JSON body (string password, bounded length), checks lockout first (locked returns 429 with Retry-After and does not evaluate the password), compares via ownerSession, records a failure on mismatch (401 generic body), and on success clears the counter, ensures the owner user row exists via the auth helper's store, and returns Set-Cookie with the session. Logout clears the cookie (Max-Age=0, same attributes). Error bodies and console output carry only error class names, never password, cookie or secret. Use dependency injection like the other route tests so no DB or network is touched. Register routes in apiRoutes test if it enumerates routes.

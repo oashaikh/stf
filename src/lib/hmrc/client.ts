@@ -158,6 +158,20 @@ export async function submitVatReturn(
   );
 }
 
+/** A return as HMRC holds it; money is in pounds, as HMRC sends it. */
+export type FiledVatReturn = Omit<VatReturnPayload, 'finalised'>;
+
+export async function getVatReturn(
+  vrn: string,
+  periodKey: string,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<FiledVatReturn> {
+  // Period keys such as "#001" contain characters that need escaping in a path.
+  return hmrcFetch(`${vatReturnsPath(vrn)}/${encodeURIComponent(periodKey)}`, accessToken, fraudHeaders, {}, fetchFn);
+}
+
 // ─── Income Tax Self-Assessment (ITSA) ────────────────────────────────────────
 
 export type ItsBusiness = {

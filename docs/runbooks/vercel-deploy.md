@@ -23,7 +23,8 @@ Set these in your Vercel project settings. Never commit them to the repository.
 - `HMRC_REDIRECT_URI` — the callback URL registered in your HMRC developer application: `https://<your-domain>/api/hmrc/callback`
 - `HMRC_TOKEN_ENCRYPTION_KEY` — Base64 of 32 random bytes (AES-256-GCM key for storing HMRC tokens); generate with `openssl rand -base64 32`
 - `HMRC_STATE_SECRET` — Base64 of 32 random bytes (signs OAuth state); generate with `openssl rand -base64 32`
-- `HMRC_VENDOR_PUBLIC_IP` — (optional) your server's egress IP for the Gov-Vendor-Public-IP fraud prevention header
+- `HMRC_VENDOR_PUBLIC_IP` — (optional) your server's public IPv4 or IPv6 egress address for HMRC fraud prevention. On Vercel, this is your account's fixed IP if you have one. Extracted from the outbound connection when making HMRC calls. Sent as the `Gov-Vendor-Public-IP` header.
+- `HMRC_VENDOR_LICENSE_ID` — (optional) a unique licence id for this deployment. Only the SHA-256 hash is sent to HMRC, never the id itself. Sent as the `Gov-Vendor-License-IDs` header: `stf=<SHA256-hex>`. Example: an internal ticket id or serial number.
 
 ### Receipt storage
 
@@ -66,6 +67,22 @@ Always apply migrations manually **before** deploying a version that requires th
 The HMRC token refresh runs as a Vercel Cron job (scheduled serverless function) at `/api/cron/refresh-hmrc-tokens` every 5 minutes. Vercel sends an `Authorization: Bearer $CRON_SECRET` header. Any request without this header is refused with a 401.
 
 **Cron frequency note**: Vercel's free Hobby plan allows only once-daily crons. The 5-minute schedule requires a Pro plan. If you are on Hobby, either upgrade to Pro or adjust the cron schedule in `vercel.json`.
+
+## Fraud prevention headers
+
+All HMRC calls require fraud prevention headers that identify the connection method, application, user, and browser. STF uses the `WEB_APP_VIA_SERVER` connection method and builds the headers server-side (see `docs/workflows/vat-return.md` for the full header table).
+
+**Vercel-specific notes:**
+
+- `HMRC_VENDOR_PUBLIC_IP` is optional. Vercel does not expose the egress IP on the request, so you must provide it if you have a fixed outbound IP. The header improves HMRC's fraud detection but is not required.
+- `HMRC_VENDOR_LICENSE_ID` is optional. If set, only its SHA-256 hash is sent to HMRC (the id itself is never transmitted). Example use cases: internal serial number, license key, or deployment identifier for accounting purposes.
+- Browser-supplied values (device ID, timezone, screen dimensions, user agent) are gathered by the SPA and sent as `x-stf-*` headers. Malformed values are dropped by the server, not forwarded.
+
+**Testing the headers:**
+
+Before going live, sign in to Settings and click "Check HMRC fraud headers" under the HMRC section. This calls HMRC's sandbox validator (not a real submission) and reports any errors or warnings with the header names and HMRC's messages. Fix any issues and recheck. A passing check means the headers conform to HMRC's spec and are ready for live submissions.
+
+The check result is recorded as an audit event (`hmrc.fraud_headers.validated`) for compliance. Header values are not logged; only names are stored.
 
 ## Local development
 

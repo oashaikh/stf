@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { DASHBOARD_QUERY_KEY } from "../lib/dashboardApi";
 import { formatDate } from "../lib/dates";
 import {
   ENTRIES_QUERY_KEY,
@@ -94,14 +95,22 @@ export default function EntryActions({
 }) {
   const queryClient = useQueryClient();
   const [voidOpen, setVoidOpen] = useState(false);
+  // Dashboard totals and the draft count change with every confirm or void.
+  const invalidateDashboard = () =>
+    queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
   const confirm = useMutation({
     mutationFn: () => confirmEntry(entry.id),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY }),
+    onSuccess: () => {
+      invalidateDashboard();
+      return queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY });
+    },
   });
   const voiding = useMutation({
     mutationFn: () => voidEntry(entry.id),
-    onSuccess: () => onVoided(entry.id),
+    onSuccess: () => {
+      invalidateDashboard();
+      onVoided(entry.id);
+    },
   });
   const failure = confirm.error ?? voiding.error;
 
@@ -113,7 +122,10 @@ export default function EntryActions({
             type="button"
             className={buttonClass}
             disabled={confirm.isPending}
-            onClick={() => confirm.mutate()}
+            onClick={() => {
+              voiding.reset();
+              confirm.mutate();
+            }}
           >
             Confirm
           </button>
@@ -140,6 +152,7 @@ export default function EntryActions({
           onCancel={() => setVoidOpen(false)}
           onVoid={() => {
             setVoidOpen(false);
+            confirm.reset();
             voiding.mutate();
           }}
         />

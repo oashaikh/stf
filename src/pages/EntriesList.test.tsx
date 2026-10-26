@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { DASHBOARD_QUERY_KEY } from '../lib/dashboardApi';
 import type { ApiEntry } from '../lib/entriesApi';
 import EntriesList from './EntriesList';
 
@@ -163,6 +164,41 @@ describe('EntriesList', () => {
       expect(screen.getAllByRole('button', { name: 'Confirm' })).toHaveLength(1);
       fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
       await waitFor(() => expect(writes).toEqual([{ method: 'PATCH', url: '/api/entries?id=e1' }]));
+    });
+
+    it('marks the dashboard stale after a confirm and after a void', async () => {
+      pages[''] = { entries: [entry('e1', { status: 'draft' }), entry('e2')], nextCursor: null };
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(
+        <QueryClientProvider client={client}>
+          <MemoryRouter>
+            <EntriesList onEdit={() => {}} />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      await screen.findByText('Entry e1');
+      client.setQueryData(DASHBOARD_QUERY_KEY, { stale: true });
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+      await waitFor(() => expect(client.getQueryState(DASHBOARD_QUERY_KEY)?.isInvalidated).toBe(true));
+      client.setQueryData(DASHBOARD_QUERY_KEY, { stale: true });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Void' })[1]);
+      fireEvent.click(screen.getByRole('button', { name: 'Void entry' }));
+      await screen.findByText('Voided');
+      expect(client.getQueryState(DASHBOARD_QUERY_KEY)?.isInvalidated).toBe(true);
+    });
+
+    it('retries the void, not an earlier failed confirm', async () => {
+      pages[''] = { entries: [entry('e1', { status: 'draft' })], nextCursor: null };
+      writeReply = reply({ error: 'boom' }, 500);
+      await renderList();
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+      await screen.findByRole('button', { name: 'Try again' });
+      fireEvent.click(voidButton());
+      fireEvent.click(screen.getByRole('button', { name: 'Void entry' }));
+      await waitFor(() => expect(writes.map((write) => write.method)).toEqual(['PATCH', 'DELETE']));
+      await screen.findByRole('button', { name: 'Try again' });
+      fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+      await waitFor(() => expect(writes.map((write) => write.method)).toEqual(['PATCH', 'DELETE', 'DELETE']));
     });
 
     it('explains a locked period in plain words with a link to the VAT page', async () => {

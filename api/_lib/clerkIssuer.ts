@@ -1,6 +1,6 @@
 import { createClerkClient, verifyToken } from '@clerk/backend';
 
-import type { AuthIssuer } from './auth';
+import type { AuthIssuer } from './auth.js';
 
 // The only file that imports @clerk/backend. A self-hoster swaps the issuer by
 // providing another AuthIssuer; route handlers never see Clerk types.

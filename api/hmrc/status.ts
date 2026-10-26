@@ -1,5 +1,5 @@
-import { withAuth, type AuthDeps } from '../_lib/auth';
-import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore';
+import { withAuth, type AuthDeps } from '../_lib/auth.js';
+import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore.js';
 
 export function createStatusHandler(store: HmrcStore = databaseHmrcStore, authDeps?: AuthDeps) {
   return withAuth(async (_request, auth) => {

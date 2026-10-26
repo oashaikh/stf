@@ -1,4 +1,4 @@
-import { withAuth } from '../_lib/auth';
+import { withAuth } from '../_lib/auth.js';
 import {
   databaseStore,
   getReturnReview,
@@ -9,7 +9,7 @@ import {
   VatReturnError,
   vatErrorResponse,
   type VatReturnStore,
-} from '../_lib/vatReturns';
+} from '../_lib/vatReturns.js';
 
 export function vatReturnHandler(store: VatReturnStore) {
   return async (request: Request, auth: { userId: string }): Promise<Response> => {

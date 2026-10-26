@@ -14,9 +14,13 @@
  * See: https://developer.service.hmrc.gov.uk/guides/fraud-prevention/
  */
 
-const HMRC_BASE = import.meta.env.VITE_HMRC_SANDBOX_MODE === 'false'
-  ? 'https://api.service.hmrc.gov.uk'
-  : 'https://test-api.service.hmrc.gov.uk';
+// Read at call time so importing this module touches no browser or build-time globals.
+// Anything other than the literal string 'false' stays on the sandbox.
+function hmrcApiBase(): string {
+  return process.env.HMRC_SANDBOX_MODE === 'false'
+    ? 'https://api.service.hmrc.gov.uk'
+    : 'https://test-api.service.hmrc.gov.uk';
+}
 
 export type HmrcTokenSet = {
   accessToken: string;
@@ -67,7 +71,7 @@ async function hmrcFetch<T>(
   options: RequestInit = {},
   appVersion = import.meta.env.VITE_APP_VERSION ?? '0.0.0',
 ): Promise<T> {
-  const url = `${HMRC_BASE}${path}`;
+  const url = `${hmrcApiBase()}${path}`;
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -174,20 +178,81 @@ export async function listItsSelfEmploymentBusinesses(
 
 // ─── OAuth helpers (called server-side only) ──────────────────────────────────
 
+const HMRC_SCOPE = 'read:vat write:vat';
+
+function requireEnv(name: 'HMRC_CLIENT_ID' | 'HMRC_CLIENT_SECRET'): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is not set`);
+  return value;
+}
+
 /** Build the HMRC OAuth 2.0 authorization URL. */
-export function buildHmrcAuthUrl(
-  clientId: string,
-  redirectUri: string,
-  scopes: string[],
-  state: string,
-): string {
-  const base = HMRC_BASE.includes('test') ? HMRC_BASE : 'https://www.tax.service.gov.uk';
+export function buildHmrcAuthUrl(redirectUri: string, state: string): string {
+  const authorizeHost = process.env.HMRC_SANDBOX_MODE === 'false'
+    ? 'https://www.tax.service.gov.uk'
+    : 'https://test-www.tax.service.gov.uk';
   const params = new URLSearchParams({
     response_type: 'code',
-    client_id: clientId,
-    scope: scopes.join(' '),
+    client_id: requireEnv('HMRC_CLIENT_ID'),
+    scope: HMRC_SCOPE,
     redirect_uri: redirectUri,
     state,
   });
-  return `${base}/oauth/authorize?${params.toString()}`;
+  return `${authorizeHost}/oauth/authorize?${params.toString()}`;
+}
+
+type TokenResponse = { access_token: string; refresh_token: string; expires_in: number };
+
+/**
+ * The error carries only HMRC's error code and status, never its description,
+ * which can echo back the submitted code or refresh token.
+ */
+async function postTokenRequest(
+  grantFields: Record<string, string>,
+  fetchFn: typeof fetch,
+): Promise<HmrcTokenSet> {
+  const body = new URLSearchParams({
+    ...grantFields,
+    client_id: requireEnv('HMRC_CLIENT_ID'),
+    client_secret: requireEnv('HMRC_CLIENT_SECRET'),
+  });
+  const response = await fetchFn(`${hmrcApiBase()}/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+
+  if (!response.ok) {
+    const errorBody = (await response.json().catch(() => ({}))) as { error?: unknown };
+    const code = typeof errorBody.error === 'string' ? errorBody.error : 'UNKNOWN';
+    throw new HmrcError(
+      { code, message: 'HMRC token request rejected', statusCode: response.status },
+      `HMRC token request failed (${response.status} ${code})`,
+    );
+  }
+
+  const tokens = (await response.json()) as TokenResponse;
+  return {
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    expiresAt: Date.now() + tokens.expires_in * 1000,
+  };
+}
+
+export function exchangeAuthCode(
+  code: string,
+  redirectUri: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<HmrcTokenSet> {
+  return postTokenRequest(
+    { grant_type: 'authorization_code', code, redirect_uri: redirectUri },
+    fetchFn,
+  );
+}
+
+export function refreshAccessToken(
+  refreshToken: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<HmrcTokenSet> {
+  return postTokenRequest({ grant_type: 'refresh_token', refresh_token: refreshToken }, fetchFn);
 }

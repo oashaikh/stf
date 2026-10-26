@@ -185,7 +185,7 @@ describe('requireConfirmedReturn', () => {
 describe('review of a confirmed return', () => {
   const review = async (shared: ReturnType<typeof makeStore>) => {
     const res = await withAuth(vatReturnHandler(shared.store), authDeps)(
-      new Request(`https://x.test/api/vat/return?${new URLSearchParams(period)}`, {
+      new Request(`https://x.test/api/vat/return?${new URLSearchParams({ ...period })}`, {
         headers: { authorization: 'Bearer a' },
       }),
     );

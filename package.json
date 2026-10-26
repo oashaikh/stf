@@ -18,7 +18,9 @@
     "db:push": "drizzle-kit push",
     "push": "bash scripts/safe-push.sh",
     "deploy:preview": "vercel",
-    "deploy:prod": "vercel --prod"
+    "deploy:prod": "vercel --prod",
+    "test:journey": "playwright test",
+    "test:journey:mock": "JOURNEY_MOCK=1 playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.51.0",
@@ -43,6 +45,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^20.12.7",

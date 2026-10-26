@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AppShell from './AppShell';
@@ -47,5 +47,19 @@ describe('AppShell', () => {
     renderAt('/vat');
     expect(screen.getByRole('banner')).toHaveTextContent('STF');
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+  });
+
+  it('keeps four sections in the phone bar and opens the rest from More', () => {
+    renderAt('/vat');
+    const more = screen.getByRole('button', { name: 'More' });
+    const menu = document.getElementById('more-nav')!;
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    expect(menu).toHaveClass('hidden');
+    for (const label of ['Expenses', 'Invoices', 'Tax', 'Settings']) {
+      expect(within(menu).getByRole('link', { name: label })).toBeInTheDocument();
+    }
+    fireEvent.click(more);
+    expect(more).toHaveAttribute('aria-expanded', 'true');
+    expect(menu).toHaveClass('grid');
   });
 });

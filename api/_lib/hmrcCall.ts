@@ -2,6 +2,18 @@ import { buildFraudHeaders, vendorVersion } from '../../src/lib/hmrc/fraudHeader
 import { HmrcError, refreshAccessToken, withHmrcToken, type HmrcTokenSet } from '../../src/lib/hmrc/client.js';
 import type { HmrcCredentials, HmrcStore } from './hmrcStore.js';
 
+/** The one place the fraud-header inputs are assembled, so submit, preview, obligations and the check send the same set. */
+export function requestFraudHeaders(request: Request, userId: string, now: Date): Record<string, string> {
+  return buildFraudHeaders({
+    request,
+    userId,
+    appVersion: vendorVersion(),
+    vendorPublicIp: process.env.HMRC_VENDOR_PUBLIC_IP,
+    vendorLicenseId: process.env.HMRC_VENDOR_LICENSE_ID,
+    now,
+  });
+}
+
 export interface HmrcCallDeps {
   refresh?: (refreshToken: string) => Promise<HmrcTokenSet>;
   now?: () => Date;
@@ -24,13 +36,7 @@ export async function callHmrcAsUser(
 ): Promise<Response> {
   const { request, userId, credentials, store, label, call } = options;
   const { storedRefreshToken } = credentials;
-  const fraudHeaders = buildFraudHeaders({
-    request,
-    userId,
-    appVersion: vendorVersion(),
-    vendorPublicIp: process.env.HMRC_VENDOR_PUBLIC_IP,
-    now: now(),
-  });
+  const fraudHeaders = requestFraudHeaders(request, userId, now());
 
   try {
     return await withHmrcToken(

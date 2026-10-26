@@ -44,13 +44,15 @@ function utcOffset(): string {
 }
 
 // The server forwards these to HMRC as the Gov-Client-* fraud prevention headers.
-function browserFraudHeaders(): Record<string, string> {
+export function browserFraudHeaders(): Record<string, string> {
   return {
     'x-stf-device-id': deviceId(),
     'x-stf-timezone': utcOffset(),
     'x-stf-screens': `width=${screen.width}&height=${screen.height}&scaling-factor=${window.devicePixelRatio}&colour-depth=${screen.colorDepth}`,
     'x-stf-window-size': `width=${window.innerWidth}&height=${window.innerHeight}`,
     'x-stf-js-user-agent': navigator.userAgent,
+    // navigator.doNotTrack is "1" when set, "0" when refused and null/"unspecified" otherwise; HMRC wants true/false.
+    'x-stf-do-not-track': String(navigator.doNotTrack === '1'),
   };
 }
 

@@ -79,20 +79,27 @@ export const accounts = pgTable(
 );
 
 // Double-entry ledger header. Soft-deletable financial record.
-export const transactions = pgTable('transactions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  date: date('date').notNull(),
-  description: text('description').notNull(),
-  reference: text('reference'),
-  status: transactionStatusEnum('status').notNull().default('draft'),
-  source: transactionSourceEnum('source').notNull().default('manual'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at', { withTimezone: true }),
-});
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    date: date('date').notNull(),
+    description: text('description').notNull(),
+    reference: text('reference'),
+    status: transactionStatusEnum('status').notNull().default('draft'),
+    source: transactionSourceEnum('source').notNull().default('manual'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // Entries list: one user's transactions newest first, with a LIMIT.
+    userDateIdx: index('transactions_user_date_idx').on(table.userId, table.date),
+  }),
+);
 
 // Ledger lines. Immutable children of a transaction; voided via the parent's
 // deleted_at/status rather than an independent deleted_at.

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 import {
@@ -10,13 +10,14 @@ import {
   type AccountRow,
 } from '../../server/src/db/schema.js';
 import { BANK_ACCOUNT_CODE, TRADE_DEBTORS_CODE, VAT_CONTROL_CODE } from '../../src/lib/chartOfAccounts.js';
+import { MAX_AMOUNT_PENCE } from '../../src/lib/entryForm.js';
 import { postEntry, type PostedLine } from '../../src/lib/postingRules.js';
 import { databaseAccountStore } from './accounts.js';
 import { db } from './db.js';
 
-export const MAX_AMOUNT_PENCE = 1_000_000_000; // £10m; also keeps sums inside the integer column
 export const MAX_DAYS_AHEAD = 7;
 export const ENTRY_LINE_LIMIT = 10;
+export const ENTRY_LIST_LIMIT = 50;
 
 export interface EntryHeader {
   date: string;
@@ -46,6 +47,8 @@ export interface EntryStore {
   /** Writes the transaction, its lines and the entry.create audit event in one database transaction. */
   create(userId: string, header: EntryHeader, lines: PostedLine[]): Promise<Entry>;
   get(userId: string, entryId: string): Promise<Entry | undefined>;
+  /** Newest first, at most ENTRY_LIST_LIMIT entries. */
+  list(userId: string): Promise<Entry[]>;
 }
 
 export class EntryRuleError extends Error {
@@ -53,6 +56,8 @@ export class EntryRuleError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    /** Form field the message belongs beside. */
+    readonly field?: string,
   ) {
     super(message);
   }
@@ -78,7 +83,7 @@ export type NewEntry = z.infer<typeof newEntrySchema>;
 
 export function assertDateNotTooFarAhead(date: string, now: Date): void {
   const latest = new Date(now.getTime() + MAX_DAYS_AHEAD * 86_400_000).toISOString().slice(0, 10);
-  if (date > latest) throw new EntryRuleError(400, 'BAD_REQUEST', `Date cannot be more than ${MAX_DAYS_AHEAD} days ahead`);
+  if (date > latest) throw new EntryRuleError(400, 'BAD_REQUEST', `Date cannot be more than ${MAX_DAYS_AHEAD} days ahead`, 'date');
 }
 
 /** The route does no arithmetic: lines come only from postEntry. */
@@ -86,7 +91,7 @@ export async function createEntry(store: EntryStore, userId: string, input: NewE
   assertDateNotTooFarAhead(input.date, now);
   const context = await store.loadPostingContext(userId, input.categoryAccountId);
   if (!context.category || context.category.archivedAt !== null || context.category.accountType !== input.kind) {
-    throw new EntryRuleError(422, 'INVALID_ACCOUNT', 'Category must be one of your active accounts matching the entry kind');
+    throw new EntryRuleError(422, 'INVALID_ACCOUNT', 'Category must be one of your active accounts matching the entry kind', 'categoryAccountId');
   }
   const lines = postEntry({
     kind: input.kind,
@@ -101,6 +106,14 @@ export async function createEntry(store: EntryStore, userId: string, input: NewE
   });
   return store.create(userId, { date: input.date, description: input.description, reference: input.reference ?? null, status: input.status }, lines);
 }
+
+const headerColumns = {
+  id: transactions.id,
+  date: transactions.date,
+  description: transactions.description,
+  reference: transactions.reference,
+  status: transactions.status,
+};
 
 const lineColumns = {
   accountId: transactionLines.accountId,
@@ -175,18 +188,32 @@ export const databaseEntryStore: EntryStore = {
 
   async get(userId, entryId) {
     const [header] = await db
-      .select({
-        id: transactions.id,
-        date: transactions.date,
-        description: transactions.description,
-        reference: transactions.reference,
-        status: transactions.status,
-      })
+      .select(headerColumns)
       .from(transactions)
       .where(and(eq(transactions.id, entryId), eq(transactions.userId, userId), isNull(transactions.deletedAt)))
       .limit(1);
     if (!header || (header.status !== 'draft' && header.status !== 'confirmed')) return undefined;
     const lines = await db.select(lineColumns).from(transactionLines).where(eq(transactionLines.transactionId, entryId)).limit(ENTRY_LINE_LIMIT);
     return { ...header, status: header.status, source: 'manual', lines: toPostedLines(lines) };
+  },
+
+  async list(userId) {
+    const headers = await db
+      .select(headerColumns)
+      .from(transactions)
+      .where(and(eq(transactions.userId, userId), isNull(transactions.deletedAt)))
+      .orderBy(desc(transactions.date), desc(transactions.createdAt))
+      .limit(ENTRY_LIST_LIMIT);
+    if (headers.length === 0) return [];
+    const lines = await db
+      .select({ transactionId: transactionLines.transactionId, ...lineColumns })
+      .from(transactionLines)
+      .where(inArray(transactionLines.transactionId, headers.map((header) => header.id)))
+      .limit(ENTRY_LIST_LIMIT * ENTRY_LINE_LIMIT);
+    return headers.flatMap((header) =>
+      header.status === 'draft' || header.status === 'confirmed'
+        ? [{ ...header, status: header.status, source: 'manual' as const, lines: toPostedLines(lines.filter((line) => line.transactionId === header.id)) }]
+        : [],
+    );
   },
 };

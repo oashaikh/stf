@@ -63,13 +63,14 @@
   - Risk: New authenticated route reading a user's financial and credential-adjacent data; opus per the auth/permission rule.
   - Commit: `f6c550922ef7`
 
-- [ ] **Task 4: Add previewVatReturn client call in vatApi.ts** (after 3)
+- [x] **Task 4: Add previewVatReturn client call in vatApi.ts** (after 3)
   - Intent: Add a typed previewVatReturn(token, period, fetchFn) and VatPreview type in src/lib/hmrc/vatApi.ts that POSTs to /api/vat/preview with browserFraudHeaders as submitVatReturn does, and throws SubmitVatError-style errors with the server code. Add unit tests beside the existing vatApi tests. STF-20 also edits vatApi.ts, so keep the addition as one appended block to avoid conflicts.
   - Files: `src/lib/hmrc/vatApi.ts`, `src/lib/hmrc/vatApi.test.ts`
   - Acceptance criteria the planner set:
     - Test: success returns the data object; error body throws with the server code
     - Request carries the Bearer token and no body field other than the period
     - npm test, typecheck and lint pass
+  - Commit: `928bb450255e`
 
 - [ ] **Task 5: VAT page: Preview button, readable preview panel and preview in the submit dialog, with screenshots** (after 4)
   - Intent: First merge the latest dev/main into the branch (STF-20 is editing VatPage.tsx and vatApi.ts) and resolve conflicts. Add a new component src/pages/VatPreviewPanel.tsx that renders a VatPreview as: endpoint line (sandbox/live, masked VRN), rows of box number, label (reuse boxLabel from vatReviewState) and amount, and header name/value rows, with the raw JSON in a native <details> block. Amounts in the rows are the pounds values from the body, shown with one fixed 2-decimal format, right-aligned in tabular figures; do not do float math, display what the server sent. In VatPage.tsx add a 'Preview what will be sent' button beside Submit (shown only when the return is confirmed and not stale/submitted, min 44px tap target, same shared button styles) that fetches via useMutation and shows the panel with shared loading/error components; the submit confirmation dialog fetches and shows the same panel when it opens. Use existing Tailwind tokens, no raw hex or px font sizes; long header values truncate with a title tooltip; layout must not scroll sideways at 1440 and must stack at 390. Tests in VatPage.test.tsx (backend client mocked): button absent before confirm, present after; clicking shows rows and raw JSON; dialog shows preview; Submit still works; a nil return renders. Capture screenshots at 1440 and 390 px (light; dark if the shell ships it) with invented data only and attach per for the PR.

@@ -1,4 +1,4 @@
-import type { AccountInsert } from '../../server/src/db/schema';
+import type { AccountInsert } from '../../server/src/db/schema.js';
 
 export type DefaultAccount = Required<Pick<AccountInsert, 'code' | 'name' | 'accountType' | 'taxCategory' | 'isSystem'>>;
 

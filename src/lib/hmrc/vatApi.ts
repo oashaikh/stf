@@ -44,7 +44,7 @@ function utcOffset(): string {
 }
 
 // The server forwards these to HMRC as the Gov-Client-* fraud prevention headers.
-function browserFraudHeaders(): Record<string, string> {
+export function browserFraudHeaders(): Record<string, string> {
   return {
     'x-stf-device-id': deviceId(),
     'x-stf-timezone': utcOffset(),

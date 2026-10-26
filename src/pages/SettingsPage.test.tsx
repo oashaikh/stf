@@ -198,3 +198,70 @@ describe('VAT registration number', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('live VAT submission is pending');
   });
 });
+
+describe('Check HMRC fraud headers', () => {
+  let checkResponse: Response;
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string) => {
+        if (path === '/api/vat/fraud-headers-check') return checkResponse;
+        if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: false, envLive: false });
+        if (path === '/api/settings/vat-number') return jsonResponse({ ok: true, masked: null });
+        return jsonResponse({ ok: true, connected: true });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  const renderAndRun = async () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <SettingsPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Check HMRC fraud headers' }));
+  };
+
+  it('lists each error and warning with its header name and message', async () => {
+    checkResponse = jsonResponse({
+      ok: true,
+      data: {
+        outcome: 'fail',
+        code: 'INVALID_HEADERS',
+        message: 'Some headers are invalid',
+        errors: [{ headers: ['gov-client-device-id'], message: 'Invalid value' }],
+        warnings: [{ headers: ['gov-client-multi-factor'], message: 'Header should be sent' }],
+      },
+    });
+    await renderAndRun();
+    expect(await screen.findByText('gov-client-device-id')).toBeInTheDocument();
+    expect(screen.getByText('Invalid value')).toBeInTheDocument();
+    expect(screen.getByText('gov-client-multi-factor')).toBeInTheDocument();
+    expect(screen.getByText('Header should be sent')).toBeInTheDocument();
+    expect(screen.getByText(/Error/)).toBeInTheDocument();
+    expect(screen.getByText(/Warning/)).toBeInTheDocument();
+  });
+
+  it('shows a clear pass', async () => {
+    checkResponse = jsonResponse({
+      ok: true,
+      data: { outcome: 'pass', code: 'VALID_HEADERS', message: 'Headers valid', errors: [], warnings: [] },
+    });
+    await renderAndRun();
+    expect(await screen.findByText(/HMRC accepted every fraud prevention header/)).toBeInTheDocument();
+  });
+
+  it('shows an error when the request fails', async () => {
+    checkResponse = jsonResponse({ ok: false }, false);
+    await renderAndRun();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not run the check');
+  });
+});

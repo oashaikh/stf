@@ -8,10 +8,12 @@ import {
   fetchHmrcConnectUrl,
   fetchHmrcMode,
   fetchVatNumberMask,
+  runFraudHeadersCheck,
   isEffectivelyLive,
   saveHmrcLiveOptIn,
   saveVatNumber,
   VatNumberRefusedError,
+  type FraudCheckOutcome,
   type HmrcModeState,
 } from '../lib/hmrc/settingsApi';
 
@@ -34,6 +36,9 @@ export default function SettingsPage() {
   const [editingVat, setEditingVat] = useState(false);
   const [vatInput, setVatInput] = useState('');
   const [vatError, setVatError] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [checkResult, setCheckResult] = useState<FraudCheckOutcome | null>(null);
+  const [checkFailed, setCheckFailed] = useState(false);
 
   useEffect(() => {
     fetchVatNumberMask().then(
@@ -103,6 +108,19 @@ export default function SettingsPage() {
       setConfirmText('');
     } catch {
       setModeFailed(true);
+    }
+  }
+
+  async function checkFraudHeaders() {
+    setChecking(true);
+    setCheckFailed(false);
+    setCheckResult(null);
+    try {
+      setCheckResult(await runFraudHeadersCheck());
+    } catch {
+      setCheckFailed(true);
+    } finally {
+      setChecking(false);
     }
   }
 
@@ -253,6 +271,46 @@ export default function SettingsPage() {
           </>
         )}
         {modeFailed && <p className="mt-2 text-red-800" role="alert">Could not change the setting. Please try again.</p>}
+      </section>
+      <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="fraud-heading">
+        <h2 id="fraud-heading" className="text-lg font-semibold text-gray-900">HMRC fraud prevention headers</h2>
+        <p className="mt-2 text-gray-700">
+          Sends the headers a real submission sends to HMRC's sandbox validator and shows what it reports.
+        </p>
+        <button
+          type="button"
+          onClick={() => void checkFraudHeaders()}
+          disabled={checking}
+          className="mt-4 min-h-[44px] min-w-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-50"
+        >
+          Check HMRC fraud headers
+        </button>
+        {checking && <p className="mt-2 text-gray-500" role="status">Checking…</p>}
+        {checkFailed && <p className="mt-2 text-red-800" role="alert">Could not run the check. Please try again.</p>}
+        {checkResult && (
+          <div className="mt-4" role="status">
+            {checkResult.outcome === 'pass' && (
+              <p className="text-green-800">
+                <span aria-hidden="true">✓ </span>
+                Pass: HMRC accepted every fraud prevention header.
+              </p>
+            )}
+            {checkResult.errors.length + checkResult.warnings.length > 0 && (
+              <ul className="space-y-2">
+                {[
+                  ...checkResult.errors.map((finding) => ({ finding, label: 'Error', icon: '!', tone: 'text-red-800' })),
+                  ...checkResult.warnings.map((finding) => ({ finding, label: 'Warning', icon: '▲', tone: 'text-gray-900' })),
+                ].map(({ finding, label, icon, tone }, index) => (
+                  <li key={index} className={`break-words ${tone}`}>
+                    <span aria-hidden="true">{icon} </span>
+                    <strong>{label}</strong>: <code>{finding.headers.join(', ')}</code>
+                    <p>{finding.message}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </section>
       <section className="mt-6 max-w-xl" aria-labelledby="legal-heading">
         <h2 id="legal-heading" className="text-lg font-semibold text-gray-900">Privacy and terms</h2>

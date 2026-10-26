@@ -68,3 +68,7 @@
 - [x] **Task 4: Fix: address 2 review findings (cycle 1)** (after 3)
   - Intent: Review left 2 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Server history query, status derivation and tenant scoping look correct. The UI has one defect: a 'Submitted' (pending) row is clickable but opens nothing, because the det The agent is fixing them; nothing is needed from you.
   - Commit: `32e3ccb22d83`
+
+- [x] **Task 5: Fix: address 2 review findings (cycle 1)** (after 4)
+  - Intent: Review left 2 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Server history query, status derivation and tenant scoping look correct. The UI has one defect: a 'Submitted' (pending) row is clickable but opens nothing, because the det The agent is fixing them; nothing is needed from you.
+  - Commit: `aa91b68fd438`

@@ -1,5 +1,5 @@
 {
-  "id": "fd440588-0591-4578-baef-fd3132324113",
+  "id": "c32b23a4-ab85-4298-ac67-70896fc8ba5e",
   "prevId": "74ba189f-ceef-4b42-abd4-fdd2a4fc837d",
   "version": "6",
   "dialect": "postgresql",
@@ -671,7 +671,15 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "transaction_lines_transaction_id_idx": {
+          "name": "transaction_lines_transaction_id_idx",
+          "columns": [
+            "transaction_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "transaction_lines_transaction_id_transactions_id_fk": {
           "name": "transaction_lines_transaction_id_transactions_id_fk",

@@ -33,6 +33,13 @@ export const users = pgTable('users', {
   email: text('email').notNull(),
   displayName: text('display_name'),
   businessName: text('business_name'),
+  // Business profile for invoices (STF-73). Payment details are plain text; the audit snapshot masks the account number.
+  businessAddress: text('business_address'),
+  paymentBankName: text('payment_bank_name'),
+  paymentSortCode: text('payment_sort_code'),
+  paymentAccountNumber: text('payment_account_number'),
+  invoicePrefix: text('invoice_prefix').notNull().default('INV-'),
+  nextInvoiceNumber: integer('next_invoice_number').notNull().default(1),
   businessType: businessTypeEnum('business_type').notNull().default('sole_trader'),
   utr: text('utr'),
   vatNumber: text('vat_number'),

@@ -64,6 +64,13 @@
       "when": 1792986650124,
       "tag": "0008_totp_second_factor",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792986651124,
+      "tag": "0009_business_profile",
+      "breakpoints": true
     }
   ]
 }

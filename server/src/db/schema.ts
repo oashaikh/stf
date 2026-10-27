@@ -1,4 +1,4 @@
-import { index, boolean, check, date, inet, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { index, boolean, check, date, inet, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const businessTypeEnum = pgEnum('business_type', ['sole_trader', 'partnership', 'limited_company']);
@@ -447,6 +447,23 @@ export const recurringEntryRuns = pgTable(
   },
   (table) => ({
     templateRunDateUnique: unique('recurring_entry_runs_template_run_date_unique').on(table.templateId, table.runDate),
+  }),
+);
+
+// Last successful HMRC Income Tax obligations per user and tax year, served when HMRC is down.
+// Dates only, no NINO. Replaced on every fetch; removed with the user.
+export const itsObligationsCache = pgTable(
+  'its_obligations_cache',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    taxYear: text('tax_year').notNull(),
+    payload: jsonb('payload').notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.taxYear] }),
   }),
 );
 

@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { journeyTotpCode, writeIsAllowed } from './writeGuard';
-import { mockApi, mockMfaCode, mockVatStates, type MockVatState } from './mockApi';
+import { mockApi, mockItsObligations, mockMfaCode, mockVatStates, type MockVatState } from './mockApi';
 
 const mocked = process.env.JOURNEY_MOCK === '1';
 const ownerPassword = mocked ? 'mock-owner-password' : process.env.JOURNEY_OWNER_PASSWORD;
@@ -230,6 +230,38 @@ test('owner opens an invoice and sees the Download PDF button', async ({ page })
     await page.screenshot({ path: path.join(evidenceDir, `invoice-view-${width}-light.png`), fullPage: true });
     await hideFixedBars.evaluate((node) => node.remove());
   }
+});
+
+// Mock mode only: the Income Tax obligations section on the Tax page, fresh and then HMRC-down, as review evidence for STF-84.
+test('owner sees Income Tax obligations with the next due one marked, and last known dates when HMRC is down', async ({ page }) => {
+  test.skip(!mocked, 'Uses the mocked obligations API (JOURNEY_MOCK=1)');
+  const evidenceDir = path.join('browser-evidence', 'STF-84');
+  mkdirSync(evidenceDir, { recursive: true });
+  await mockApi(page, ownerPassword!);
+  await page.goto('/');
+  await page.getByLabel('Password').fill(ownerPassword!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+
+  await page.goto('/tax');
+  await expect(page.getByRole('heading', { name: 'Income Tax obligations' })).toBeVisible();
+  await expect(page.getByText('Next due')).toHaveCount(1);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const hideFixedBars = await page.addStyleTag({ content: '.sticky, .fixed { display: none !important; }' });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: path.join(evidenceDir, `tax-obligations-${width}-light.png`), fullPage: true });
+    await hideFixedBars.evaluate((node) => node.remove());
+  }
+
+  // A later route wins, so this swaps in HMRC's failure answer for the same URL.
+  await page.route('**/api/hmrc/its-obligations', (route) =>
+    route.fulfill({
+      json: { ok: true, stale: true, fetchedAt: '2026-10-20T09:00:00.000Z', error: 'HMRC could not be reached just now.', obligations: mockItsObligations },
+    }),
+  );
+  await page.reload();
+  await expect(page.getByRole('alert').filter({ hasText: 'Showing last known dates' })).toBeVisible();
 });
 
 const boxRow = (page: Page, box: number) => page.getByRole('row').filter({ has: page.getByRole('cell', { name: String(box), exact: true }) });

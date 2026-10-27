@@ -1,6 +1,6 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
-import { users } from '../../server/src/db/schema.js';
+import { itsObligationsCache, users } from '../../server/src/db/schema.js';
 import { decryptToken, encryptToken } from '../../server/src/lib/hmrcCrypto.js';
 import { db } from './db.js';
 
@@ -26,6 +26,12 @@ export function lacksItsScope(scope: string | null): boolean {
   return !(granted.includes('read:self-assessment') && granted.includes('write:self-assessment'));
 }
 
+export interface ItsObligationsCacheEntry {
+  taxYear: string;
+  payload: unknown;
+  fetchedAt: Date;
+}
+
 export interface HmrcStore {
   /** Undefined when the user row does not exist. */
   sandboxMode(userId: string): Promise<boolean | undefined>;
@@ -38,6 +44,10 @@ export interface HmrcStore {
   ): Promise<void>;
   setItsBusinessId(userId: string, businessId: string): Promise<void>;
   itsBusinessId(userId: string): Promise<string | null>;
+  /** Replaces the caller's last known obligations for that tax year; kept until the next fetch or the user is deleted. */
+  saveItsObligations(userId: string, taxYear: string, payload: unknown, fetchedAt: Date): Promise<void>;
+  /** The caller's cached rows for the given tax years (at most two are ever asked for). */
+  lastItsObligations(userId: string, taxYears: string[]): Promise<ItsObligationsCacheEntry[]>;
   /** Decrypted tokens for route-internal use only; undefined when the user is not connected. */
   credentials(userId: string): Promise<HmrcCredentials | undefined>;
   /** Writes only if the stored refresh token still equals `storedRefreshToken`; returns whether it wrote. */
@@ -87,6 +97,22 @@ export const databaseHmrcStore: HmrcStore = {
   async itsBusinessId(userId) {
     const [row] = await db.select({ id: users.hmrcItsBusinessId }).from(users).where(eq(users.id, userId)).limit(1);
     return row?.id ?? null;
+  },
+
+  // Primary key (user_id, tax_year) backs both queries; the read is capped at the two tax years shown.
+  async saveItsObligations(userId, taxYear, payload, fetchedAt) {
+    await db
+      .insert(itsObligationsCache)
+      .values({ userId, taxYear, payload, fetchedAt })
+      .onConflictDoUpdate({ target: [itsObligationsCache.userId, itsObligationsCache.taxYear], set: { payload, fetchedAt } });
+  },
+
+  async lastItsObligations(userId, taxYears) {
+    return db
+      .select({ taxYear: itsObligationsCache.taxYear, payload: itsObligationsCache.payload, fetchedAt: itsObligationsCache.fetchedAt })
+      .from(itsObligationsCache)
+      .where(and(eq(itsObligationsCache.userId, userId), inArray(itsObligationsCache.taxYear, taxYears)))
+      .limit(2);
   },
 
   async credentials(userId) {

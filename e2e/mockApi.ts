@@ -5,6 +5,13 @@ import type { Page, Route } from '@playwright/test';
 const period = { periodKey: '26A1', start: '2026-04-01', end: '2026-06-30' };
 const baseBox4 = 4500;
 const baseBox7 = 22500;
+// Invented Income Tax dates for the Tax page: one fulfilled and one next-due quarterly update, plus the final declaration.
+export const mockItsObligations = [
+  { kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-04-06', periodEnd: '2026-07-05', dueDate: '2026-08-05', status: 'fulfilled', receivedDate: '2026-07-20', overdue: false, nextDue: false },
+  { kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-07-06', periodEnd: '2026-10-05', dueDate: '2026-11-05', status: 'open', receivedDate: null, overdue: false, nextDue: true },
+  { kind: 'finalDeclaration', taxYear: '2025-26', periodStart: '2025-04-06', periodEnd: '2026-04-05', dueDate: '2027-01-31', status: 'open', receivedDate: null, overdue: false, nextDue: false },
+];
+
 const incomeAccount = { id: 'acc-income-1', code: '4000', name: 'Sales', accountType: 'income', taxCategory: 'turnover', isSystem: true };
 
 interface SavedEntry {
@@ -238,6 +245,8 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         });
       case 'GET /api/hmrc/status':
         return json(route, { connected: true, needsItsReconnect: false, itsBusinessId: null });
+      case 'GET /api/hmrc/its-obligations':
+        return json(route, { ok: true, stale: false, obligations: mockItsObligations });
       case 'GET /api/hmrc/mode':
         return json(route, { live: false, envLive: false });
       case 'GET /api/settings/vat-number':

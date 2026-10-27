@@ -83,7 +83,7 @@ Also depends on:
     - Component tests pass; lint, typecheck, test, build pass
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 5: E2E mock, screenshots at 390 and 1440, workflow docs** (after 4)
+- [x] **Task 5: E2E mock, screenshots at 390 and 1440, workflow docs** (after 4)
   - Intent: Add GET /api/hmrc/its-obligations to e2e/mockApi.ts (flag on, one next-due, one fulfilled, plus a stale variant) and a Tax page scenario in the e2e journey; capture screenshots of the changed Tax page at 1440 px and 390 px (light; dark only if the app ships it) into browser-evidence/STF-84/ using invented data. Write docs/workflows/its-obligations.md (flag, double switch, fraud headers, stale behaviour, retention of the stored copy) and add a line to docs/runbooks/hmrc-sandbox-integration.md. e2e/mockApi.ts and e2e/journey.spec.ts are also being edited by STF-79, so keep hunks small and additive. Run lint, typecheck, test and build; skip anything needing Docker.
   - Files: `e2e/mockApi.ts`, `e2e/journey.spec.ts`, `browser-evidence/STF-84/tax-obligations-1440.png`, `browser-evidence/STF-84/tax-obligations-390.png`, `docs/workflows/its-obligations.md`, `docs/runbooks/hmrc-sandbox-integration.md`
   - Acceptance criteria the planner set:
@@ -91,3 +91,4 @@ Also depends on:
     - Mock changes are additive and do not alter existing routes
     - Workflow doc covers flag, live double switch and stale fallback
     - npm run lint, typecheck, test and build all pass
+  - Commit: `ca877d92e574`

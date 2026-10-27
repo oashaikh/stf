@@ -67,7 +67,7 @@ Also depends on:
   - Risk: Schema and migration work; shared schema.ts and journal files are also edited by the STF-9 plan so keep hunks small and re-check the head.
   - Commit: `f059ea86c769`
 
-- [ ] **Task 3: Mileage API route: add, list, void trips scoped to the session owner** (after 1, 2)
+- [x] **Task 3: Mileage API route: add, list, void trips scoped to the session owner** (after 1, 2)
   - Intent: Create api/_lib/mileage.ts with a MileageStore interface (injected so tests use a fake), validation (date YYYY-MM-DD real date, from/to/purpose non-empty trimmed with length caps, miles positive integer with a sane cap, vehicleType in the enum, id must be a uuid), list/add/void functions and a databaseMileageStore using Drizzle. Every query filters on userId from withAuth (never a client value), excludes deleted_at rows, has an explicit LIMIT (list takes a taxYear param parsed with parseTaxYearPeriod from api/_lib/taxYearSummary.ts and a MILEAGE_TRIP_LIMIT), and carries a 'Query audit' comment like api/_lib/taxYearSummary.ts. Void is an UPDATE setting deleted_at scoped by id AND user_id, returning 404 when no row matched so another user's id is refused. Create api/mileage.ts exporting createMileageHandler (GET list for ?taxYear=, POST add, PATCH or DELETE-method void with body id) and default { fetch }, in the same shape as api/accounts.ts. The GET response also returns the year's claim computed with calculateMileageClaim so the client does no tax maths. Tests in api/_lib/__tests__/mileageRoute.test.ts: unauthenticated refused, validation failures, owner id comes from the session and a client-supplied userId in the body is ignored, second user voiding the first user's trip id gets 404 and the trip stays, voided trips drop out of list and claim, list is bounded.
   - Files: `api/_lib/mileage.ts`, `api/mileage.ts`, `api/_lib/__tests__/mileageRoute.test.ts`
   - Acceptance criteria the planner set:
@@ -77,6 +77,7 @@ Also depends on:
     - apiRoutes.test.ts still passes for the new route file (default fetch export, .js import extensions)
     - npm run lint, typecheck and test pass
   - Risk: Per-owner data access and authorisation on a record id; needs tenant-isolation tests.
+  - Commit: `f98b91666511`
 
 - [ ] **Task 4: Feed the year's mileage claim into the tax year summary as travel** (after 3)
   - Intent: Change buildTaxYearSummary in src/lib/taxYearSummary.ts to take the mileage claim pence (default 0 not needed; make it an explicit argument and update callers) and add it to the 'travel' expense category total, so allowableExpensesPence and netProfitPence include it; if no travel category exists yet create the row. Update getTaxYearSummary and the TaxYearSummaryStore in api/_lib/taxYearSummary.ts to also load the owner's non-deleted trips for the period (one bounded, user-scoped query, reuse the loader from api/_lib/mileage.ts rather than writing a second one) and compute the claim with calculateMileageClaim for the tax year of the period. Update taxYearSummary.test.ts and taxYearSummaryRoute.test.ts (fake store gains the trips loader): claim adds to travel alongside ledger travel spend, zero trips changes nothing, voided trips excluded, net profit drops by the claim.

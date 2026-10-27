@@ -41,6 +41,8 @@ When the owner has connected HMRC and sees the
 "Income Tax needs a one-time reconnect" notice in Settings, they reconnect and choose
 a self-employment business from the list returned by the API.
 
+Income Tax obligations on the Tax page also need `HMRC_ITSA_ENABLED=true`; see `docs/workflows/its-obligations.md`.
+
 ## Troubleshooting
 
 - `invalid_grant` on refresh: the sandbox refresh token expired or was revoked. Repeat step 3 in Setting up the credentials and update the secret.

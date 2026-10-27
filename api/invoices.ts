@@ -6,6 +6,7 @@ import {
   draftInvoiceSchema,
   invoiceListQuerySchema,
   listInvoices,
+  markPaidSchema,
   voidInvoiceSchema,
   type InvoiceStore,
 } from './_lib/invoices.js';
@@ -29,6 +30,22 @@ export function createInvoicesHandler(store: InvoiceStore = databaseInvoiceStore
     const url = new URL(request.url);
     const invoiceId = url.searchParams.get('id') ?? '';
     const readBody = () => request.json().catch(() => null);
+
+    if (request.method === 'POST' && invoiceId) {
+      const action = url.searchParams.get('action');
+      if (action !== 'issue' && action !== 'paid') return refuse(400, 'Action must be issue or paid', 'BAD_REQUEST', ['action']);
+      if (!UUID.test(invoiceId)) return refuse(400, 'Invoice id must be a uuid', 'BAD_REQUEST', ['id']);
+      let paymentDate = '';
+      if (action === 'paid') {
+        const parsed = markPaidSchema.safeParse(await readBody());
+        if (!parsed.success) return refuse(400, 'A valid payment date is required', 'BAD_REQUEST', ['paymentDate']);
+        paymentDate = parsed.data.paymentDate;
+      }
+      return run(async () => {
+        const invoice = action === 'issue' ? await store.issue(auth.userId, invoiceId) : await store.markPaid(auth.userId, invoiceId, paymentDate);
+        return invoice ? Response.json({ ok: true, invoice }) : notFound();
+      });
+    }
 
     if (request.method === 'POST') {
       const parsed = draftInvoiceSchema.safeParse(await readBody());

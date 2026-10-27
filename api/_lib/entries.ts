@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
   accounts,
   auditEvents,
+  invoices,
   receipts,
   transactionLines,
   transactions,
@@ -51,6 +52,8 @@ export interface EntryStore {
   get(userId: string, entryId: string): Promise<Entry | undefined>;
   /** True when the date sits in a period with a confirmed VAT return draft or a submitted VAT submission. */
   isDateLocked(userId: string, date: string): Promise<boolean>;
+  /** True when the transaction is an invoice's issue or payment posting, which only the invoice may change. */
+  isInvoicePosting(userId: string, entryId: string): Promise<boolean>;
   /** Voids the old transaction and writes the replacement plus one entry.edit audit event, in one database transaction. Undefined when the entry is not the owner's live entry. */
   replace(userId: string, entryId: string, header: EntryHeader, lines: PostedLine[]): Promise<Entry | undefined>;
   /** Soft-deletes the entry (status voided, deleted_at set) and writes entry.void. False when not found. */
@@ -209,6 +212,7 @@ export async function createEntry(store: EntryStore, userId: string, input: NewE
 async function loadOpenEntry(store: EntryStore, userId: string, entryId: string): Promise<Entry> {
   const entry = await store.get(userId, entryId);
   if (!entry) throw new EntryRuleError(404, 'NOT_FOUND', 'Entry not found');
+  if (await store.isInvoicePosting(userId, entryId)) throw new EntryRuleError(409, 'INVOICE_POSTING', 'This entry belongs to an invoice. Change the invoice instead');
   await assertDateOpen(store, userId, entry.date);
   return entry;
 }
@@ -270,7 +274,7 @@ export function entryListConditions(userId: string, filters: EntryListFilters, a
 }
 
 // Works on the pool or inside a transaction.
-type Executor = Pick<typeof db, 'select' | 'insert' | 'update'>;
+export type Executor = Pick<typeof db, 'select' | 'insert' | 'update'>;
 
 async function insertEntry(executor: Executor, userId: string, header: EntryHeader, lines: PostedLine[]): Promise<Entry> {
   const [row] = await executor
@@ -307,7 +311,7 @@ async function loadEntry(executor: Executor, userId: string, entryId: string): P
 }
 
 /** Marks the owner's live entry voided and returns its prior state; undefined if there is none. */
-async function voidLiveEntry(executor: Executor, userId: string, entryId: string): Promise<Entry | undefined> {
+export async function voidLiveEntry(executor: Executor, userId: string, entryId: string): Promise<Entry | undefined> {
   const before = await loadEntry(executor, userId, entryId);
   if (!before) return undefined;
   const now = new Date();
@@ -320,7 +324,7 @@ async function voidLiveEntry(executor: Executor, userId: string, entryId: string
 }
 
 // Query audit: transactions are read by primary key and user_id; lines by the transaction_id foreign key
-// with a LIMIT; accounts by the unique (user_id, code) index. The lock check uses the (user_id, period_key) unique
+// with a LIMIT; the invoice-posting check reads invoices by user_id with a LIMIT of 1; accounts by the unique (user_id, code) index. The lock check uses the (user_id, period_key) unique
 // index on drafts and submissions, with a LIMIT of 1. The list is served by transactions_user_date_idx (user_id, date)
 // with lines found by transaction_lines_transaction_id_idx and receipts by their transaction_id; it always has a LIMIT. The category lookup is by primary key and user_id.
 export const databaseEntryStore: EntryStore = {
@@ -422,6 +426,15 @@ export const databaseEntryStore: EntryStore = {
       )
       .limit(1);
     return Boolean(locked);
+  },
+
+  async isInvoicePosting(userId, entryId) {
+    const [linked] = await db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(and(eq(invoices.userId, userId), or(eq(invoices.transactionId, entryId), eq(invoices.paymentTransactionId, entryId))))
+      .limit(1);
+    return Boolean(linked);
   },
 
   async replace(userId, entryId, header, lines) {

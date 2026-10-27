@@ -43,7 +43,10 @@ export const users = pgTable('users', {
   invoicePrefix: text('invoice_prefix').notNull().default('INV-'),
   nextInvoiceNumber: integer('next_invoice_number').notNull().default(1),
   businessType: businessTypeEnum('business_type').notNull().default('sole_trader'),
+  // utr is the pre-encryption plain column, emptied lazily into utr_encrypted (STF-82). NINO and UTR are encryptToken output.
   utr: text('utr'),
+  utrEncrypted: text('utr_encrypted'),
+  ninoEncrypted: text('nino_encrypted'),
   vatNumber: text('vat_number'),
   vatScheme: vatSchemeEnum('vat_scheme'),
   flatRatePercent: integer('flat_rate_percent'),
@@ -195,6 +198,8 @@ export const invoices = pgTable(
     totalPence: integer('total_pence').notNull(),
     notes: text('notes'),
     transactionId: uuid('transaction_id').references(() => transactions.id),
+    // Posting that moved the gross from debtors to bank when the invoice was marked paid (STF-77).
+    paymentTransactionId: uuid('payment_transaction_id').references(() => transactions.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),

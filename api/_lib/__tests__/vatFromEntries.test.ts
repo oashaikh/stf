@@ -64,6 +64,9 @@ describe('VAT return from real entries', () => {
       const inPeriod = date >= period.start && date <= period.end;
       return inPeriod && (filed || (confirmedLocksPeriod && draft?.status === 'confirmed'));
     },
+    async isInvoicePosting() {
+      return false;
+    },
     async replace(userId, entryId, header, lines) {
       const old = live().find((entry) => entry.userId === userId && entry.id === entryId);
       if (!old) return undefined;

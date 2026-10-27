@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import ChartOfAccountsSection from './ChartOfAccountsSection';
 import AuthenticatorSection from './AuthenticatorSection';
+import BusinessProfileSection from './BusinessProfileSection';
 import { LegalLinks } from './LegalPages';
 import {
   describeHmrcStatus,
@@ -314,6 +315,7 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
+      <BusinessProfileSection />
       <AuthenticatorSection />
       <ChartOfAccountsSection />
       <section className="mt-6 max-w-xl" aria-labelledby="legal-heading">

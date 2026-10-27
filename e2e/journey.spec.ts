@@ -169,8 +169,11 @@ async function captureEvidence(page: Page, name: string) {
   const original = page.viewportSize()!;
   for (const width of evidenceWidths) {
     await page.setViewportSize({ width, height: 900 });
-    // Fixed chrome would be drawn mid-page in a full-page capture and hide content.
-    const hideChrome = await page.addStyleTag({ content: 'header, nav { position: static !important; }' });
+    // Fixed chrome would be drawn mid-page in a full-page capture and hide content. Static alone would put the phone
+    // bottom bar inside the header row and widen the page past the viewport, so the header wraps and the bar takes its own row.
+    const hideChrome = await page.addStyleTag({
+      content: 'header, nav { position: static !important; } header { flex-wrap: wrap; } nav[aria-label="Main"] { width: 100%; }',
+    });
     await page.screenshot({ path: path.join(evidenceDir, `${width}-light-${name}.png`), fullPage: true });
     await hideChrome.evaluate((node) => node.remove());
   }

@@ -174,6 +174,20 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         return json(route, { ok: true, data: previewBody(entries) });
       case 'GET /api/accounts':
         return json(route, { accounts: [incomeAccount] });
+      case 'GET /api/profit-and-loss': {
+        const params = new URL(request.url()).searchParams;
+        return json(route, {
+          data: {
+            start: params.get('start'),
+            end: params.get('end'),
+            income: [{ accountId: incomeAccount.id, accountName: incomeAccount.name, totalPence: 50000 }],
+            expenses: [{ accountId: 'acc-expense', accountName: 'Office costs', totalPence: 12000 }],
+            incomePence: 50000,
+            expensesPence: 12000,
+            profitPence: 38000,
+          },
+        });
+      }
       case 'GET /api/entries-export': {
         const params = new URL(route.request().url()).searchParams;
         const days = (Date.parse(params.get('to') ?? '') - Date.parse(params.get('from') ?? '')) / 86_400_000 + 1;

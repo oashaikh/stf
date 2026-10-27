@@ -11,9 +11,9 @@
  *
  * Verified against the income tax page: personalAllowance, allowanceTaperLimit,
  * basicRateLimit, higherRateLimit and the three rates, for all three years.
- * NOT verified: the Class 2 and Class 4 fields of 2024-25 and 2025-26 (carried
- * over unchanged). Class 2 values there look wrong against HMRC (weekly rate
- * and small profits threshold) and need checking before NIC output is trusted.
+ * Class 2 small profits threshold and weekly rate are from HMRC's published
+ * rates (2024-25 £6,725 / £3.45, 2025-26 £6,845 / £3.50, 2026-27 £7,105 / £3.65).
+ * Class 4 limits and rates are unchanged across these years.
  *
  * Scottish bands differ and are not covered. The owner has not said whether they
  * are a Scottish taxpayer; until they do, this assumes rest-of-UK. Adding them
@@ -64,8 +64,8 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     basicRate: 20,
     higherRate: 40,
     additionalRate: 45,
-    class2WeeklyFlat: 345,          // £3.45/week
-    class2SmallProfitsThreshold: 1257000, // £12,570
+    class2WeeklyFlat: 350,          // £3.50/week
+    class2SmallProfitsThreshold: 684500, // £6,845
     class4LowerLimit: 1257000,      // £12,570
     class4UpperLimit: 5027000,      // £50,270
     class4LowerRate: 6,
@@ -80,8 +80,8 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     basicRate: 20,
     higherRate: 40,
     additionalRate: 45,
-    class2WeeklyFlat: 345,
-    class2SmallProfitsThreshold: 1257000,
+    class2WeeklyFlat: 345,          // £3.45/week
+    class2SmallProfitsThreshold: 672500, // £6,725
     class4LowerLimit: 1257000,
     class4UpperLimit: 5027000,
     class4LowerRate: 6,
@@ -143,6 +143,31 @@ export function calculateIncomeTax(adjustedNetIncomePence: number, taxYear: stri
   return { personalAllowancePence, taxableIncomePence, incomeTaxPence };
 }
 
+/**
+ * Class 4 NIC: lower rate between the lower and upper profits limits, upper rate
+ * above. Each band is rounded to the nearest penny (half up).
+ */
+export function calculateClass4Nic(profitPence: number, taxYear: string): number {
+  const bands = getTaxBands(taxYear);
+  const lowerBandPence = Math.max(0, Math.min(profitPence, bands.class4UpperLimit) - bands.class4LowerLimit);
+  const upperBandPence = Math.max(0, profitPence - bands.class4UpperLimit);
+  return (
+    Math.round((lowerBandPence * bands.class4LowerRate) / 100) +
+    Math.round((upperBandPence * bands.class4UpperRate) / 100)
+  );
+}
+
+/**
+ * Class 2 NIC since 6 April 2024: nothing is due above the small profits
+ * threshold (the year counts as paid). At or below it, the weekly rate for 52
+ * weeks is due only if the owner has chosen to pay voluntarily.
+ */
+export function calculateClass2Nic(profitPence: number, taxYear: string, voluntary: boolean): number {
+  const bands = getTaxBands(taxYear);
+  if (profitPence > bands.class2SmallProfitsThreshold) return 0;
+  return voluntary ? bands.class2WeeklyFlat * 52 : 0;
+}
+
 export interface TaxEstimate {
   profitPence: number;
   taxableIncomePence: number;
@@ -159,23 +184,11 @@ export interface TaxEstimate {
  * All inputs and outputs are integer pence.
  * This is an ESTIMATE only — not a formal tax calculation.
  */
-export function estimateTax(profitPence: number, taxYear: string): TaxEstimate {
-  const bands = getTaxBands(taxYear);
-
+export function estimateTax(profitPence: number, taxYear: string, voluntaryClass2 = false): TaxEstimate {
   const { taxableIncomePence, incomeTaxPence } = calculateIncomeTax(profitPence, taxYear);
 
-  // Class 2 NIC (flat weekly amount if profit > small profits threshold)
-  const class2NicPence =
-    profitPence > bands.class2SmallProfitsThreshold
-      ? bands.class2WeeklyFlat * 52
-      : 0;
-
-  // Class 4 NIC
-  const class4LowerBandPence = Math.max(0, Math.min(profitPence, bands.class4UpperLimit) - bands.class4LowerLimit);
-  const class4UpperBandPence = Math.max(0, profitPence - bands.class4UpperLimit);
-  const class4NicPence =
-    Math.round((class4LowerBandPence * bands.class4LowerRate) / 100) +
-    Math.round((class4UpperBandPence * bands.class4UpperRate) / 100);
+  const class2NicPence = calculateClass2Nic(profitPence, taxYear, voluntaryClass2);
+  const class4NicPence = calculateClass4Nic(profitPence, taxYear);
 
   const totalTaxPence = incomeTaxPence + class2NicPence + class4NicPence;
   const effectiveRatePercent =

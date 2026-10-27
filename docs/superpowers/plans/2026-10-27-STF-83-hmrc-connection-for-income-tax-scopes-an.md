@@ -65,7 +65,7 @@ Also depends on:
   - Risk: Schema, migration and token-store work; opus high. Migration number may collide with STF-48's migration, so re-check the journal.
   - Commit: `627d9071069b`
 
-- [ ] **Task 3: API route to list self-employment businesses and save the chosen business id** (after 2)
+- [x] **Task 3: API route to list self-employment businesses and save the chosen business id** (after 2)
   - Intent: Add api/hmrc/its-businesses.ts behind withAuth. GET decrypts the owner's NINO (via databaseTaxIdentifiersStore.get plus decryptToken) and calls listItsSelfEmploymentBusinesses through callHmrcAsUser, so fraud headers are on every call and tokens are refreshed and saved. Filter to typeOfBusiness 'self-employment'. If exactly one business comes back, store its id automatically. Return the id and trading name for each business and never the NINO. Return a clear 409 NO_NINO if no NINO is stored, and a clear error for a missing connection or missing scope. POST {businessId} validates the id with zod against the freshly fetched list () before storing it with setItsBusinessId, so a client cannot store an arbitrary id. Apply the same sandbox/live gate that connect.ts and the existing HMRC routes use (user opt-in must equal env). Logs carry only the HMRC code and status, never the NINO, tokens or URL: callHmrcAsUser already does this, and the NINO is in the path, so check that no log line prints the URL. No transaction is held open across the HMRC call (). Register the route in api/_lib/__tests__/apiRoutes.test.ts and any route list. Tests use a fake HMRC fetch and a fake store: single business auto-selected, multiple businesses need a pick, a rejected unknown id, unauthenticated refusal, 401 refresh path, and a check that the NINO never appears in console output or the response.
   - Files: `api/hmrc/its-businesses.ts`, `api/_lib/itsBusinesses.ts`, `api/_lib/__tests__/itsBusinessesRoute.test.ts`, `api/_lib/__tests__/apiRoutes.test.ts`
   - Acceptance criteria the planner set:
@@ -76,6 +76,7 @@ Also depends on:
     - Unauthenticated requests are refused
     - npm run lint, typecheck and test pass
   - Risk: Handles NINO decryption, tokens and sandbox/live gating; opus high.
+  - Commit: `fe7be4ae43f8`
 
 - [ ] **Task 4: Settings: one-time reconnect notice and business picker** (after 3)
   - Intent: In src/lib/hmrc/settingsApi.ts add client functions for the status fields and the its-businesses GET/POST. In src/pages/SettingsPage.tsx, inside the existing HMRC section, show a notice when connected and needsItsReconnect: 'Income Tax needs a one-time reconnect to HMRC', next to the existing Reconnect button. When connected with the right scopes and no business id stored, load the businesses. Auto-selection is handled server-side. If there is more than one, show a labelled select with a Save button. Otherwise show the chosen business name or id. Use the shared loading/error components and existing Tailwind patterns in this file (). Never render the NINO. Tests: SettingsPage.test.tsx cases with the fetch client mocked (); update e2e/mockApi.ts with the new route and status fields so e2e still passes. Capture screenshots at 1440 and 390 px for the PR () with invented data only.

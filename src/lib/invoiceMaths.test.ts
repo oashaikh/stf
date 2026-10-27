@@ -6,6 +6,7 @@ import {
   isInvoiceVatRate,
   lineNet,
   lineTotals,
+  vatSummaryByRate,
 } from './invoiceMaths.js';
 
 describe('lineNet', () => {
@@ -88,5 +89,25 @@ describe('isInvoiceVatRate', () => {
     for (const bad of [1, 17.5, -5, 100, '20', null, undefined, NaN]) {
       expect(isInvoiceVatRate(bad)).toBe(false);
     }
+  });
+});
+
+describe('vatSummaryByRate', () => {
+  it('sums stored net and VAT per rate, sorted by rate', () => {
+    const lines = [
+      { vatRatePercent: 20, subtotalPence: 1000, vatPence: 200 },
+      { vatRatePercent: 0, subtotalPence: 500, vatPence: 0 },
+      { vatRatePercent: 5, subtotalPence: 2000, vatPence: 100 },
+      { vatRatePercent: 20, subtotalPence: 333, vatPence: 67 },
+    ];
+    expect(vatSummaryByRate(lines)).toEqual([
+      { vatRatePercent: 0, netPence: 500, vatPence: 0 },
+      { vatRatePercent: 5, netPence: 2000, vatPence: 100 },
+      { vatRatePercent: 20, netPence: 1333, vatPence: 267 },
+    ]);
+  });
+
+  it('returns nothing for no lines', () => {
+    expect(vatSummaryByRate([])).toEqual([]);
   });
 });

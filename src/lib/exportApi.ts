@@ -1,13 +1,17 @@
-export async function downloadEntriesCsv(from: string, to: string): Promise<void> {
-  const response = await fetch(`/api/entries-export?from=${from}&to=${to}`, { credentials: 'same-origin' });
+export async function downloadFile(url: string, filename: string, fallbackError: string): Promise<void> {
+  const response = await fetch(url, { credentials: 'same-origin' });
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new Error(typeof body?.error === 'string' ? body.error : 'Could not export entries');
+    throw new Error(typeof body?.error === 'string' ? body.error : fallbackError);
   }
-  const url = URL.createObjectURL(await response.blob());
+  const objectUrl = URL.createObjectURL(await response.blob());
   const link = document.createElement('a');
-  link.href = url;
-  link.download = `entries-${from}-to-${to}.csv`;
+  link.href = objectUrl;
+  link.download = filename;
   link.click();
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(objectUrl);
+}
+
+export function downloadEntriesCsv(from: string, to: string): Promise<void> {
+  return downloadFile(`/api/entries-export?from=${from}&to=${to}`, `entries-${from}-to-${to}.csv`, 'Could not export entries');
 }

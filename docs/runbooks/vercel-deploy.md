@@ -83,6 +83,23 @@ Two scheduled jobs run as Vercel Cron jobs (scheduled serverless functions). Ver
 
 **Cron frequency note**: Vercel's free Hobby plan allows only once-daily crons. The 5-minute token-refresh schedule requires a Pro plan. If you are on Hobby, either upgrade to Pro or adjust the cron schedule in `vercel.json`.
 
+## Invoice PDF function (`/api/invoice-pdf`)
+
+Measured locally on Node 20 on 27 Oct 2026. Nothing here was measured on Vercel: nobody has deployed this route, so the real cold start, the real function size and the 250 MB unzipped limit are still to be confirmed on the first deploy.
+
+| Measure | Result |
+| --- | --- |
+| Handler source, esbuild with packages external | 67 KB |
+| `@react-pdf/renderer` plus `react`, all transitive dependencies on disk | about 35 MB across 81 packages |
+| Largest of those | hyphen 8.8 MB, fontkit 5.4 MB, pdfkit 3.0 MB, renderer 2.2 MB, yoga-layout 1.4 MB |
+| Cold start, fresh `node` process: import, render one two-line fixture invoice (3 KB PDF), exit | min 485 ms, median about 515 ms, max 676 ms over 8 runs (a bare `node -e 0` takes about 25 ms) |
+
+The traced function is therefore around 35 MB, well under the 250 MB unzipped limit. Render time is under a second, so `maxDuration` is 15 seconds in `vercel.json` (down from 30), which leaves room for the database round trip on a cold Neon connection. No `memory` setting is added: the default is enough for a one-page document, and no peak memory was measured.
+
+Method: `esbuild api/invoice-pdf.ts --bundle --platform=node --format=esm --packages=external` for the handler size; a walk of `dependencies` from `@react-pdf/renderer` and `react` through `node_modules` for the footprint; and a throwaway entry that calls `renderInvoicePdf` on an invented invoice, timed with `date` around eight fresh `node` processes. The scripts were not committed. The timings exclude the database query, authentication and Vercel's own container start, so treat them as a floor.
+
+Do not bundle the dependencies into a single file. With `--bundle` and no externals the output is 4.1 MB, but it fails at render time (`__dirname is not defined` in the yoga-layout loader under ESM). Vercel traces `node_modules` files instead of bundling them, which is the layout measured above. The invoice template uses the built-in Helvetica font, so no font files have to ship with the function.
+
 ## Fraud prevention headers
 
 All HMRC calls require fraud prevention headers that identify the connection method, application, user, and browser. STF uses the `WEB_APP_VIA_SERVER` connection method. The headers are built server-side by `src/lib/hmrc/fraudHeaders.ts::buildFraudHeaders()` using application config, the request object, and browser values sent as `x-stf-*` headers from the SPA.

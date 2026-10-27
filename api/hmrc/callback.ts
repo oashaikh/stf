@@ -31,6 +31,8 @@ export function createCallbackHandler(deps: CallbackDeps = defaultDeps) {
       if (!redirectUri) throw new Error('HMRC_REDIRECT_URI is not set');
       // The HMRC call finishes before the single-statement write, so no transaction is held open across it.
       const tokens = await deps.exchange(code, redirectUri);
+      // Without a scope the stored one is kept, so the reconnect notice may stay; make that visible.
+      if (tokens.scope === undefined) console.warn('HMRC token exchange returned no scope');
       await deps.store.saveTokens(userId, {
         accessToken: encryptToken(tokens.accessToken),
         refreshToken: encryptToken(tokens.refreshToken),

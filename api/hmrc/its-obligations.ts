@@ -52,39 +52,49 @@ export function createItsObligationsHandler(
 
     // No transaction is open here: the HMRC calls finish before any write (COD-4). One callHmrcAsUser
     // wraps all four so a token refresh happens once and the rotated token serves the rest.
-    const hmrcResponse = await callHmrcAsUser(
-      {
-        request,
-        userId: auth.userId,
-        credentials,
-        store,
-        label: 'income tax obligations',
-        call: async (accessToken, fraudHeaders) => {
-          const years: { taxYear: string; quarterly: ItsIncomeAndExpenditureObligations; finalDeclaration: ItsFinalDeclarationObligations }[] = [];
-          for (const taxYear of taxYears) {
-            const period = taxYearPeriod(taxYear)!;
-            years.push({
-              taxYear,
-              quarterly: await getItsIncomeAndExpenditureObligations(nino, itsBusinessId, period.start, period.end, accessToken, fraudHeaders, fetchFn),
-              finalDeclaration: await getItsFinalDeclarationObligations(nino, period.start, period.end, accessToken, fraudHeaders, fetchFn),
-            });
-          }
-          return Response.json(years);
+    // A network failure or an unreadable body falls back to the stored dates, like an HMRC error does.
+    let perYear: { taxYear: string; items: ItsObligation[] }[] | undefined;
+    try {
+      const hmrcResponse = await callHmrcAsUser(
+        {
+          request,
+          userId: auth.userId,
+          credentials,
+          store,
+          label: 'income tax obligations',
+          call: async (accessToken, fraudHeaders) => {
+            const years: { taxYear: string; quarterly: ItsIncomeAndExpenditureObligations; finalDeclaration: ItsFinalDeclarationObligations }[] = [];
+            for (const taxYear of taxYears) {
+              const period = taxYearPeriod(taxYear)!;
+              years.push({
+                taxYear,
+                quarterly: await getItsIncomeAndExpenditureObligations(nino, itsBusinessId, period.start, period.end, accessToken, fraudHeaders, fetchFn),
+                finalDeclaration: await getItsFinalDeclarationObligations(nino, period.start, period.end, accessToken, fraudHeaders, fetchFn),
+              });
+            }
+            return Response.json(years);
+          },
         },
-      },
-      { refresh, now },
-    );
+        { refresh, now },
+      );
+      if (hmrcResponse.ok) {
+        const years = (await hmrcResponse.json()) as { taxYear: string; quarterly: ItsIncomeAndExpenditureObligations; finalDeclaration: ItsFinalDeclarationObligations }[];
+        perYear = years.map(({ taxYear, quarterly, finalDeclaration }) => ({ taxYear, items: normaliseItsObligations(taxYear, quarterly, finalDeclaration) }));
+      }
+    } catch {
+      // The error text can echo tokens or the NINO, so log a fixed message only.
+      console.error('HMRC income tax obligations could not be fetched');
+    }
 
-    if (hmrcResponse.ok) {
-      const years = (await hmrcResponse.json()) as { taxYear: string; quarterly: ItsIncomeAndExpenditureObligations; finalDeclaration: ItsFinalDeclarationObligations }[];
-      const perYear = years.map(({ taxYear, quarterly, finalDeclaration }) => ({ taxYear, items: normaliseItsObligations(taxYear, quarterly, finalDeclaration) }));
+    if (perYear) {
+      const fresh = perYear;
       // A failed save must not hide fresh data from the user; the next fetch writes it again.
       try {
-        await Promise.all(perYear.map(({ taxYear, items }) => store.saveItsObligations(auth.userId, taxYear, items, today)));
+        await Promise.all(fresh.map(({ taxYear, items }) => store.saveItsObligations(auth.userId, taxYear, items, today)));
       } catch {
         console.error('Income tax obligations could not be stored');
       }
-      return Response.json({ ok: true, stale: false, ...markItsObligations(perYear.flatMap(({ items }) => items), todayDate) });
+      return Response.json({ ok: true, stale: false, ...markItsObligations(fresh.flatMap(({ items }) => items), todayDate) });
     }
 
     const cached = await store.lastItsObligations(auth.userId, taxYears);

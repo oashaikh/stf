@@ -199,6 +199,27 @@ describe('GET /api/hmrc/its-obligations', () => {
     }
   });
 
+  it('returns the stored state as stale when the HMRC request itself fails', async () => {
+    cacheByUser.u1 = [{ taxYear: '2026-27', payload: [storedItem], fetchedAt: new Date('2026-10-20T08:00:00Z') }];
+    hmrcFetch = vi.fn(async (..._args: FetchArgs): Promise<Response> => {
+      throw new TypeError(`fetch failed for ${NINO}`);
+    });
+    const response = await handler()(asUser('u1'));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({ ok: true, stale: true });
+    expect(saved).toHaveLength(0);
+    for (const secret of [NINO, ACCESS, REFRESH]) expect(consoleOutput).not.toContain(secret);
+  });
+
+  it('returns the stored state as stale when HMRC sends a body we cannot read', async () => {
+    cacheByUser.u1 = [{ taxYear: '2026-27', payload: [storedItem], fetchedAt: new Date('2026-10-20T08:00:00Z') }];
+    hmrcFetch = vi.fn(async (..._args: FetchArgs) => new Response('{"obligations":"nope"}', { status: 200 }));
+    const body = await (await handler()(asUser('u1'))).json();
+    expect(body).toMatchObject({ ok: true, stale: true });
+    expect(saved).toHaveLength(0);
+  });
+
   it('recomputes overdue from today when serving stored state', async () => {
     cacheByUser.u1 = [{ taxYear: '2026-27', payload: [{ ...storedItem, dueDate: '2026-08-07' }], fetchedAt: new Date('2026-08-01T08:00:00Z') }];
     hmrcFetch = vi.fn(async (..._args: FetchArgs) => new Response('{}', { status: 500 }));

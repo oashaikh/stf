@@ -136,6 +136,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await captureEvidence(page, 'vat-preview');
     }
   });
+  await step('reports', openPage('/reports', 'Reports'));
   await step('settings', openPage('/settings', 'Settings'));
 });
 }

@@ -174,6 +174,8 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         return json(route, { ok: true, data: previewBody(entries) });
       case 'GET /api/accounts':
         return json(route, { accounts: [incomeAccount] });
+      case 'GET /api/entries-export':
+        return route.fulfill({ status: 200, contentType: 'text/csv', body: 'Date,Description,Net,VAT,Gross,Status\n2026-05-01,Invoice 1,100.00,20.00,120.00,Confirmed\n' });
       default:
         return json(route, { ok: false, error: `No mock for ${key}` }, 404);
     }

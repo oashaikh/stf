@@ -157,6 +157,39 @@ describe("schema migrations", () => {
     );
   });
 
+  describe("mileage_trips", () => {
+    const tableBody = () => {
+      const match = sql.match(/CREATE TABLE IF NOT EXISTS "mileage_trips" \(([\s\S]*?)\n\);/);
+      expect(match, "could not find CREATE TABLE statement for mileage_trips").not.toBeNull();
+      return match![1];
+    };
+
+    it("is owned by a user and soft-deletable", () => {
+      const body = tableBody();
+      expect(body).toMatch(/"user_id" uuid NOT NULL/);
+      expect(body).toMatch(/"deleted_at" timestamp with time zone/);
+    });
+
+    it("stores miles as a positive integer", () => {
+      const body = tableBody();
+      expect(body).toMatch(/"miles" integer NOT NULL/);
+      expect(body).toContain('CHECK ("mileage_trips"."miles" > 0)');
+    });
+
+    it("limits the vehicle type to the enum values", () => {
+      expect(sql).toMatch(
+        /CREATE TYPE "public"\."mileage_vehicle_type" AS ENUM\('car_van', 'motorcycle', 'bicycle'\)/,
+      );
+      expect(tableBody()).toMatch(/"vehicle_type" "mileage_vehicle_type" NOT NULL/);
+    });
+
+    it("indexes trips by (user_id, date) for the list and the yearly claim", () => {
+      expect(sql).toMatch(
+        /CREATE INDEX IF NOT EXISTS "mileage_trips_user_date_idx" ON "mileage_trips" \("user_id","date"\)/,
+      );
+    });
+  });
+
   it("keeps the migration journal a single linear chain", () => {
     const journal = JSON.parse(
       readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"),

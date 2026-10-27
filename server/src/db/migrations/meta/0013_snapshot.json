@@ -1,5 +1,5 @@
 {
-  "id": "3bfaad9b-14ff-466e-9871-650f4dd03614",
+  "id": "6b9ef291-b47e-4986-8e14-5628b06058c5",
   "prevId": "b79acb5a-16f3-4747-a261-e2c0ad135ac7",
   "version": "6",
   "dialect": "postgresql",
@@ -359,12 +359,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "payment_transaction_id": {
-          "name": "payment_transaction_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -417,19 +411,6 @@
           "tableTo": "transactions",
           "columnsFrom": [
             "transaction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "invoices_payment_transaction_id_transactions_id_fk": {
-          "name": "invoices_payment_transaction_id_transactions_id_fk",
-          "tableFrom": "invoices",
-          "tableTo": "transactions",
-          "columnsFrom": [
-            "payment_transaction_id"
           ],
           "columnsTo": [
             "id"
@@ -1469,6 +1450,102 @@
           ]
         }
       }
+    },
+    "public.mileage_trips": {
+      "name": "mileage_trips",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from_place": {
+          "name": "from_place",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to_place": {
+          "name": "to_place",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "miles": {
+          "name": "miles",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_type": {
+          "name": "vehicle_type",
+          "type": "mileage_vehicle_type",
+          "primaryKey": false,
+          "notNull": true,
+          "typeSchema": "public"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "mileage_trips_user_date_idx": {
+          "name": "mileage_trips_user_date_idx",
+          "columns": [
+            "user_id",
+            "date"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "mileage_trips_user_id_users_id_fk": {
+          "name": "mileage_trips_user_id_users_id_fk",
+          "tableFrom": "mileage_trips",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     }
   },
   "enums": {
@@ -1591,6 +1668,15 @@
         "pending",
         "submitted",
         "failed"
+      ]
+    },
+    "public.mileage_vehicle_type": {
+      "name": "mileage_vehicle_type",
+      "schema": "public",
+      "values": [
+        "car_van",
+        "motorcycle",
+        "bicycle"
       ]
     }
   },

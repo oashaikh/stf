@@ -15,6 +15,11 @@
  * rates (2024-25 £6,725 / £3.45, 2025-26 £6,845 / £3.50, 2026-27 £7,105 / £3.65).
  * Class 4 limits and rates are unchanged across these years.
  *
+ * Simplified mileage rates (https://www.gov.uk/simplified-expenses-if-youre-self-employed/vehicles):
+ * cars and vans 45p a mile for the first 10,000 business miles in the tax year and 25p after,
+ * motorcycles 24p, bicycles 20p. The rates are the same in 2024-25, 2025-26 and 2026-27.
+ * Distance is held in tenths of a mile, so the 10,000 mile threshold is 100,000.
+ *
  * Scottish bands differ and are not covered. The owner has not said whether they
  * are a Scottish taxpayer; until they do, this assumes rest-of-UK. Adding them
  * means keying a second set of TaxBands by region and year and making
@@ -36,6 +41,11 @@ export interface TaxBands {
   class4UpperLimit: number;      // pence
   class4LowerRate: number;       // percent
   class4UpperRate: number;       // percent
+  mileageCarThresholdTenths: number; // tenths of a mile a year at the higher car/van rate
+  mileageCarFirstRate: number;   // pence per mile up to the threshold
+  mileageCarAfterRate: number;   // pence per mile past the threshold
+  mileageMotorcycleRate: number; // pence per mile, flat
+  mileageBicycleRate: number;    // pence per mile, flat
   tradingAllowancePence: number; // HMRC trading allowance, pence/year
 }
 
@@ -55,6 +65,11 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     class4UpperLimit: 5027000,
     class4LowerRate: 6,
     class4UpperRate: 2,
+    mileageCarThresholdTenths: 100000,
+    mileageCarFirstRate: 45,
+    mileageCarAfterRate: 25,
+    mileageMotorcycleRate: 24,
+    mileageBicycleRate: 20,
     tradingAllowancePence: 100000, // £1,000
   },
   '2025-26': {
@@ -72,6 +87,11 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     class4UpperLimit: 5027000,      // £50,270
     class4LowerRate: 6,
     class4UpperRate: 2,
+    mileageCarThresholdTenths: 100000,
+    mileageCarFirstRate: 45,
+    mileageCarAfterRate: 25,
+    mileageMotorcycleRate: 24,
+    mileageBicycleRate: 20,
     tradingAllowancePence: 100000, // £1,000
   },
   '2024-25': {
@@ -89,6 +109,11 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     class4UpperLimit: 5027000,
     class4LowerRate: 6,
     class4UpperRate: 2,
+    mileageCarThresholdTenths: 100000,
+    mileageCarFirstRate: 45,
+    mileageCarAfterRate: 25,
+    mileageMotorcycleRate: 24,
+    mileageBicycleRate: 20,
     tradingAllowancePence: 100000, // £1,000
   },
 };

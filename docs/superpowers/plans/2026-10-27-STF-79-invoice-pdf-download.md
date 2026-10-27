@@ -119,3 +119,7 @@ Also depends on:
     - lint, typecheck, test, build pass
   - Risk: Default tier.
   - Commit: `fbbaeb6e70d6`
+
+- [x] **Task 7: Fix: address 3 review findings (cycle 1)** (after 6)
+  - Intent: Review left 3 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. The route takes the owner id from the session only, validates the id as a uuid, and returns 404 for another owner's invoice and  The agent is fixing them; nothing is needed from you.
+  - Commit: `62186c1e953b`

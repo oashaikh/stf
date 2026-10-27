@@ -55,7 +55,7 @@ Also depends on:
     - npm run lint, typecheck and test pass
   - Commit: `e72a596e643c`
 
-- [ ] **Task 2: Schema and migration for templates and run ledger**
+- [x] **Task 2: Schema and migration for templates and run ledger**
   - Intent: Add recurring_entry_templates (id, user_id FK, kind income|expense, category_account_id FK accounts, amount_pence integer with CHECK > 0, amount_is gross|net, vat_rate_percent nullable, description, schedule monthly|yearly enum, anchor_day, next_date, paused, created_at, updated_at, deleted_at) and recurring_entry_runs (template_id FK, run_date, transaction_id FK, UNIQUE(template_id, run_date)) so a template can never create the same date twice, even with overlapping cron runs. Indexes: templates (user_id, deleted_at, next_date) for the owner list and (next_date) for the cron scan. Hand-written migration 0015_recurring_entries.sql in the style of 0013 (IF NOT EXISTS, DO blocks), journal idx 15 and 0015 snapshot. STF-77 holds 0014, so do not reuse that prefix; re-check the journal for a single head against main before finishing. Soft delete via deleted_at only. Extend server/src/db/schema.test.ts.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0015_recurring_entries.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0015_snapshot.json`
   - Acceptance criteria the planner set:
@@ -64,6 +64,7 @@ Also depends on:
     - Both tables carry user scoping and the listed indexes
     - npm run typecheck and test pass
   - Risk: Schema and migration work; journal also edited by STF-77, so expect a trivial merge conflict to resolve.
+  - Commit: `1f5bf2ae09d4`
 
 - [ ] **Task 3: Template API and due-entry generator** (after 1, 2)
   - Intent: Add api/_lib/recurringEntries.ts with zod schemas, owner-scoped list/create/update/pause/soft-delete (every query filtered by auth.userId from the session, explicit LIMIT, e.g. 100 templates) and generateDueEntries(now): scan non-paused, non-deleted templates with next_date <= today (limit per run), and for each due date from dueDates() call createEntry from api/_lib/entries.ts so output goes through the posting function and is always status draft. Per date: in one DB transaction insert the run row with ON CONFLICT DO NOTHING on (template_id, run_date) and skip if nothing inserted, then advance next_date; do no network work inside the transaction. Closed VAT periods or too-far-ahead dates must not abort the whole run: log the template id only and leave next_date unchanged. Add api/recurring-entries.ts route behind withAuth (GET/POST/PATCH/DELETE by id, reject ids belonging to other users). Tests: output always draft, running twice creates once, month-end dates, paused skipped, second user refused a first user's template id, list is limited.

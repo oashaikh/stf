@@ -72,7 +72,7 @@ Also depends on:
   - Risk: Default tier. Main uncertainty is PDF text extraction in vitest and react-pdf running under the api tsconfig.
   - Commit: `5bfc174a59c7`
 
-- [ ] **Task 3: GET /api/invoice-pdf serverless route, vercel.json maxDuration and route tests** (after 1, 2)
+- [x] **Task 3: GET /api/invoice-pdf serverless route, vercel.json maxDuration and route tests** (after 1, 2)
   - Intent: Add api/invoice-pdf.ts following api/entries-export.ts (withAuth, default export { fetch }). GET only (405 otherwise), validates ?id as uuid (400, same UUID regex and refuse shape as api/invoices.ts), loads via task 1 using auth.userId only, returns 404 NOT_FOUND JSON for an unknown or another owner's invoice, otherwise application/pdf with Content-Disposition attachment filename built from the public number (sanitised) and Cache-Control no-store. Drafts: decide and document (assumption: allow any non-voided status, drafts included, since the owner may want a preview; voided returns 404 or 409 per implementer choice, stated in the PR). Add a functions entry in vercel.json with a maxDuration (30) and consider memory; measure first and report in the PR. Record the route in api/_lib/__tests__/apiRoutes.test.ts if that file lists every route (check for sign-in-required coverage). Route test with fake store: owner A gets a PDF whose text contains the number, totals and VAT number; owner B requesting A's id gets 404; unauthenticated gets 401; bad id gets 400. Document in docs/workflows/invoices.md.
   - Files: `api/invoice-pdf.ts`, `api/_lib/__tests__/invoicePdfRoute.test.ts`, `api/_lib/__tests__/apiRoutes.test.ts`, `vercel.json`, `docs/workflows/invoices.md`
   - Acceptance criteria the planner set:
@@ -83,6 +83,7 @@ Also depends on:
     - Response never includes the full account number in logs or error bodies
     - lint, typecheck, test, build pass
   - Risk: Opus/high: tenant isolation and authorisation on a route returning bank details; 404 for other owners is an explicit acceptance criterion.
+  - Commit: `218118df9683`
 
 - [ ] **Task 4: Measure PDF function bundle size and cold start** (after 3)
   - Intent: The operator asked that the PDF render inside a Vercel function with bundle size and cold start checked and reported. Without deploying anything or touching live config (), build the function the way Vercel would (esbuild or `vercel build` if available offline, else bundle api/invoice-pdf.ts with esbuild that is already installed via vite, externals as Vercel treats them) and record: bundled size, node_modules footprint of @react-pdf/renderer and its fontkit/yoga deps, and a local cold-start figure (fresh `node` process importing the handler and rendering one fixture invoice, time to first byte, run several times). Compare with the 250 MB unzipped function limit. Add a short section to docs/runbooks/vercel-deploy.md with the numbers, method, and the maxDuration/memory chosen, and tune the vercel.json entry if the numbers justify it. If yoga/WASM or font loading breaks in the bundle, report it as a finding. State clearly in the PR what was measured locally versus not measured on Vercel. No scripts or generated artefacts committed beyond the doc.

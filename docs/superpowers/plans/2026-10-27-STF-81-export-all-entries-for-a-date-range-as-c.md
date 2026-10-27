@@ -60,7 +60,7 @@ Also depends on:
   - Risk: Opus high: owner-scoped data egress, a CSV injection vector and tenant isolation are the core of this ticket; a missing owner filter would leak another user's ledger.
   - Commit: `4f6a9346a4b1`
 
-- [ ] **Task 2: Download CSV button and date range on ReportsPage** (after 1)
+- [x] **Task 2: Download CSV button and date range on ReportsPage** (after 1)
   - Intent: Replace the Coming soon stub in src/pages/ReportsPage.tsx with a small form: From and To date inputs (default to the current UK tax year start and today via dashboardPeriods in src/lib/dashboardSummary.ts, reusing it, not new date logic) and a Download CSV button (min-h-11, 44px target). Add src/lib/exportApi.ts with a downloadEntriesCsv(from, to) that fetches /api/entries-export with credentials same-origin, and on a non-OK response throws the server's plain message, shown inline as an error; on success saves the blob via an object URL anchor click and revokes the URL. Keep the page container and tokens the same as DashboardPage (p-4 md:p-8, no new max-width), labelled inputs with visible focus, error text not colour-only, button disabled with Downloading... while pending. Do not send any user id. Add a component test (src/pages/ReportsPage.test.tsx) with fetch mocked: success triggers a download for the chosen range, error message from a refused range is displayed, inverted range is blocked client-side. Add GET /api/entries-export to e2e/mockApi.ts returning a small invented CSV so the journey can load the page, and add a reports step to e2e/journey.spec.ts if the existing step helper makes that a few lines; use only invented fixture data.
   - Files: `src/pages/ReportsPage.tsx`, `src/pages/ReportsPage.test.tsx`, `src/lib/exportApi.ts`, `e2e/mockApi.ts`, `e2e/journey.spec.ts`
   - Acceptance criteria the planner set:
@@ -70,6 +70,7 @@ Also depends on:
     - Button is at least 44px high, keyboard operable, and disabled while pending
     - Inverted range shows an inline message and makes no request
     - npm run lint, typecheck, test, build pass
+  - Commit: `9a810d748c94`
 
 - [ ] **Task 3: Capture screenshots and document the export** (after 2)
   - Intent: Run the e2e journey (or the existing screenshot approach used for browser-evidence/STF-70) against the mocked API and save screenshots of the Reports page (default state and refused-range error state) at 390 and 1440 px, light theme, as browser-evidence/STF-81/<width>-light-<step>.png, e.g. 390-light-reports.png, 1440-light-reports.png, 390-light-reports-error.png, 1440-light-reports-error.png. Check no sideways scroll at 390 and 1440. Add a short docs/workflows/csv-export.md describing the route, columns, range and row limits, what is included (drafts shown with status, voided excluded) and that the file holds financial data the owner should store safely. Screenshots must show invented records only. If Playwright cannot run in the sandbox, say so plainly and let the orchestrator capture them.

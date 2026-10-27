@@ -26,8 +26,13 @@ const empty = {
   recentEntries: [],
 };
 
+const estimate = { taxYear: '2026-27', profitPence: 110000, incomeTaxPence: 0, class2NicPence: 0, class4NicPence: 0, totalTaxPence: 12345, setAsidePence: 12345 };
+
 function renderPage(response: Response) {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => (url.startsWith('/api/tax-estimate') ? Response.json({ ok: true, data: estimate }) : response)),
+  );
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -53,6 +58,8 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('link', { name: /3 drafts to confirm/i }).getAttribute('href')).toBe('/expenses?status=draft');
     expect(screen.getByRole('link', { name: /add entry/i }).getAttribute('href')).toBe('/expenses');
     expect(screen.getByRole('link', { name: /vat page/i }).getAttribute('href')).toBe('/vat');
+    expect(await screen.findByText('£123.45')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /tax page/i }).getAttribute('href')).toBe('/tax');
   });
 
   it('shows the empty state for a new ledger', async () => {

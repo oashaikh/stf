@@ -68,7 +68,7 @@ Also depends on:
   - Risk: Schema migration plus per-user data access and audit; opus at high per the data and tenant-isolation rule.
   - Commit: `ad2cec35c37b`
 
-- [ ] **Task 3: Tax year summary and estimate use the chosen method** (after 1, 2)
+- [x] **Task 3: Tax year summary and estimate use the chosen method** (after 1, 2)
   - Intent: Make getTaxYearSummary in api/_lib/taxYearSummary.ts read the owner's stored choice for that tax year (default 'actual' when none) through the new store. It applies compareExpenseMethods and returns `expenseMethod`, `tradingAllowancePence`, `profitWithActualExpensesPence`, `profitWithAllowancePence` and `lowerProfitMethod`; `netProfitPence` becomes the profit under the chosen method. Add those fields to the TaxYearSummary type in src/lib/taxYearSummary.ts. buildTaxYearSummary stays the pure actual-expenses build. Gross income for the allowance is turnover + other income (see assumptions). getTaxEstimate already feeds summary.netProfitPence to estimateTax, so the estimate follows with no tax-maths change. Extend TaxEstimateResult with `expenseMethod` and the comparison fields the Tax page needs. Add `loadChoice` to TaxYearSummaryStore, keeping tests on fakes. Update the existing summary and estimate route tests and add tests: the choice changes net profit and the estimate, the default is 'actual', and choosing the allowance with turnover below it gives nil profit and nil tax. Do not touch /api/profit-and-loss or the dashboard.
   - Files: `src/lib/taxYearSummary.ts`, `src/lib/taxYearSummary.test.ts`, `api/_lib/taxYearSummary.ts`, `api/_lib/taxEstimate.ts`, `api/tax-estimate.ts`, `api/tax-year-summary.ts`, `api/_lib/__tests__/taxYearSummaryRoute.test.ts`, `api/_lib/__tests__/taxEstimateRoute.test.ts`
   - Acceptance criteria the planner set:
@@ -77,6 +77,7 @@ Also depends on:
     - The choice is looked up with the session user id only and has a limit
     - npm run lint, typecheck, test and build pass
   - Risk: STF-49 also edits taxYearSummary files; expect a merge conflict at PR time, so keep hunks small.
+  - Commit: `de65979cddeb`
 
 - [ ] **Task 4: Tax page: compare both methods and let the owner choose, with workflow note and screenshots** (after 3)
   - Intent: On /tax, show a section for the selected tax year with profit under actual expenses and under the £1,000 trading allowance, which is lower, and a two-option radio group for choosing the method (44px targets, labelled, keyboard reachable, shared container and tokens, money right-aligned and tabular via formatPence). Saving PUTs /api/settings/trading-allowance and invalidates the tax-estimate query so figures refresh. Add src/lib/tradingAllowanceApi.ts; the comparison fields come from the estimate response already loaded. Use shared loading and error states. State that this is an estimate and that claiming the allowance means no expenses can be deducted. Add TaxPage tests (api client mocked) for both figures, the recommendation, saving the choice, and a save error. Add docs/workflows/tax-year-method.md. Capture browser-evidence/STF-31/{1440,390}-light-tax.png (plus dark if the app ships a dark theme).

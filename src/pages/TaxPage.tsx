@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { formatPence } from '../lib/money';
 import { currentTaxYear, TAX_BANDS } from '../lib/taxBands';
 import { fetchTaxEstimate, taxEstimateQueryKey } from '../lib/taxEstimateApi';
+import MileageSection from './MileageSection';
 
 // Newest first, only years that have bands to calculate with.
 const TAX_YEARS = Object.keys(TAX_BANDS).sort().reverse();
@@ -65,6 +66,8 @@ export default function TaxPage() {
           </p>
         </section>
       )}
+
+      <MileageSection />
     </main>
   );
 }

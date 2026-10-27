@@ -6,6 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TAX_BANDS } from '../lib/taxBands';
 import TaxPage from './TaxPage';
 
+// The mileage section has its own tests and its own API; this file's fetch mock only knows the tax estimate.
+vi.mock('./MileageSection', () => ({ default: () => <h2>Mileage</h2> }));
+
 const estimateFor = (taxYear: string) => ({
   taxYear,
   profitPence: 6000000,

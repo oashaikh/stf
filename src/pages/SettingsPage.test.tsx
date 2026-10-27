@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   describeHmrcStatus,
   fetchHmrcConnectUrl,
-  fetchHmrcConnected,
+  fetchHmrcStatus,
   saveHmrcLiveOptIn,
 } from '../lib/hmrc/settingsApi';
 import SettingsPage, { LIVE_CONFIRMATION_TEXT } from './SettingsPage';
@@ -34,7 +34,12 @@ describe('describeHmrcStatus', () => {
 describe('HMRC api calls', () => {
   it('sends the session cookie to the status route', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, connected: true }));
-    expect(await fetchHmrcConnected(fetchMock)).toBe(true);
+    expect(await fetchHmrcStatus(fetchMock)).toEqual({
+      connected: true,
+      itsEnabled: false,
+      needsItsReconnect: false,
+      itsBusinessId: null,
+    });
     expect(fetchMock).toHaveBeenCalledWith('/api/hmrc/status', { credentials: 'same-origin' });
   });
 
@@ -272,5 +277,107 @@ describe('Check HMRC fraud headers', () => {
     checkResponse = jsonResponse({ ok: false }, false);
     await renderAndRun();
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not run the check');
+  });
+});
+
+describe('Income Tax connection', () => {
+  const posts: unknown[] = [];
+  let status: Record<string, unknown>;
+  let businesses: { businessId: string; tradingName: string | null }[];
+  let itsGets = 0;
+  let itsFails = false;
+
+  beforeEach(() => {
+    posts.length = 0;
+    itsGets = 0;
+    itsFails = false;
+    businesses = [];
+    status = { ok: true, connected: true, itsEnabled: true, needsItsReconnect: false, itsBusinessId: null };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string, init?: RequestInit) => {
+        if (path === '/api/hmrc/status') return jsonResponse(status);
+        if (path === '/api/hmrc/its-businesses' && init?.method === 'POST') {
+          const { businessId } = JSON.parse(init.body as string);
+          posts.push({ businessId });
+          return jsonResponse({ ok: true, businesses, selectedBusinessId: businessId });
+        }
+        if (path === '/api/hmrc/its-businesses') {
+          itsGets += 1;
+          if (itsFails) return jsonResponse({ ok: false }, false);
+          return jsonResponse({ ok: true, businesses, selectedBusinessId: businesses.length === 1 ? businesses[0].businessId : null });
+        }
+        if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: false, envLive: false });
+        if (path === '/api/settings/tax-identifiers') return jsonResponse({ ok: true, nino: null, utr: null });
+        if (path === '/api/settings/business-profile') return jsonResponse({ ok: true, profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 } });
+        if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
+        return jsonResponse({ ok: true, masked: null });
+      }),
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  const renderPage = () =>
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <SettingsPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+  it('shows the one-time reconnect notice when connected without the Income Tax scope', async () => {
+    status = { ...status, needsItsReconnect: true };
+    renderPage();
+    expect(await screen.findByText(/Income Tax needs a one-time reconnect to HMRC/)).toBeInTheDocument();
+    expect(itsGets).toBe(0);
+  });
+
+  it('shows no notice and no businesses when the flag is off', async () => {
+    status = { ...status, itsEnabled: false, needsItsReconnect: false };
+    renderPage();
+    await screen.findByText('Connected to HMRC');
+    expect(screen.queryByText(/one-time reconnect/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Income Tax business')).not.toBeInTheDocument();
+    expect(itsGets).toBe(0);
+  });
+
+  it('lets the owner pick one of several businesses and posts the choice', async () => {
+    businesses = [
+      { businessId: 'XBIS-A', tradingName: 'Acme Bakes' },
+      { businessId: 'XBIS-B', tradingName: 'Acme Cycles' },
+    ];
+    renderPage();
+    const select = await screen.findByLabelText('Choose your self-employment business');
+    expect(screen.getByRole('button', { name: 'Save business' })).toBeDisabled();
+    fireEvent.change(select, { target: { value: 'XBIS-B' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save business' }));
+    await waitFor(() => expect(posts).toEqual([{ businessId: 'XBIS-B' }]));
+    expect(await screen.findByText('Acme Cycles')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Choose your self-employment business')).not.toBeInTheDocument();
+  });
+
+  it('shows the business name without a picker when there is only one', async () => {
+    businesses = [{ businessId: 'XBIS-A', tradingName: 'Acme Bakes' }];
+    renderPage();
+    expect(await screen.findByText('Acme Bakes')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Choose your self-employment business')).not.toBeInTheDocument();
+  });
+
+  it('does not reload businesses once an id is stored', async () => {
+    status = { ...status, itsBusinessId: 'XBIS-A' };
+    renderPage();
+    await screen.findByText('Connected to HMRC');
+    expect(itsGets).toBe(0);
+  });
+
+  it('shows an error when the business list cannot be loaded', async () => {
+    itsFails = true;
+    renderPage();
+    expect(await screen.findByText('Could not load your HMRC businesses. Please try again.')).toBeInTheDocument();
   });
 });

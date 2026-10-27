@@ -17,9 +17,48 @@ async function getJson(path: string, fetchFn: FetchFn) {
   return response.json();
 }
 
-export async function fetchHmrcConnected(fetchFn: FetchFn = fetch): Promise<boolean> {
-  return (await getJson('/api/hmrc/status', fetchFn)).connected === true;
+export interface HmrcStatus {
+  connected: boolean;
+  itsEnabled: boolean;
+  needsItsReconnect: boolean;
+  itsBusinessId: string | null;
 }
+
+export async function fetchHmrcStatus(fetchFn: FetchFn = fetch): Promise<HmrcStatus> {
+  const body = await getJson('/api/hmrc/status', fetchFn);
+  return {
+    connected: body.connected === true,
+    itsEnabled: body.itsEnabled === true,
+    needsItsReconnect: body.needsItsReconnect === true,
+    itsBusinessId: body.itsBusinessId ?? null,
+  };
+}
+
+export interface ItsBusinessOption {
+  businessId: string;
+  tradingName: string | null;
+}
+
+export interface ItsBusinessesState {
+  businesses: ItsBusinessOption[];
+  selectedBusinessId: string | null;
+}
+
+async function itsBusinessesRequest(fetchFn: FetchFn, init: RequestInit = {}): Promise<ItsBusinessesState> {
+  const response = await fetchFn('/api/hmrc/its-businesses', { ...init, credentials: 'same-origin' });
+  if (!response.ok) throw new Error('Request to /api/hmrc/its-businesses failed');
+  const { businesses, selectedBusinessId } = await response.json();
+  return { businesses, selectedBusinessId: selectedBusinessId ?? null };
+}
+
+export const fetchItsBusinesses = (fetchFn: FetchFn = fetch) => itsBusinessesRequest(fetchFn);
+
+export const saveItsBusiness = (businessId: string, fetchFn: FetchFn = fetch) =>
+  itsBusinessesRequest(fetchFn, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ businessId }),
+  });
 
 export async function fetchHmrcConnectUrl(fetchFn: FetchFn = fetch): Promise<string> {
   return (await getJson('/api/hmrc/connect', fetchFn)).url;

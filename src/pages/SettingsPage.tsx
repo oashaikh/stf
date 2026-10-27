@@ -8,7 +8,9 @@ import TaxIdentifiersSection from './TaxIdentifiersSection';
 import { LegalLinks } from './LegalPages';
 import {
   describeHmrcStatus,
-  fetchHmrcConnected,
+  fetchHmrcStatus,
+  fetchItsBusinesses,
+  saveItsBusiness,
   fetchHmrcConnectUrl,
   fetchHmrcMode,
   fetchVatNumberMask,
@@ -19,6 +21,8 @@ import {
   VatNumberRefusedError,
   type FraudCheckOutcome,
   type HmrcModeState,
+  type HmrcStatus,
+  type ItsBusinessesState,
 } from '../lib/hmrc/settingsApi';
 
 export const LIVE_CONFIRMATION_TEXT = 'FILE LIVE';
@@ -43,6 +47,11 @@ export default function SettingsPage() {
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<FraudCheckOutcome | null>(null);
   const [checkFailed, setCheckFailed] = useState(false);
+  const [hmrcStatus, setHmrcStatus] = useState<HmrcStatus | null>(null);
+  const [itsState, setItsState] = useState<ItsBusinessesState | null>(null);
+  const [itsLoading, setItsLoading] = useState(false);
+  const [itsFailed, setItsFailed] = useState(false);
+  const [pickedBusinessId, setPickedBusinessId] = useState('');
 
   useEffect(() => {
     fetchVatNumberMask().then(
@@ -79,9 +88,10 @@ export default function SettingsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [isConnected, currentMode] = await Promise.all([fetchHmrcConnected(), fetchHmrcMode()]);
+        const [status, currentMode] = await Promise.all([fetchHmrcStatus(), fetchHmrcMode()]);
         if (!cancelled) {
-          setConnected(isConnected);
+          setHmrcStatus(status);
+          setConnected(status.connected);
           setMode(currentMode);
         }
       } catch {
@@ -94,6 +104,42 @@ export default function SettingsPage() {
       cancelled = true;
     };
   }, []);
+
+  const needsItsReconnect = Boolean(hmrcStatus?.itsEnabled && hmrcStatus.needsItsReconnect);
+  const wantsItsBusinesses = Boolean(
+    hmrcStatus?.itsEnabled && hmrcStatus.connected && !hmrcStatus.needsItsReconnect && !hmrcStatus.itsBusinessId,
+  );
+
+  useEffect(() => {
+    if (!wantsItsBusinesses) return;
+    let cancelled = false;
+    setItsLoading(true);
+    fetchItsBusinesses()
+      .then(
+        (state) => {
+          if (!cancelled) setItsState(state);
+        },
+        () => {
+          if (!cancelled) setItsFailed(true);
+        },
+      )
+      .finally(() => {
+        if (!cancelled) setItsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [wantsItsBusinesses]);
+
+  async function submitItsBusiness(event: FormEvent) {
+    event.preventDefault();
+    setItsFailed(false);
+    try {
+      setItsState(await saveItsBusiness(pickedBusinessId));
+    } catch {
+      setItsFailed(true);
+    }
+  }
 
   async function connect() {
     setFailed(false);
@@ -163,6 +209,49 @@ export default function SettingsPage() {
         >
           {connected ? 'Reconnect to HMRC' : 'Connect to HMRC'}
         </button>
+        {needsItsReconnect && (
+          <p className="mt-3 text-gray-800" role="status">Income Tax needs a one-time reconnect to HMRC.</p>
+        )}
+        {wantsItsBusinesses && (
+          <div className="mt-4" aria-labelledby="its-business-heading" role="group">
+            <h3 id="its-business-heading" className="font-semibold text-gray-900">Income Tax business</h3>
+            {itsLoading && <p className="mt-2 text-gray-500" role="status">Loading…</p>}
+            {itsFailed && !itsLoading && (
+              <p className="mt-2 text-red-800" role="alert">Could not load your HMRC businesses. Please try again.</p>
+            )}
+            {itsState && itsState.selectedBusinessId && (
+              <p className="mt-2 text-gray-900">
+                {itsState.businesses.find((business) => business.businessId === itsState.selectedBusinessId)?.tradingName ??
+                  itsState.selectedBusinessId}
+              </p>
+            )}
+            {itsState && !itsState.selectedBusinessId && itsState.businesses.length > 1 && (
+              <form onSubmit={submitItsBusiness} className="mt-2">
+                <label htmlFor="its-business-select" className="block text-gray-900">Choose your self-employment business</label>
+                <select
+                  id="its-business-select"
+                  value={pickedBusinessId}
+                  onChange={(event) => setPickedBusinessId(event.target.value)}
+                  className="mt-1 min-h-[44px] w-full rounded-md border border-gray-400 px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                >
+                  <option value="" disabled>Select a business</option>
+                  {itsState.businesses.map((business) => (
+                    <option key={business.businessId} value={business.businessId}>
+                      {business.tradingName ?? business.businessId}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  disabled={pickedBusinessId === ''}
+                  className="mt-3 min-h-[44px] min-w-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-50"
+                >
+                  Save business
+                </button>
+              </form>
+            )}
+          </div>
+        )}
       </section>
       <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="vat-number-heading">
         <h2 id="vat-number-heading" className="text-lg font-semibold text-gray-900">VAT registration number</h2>

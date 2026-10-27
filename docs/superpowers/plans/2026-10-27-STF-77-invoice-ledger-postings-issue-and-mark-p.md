@@ -62,7 +62,7 @@
   - Risk: Opus/high: ledger postings, financial integrity, period lock and tenant scoping; lock check and posts must be consistent in one transaction.
   - Commit: `63990b1113d8`
 
-- [ ] **Task 4: Routes for issue and mark-paid, plus route tests with an in-memory store** (after 3)
+- [x] **Task 4: Routes for issue and mark-paid, plus route tests with an in-memory store** (after 3)
   - Intent: Extend api/invoices.ts with issue and mark-paid actions following the existing id/method pattern: POST issue, POST paid with validated body { paymentDate: isoDate }, UUID-gated, behind the owner session, mapping InvoiceRuleError via run(). The paid-date schema in api/_lib/invoices.ts strips unknown keys so the client cannot send status, totals or account ids. Extend api/_lib/__tests__/invoicesRoute.test.ts with a fake store: issue gives sent; issue of non-draft 409; mark paid gives paid with payment link; bad paymentDate 400; no session 401; second user using first user's id gets 404 on issue, paid and void; PUT on sent/paid 409; void in a filed period 409 PERIOD_LOCKED. Add an integration-style test with the real posting functions and an in-memory ledger showing issue puts the right figures in boxes 1 and 6 for the issue-date period and paying leaves the VAT boxes unchanged.
   - Files: `api/invoices.ts`, `api/_lib/invoices.ts`, `api/_lib/__tests__/invoicesRoute.test.ts`, `api/_lib/__tests__/invoicePostingsRoute.test.ts`
   - Acceptance criteria the planner set:
@@ -71,6 +71,7 @@
     - No test touches a real database or network
     - npm test, npm run lint, npm run typecheck pass
   - Risk: Opus/high: authorisation and tenant isolation on new mutating routes.
+  - Commit: `6d242feb48dd`
 
 - [ ] **Task 5: Document the issue, pay and void flow** (after 4)
   - Intent: Update docs/workflows/invoices.md with the issue, mark-paid and void rules: income posts at issue date against trade debtors, payment moves debtors to bank without touching VAT, void goes through the VAT period lock, overdue is derived at list time, and the audit actions. Note cash-accounting VAT is handled in STF-22.

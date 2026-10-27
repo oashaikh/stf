@@ -245,6 +245,8 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         }
         return route.fulfill({ status: 200, contentType: 'text/csv', body: 'Date,Description,Net,VAT,Gross,Status\n2026-05-01,Invoice 1,100.00,20.00,120.00,Confirmed\n' });
       }
+      case 'GET /api/invoice-pdf':
+        return route.fulfill({ status: 200, contentType: 'application/pdf', body: '%PDF-1.4\n%%EOF\n' });
       default:
         return json(route, { ok: false, error: `No mock for ${key}` }, 404);
     }

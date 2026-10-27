@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { formatDate } from '../lib/dates';
 import { formatQuantity, formTotals, toDraftRequest, type InvoiceFormLine, type InvoiceFormState } from '../lib/invoiceForm';
 import { INVOICE_VAT_RATES } from '../lib/invoiceMaths';
-import { invoicesQueryKey, issueInvoice, markInvoicePaid, saveDraft, voidInvoice, type ApiInvoice } from '../lib/invoicesApi';
+import { downloadInvoicePdf, invoicesQueryKey, issueInvoice, markInvoicePaid, saveDraft, voidInvoice, type ApiInvoice } from '../lib/invoicesApi';
 import { formatPence } from '../lib/money';
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700';
@@ -195,6 +195,7 @@ function ActionDialogs({ summary, isDraft, state, onIssue }: { summary: string; 
 
 function ReadOnlyInvoice({ invoice, onBack, onChanged }: { invoice: ApiInvoice; onBack: () => void; onChanged: (invoice: ApiInvoice | null) => void }) {
   const state = useInvoiceAction(invoice.id, onChanged);
+  const download = useMutation({ mutationFn: () => downloadInvoicePdf(invoice.id, invoice.publicNumber) });
   return (
     <section aria-labelledby="invoice-title">
       <h2 id="invoice-title" className="text-xl font-semibold text-gray-900">
@@ -224,6 +225,9 @@ function ReadOnlyInvoice({ invoice, onBack, onChanged }: { invoice: ApiInvoice; 
         <button type="button" className={buttonClass} onClick={onBack}>
           Back to invoices
         </button>
+        <button type="button" className={buttonClass} disabled={download.isPending} onClick={() => download.mutate()}>
+          {download.isPending ? 'Downloading…' : 'Download PDF'}
+        </button>
         {(invoice.status === 'sent' || invoice.status === 'overdue') && (
           <button type="button" className={primaryClass} onClick={() => state.setAction('paid')}>
             Mark paid
@@ -235,6 +239,11 @@ function ReadOnlyInvoice({ invoice, onBack, onChanged }: { invoice: ApiInvoice; 
           </button>
         )}
       </div>
+      {download.error && (
+        <p role="alert" className="mt-3 text-sm text-red-800">
+          {download.error.message}
+        </p>
+      )}
       <ActionDialogs summary={`${invoice.publicNumber}, ${formatPence(invoice.totalPence)}`} isDraft={false} state={state} />
     </section>
   );

@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { fetchHasVatNumber } from '../lib/entriesApi';
-import { fetchInvoice, fetchInvoices, issueInvoice, markInvoicePaid, saveDraft, voidInvoice, type ApiInvoice } from '../lib/invoicesApi';
+import { downloadInvoicePdf, fetchInvoice, fetchInvoices, issueInvoice, markInvoicePaid, saveDraft, voidInvoice, type ApiInvoice } from '../lib/invoicesApi';
 import InvoicesPage from './InvoicesPage';
 
 vi.mock('../lib/invoicesApi', async (importOriginal) => ({
@@ -15,6 +15,7 @@ vi.mock('../lib/invoicesApi', async (importOriginal) => ({
   issueInvoice: vi.fn(),
   markInvoicePaid: vi.fn(),
   voidInvoice: vi.fn(),
+  downloadInvoicePdf: vi.fn(),
 }));
 vi.mock('../lib/entriesApi', () => ({ fetchHasVatNumber: vi.fn() }));
 
@@ -195,5 +196,24 @@ describe('issued invoice view', () => {
     await openInvoice({ ...sent, status: 'voided' });
     expect(await screen.findByText('Acme Ltd')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Void' })).toBeNull();
+  });
+});
+
+describe('InvoicesPage PDF download', () => {
+  const issued: ApiInvoice = { ...invoice, status: 'sent', publicNumber: 'INV-0001' };
+
+  it('downloads the open invoice as a PDF', async () => {
+    await openInvoice(issued);
+    vi.mocked(downloadInvoicePdf).mockResolvedValue(undefined);
+    fireEvent.click(screen.getByRole('button', { name: 'Download PDF' }));
+    await waitFor(() => expect(downloadInvoicePdf).toHaveBeenCalledWith(issued.id, 'INV-0001'));
+  });
+
+  it('shows the server error and stays on the invoice when the download fails', async () => {
+    await openInvoice(issued);
+    vi.mocked(downloadInvoicePdf).mockRejectedValue(new Error('Invoice not found'));
+    fireEvent.click(screen.getByRole('button', { name: 'Download PDF' }));
+    expect((await screen.findByRole('alert')).textContent).toBe('Invoice not found');
+    expect(screen.getByRole('heading', { name: /Invoice INV-0001/ })).toBeTruthy();
   });
 });

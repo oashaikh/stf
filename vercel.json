@@ -7,10 +7,12 @@
   },
   "regions": ["lhr1"],
   "functions": {
-    "api/cron/refresh-hmrc-tokens.ts": { "maxDuration": 60 }
+    "api/cron/refresh-hmrc-tokens.ts": { "maxDuration": 60 },
+    "api/cron/create-recurring-entries.ts": { "maxDuration": 60 }
   },
   "crons": [
-    { "path": "/api/cron/refresh-hmrc-tokens", "schedule": "*/5 * * * *" }
+    { "path": "/api/cron/refresh-hmrc-tokens", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/create-recurring-entries", "schedule": "0 5 * * *" }
   ],
   "headers": [
     {

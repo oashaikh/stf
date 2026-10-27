@@ -76,6 +76,8 @@ function makeHmrcStore(sandbox: boolean | undefined, overrides: Partial<HmrcCred
     setSandboxMode: vi.fn(),
     setItsBusinessId: async () => undefined,
     itsBusinessId: async () => null,
+    saveItsObligations: async () => undefined,
+    lastItsObligations: async () => [],
     saveTokens: async () => undefined,
     credentials: async () => ({
       vatNumber: '123456789',

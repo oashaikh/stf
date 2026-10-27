@@ -22,6 +22,7 @@ interface Row {
 }
 
 function fakeStore(rows: Record<string, Row>): HmrcStore {
+  const obligationsCache = new Map<string, { taxYear: string; payload: unknown; fetchedAt: Date }>();
   return {
     sandboxMode: async (userId) => rows[userId]?.sandbox,
     setSandboxMode: async (userId, sandbox) => {
@@ -37,6 +38,11 @@ function fakeStore(rows: Record<string, Row>): HmrcStore {
     itsBusinessId: async (userId) => rows[userId]?.itsBusinessId ?? null,
     credentials: vi.fn(),
     saveRefreshedTokens: vi.fn(),
+    saveItsObligations: async (userId, taxYear, payload, fetchedAt) => {
+      obligationsCache.set(`${userId}|${taxYear}`, { taxYear, payload, fetchedAt });
+    },
+    lastItsObligations: async (userId, taxYears) =>
+      taxYears.flatMap((taxYear) => obligationsCache.get(`${userId}|${taxYear}`) ?? []),
     status: async (userId) => ({
       connected: Boolean(rows[userId]?.refreshToken),
       expiresAt: rows[userId]?.expiresAt?.toISOString() ?? null,
@@ -341,5 +347,70 @@ describe('requestFraudHeaders second factor', () => {
     expect(totp).toMatch(/^type=TOTP&timestamp=2026-10-26T10%3A00%3A00\.000Z&unique-reference=[0-9a-f]{64}$/);
 
     expect(requestFraudHeaders(withCookie(createSessionToken(at, env)), 'user_a', at)).not.toHaveProperty('Gov-Client-Multi-Factor');
+  });
+});
+
+describe('database store ITS obligations cache', () => {
+  const fetchedAt = new Date('2026-10-27T09:00:00Z');
+  let inserted: Record<string, unknown>;
+  let conflict: { target: unknown[]; set: Record<string, unknown> };
+  let limitUsed: number;
+
+  async function loadStore(cachedRows: unknown[]) {
+    vi.resetModules();
+    vi.doMock('../db', () => ({
+      db: {
+        insert: () => ({
+          values: (row: Record<string, unknown>) => {
+            inserted = row;
+            return {
+              onConflictDoUpdate: async (options: typeof conflict) => {
+                conflict = options;
+              },
+            };
+          },
+        }),
+        select: () => ({
+          from: () => ({
+            where: () => ({
+              limit: async (count: number) => {
+                limitUsed = count;
+                return cachedRows;
+              },
+            }),
+          }),
+        }),
+      },
+    }));
+    return (await import('../hmrcStore')).databaseHmrcStore;
+  }
+
+  afterEach(() => vi.doUnmock('../db'));
+
+  it('upserts on user and tax year so a second save replaces the first', async () => {
+    const store = await loadStore([]);
+    await store.saveItsObligations('u1', '2026-27', { obligations: [] }, fetchedAt);
+    expect(inserted).toEqual({ userId: 'u1', taxYear: '2026-27', payload: { obligations: [] }, fetchedAt });
+    expect(conflict.target).toHaveLength(2);
+    expect(conflict.set).toEqual({ payload: { obligations: [] }, fetchedAt });
+  });
+
+  it('reads at most two tax years', async () => {
+    const rows = [{ taxYear: '2026-27', payload: { a: 1 }, fetchedAt }];
+    const store = await loadStore(rows);
+    expect(await store.lastItsObligations('u1', ['2025-26', '2026-27'])).toEqual(rows);
+    expect(limitUsed).toBe(2);
+  });
+});
+
+describe('fake store ITS obligations cache', () => {
+  const fetchedAt = new Date('2026-10-27T09:00:00Z');
+
+  it('replaces the row on a second save and hides it from another user', async () => {
+    const store = fakeStore({});
+    await store.saveItsObligations('u1', '2026-27', { n: 1 }, fetchedAt);
+    await store.saveItsObligations('u1', '2026-27', { n: 2 }, fetchedAt);
+    expect(await store.lastItsObligations('u1', ['2026-27'])).toEqual([{ taxYear: '2026-27', payload: { n: 2 }, fetchedAt }]);
+    expect(await store.lastItsObligations('u2', ['2026-27'])).toEqual([]);
   });
 });

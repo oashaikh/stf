@@ -127,6 +127,13 @@
       "when": 1792986657126,
       "tag": "0017_hmrc_its_business",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1792986658126,
+      "tag": "0018_its_obligations_cache",
+      "breakpoints": true
     }
   ]
 }

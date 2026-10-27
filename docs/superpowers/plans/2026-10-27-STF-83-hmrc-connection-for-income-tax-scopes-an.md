@@ -78,7 +78,7 @@ Also depends on:
   - Risk: Handles NINO decryption, tokens and sandbox/live gating; opus high.
   - Commit: `fe7be4ae43f8`
 
-- [ ] **Task 4: Settings: one-time reconnect notice and business picker** (after 3)
+- [x] **Task 4: Settings: one-time reconnect notice and business picker** (after 3)
   - Intent: In src/lib/hmrc/settingsApi.ts add client functions for the status fields and the its-businesses GET/POST. In src/pages/SettingsPage.tsx, inside the existing HMRC section, show a notice when connected and needsItsReconnect: 'Income Tax needs a one-time reconnect to HMRC', next to the existing Reconnect button. When connected with the right scopes and no business id stored, load the businesses. Auto-selection is handled server-side. If there is more than one, show a labelled select with a Save button. Otherwise show the chosen business name or id. Use the shared loading/error components and existing Tailwind patterns in this file (). Never render the NINO. Tests: SettingsPage.test.tsx cases with the fetch client mocked (); update e2e/mockApi.ts with the new route and status fields so e2e still passes. Capture screenshots at 1440 and 390 px for the PR () with invented data only.
   - Files: `src/lib/hmrc/settingsApi.ts`, `src/pages/SettingsPage.tsx`, `src/pages/SettingsPage.test.tsx`, `e2e/mockApi.ts`, `browser-evidence/`
   - Acceptance criteria the planner set:
@@ -87,6 +87,7 @@ Also depends on:
     - Error and loading states use the shared components
     - Screenshots at 1440 and 390 px are attached
     - npm run lint, typecheck, test and build pass
+  - Commit: `81c9519a24b3`
 
 - [ ] **Task 5: Sandbox integration test for business list (skipped without credentials) and docs** (after 1)
   - Intent: Extend src/lib/hmrc/sandbox.integration.test.ts with a listItsSelfEmploymentBusinesses case, in the same describe.skipIf style as the VAT case, gated on HMRC_CLIENT_ID, HMRC_CLIENT_SECRET, HMRC_SANDBOX_REFRESH_TOKEN and a new HMRC_SANDBOX_NINO. It must also stay skipped when HMRC_SANDBOX_MODE=false, send fraud headers, and not print the NINO or tokens. Document HMRC_SANDBOX_NINO as a commented line in .env.example. src/lib/__tests__/envExample.test.ts checks env coverage, so keep it green. Update docs/runbooks/hmrc-sandbox-integration.md with the Income Tax test user prerequisite, the extra variable, and the one-time reconnect. Tick the relevant PLAN.md line only if the roadmap tracks it.

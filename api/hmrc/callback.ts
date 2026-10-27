@@ -35,6 +35,7 @@ export function createCallbackHandler(deps: CallbackDeps = defaultDeps) {
         accessToken: encryptToken(tokens.accessToken),
         refreshToken: encryptToken(tokens.refreshToken),
         expiresAt: new Date(tokens.expiresAt),
+        scope: tokens.scope,
       });
       return settingsRedirect('connected');
     } catch (error) {

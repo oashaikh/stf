@@ -43,13 +43,14 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Add pure reminder helper: pick the next open obligation due within the window**
+- [x] **Task 1: Add pure reminder helper: pick the next open obligation due within the window**
   - Intent: Add src/lib/vatReminder.ts with REMINDER_WINDOW_DAYS and a pure function that takes obligation rows ({periodKey,start,end,due,status}), today as YYYY-MM-DD and the window, and returns the open (status 'O') obligation with the earliest due date inside the window (overdue open obligations included, since the owner needs the reminder most then), or undefined. Dates are compared as UTC day strings. The cron job and the dashboard card both call it, so the due-soon rule lives in one place. Vitest covers: inside window, outside window, overdue, fulfilled ignored, earliest of several, empty.
   - Files: `src/lib/vatReminder.ts`, `src/lib/vatReminder.test.ts`
   - Acceptance criteria the planner set:
     - Function is pure with no I/O and no Date.now(); today is a parameter
     - Tests cover inside window, outside window, overdue, status F ignored, earliest-of-many and empty input
     - npm run lint, typecheck and test pass
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 2: Cron route that saves the draft for the next due obligation, with no path to submit** (after 1)
   - Intent: Add api/cron/prepare-vat-draft.ts modelled on api/cron/refresh-hmrc-tokens.ts: handler factory with the same fail-closed constant-time Bearer CRON_SECRET check and a default export wiring real deps. It resolves the owner user id (reuse the existing owner external-id lookup), loads HMRC credentials via databaseHmrcStore, fetches open obligations with getVatObligations (reuse callHmrcAsUser or withHmrcToken for token refresh and saving; fraud headers need a server-built Request since a cron has no browser), picks the due obligation with the task 1 helper, and calls the existing saveReturnDraft(databaseStore, userId, period, false) in api/_lib/vatReturns.ts. reopen is never true, so a confirmed draft is left alone. Does nothing (still 2xx) when nothing is due, HMRC is not connected, or no VAT number is set. Log only error classes. Register in vercel.json (maxDuration and a daily cron). The route must not import vatSubmit.ts, the submit route, or any submit function. Tests with fakes only: draft saved when due, not saved when not due, 401 on missing/wrong secret, confirmed draft not reopened, and a test that reads the route source and asserts no reference to vatSubmit, submitVatReturn or the submit route. Document the job in docs/runbooks/vercel-deploy.md; touch .env.example only if a new variable is introduced (CRON_SECRET already exists).

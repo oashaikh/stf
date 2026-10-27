@@ -98,10 +98,11 @@ Also depends on:
     - Component tests pass with the API client mocked; lint, typecheck, test and build pass
   - Commit: `3f3147f42409`
 
-- [ ] **Task 6: Screenshots and workflow doc** (after 4, 5)
+- [x] **Task 6: Screenshots and workflow doc** (after 4, 5)
   - Intent: Run the app against a mocked or throwaway API with invented trips and capture the Tax page Mileage section at 390 px and 1440 px (light only; no dark theme is shipped unless the repo has one) as browser-evidence/STF-49/390-light-tax.png and browser-evidence/STF-49/1440-light-tax.png, plus the empty and error states if cheap. Do not edit e2e/mockApi.ts or e2e/journey.spec.ts (STF-81 owns them); use a throwaway Playwright script or route interception outside the repo. Add docs/workflows/mileage.md covering rates and where they live, the threshold and 5/6 April rule, void semantics, that the claim feeds the tax year summary travel line, and the no-actual-costs caveat. Fixtures invented only.
   - Files: `browser-evidence/STF-49/390-light-tax.png`, `browser-evidence/STF-49/1440-light-tax.png`, `docs/workflows/mileage.md`
   - Acceptance criteria the planner set:
     - Both screenshots exist at the stated paths and show only invented records
     - docs/workflows/mileage.md exists
     - npm run lint, typecheck, test and build pass on the final tree
+  - Commit: `b22a1aa640c7`

@@ -41,6 +41,12 @@ describe('buildHmrcAuthUrl', () => {
     expect(url.searchParams.get('response_type')).toBe('code');
   });
 
+  it('adds the self-assessment scopes only when HMRC_ITSA_ENABLED is true', () => {
+    vi.stubEnv('HMRC_ITSA_ENABLED', 'true');
+    const scopes = new URL(buildHmrcAuthUrl('https://app.test/cb', 's')).searchParams.get('scope')?.split(' ');
+    expect(scopes).toEqual(['read:vat', 'write:vat', 'read:self-assessment', 'write:self-assessment']);
+  });
+
   it('uses the live host only when HMRC_SANDBOX_MODE is false', () => {
     vi.stubEnv('HMRC_SANDBOX_MODE', 'false');
     expect(buildHmrcAuthUrl('https://app.test/cb', 's')).toMatch(
@@ -73,6 +79,13 @@ describe('token calls', () => {
       refreshToken: 'new-refresh',
       expiresAt: NOW + 14400 * 1000,
     });
+  });
+
+  it('returns the scope HMRC granted, and leaves it undefined when omitted', async () => {
+    const scoped = vi.fn().mockResolvedValue(jsonResponse(200, { ...tokenBody, scope: 'read:vat write:vat' }));
+    expect((await exchangeAuthCode('c', 'https://app.test/cb', scoped)).scope).toBe('read:vat write:vat');
+    const unscoped = vi.fn().mockResolvedValue(jsonResponse(200, tokenBody));
+    expect((await refreshAccessToken('r', unscoped)).scope).toBeUndefined();
   });
 
   it('refreshAccessToken posts the refresh grant', async () => {

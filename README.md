@@ -46,7 +46,7 @@ npm run dev:server
 
 ## Journey test against a deployed URL
 
-One Playwright spec signs in as the owner and walks Dashboard, Expenses, VAT (review of the first open obligation, then "Preview what will be sent") and Settings at 390 px. It fails on any console error and names the step, the URL and the screenshot. It never presses Submit or Confirm: any request other than GET, the login, and the preview is blocked and fails the run.
+One Playwright spec signs in as the owner and walks Dashboard, Expenses, VAT (review of the first open obligation, then "Preview what will be sent") and Settings at 390 px. It fails on any console error and names the step, the URL and the screenshot. Against a real URL it is read-only: any POST, PUT, PATCH or DELETE other than the login (and its authenticator code step) is blocked and fails the run.
 
 ```bash
 # Against a deployed app (read-only apart from the login)
@@ -58,7 +58,17 @@ npm run build && npm run test:journey:mock
 
 Screenshots go to `e2e/artifacts/<run>/`, one per step. `<run>` is a timestamp unless you set `JOURNEY_RUN_NAME`. Set `JOURNEY_CHROMIUM_PATH` to use an existing Chrome instead of Playwright's own (`npx playwright install chromium`).
 
-The VAT step takes whatever state the live data is in and logs it as `JOURNEY_VAT_BRANCH`: no open obligation (checks the "nothing due" message), an unconfirmed return (checks the nine boxes and the declaration), a confirmed return (runs "Preview what will be sent"), or a filed return (checks the receipt). It never confirms or submits. The only other write it allows is the draft save the app makes when it first opens a never-reviewed return.
+Which tests run where:
+
+| Test | Live URL | Mock (`JOURNEY_MOCK=1`) |
+| --- | --- | --- |
+| Sign in, Dashboard, Expenses, VAT, Settings walk | yes, read-only | yes, once per VAT state |
+| Add an income entry, VAT preview and figure checks | skipped | yes |
+| Set up the authenticator, sign out, sign back in with a code | skipped, with the reason printed | yes |
+
+If the owner has two-factor sign-in on, set `JOURNEY_TOTP_SECRET` to the authenticator secret (base32) and the live run generates the code. The secret is only read; the account is not changed. Without it the run stops with `JOURNEY_SKIPPED: 2FA on, no journey secret` and is reported as skipped, not failed.
+
+The VAT step takes whatever state the live data is in and logs it as `JOURNEY_VAT_BRANCH`: no open obligation (checks the "nothing due" message), an unconfirmed return (checks the nine boxes and the declaration), a confirmed return (checks the "Preview what will be sent" button is there; the mock run presses it), or a filed return (checks the receipt). It never confirms, submits or previews against a live URL. If the app saves a draft on first opening a never-reviewed return, the guard fails the run on that PUT.
 
 The base URL falls back to `AIP_JOURNEY_URL` when `JOURNEY_BASE_URL` is unset, and screenshots go to `AIP_EVIDENCE_DIR` when set. A failing step prints `JOURNEY_FAILED_STEP: <name>`.
 

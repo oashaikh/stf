@@ -81,3 +81,7 @@ Also depends on:
     - No real data in screenshots or docs; no machine paths or job ids
     - npm run lint, typecheck, test, build pass
   - Commit: `16ec6fd0b891`
+
+- [x] **Task 4: Fix: address 17 review findings (cycle 1)** (after 3)
+  - Intent: Review left 17 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The export route, scoping, limits and tests look correct. Three problems block approval. The Reports page copy says voided entries are included when the route excludes the The agent is fixing them; nothing is needed from you.
+  - Commit: `63bb6c171322`

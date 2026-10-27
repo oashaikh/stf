@@ -16,7 +16,7 @@ function fakes() {
   const runs: Array<{ templateId: string; runDate: string; transactionId: string }> = [];
   const templates: Array<DueTemplate & { paused: boolean }> = [];
   let locked: [string, string] | undefined;
-  const entryStore = {
+  const entryStore: Pick<EntryStore, 'loadPostingContext' | 'create' | 'isDateLocked' | 'void'> = {
     async loadPostingContext(): Promise<PostingContext> {
       return { category: { accountType: 'expense', archivedAt: null }, hasVatNumber: true, bankAccountId: BANK, vatControlAccountId: VAT, debtorsAccountId: DEBTORS };
     },
@@ -32,7 +32,7 @@ function fakes() {
       entries.splice(entries.findIndex((entry) => entry.id === entryId), 1);
       return true;
     },
-  } as unknown as EntryStore;
+  };
   const store: RecurringStore = {
     async due(today, limit) {
       return templates.filter((template) => !template.paused && template.nextDate <= today).slice(0, limit);
@@ -78,7 +78,7 @@ describe('generateDueEntries', () => {
 
   it('creates drafts only', async () => {
     f.add();
-    await generateDueEntries(f.store, f.entryStore, NOW);
+    await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
     expect(f.entries).toHaveLength(1);
     expect(f.entries.every((entry) => entry.status === 'draft')).toBe(true);
     expect(f.runs).toHaveLength(1);
@@ -86,35 +86,35 @@ describe('generateDueEntries', () => {
 
   it('creates once when run twice', async () => {
     f.add();
-    await generateDueEntries(f.store, f.entryStore, NOW);
-    await generateDueEntries(f.store, f.entryStore, NOW);
+    await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
+    await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
     expect(f.entries).toHaveLength(1);
   });
 
   it('voids its draft when another run claims the date first', async () => {
     f.add();
     f.store.recordRun = async () => false;
-    await generateDueEntries(f.store, f.entryStore, NOW);
+    await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
     expect(f.entries).toHaveLength(0);
   });
 
   it('skips a date that already has a run', async () => {
     const template = f.add();
     f.runs.push({ templateId: template.id, runDate: '2026-10-01', transactionId: id(1) });
-    await generateDueEntries(f.store, f.entryStore, NOW);
+    await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
     expect(f.entries).toHaveLength(0);
   });
 
   it('keeps month-end days across short months', async () => {
     const template = f.add({ nextDate: '2026-08-31', anchorDay: 31 });
-    await generateDueEntries(f.store, f.entryStore, NOW);
+    await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
     expect(f.entries.map((entry) => entry.date)).toEqual(['2026-08-31', '2026-09-30']);
     expect(template.nextDate).toBe('2026-10-31');
   });
 
   it('skips paused templates', async () => {
     f.add({ paused: true });
-    await generateDueEntries(f.store, f.entryStore, NOW);
+    await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
     expect(f.entries).toHaveLength(0);
   });
 
@@ -123,7 +123,7 @@ describe('generateDueEntries', () => {
     const stuck = f.add({ nextDate: '2026-09-15' });
     const open = f.add({ nextDate: '2026-10-05', anchorDay: 5 });
     f.lock('2026-09-01', '2026-09-30');
-    const result = await generateDueEntries(f.store, f.entryStore, NOW);
+    const result = await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
     expect(stuck.nextDate).toBe('2026-09-15');
     expect(open.nextDate).toBe('2026-11-05');
     expect(result.skipped).toBeGreaterThanOrEqual(1);

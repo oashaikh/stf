@@ -136,7 +136,26 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await captureEvidence(page, 'vat-preview');
     }
   });
-  await step('reports', openPage('/reports', 'Reports'));
+  await step('reports', async () => {
+    await openPage('/reports', 'Reports')();
+    if (evidenceDir) {
+      await captureEvidence(page, 'reports');
+      // Test error state: set a date range that exceeds the limit (400 days)
+      const fromInput = page.getByLabel('From');
+      const toInput = page.getByLabel('To');
+      const originalFrom = await fromInput.inputValue();
+      const originalTo = await toInput.inputValue();
+      // Set a range that will exceed EXPORT_MAX_RANGE_DAYS (366)
+      await fromInput.fill('2025-01-01');
+      await toInput.fill('2026-02-01');
+      await page.getByRole('button', { name: 'Download CSV' }).click();
+      await expect(page.getByRole('alert')).toBeVisible();
+      await captureEvidence(page, 'reports-error');
+      // Restore original values
+      await fromInput.fill(originalFrom);
+      await toInput.fill(originalTo);
+    }
+  });
   await step('settings', openPage('/settings', 'Settings'));
 });
 }

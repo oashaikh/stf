@@ -151,6 +151,27 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await captureEvidence(page, 'vat-preview');
     }
   });
+  await step('reports', async () => {
+    await openPage('/reports', 'Reports')();
+    if (evidenceDir) {
+      await captureEvidence(page, 'reports');
+      // Test error state: set a date range that exceeds the limit (400 days)
+      await page.getByLabel('Period').selectOption('custom');
+      const fromInput = page.getByLabel('From', { exact: true });
+      const toInput = page.getByLabel('To', { exact: true });
+      const originalFrom = await fromInput.inputValue();
+      const originalTo = await toInput.inputValue();
+      // Set a range that will exceed EXPORT_MAX_RANGE_DAYS (366)
+      await fromInput.fill('2025-01-01');
+      await toInput.fill('2026-02-01');
+      await page.getByRole('button', { name: 'Download entries CSV' }).click();
+      await expect(page.getByRole('alert').filter({ hasText: 'too much to export' })).toBeVisible();
+      await captureEvidence(page, 'reports-error');
+      // Restore original values
+      await fromInput.fill(originalFrom);
+      await toInput.fill(originalTo);
+    }
+  });
   await step('settings', openPage('/settings', 'Settings'));
 });
 }
@@ -163,8 +184,11 @@ async function captureEvidence(page: Page, name: string) {
   const original = page.viewportSize()!;
   for (const width of evidenceWidths) {
     await page.setViewportSize({ width, height: 900 });
-    // Fixed chrome would be drawn mid-page in a full-page capture and hide content.
-    const hideChrome = await page.addStyleTag({ content: 'header, nav { position: static !important; }' });
+    // Fixed chrome would be drawn mid-page in a full-page capture and hide content. Static alone would put the phone
+    // bottom bar inside the header row and widen the page past the viewport, so the header wraps and the bar takes its own row.
+    const hideChrome = await page.addStyleTag({
+      content: 'header, nav { position: static !important; } header { flex-wrap: wrap; } nav[aria-label="Main"] { width: 100%; }',
+    });
     await page.screenshot({ path: path.join(evidenceDir, `${width}-light-${name}.png`), fullPage: true });
     await hideChrome.evaluate((node) => node.remove());
   }

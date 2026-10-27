@@ -106,6 +106,18 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await page.evaluate(() => fetch('/api/entries?id=entry-1', { method: 'PATCH', body: JSON.stringify({ status: 'confirmed' }) }));
     });
   }
+  // Mocked only: the mock's open obligation is past due, so the reminder card shows; a deployed run depends on the owner's real obligations.
+  if (mocked && mockVatState !== 'none') {
+    await step('dashboard-vat-reminder', async () => {
+      await page.goto('/dashboard');
+      const card = page.getByRole('heading', { name: 'Upcoming VAT return' }).locator('xpath=ancestor::section[1]');
+      await expect(card.getByText('7 Aug 2026')).toBeVisible();
+      await expect(card.getByText('Box 5: net VAT to pay')).toBeVisible();
+      await captureEvidence(page, 'dashboard-vat-reminder');
+      await card.getByRole('link', { name: 'Review VAT return' }).click();
+      await expect(page).toHaveURL(/\/vat$/);
+    });
+  }
   await step('vat-obligations', openPage('/vat', 'VAT Returns'));
   // The entry's figures are only checked where the mocked return is confirmed and still open, so the preview is reachable.
   const checkFigures = mockVatState === 'confirmed';

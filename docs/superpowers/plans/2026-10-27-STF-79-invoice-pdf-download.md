@@ -109,7 +109,7 @@ Also depends on:
   - Risk: Default tier.
   - Commit: `e9a9a230a127`
 
-- [ ] **Task 6: Review evidence: sample PDF and screenshots at 390 and 1440 px** (after 4, 5)
+- [x] **Task 6: Review evidence: sample PDF and screenshots at 390 and 1440 px** (after 4, 5)
   - Intent: Produce the PR evidence. (a) Render one sample PDF from invented fixture data (a VAT-registered owner with mixed 20% and 0% lines) with the real template and save it under browser-evidence/STF-79/ as invoice-sample.pdf (invented data only/). (b) Using the Playwright mock journey (npm run test:journey:mock, no live services), capture the changed screen, the invoice view with the Download PDF button, at 1440 and 390 px; light only if there is no dark theme (check). Save as browser-evidence/STF-79/*.png following the existing STF-78 folder naming. Confirm no horizontal scroll at 1440 and that the button wraps cleanly at 390. List the files in the PR body so they can be attached. If a Playwright browser is unavailable in the sandbox, say so plainly rather than faking screenshots.
   - Files: `browser-evidence/STF-79/invoice-sample.pdf`, `browser-evidence/STF-79/invoice-view-1440.png`, `browser-evidence/STF-79/invoice-view-390.png`, `e2e/journey.spec.ts`
   - Acceptance criteria the planner set:
@@ -118,3 +118,4 @@ Also depends on:
     - No real customer data in any evidence file
     - lint, typecheck, test, build pass
   - Risk: Default tier.
+  - Commit: `fbbaeb6e70d6`

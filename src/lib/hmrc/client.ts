@@ -196,6 +196,75 @@ export async function listItsSelfEmploymentBusinesses(
   );
 }
 
+export type ItsObligationStatus = 'Open' | 'Fulfilled';
+
+export type ItsObligationDetail = {
+  periodStartDate: string; // YYYY-MM-DD
+  periodEndDate: string;
+  dueDate: string;
+  status: ItsObligationStatus;
+  receivedDate?: string;
+};
+
+export type ItsIncomeAndExpenditureObligations = {
+  obligations: {
+    typeOfBusiness: string;
+    businessId: string;
+    obligationDetails: ItsObligationDetail[];
+  }[];
+};
+
+export type ItsFinalDeclarationObligations = { obligations: ItsObligationDetail[] };
+
+// The Obligations API is only served at version 3.0, unlike the 1.0 default.
+const ITS_OBLIGATIONS_HEADERS = { Accept: 'application/vnd.hmrc.3.0+json' };
+
+const itsObligationsPath = (nino: string, kind: 'income-and-expenditure' | 'crystallisation') =>
+  `/obligations/details/${encodeURIComponent(nino)}/${kind}`;
+
+/** Quarterly update obligations for one self-employment business. */
+export async function getItsIncomeAndExpenditureObligations(
+  nino: string,
+  businessId: string,
+  fromDate: string,
+  toDate: string,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+  status?: ItsObligationStatus,
+): Promise<ItsIncomeAndExpenditureObligations> {
+  const query = new URLSearchParams({ typeOfBusiness: 'self-employment', businessId, fromDate, toDate });
+  if (status) query.set('status', status);
+  return hmrcFetch(
+    `${itsObligationsPath(nino, 'income-and-expenditure')}?${query}`,
+    accessToken,
+    fraudHeaders,
+    { headers: ITS_OBLIGATIONS_HEADERS },
+    fetchFn,
+  );
+}
+
+/** Final declaration (crystallisation) obligations; these are per taxpayer, not per business. */
+export async function getItsFinalDeclarationObligations(
+  nino: string,
+  fromDate: string,
+  toDate: string,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+  status?: ItsObligationStatus,
+): Promise<ItsFinalDeclarationObligations> {
+  const query = new URLSearchParams({ fromDate, toDate });
+  if (status) query.set('status', status);
+  return hmrcFetch(
+    `${itsObligationsPath(nino, 'crystallisation')}?${query}`,
+    accessToken,
+    fraudHeaders,
+    { headers: ITS_OBLIGATIONS_HEADERS },
+    fetchFn,
+  );
+}
+
 // ─── OAuth helpers (called server-side only) ──────────────────────────────────
 
 const HMRC_VAT_SCOPE = 'read:vat write:vat';

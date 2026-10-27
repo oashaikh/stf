@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildHmrcAuthUrl,
   exchangeAuthCode,
+  getItsFinalDeclarationObligations,
+  getItsIncomeAndExpenditureObligations,
   getVatObligations,
   HmrcError,
   refreshAccessToken,
@@ -9,6 +11,7 @@ import {
   withHmrcToken,
   type HmrcTokenSet,
 } from './client';
+import itsObligations from './fixtures/itsObligations.json';
 
 const NOW = 1_700_000_000_000;
 
@@ -126,6 +129,69 @@ describe('getVatObligations', () => {
     );
     expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
     expect(init.headers.Authorization).toBe('Bearer tok');
+  });
+});
+
+describe('ITSA obligations', () => {
+  const fraud = { 'Gov-Client-Timezone': 'UTC+00:00' };
+  const nino = 'AA123456A';
+
+  it('asks for self-employment quarterly updates with Accept 3.0 and fraud headers', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, itsObligations.incomeAndExpenditure));
+    const result = await getItsIncomeAndExpenditureObligations(
+      nino, 'XAIS12345678901', '2026-04-06', '2027-04-05', 'tok', fraud, fetchFn,
+    );
+    const [url, init] = fetchFn.mock.calls[0];
+    const parsed = new URL(url);
+    expect(parsed.origin + parsed.pathname).toBe(
+      'https://test-api.service.hmrc.gov.uk/obligations/details/AA123456A/income-and-expenditure',
+    );
+    expect(Object.fromEntries(parsed.searchParams)).toEqual({
+      typeOfBusiness: 'self-employment',
+      businessId: 'XAIS12345678901',
+      fromDate: '2026-04-06',
+      toDate: '2027-04-05',
+    });
+    expect(init.headers.Accept).toBe('application/vnd.hmrc.3.0+json');
+    expect(init.headers.Authorization).toBe('Bearer tok');
+    expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
+    expect(result.obligations[0].obligationDetails[1].status).toBe('Open');
+  });
+
+  it('passes the status filter on quarterly updates', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { obligations: [] }));
+    await getItsIncomeAndExpenditureObligations(nino, 'B1', '2026-04-06', '2027-04-05', 'tok', fraud, fetchFn, 'Open');
+    expect(new URL(fetchFn.mock.calls[0][0]).searchParams.get('status')).toBe('Open');
+  });
+
+  it('asks for the final declaration with Accept 3.0 and no business id', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, itsObligations.finalDeclaration));
+    const result = await getItsFinalDeclarationObligations(
+      nino, '2026-04-06', '2027-04-05', 'tok', fraud, fetchFn, 'Fulfilled',
+    );
+    const [url, init] = fetchFn.mock.calls[0];
+    const parsed = new URL(url);
+    expect(parsed.pathname).toBe('/obligations/details/AA123456A/crystallisation');
+    expect(Object.fromEntries(parsed.searchParams)).toEqual({
+      fromDate: '2026-04-06',
+      toDate: '2027-04-05',
+      status: 'Fulfilled',
+    });
+    expect(init.headers.Accept).toBe('application/vnd.hmrc.3.0+json');
+    expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
+    expect(result.obligations[0].dueDate).toBe('2028-01-31');
+  });
+
+  it('maps an HMRC error body to HmrcError', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(400, itsObligations.ruleDateRangeInvalid));
+    const error = await getItsFinalDeclarationObligations(nino, '2026-04-06', '2030-04-05', 'tok', fraud, fetchFn)
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(HmrcError);
+    expect((error as HmrcError).apiError).toEqual({
+      code: 'RULE_DATE_RANGE_INVALID',
+      message: 'The date range is invalid',
+      statusCode: 400,
+    });
   });
 });
 

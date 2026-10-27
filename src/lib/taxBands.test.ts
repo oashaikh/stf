@@ -101,3 +101,7 @@ describe.each(Object.keys(TAX_BANDS))('mileage rates %s', (year) => {
     expect(bands.mileageCarThresholdTenths).toBe(100000);
   });
 });
+
+it.each(Object.keys(TAX_BANDS))('%s trading allowance is £1,000', (year) => {
+  expect(TAX_BANDS[year].tradingAllowancePence).toBe(pounds(1000));
+});

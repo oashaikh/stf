@@ -46,6 +46,7 @@ export interface TaxBands {
   mileageCarAfterRate: number;   // pence per mile past the threshold
   mileageMotorcycleRate: number; // pence per mile, flat
   mileageBicycleRate: number;    // pence per mile, flat
+  tradingAllowancePence: number; // HMRC trading allowance, pence/year
 }
 
 export const TAX_BANDS: Record<string, TaxBands> = {
@@ -69,6 +70,7 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     mileageCarAfterRate: 25,
     mileageMotorcycleRate: 24,
     mileageBicycleRate: 20,
+    tradingAllowancePence: 100000, // £1,000
   },
   '2025-26': {
     year: '2025-26',
@@ -90,6 +92,7 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     mileageCarAfterRate: 25,
     mileageMotorcycleRate: 24,
     mileageBicycleRate: 20,
+    tradingAllowancePence: 100000, // £1,000
   },
   '2024-25': {
     year: '2024-25',
@@ -111,6 +114,7 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     mileageCarAfterRate: 25,
     mileageMotorcycleRate: 24,
     mileageBicycleRate: 20,
+    tradingAllowancePence: 100000, // £1,000
   },
 };
 

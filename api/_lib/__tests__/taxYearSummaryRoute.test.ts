@@ -42,9 +42,13 @@ const trip = (over: Partial<StoredTrip>): StoredTrip => ({
   ...over,
 });
 
-function makeStore(trips: StoredTrip[] = []) {
+function makeStore(trips: StoredTrip[] = [], choice?: 'actual' | 'allowance') {
   const asked: string[] = [];
   const store: TaxYearSummaryStore = {
+    async loadChoice(userId, taxYear) {
+      asked.push(`choice:${userId}:${taxYear}`);
+      return choice;
+    },
     async loadLines(userId, period) {
       asked.push(`${userId}:${period.start}..${period.end}`);
       return [line({}), line({ accountId: 'travel', accountType: 'expense', taxCategory: 'travel', amountPence: 5000 })];
@@ -67,9 +71,19 @@ describe('tax year summary route', () => {
     const { store, asked } = makeStore();
     const response = await get(store, '?taxYear=2026-27&userId=someone-else', 'owner_b');
     expect(response.status).toBe(200);
-    expect(asked).toEqual(['owner_b:2026-04-06..2027-04-05', 'trips owner_b:2026-04-06..2027-04-05']);
+    expect(asked).toEqual(['owner_b:2026-04-06..2027-04-05', 'trips owner_b:2026-04-06..2027-04-05', 'choice:owner_b:2026-27']);
     const body = await response.json();
-    expect(body.data).toMatchObject({ turnoverPence: 200000, allowableExpensesPence: 5000, netProfitPence: 195000, uncategorisedAccounts: [] });
+    expect(body.data).toMatchObject({
+      turnoverPence: 200000,
+      allowableExpensesPence: 5000,
+      netProfitPence: 195000,
+      uncategorisedAccounts: [],
+      expenseMethod: 'actual',
+      tradingAllowancePence: 100000,
+      profitWithActualExpensesPence: 195000,
+      profitWithAllowancePence: 100000,
+      lowerProfitMethod: 'allowance',
+    });
   });
 
   it('adds the mileage claim to travel on top of ledger travel and lowers net profit', async () => {
@@ -86,15 +100,17 @@ describe('tax year summary route', () => {
     expect(data.expenseCategories).toEqual([{ taxCategory: 'travel', totalPence: 9500 }]);
   });
 
-  it('still summarises a well-formed year with no mileage rates, without loading trips', async () => {
-    const { store, asked } = makeStore([trip({ date: '2022-07-11' })]);
-    const response = await get(store, '?taxYear=2022-23', 'owner');
-    expect(response.status).toBe(200);
-    expect(asked).toEqual(['owner:2022-04-06..2023-04-05']);
-    expect((await response.json()).data.expenseCategories).toEqual([]);
+  it('uses the trading allowance for net profit when the owner chose it', async () => {
+    const { data } = await (await get(makeStore([], 'allowance').store, '?taxYear=2026-27', 'owner')).json();
+    expect(data).toMatchObject({ expenseMethod: 'allowance', netProfitPence: 100000, allowableExpensesPence: 5000 });
   });
 
-  it.each(['', '?taxYear=2026', '?taxYear=2026-28'])('rejects bad tax year %s without touching the store', async (query) => {
+  it('keeps net profit on actual expenses even when the allowance would be lower, until the owner chooses', async () => {
+    const { data } = await (await get(makeStore().store, '?taxYear=2026-27', 'owner')).json();
+    expect(data).toMatchObject({ expenseMethod: 'actual', lowerProfitMethod: 'allowance', netProfitPence: 195000 });
+  });
+
+  it.each(['', '?taxYear=2026', '?taxYear=2026-28', '?taxYear=2019-20', '?taxYear=2022-23'])('rejects bad tax year %s without touching the store', async (query) => {
     const { store, asked } = makeStore();
     expect((await get(store, query, 'owner')).status).toBe(400);
     expect(asked).toEqual([]);

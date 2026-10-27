@@ -90,7 +90,14 @@
       "idx": 12,
       "version": "6",
       "when": 1792986654124,
-      "tag": "0012_mileage_trips",
+      "tag": "0012_trading_allowance_choices",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1792986655124,
+      "tag": "0013_mileage_trips",
       "breakpoints": true
     }
   ]

@@ -44,7 +44,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Pure schedule maths for recurring templates**
+- [x] **Task 1: Pure schedule maths for recurring templates**
   - Intent: Add src/lib/recurringSchedule.ts with pure functions: nextOccurrence(date, schedule, anchorDay) for monthly/yearly and dueDates(nextDate, schedule, anchorDay, today, cap) returning every ISO date due up to today (bounded by cap) plus the following next date. Month ends clamp to the last day using the stored anchor day so clamping does not drift (31 Jan -> 28/29 Feb -> 31 Mar; 29 Feb yearly -> 28 Feb in non-leap years). String/UTC date maths only, no floats; reuse src/lib/dates.ts helpers where they fit. Tests cover month ends, leap years, year rollover, catch-up of several missed periods and the cap.
   - Files: `src/lib/recurringSchedule.ts`, `src/lib/recurringSchedule.test.ts`
   - Acceptance criteria the planner set:
@@ -53,6 +53,7 @@ Also depends on:
     - dueDates returns every missed date up to today and never more than the cap
     - Functions are pure: no Date.now, no floats
     - npm run lint, typecheck and test pass
+  - Commit: `e72a596e643c`
 
 - [ ] **Task 2: Schema and migration for templates and run ledger**
   - Intent: Add recurring_entry_templates (id, user_id FK, kind income|expense, category_account_id FK accounts, amount_pence integer with CHECK > 0, amount_is gross|net, vat_rate_percent nullable, description, schedule monthly|yearly enum, anchor_day, next_date, paused, created_at, updated_at, deleted_at) and recurring_entry_runs (template_id FK, run_date, transaction_id FK, UNIQUE(template_id, run_date)) so a template can never create the same date twice, even with overlapping cron runs. Indexes: templates (user_id, deleted_at, next_date) for the owner list and (next_date) for the cron scan. Hand-written migration 0015_recurring_entries.sql in the style of 0013 (IF NOT EXISTS, DO blocks), journal idx 15 and 0015 snapshot. STF-77 holds 0014, so do not reuse that prefix; re-check the journal for a single head against main before finishing. Soft delete via deleted_at only. Extend server/src/db/schema.test.ts.

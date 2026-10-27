@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { downloadEntriesCsv } from '../lib/exportApi';
 import { formatPence } from '../lib/money';
 import { profitAndLossPresets, type ProfitAndLossPreset } from '../lib/profitAndLoss';
 import { fetchProfitAndLoss, profitAndLossCsv, type ProfitAndLoss } from '../lib/profitAndLossReport';
@@ -75,6 +76,21 @@ export default function ReportsPage() {
   });
   const data = report.data;
 
+  const [exportPending, setExportPending] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  async function downloadEntries() {
+    setExportError(null);
+    setExportPending(true);
+    try {
+      await downloadEntriesCsv(range.start, range.end);
+    } catch (failure) {
+      setExportError(failure instanceof Error ? failure.message : 'Could not export entries');
+    } finally {
+      setExportPending(false);
+    }
+  }
+
   return (
     <main className="p-4 md:p-8">
       <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
@@ -136,6 +152,24 @@ export default function ReportsPage() {
           </div>
         </>
       )}
+
+      <section className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
+        <h2 className="text-sm font-medium text-gray-700">Export entries</h2>
+        <p className="text-xs text-gray-600">All entries and their lines in the chosen period, excluding voided ones, as a CSV file.</p>
+        <button
+          type="button"
+          onClick={downloadEntries}
+          disabled={!rangeValid || exportPending}
+          className="mt-3 inline-flex min-h-11 items-center rounded bg-blue-800 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-800 focus:ring-offset-2 disabled:opacity-60"
+        >
+          {exportPending ? 'Downloading...' : 'Download entries CSV'}
+        </button>
+        {exportError && (
+          <p role="alert" className="mt-3 text-sm font-medium text-red-800">
+            Error: {exportError}
+          </p>
+        )}
+      </section>
     </main>
   );
 }

@@ -425,7 +425,8 @@ export const databaseInvoiceStore: InvoiceStore = {
       .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId)))
       .limit(1);
     if (!header) return undefined;
-    return { ...header, lines: await readLines(db, invoiceId) };
+    const today = new Date().toISOString().slice(0, 10);
+    return { ...header, status: deriveInvoiceStatus(header.status, header.dueDate, today), lines: await readLines(db, invoiceId) };
   },
 
   async list(userId, status, after, limit) {

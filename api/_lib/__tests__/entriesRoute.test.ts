@@ -29,6 +29,7 @@ describe('entries route', () => {
   let saved: Array<Entry & { userId: string; voidedAt?: Date }>;
   let lockedPeriods: Array<{ start: string; end: string }>;
   let audits: string[];
+  let invoicePostingIds: string[];
   const accountTypes: Record<string, 'income' | 'expense'> = { [SALES]: 'income', [TRAVEL]: 'expense', [ARCHIVED]: 'expense', [OTHER_OWNERS]: 'expense' };
   const store: EntryStore = {
     async loadPostingContext(_userId, categoryAccountId): Promise<PostingContext> {
@@ -53,6 +54,9 @@ describe('entries route', () => {
     },
     async isDateLocked(_userId, date) {
       return lockedPeriods.some((period) => date >= period.start && date <= period.end);
+    },
+    async isInvoicePosting(_userId, entryId) {
+      return invoicePostingIds.includes(entryId);
     },
     async replace(userId, entryId, header, lines) {
       const old = saved.find((entry) => entry.userId === userId && entry.id === entryId && !entry.voidedAt);
@@ -104,6 +108,7 @@ describe('entries route', () => {
     saved = [];
     audits = [];
     lockedPeriods = [];
+    invoicePostingIds = [];
   });
 
   it('lists only the signed-in owner\'s entries, newest first', async () => {
@@ -269,6 +274,18 @@ describe('entries route', () => {
       const again = await call('PATCH', { status: 'confirmed' }, 'owner', q(draft.id));
       expect(again.status).toBe(409);
       expect((await again.json()).code).toBe('NOT_DRAFT');
+    });
+
+    it('refuses to edit or void a posting that belongs to an invoice', async () => {
+      const posting = await create(valid);
+      invoicePostingIds = [posting.id];
+      const attempts = [await call('PUT', valid, 'owner', q(posting.id)), await call('DELETE', undefined, 'owner', q(posting.id))];
+      for (const response of attempts) {
+        expect(response.status).toBe(409);
+        expect((await response.json()).code).toBe('INVOICE_POSTING');
+      }
+      expect(saved).toHaveLength(1);
+      expect(saved[0].voidedAt).toBeUndefined();
     });
 
     it('refuses to create, edit, void or confirm inside a locked period, and again for a new date', async () => {

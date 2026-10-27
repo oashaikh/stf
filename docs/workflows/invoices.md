@@ -32,9 +32,9 @@ Action:
 - Locks the invoice from further editing.
 - Sets status to `sent`.
 - Posts one transaction dated the **issue date** with posting lines per VAT rate:
-  - **Income**: one line per VAT rate group, credited from the Sales account, debit to Trade Debtors. VAT (if any) is attached to the income line.
-  - **VAT control**: one line per VAT rate if VAT > 0, crediting the VAT Control account (a liability). VAT is not attached to control lines.
-  - **Debtors**: one line to Trade Debtors for the gross total, debit.
+  - **Income**: one credit line per VAT rate group, net of VAT, carrying that rate's VAT amount.
+  - **VAT control**: one credit line per VAT rate with VAT > 0, crediting the VAT Control account (a liability).
+  - **Debtors**: one debit line to Trade Debtors for the gross total.
 - Links the invoice to its posting via `invoices.transaction_id`.
 - Audit event: `invoice.issue` with `transactionId`.
 
@@ -58,7 +58,7 @@ Action:
 Errors:
 - 404 if the invoice does not belong to the owner.
 - 409 if the invoice is not in `sent` status.
-- 400 if the payment date is before the issue date or more than 730 days ahead.
+- 400 if the payment date is before the issue date or more than 7 days ahead.
 - 409 `PERIOD_LOCKED` if the payment date falls inside a confirmed or filed VAT period.
 
 ## Void

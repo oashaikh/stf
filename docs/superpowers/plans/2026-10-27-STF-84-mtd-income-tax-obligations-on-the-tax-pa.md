@@ -39,7 +39,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: HMRC client: ITSA obligations calls plus recorded sandbox fixtures**
+- [x] **Task 1: HMRC client: ITSA obligations calls plus recorded sandbox fixtures**
   - Intent: Add getItsIncomeAndExpenditureObligations(nino, businessId, fromDate, toDate, status?, ...) and getItsFinalDeclarationObligations(nino, fromDate, toDate, status?, ...) to src/lib/hmrc/client.ts, built on hmrcFetch like getVatObligations. Paths: /obligations/details/{nino}/income-and-expenditure (typeOfBusiness=self-employment, businessId) and /obligations/details/{nino}/crystallisation. The Obligations API needs Accept version 3.0, so pass it via options.headers (hmrcFetch lets options.headers override HMRC_JSON_HEADERS). Export response types (period start/end, due, status Open/Fulfilled, received). Check client.test.ts with a fake fetchFn and recorded sandbox response fixtures (invented NINO/ids, no real data): URL, query, headers incl. fraud headers, status filter, error mapping to HmrcError.
   - Files: `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`, `src/lib/hmrc/fixtures/itsObligations.json`
   - Acceptance criteria the planner set:
@@ -47,6 +47,7 @@ Also depends on:
     - Tests assert path, query string, Accept 3.0 header and fraud headers on the fake fetch
     - Tests use recorded-shape fixtures with invented identifiers
     - npm run typecheck and npm test pass
+  - Commit: `8ddfe98825d1`
 
 - [ ] **Task 2: Store last known obligations per user (migration, schema, store methods)**
   - Intent: Persist the last successful obligations result so the route can serve it when HMRC fails. Add a new table (user_id + tax_year key, jsonb payload, fetched_at) in migration 0018 parented on 0017_hmrc_its_business (single head, update drizzle meta journal), the drizzle schema entry, and HmrcStore methods saveItsObligations/lastItsObligations scoped to the caller's user id. Owner-scoped queries, primary-key index, bounded result (two tax years). Include any role grants the existing migrations use. Register the query for the query audit if the repo has one. Test the store against the existing fake/in-memory store pattern, including a second user being unable to read the first user's row. Stored data is financial dates only, no NINO; state retention (replaced on each fetch, deleted with the user).

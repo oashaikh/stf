@@ -116,7 +116,7 @@ Milestone checklist:
 
 Milestone checklist:
 - [ ] Email receipt ingestion (forward receipts to a unique address)
-- [ ] Recurring transaction templates
+- [x] Recurring transaction templates
 - [ ] Mileage log (HMRC approved mileage rates)
 - [ ] AI anomaly detection (unusual amounts, duplicate receipts)
 - [ ] Automated VAT return draft (scheduled, requires user approval before submit)
@@ -198,6 +198,16 @@ Set aside: £X,XXX (suggested 30% of profit)
 Income tax and Class 4 NIC bands, rates and allowances live in `src/lib/taxBands.ts`, keyed by tax year. Do not copy the figures into docs.
 
 Never hard-code band values in components.
+
+### Recurring transaction templates
+
+**Workflow:** `docs/workflows/recurring-entries.md`
+
+Templates for regular income and costs — rent, subscriptions, salaries — that create draft entries on a schedule. The owner confirms entries from the Expenses list; nothing is auto-confirmed.
+
+A cron job (daily, 5 AM UTC) scans due templates and generates drafts through the posting function. A template never creates the same date twice: a run ledger with a unique key on (template, date) ensures idempotency even with overlapping runs. A date that falls inside a locked VAT period is skipped without aborting the whole run.
+
+Month-end dates clamp to the stored anchor day, so a 31st template goes 31 Jan → 28/29 Feb → 31 Mar, never drifting to the 28th.
 
 ---
 

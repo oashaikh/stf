@@ -78,7 +78,7 @@ Also depends on:
   - Risk: Authorisation, per-owner isolation and idempotency on financial records.
   - Commit: `9c54f4dc78f2`
 
-- [ ] **Task 4: Cron route for recurring entries** (after 3)
+- [x] **Task 4: Cron route for recurring entries** (after 3)
   - Intent: Add api/cron/create-recurring-entries.ts mirroring refresh-hmrc-tokens.ts: fail closed without CRON_SECRET, timing-safe bearer check, runs generateDueEntries, logs counts only, non-2xx on total failure. Register a daily cron and maxDuration in vercel.json. CRON_SECRET already exists in .env.example, so no new env var. Tests mirror api/cron/__tests__/refresh-hmrc-tokens.test.ts (401 without or with a wrong secret, 200 and counts on success, 500 on failure).
   - Files: `api/cron/create-recurring-entries.ts`, `api/cron/__tests__/create-recurring-entries.test.ts`, `vercel.json`
   - Acceptance criteria the planner set:
@@ -86,6 +86,7 @@ Also depends on:
     - Logs carry counts only, no description text or ids of people
     - vercel.json has a daily schedule for the new path
     - npm run lint, typecheck and test pass
+  - Commit: `d282aa1b272e`
 
 - [ ] **Task 5: Manage templates on the Expenses page** (after 3)
   - Intent: Add src/lib/recurringEntriesApi.ts (react-query client in the style of mileageApi.ts, money via parsePence/formatPence) and a RecurringEntriesSection child component rendered from src/pages/ExpensesPage.tsx above EntriesList: list templates (kind, description, amount, schedule, next date, paused), add/edit form (kind, category, amount, VAT rate only when the business has a VAT number, description, schedule, first date), pause/resume, and delete with a confirmation naming the template. Use shared loading/empty/error components, page container and tokens (), 44px targets, table collapsing to labelled rows on phones with money right-aligned. Generated drafts appear in the existing EntriesList and are confirmed there, no new confirm flow. Component and page tests with the API client mocked; extend e2e/mockApi.ts for the new route and add a journey step. Capture screenshots of the Expenses page with templates at 1440 and 390 px (light, plus dark if themes exist) into browser-evidence/ per the operator naming (STF-48-*-light-*.png).

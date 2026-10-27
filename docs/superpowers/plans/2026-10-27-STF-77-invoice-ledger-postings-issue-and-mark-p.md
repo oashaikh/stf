@@ -28,7 +28,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Add invoices.payment_transaction_id column and migration**
+- [x] **Task 1: Add invoices.payment_transaction_id column and migration**
   - Intent: Add a nullable uuid column payment_transaction_id (FK to transactions.id) to invoices in server/src/db/schema.ts, with the next Drizzle migration, journal entry and snapshot. Use prefix 0014_invoice_payment_transaction (0011 exists; 0011/0012 are reserved by the STF-49/STF-31 plans). Parent on current head so the journal keeps one head. Extend schema.test.ts to assert the column. The existing transaction_id column links the issue transaction. No new index: the column is only read through the invoice row.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0014_invoice_payment_transaction.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0014_snapshot.json`
   - Acceptance criteria the planner set:
@@ -37,6 +37,7 @@
     - schema.test.ts asserts invoices has transactionId and paymentTransactionId
     - npm run typecheck and npm test pass
   - Risk: Opus/high: schema migration work; journal is a likely merge-conflict point with STF-31 and STF-49, re-check against base before finishing.
+  - Commit: `5855784b364f`
 
 - [ ] **Task 2: Pure invoice posting functions (issue and payment) with VAT box tests**
   - Intent: Add src/lib/invoicePostings.ts with two pure integer-pence functions. postInvoiceIssue groups invoice lines by VAT rate and returns balanced ledger lines: one income category line per rate (credit, carrying vat_pence), one VAT control line per rate with VAT, and a single trade debtors debit for the gross. Reuse postEntry (the STF-64 function, settleAgainst 'debtors') per rate group where it gives the same result; per-line rounded VAT from invoiceMaths must sum exactly to the header vat_pence/total_pence, so if postEntry's vatOnNet on the group net could differ by a penny, build from stored line totals and assert equality. postInvoicePayment returns debit bank, credit trade debtors for total_pence, no VAT or category lines. Tests (src/lib/invoicePostings.test.ts) feed lines to buildVatReturnFromLedger from src/lib/vat.ts: issue gives right box 1 and box 6 for the issue-date period; mixed 0/5/20 gives one category line per rate; payment lines leave all nine boxes unchanged; every posting sums to zero.

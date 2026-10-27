@@ -1,4 +1,4 @@
-import { getTaxBands } from './taxBands';
+import { getTaxBands } from './taxBands.js';
 
 export interface ExpenseMethodComparison {
   actualProfitPence: number;     // income - expenses; negative is a loss

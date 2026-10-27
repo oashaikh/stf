@@ -1,5 +1,6 @@
 import type { DatePeriod } from './dashboardSummary.js';
 import type { ProfitLossLine } from './profitAndLoss.js';
+import type { ExpenseMethodComparison } from './tradingAllowance.js';
 import { contributesToReturn } from './vat.js';
 
 export interface TaxYearLine extends ProfitLossLine {
@@ -18,7 +19,8 @@ export interface UncategorisedAccount {
   totalPence: number;
 }
 
-export interface TaxYearSummary extends DatePeriod {
+/** The pure build: profit with actual expenses only. getTaxYearSummary adds the chosen method on top. */
+export interface ActualExpensesSummary extends DatePeriod {
   turnoverPence: number;
   otherIncomePence: number;
   expenseCategories: ExpenseCategoryTotal[];
@@ -29,6 +31,23 @@ export interface TaxYearSummary extends DatePeriod {
   /** Accounts with no usable tax category. Left out of every figure above until the owner fixes them. */
   uncategorisedAccounts: UncategorisedAccount[];
 }
+
+export interface TaxYearSummary extends ActualExpensesSummary {
+  /** The owner's stored choice for the year; 'actual' until they pick. netProfitPence follows it. */
+  expenseMethod: ExpenseMethod;
+  tradingAllowancePence: number;
+  profitWithActualExpensesPence: number;
+  profitWithAllowancePence: number;
+  lowerProfitMethod: ExpenseMethodComparison['lowerProfitMethod'];
+}
+
+export type ExpenseMethod = ExpenseMethodComparison['lowerProfitMethod'];
+
+/** 6 April 2026 starts '2026-27'. Inverse of taxYearPeriod for a period it produced. */
+export const taxYearLabel = (period: DatePeriod): string => {
+  const startYear = Number(period.start.slice(0, 4));
+  return `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
+};
 
 /** '2026-27' becomes 6 April 2026 to 5 April 2027. Null when the label is not a consecutive pair of years. */
 export function taxYearPeriod(taxYear: string): DatePeriod | null {
@@ -44,7 +63,7 @@ export function taxYearPeriod(taxYear: string): DatePeriod | null {
  * profit and loss. Dates are the transaction dates, so this is the cash or accruals answer the
  * owner's posting dates give; it does not re-date invoices.
  */
-export function buildTaxYearSummary(lines: TaxYearLine[], period: DatePeriod): TaxYearSummary {
+export function buildTaxYearSummary(lines: TaxYearLine[], period: DatePeriod): ActualExpensesSummary {
   let turnoverPence = 0;
   let otherIncomePence = 0;
   let disallowableExpensesPence = 0;

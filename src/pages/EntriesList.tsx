@@ -10,6 +10,7 @@ import {
   taxYearRange,
   vatQuarterRange,
   type EntryFilters,
+  entryFiltersFromParams,
 } from "../lib/entryFilters";
 import { formatPence } from "../lib/money";
 import { useVatObligations } from "./useVatObligations";
@@ -154,12 +155,10 @@ export default function EntriesList({
 }: {
   onEdit: (entry: ApiEntry) => void;
 }) {
-  // The dashboard links here with ?status=draft to show the drafts waiting for confirmation.
+  // The dashboard links here with ?status=draft, and the reports page with a date range and category.
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<EntryFilters>(() =>
-    searchParams.get("status") === "draft"
-      ? { ...DEFAULT_ENTRY_FILTERS, status: "draft" }
-      : DEFAULT_ENTRY_FILTERS,
+    entryFiltersFromParams(searchParams),
   );
   // The API refuses a range that ends before it starts, so wait until the dates make sense.
   const rangeReversed = Boolean(

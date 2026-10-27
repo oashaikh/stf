@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_ENTRY_FILTERS, taxYearRange, toEntryListParams, vatQuarterRange } from './entryFilters';
+import { DEFAULT_ENTRY_FILTERS, entryFiltersFromParams, taxYearRange, toEntryListParams, vatQuarterRange } from './entryFilters';
 
 const obligation = (start: string, end: string) => ({ periodKey: start, start, end, due: end, status: 'O' as const, overdue: false });
 
@@ -41,5 +41,21 @@ describe('vatQuarterRange', () => {
 
   it('returns undefined when no obligation contains today', () => {
     expect(vatQuarterRange(obligations, '2027-01-01')).toBeUndefined();
+  });
+});
+
+describe('entryFiltersFromParams', () => {
+  it('reads the range, category and draft status from a link', () => {
+    expect(entryFiltersFromParams(new URLSearchParams('from=2026-04-06&to=2027-04-05&categoryAccountId=a2&status=draft'))).toEqual({
+      ...DEFAULT_ENTRY_FILTERS,
+      from: '2026-04-06',
+      to: '2027-04-05',
+      categoryAccountId: 'a2',
+      status: 'draft',
+    });
+  });
+
+  it('ignores malformed dates and unknown statuses', () => {
+    expect(entryFiltersFromParams(new URLSearchParams('from=yesterday&to=2027-4-5&status=void'))).toEqual(DEFAULT_ENTRY_FILTERS);
   });
 });

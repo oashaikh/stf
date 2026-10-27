@@ -19,6 +19,21 @@ export const DEFAULT_ENTRY_FILTERS: EntryFilters = {
   search: '',
 };
 
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Starting filters from links such as the dashboard's ?status=draft and the report's category links. */
+export function entryFiltersFromParams(params: URLSearchParams): EntryFilters {
+  const from = params.get('from') ?? '';
+  const to = params.get('to') ?? '';
+  return {
+    ...DEFAULT_ENTRY_FILTERS,
+    from: ISO_DAY.test(from) ? from : '',
+    to: ISO_DAY.test(to) ? to : '',
+    categoryAccountId: params.get('categoryAccountId') ?? '',
+    status: params.get('status') === 'draft' ? 'draft' : '',
+  };
+}
+
 /** Query parameters for GET /api/entries; filters left at their defaults are omitted. */
 export function toEntryListParams(filters: EntryFilters, cursor?: string): URLSearchParams {
   const params = new URLSearchParams();

@@ -33,6 +33,31 @@ export function toEntryListParams(filters: EntryFilters, cursor?: string): URLSe
   return params;
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Inverse of toEntryListParams for the page URL; values the API would refuse fall back to the default. */
+export function filtersFromParams(params: URLSearchParams): EntryFilters {
+  const date = (name: string) => {
+    const value = params.get(name) ?? '';
+    return ISO_DATE.test(value) ? value : '';
+  };
+  const kind = params.get('kind');
+  const status = params.get('status');
+  return {
+    from: date('from'),
+    to: date('to'),
+    kind: kind === 'income' || kind === 'expense' ? kind : 'both',
+    categoryAccountId: params.get('categoryAccountId') ?? '',
+    status: status === 'draft' || status === 'confirmed' ? status : '',
+    search: (params.get('search') ?? '').slice(0, 100),
+  };
+}
+
+/** Filters behind the phone Filters button: the date range counts once, search has its own box. */
+export function activeFilterCount(filters: EntryFilters): number {
+  return [filters.from || filters.to, filters.kind !== 'both', filters.categoryAccountId, filters.status].filter(Boolean).length;
+}
+
 /** First and last day of a tax year string such as "2026-27": 6 April to the following 5 April. */
 export function taxYearRange(taxYear: string = currentTaxYear()): { from: string; to: string } {
   const startYear = Number(taxYear.slice(0, 4));

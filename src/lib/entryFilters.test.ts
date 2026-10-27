@@ -44,6 +44,22 @@ describe('vatQuarterRange', () => {
   });
 });
 
+describe('filtersFromParams', () => {
+  it('reads the range, category and draft status from a link', () => {
+    expect(filtersFromParams(new URLSearchParams('from=2026-04-06&to=2027-04-05&categoryAccountId=a2&status=draft'))).toEqual({
+      ...DEFAULT_ENTRY_FILTERS,
+      from: '2026-04-06',
+      to: '2027-04-05',
+      categoryAccountId: 'a2',
+      status: 'draft',
+    });
+  });
+
+  it('ignores malformed dates and unknown statuses', () => {
+    expect(filtersFromParams(new URLSearchParams('from=yesterday&to=2027-4-5&status=void'))).toEqual(DEFAULT_ENTRY_FILTERS);
+  });
+});
+
 describe('entry filters in the page URL', () => {
   it('round-trips every filter through the query string', () => {
     const filters: EntryFilters = {

@@ -72,7 +72,7 @@ Also depends on:
     - npm run lint, typecheck, test, build pass
   - Commit: `9a810d748c94`
 
-- [ ] **Task 3: Capture screenshots and document the export** (after 2)
+- [x] **Task 3: Capture screenshots and document the export** (after 2)
   - Intent: Run the e2e journey (or the existing screenshot approach used for browser-evidence/STF-70) against the mocked API and save screenshots of the Reports page (default state and refused-range error state) at 390 and 1440 px, light theme, as browser-evidence/STF-81/<width>-light-<step>.png, e.g. 390-light-reports.png, 1440-light-reports.png, 390-light-reports-error.png, 1440-light-reports-error.png. Check no sideways scroll at 390 and 1440. Add a short docs/workflows/csv-export.md describing the route, columns, range and row limits, what is included (drafts shown with status, voided excluded) and that the file holds financial data the owner should store safely. Screenshots must show invented records only. If Playwright cannot run in the sandbox, say so plainly and let the orchestrator capture them.
   - Files: `browser-evidence/STF-81/390-light-reports.png`, `browser-evidence/STF-81/1440-light-reports.png`, `browser-evidence/STF-81/390-light-reports-error.png`, `browser-evidence/STF-81/1440-light-reports-error.png`, `docs/workflows/csv-export.md`, `e2e/journey.spec.ts`
   - Acceptance criteria the planner set:
@@ -80,3 +80,4 @@ Also depends on:
     - docs/workflows/csv-export.md states the date-range and row limits and the inclusion rule
     - No real data in screenshots or docs; no machine paths or job ids
     - npm run lint, typecheck, test, build pass
+  - Commit: `16ec6fd0b891`

@@ -164,7 +164,7 @@ function computeLines(body: DraftInvoiceBody, ownerHasVatNumber: boolean) {
 }
 
 async function readLines(tx: Pick<typeof db, 'select'>, invoiceId: string): Promise<InvoiceLine[]> {
-  return tx.select(lineColumns).from(invoiceLines).where(eq(invoiceLines.invoiceId, invoiceId)).limit(INVOICE_MAX_LINES);
+  return tx.select(lineColumns).from(invoiceLines).where(and(eq(invoiceLines.invoiceId, invoiceId), isNull(invoiceLines.deletedAt))).limit(INVOICE_MAX_LINES);
 }
 
 async function lockOwnedDraft(tx: Transaction, userId: string, invoiceId: string) {
@@ -234,9 +234,11 @@ export const databaseInvoiceStore: InvoiceStore = {
       const [owner] = await tx.select({ vatNumber: users.vatNumber }).from(users).where(eq(users.id, userId)).limit(1);
       const { lines, totals } = computeLines(body, Boolean(owner?.vatNumber));
 
-      // ponytail: draft lines are replaced by delete + insert because invoice_lines has no deleted_at; the
-      // before/after audit totals keep the history. Upgrade path: add deleted_at to lines if drafts need line history.
-      await tx.delete(invoiceLines).where(eq(invoiceLines.invoiceId, invoiceId));
+      // Replaced lines are soft-deleted, not removed, so the previous line content stays on record.
+      await tx
+        .update(invoiceLines)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(invoiceLines.invoiceId, invoiceId), isNull(invoiceLines.deletedAt)));
       const savedLines = await tx.insert(invoiceLines).values(lines.map((line) => ({ ...line, invoiceId }))).returning(lineColumns);
       // public_number is deliberately absent from the update set.
       const [after] = await tx

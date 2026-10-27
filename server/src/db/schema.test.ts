@@ -132,6 +132,12 @@ describe("schema migrations", () => {
     );
   });
 
+  it("adds a nullable deleted_at to invoice_lines so edited draft lines are soft-deleted", () => {
+    expect(sql).toMatch(
+      /ALTER TABLE "invoice_lines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp with time zone;/,
+    );
+  });
+
   it("creates login_attempts with only a timestamp and an attempted_at index", () => {
     const match = sql.match(/CREATE TABLE IF NOT EXISTS "login_attempts" \(([\s\S]*?)\n\);/);
     expect(match, "could not find CREATE TABLE statement for login_attempts").not.toBeNull();

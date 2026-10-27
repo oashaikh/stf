@@ -219,6 +219,8 @@ export const invoiceLines = pgTable(
     subtotalPence: integer('subtotal_pence').notNull(),
     vatPence: integer('vat_pence').notNull(),
     totalPence: integer('total_pence').notNull(),
+    // Set when a draft edit replaces the line; replaced lines are never removed.
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
   (table) => ({
     // Fetching one invoice's lines.

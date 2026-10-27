@@ -105,9 +105,9 @@ export default function SettingsPage() {
     };
   }, []);
 
-  const needsItsReconnect = Boolean(hmrcStatus?.itsEnabled && hmrcStatus.needsItsReconnect);
+  const needsItsReconnect = Boolean(hmrcStatus?.needsItsReconnect);
   const wantsItsBusinesses = Boolean(
-    hmrcStatus?.itsEnabled && hmrcStatus.connected && !hmrcStatus.needsItsReconnect && !hmrcStatus.itsBusinessId,
+    hmrcStatus?.connected && !hmrcStatus.needsItsReconnect && !hmrcStatus.itsBusinessId,
   );
 
   useEffect(() => {

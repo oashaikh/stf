@@ -215,8 +215,7 @@ export function buildHmrcAuthUrl(redirectUri: string, state: string): string {
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: requireEnv('HMRC_CLIENT_ID'),
-    // Asking for scopes the HMRC app is not subscribed to would break the VAT connect.
-    scope: process.env.HMRC_ITSA_ENABLED === 'true' ? `${HMRC_VAT_SCOPE} ${HMRC_ITSA_SCOPE}` : HMRC_VAT_SCOPE,
+    scope: `${HMRC_VAT_SCOPE} ${HMRC_ITSA_SCOPE}`,
     redirect_uri: redirectUri,
     state,
   });

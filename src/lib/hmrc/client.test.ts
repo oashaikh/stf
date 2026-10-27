@@ -34,17 +34,13 @@ describe('buildHmrcAuthUrl', () => {
     const url = new URL(buildHmrcAuthUrl('https://app.test/cb', 'state-1'));
     expect(url.origin).toBe('https://test-www.tax.service.gov.uk');
     expect(url.pathname).toBe('/oauth/authorize');
-    expect(url.searchParams.get('scope')).toBe('read:vat write:vat');
+    expect(url.searchParams.get('scope')).toBe(
+      'read:vat write:vat read:self-assessment write:self-assessment',
+    );
     expect(url.searchParams.get('state')).toBe('state-1');
     expect(url.searchParams.get('redirect_uri')).toBe('https://app.test/cb');
     expect(url.searchParams.get('client_id')).toBe('test-client-id');
     expect(url.searchParams.get('response_type')).toBe('code');
-  });
-
-  it('adds the self-assessment scopes only when HMRC_ITSA_ENABLED is true', () => {
-    vi.stubEnv('HMRC_ITSA_ENABLED', 'true');
-    const scopes = new URL(buildHmrcAuthUrl('https://app.test/cb', 's')).searchParams.get('scope')?.split(' ');
-    expect(scopes).toEqual(['read:vat', 'write:vat', 'read:self-assessment', 'write:self-assessment']);
   });
 
   it('uses the live host only when HMRC_SANDBOX_MODE is false', () => {

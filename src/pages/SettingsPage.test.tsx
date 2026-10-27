@@ -36,7 +36,6 @@ describe('HMRC api calls', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, connected: true }));
     expect(await fetchHmrcStatus(fetchMock)).toEqual({
       connected: true,
-      itsEnabled: false,
       needsItsReconnect: false,
       itsBusinessId: null,
     });
@@ -74,6 +73,7 @@ describe('live filing opt-in', () => {
         if (path === '/api/settings/tax-identifiers') return jsonResponse({ ok: true, nino: null, utr: null });
         if (path === '/api/settings/business-profile') return jsonResponse({ ok: true, profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 } });
         if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
+        if (path === '/api/hmrc/its-businesses') return jsonResponse({ ok: true, businesses: [], selectedBusinessId: null });
         return jsonResponse({ ok: true, connected: true });
       }),
     );
@@ -159,6 +159,7 @@ describe('VAT registration number', () => {
         if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
         if (path === '/api/settings/vat-number') return jsonResponse({ ok: true, masked: saved });
         if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: false, envLive: false });
+        if (path === '/api/hmrc/its-businesses') return jsonResponse({ ok: true, businesses: [], selectedBusinessId: null });
         return jsonResponse({ ok: true, connected: true });
       }),
     );
@@ -223,6 +224,7 @@ describe('Check HMRC fraud headers', () => {
         if (path === '/api/settings/tax-identifiers') return jsonResponse({ ok: true, nino: null, utr: null });
         if (path === '/api/settings/business-profile') return jsonResponse({ ok: true, profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 } });
         if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
+        if (path === '/api/hmrc/its-businesses') return jsonResponse({ ok: true, businesses: [], selectedBusinessId: null });
         return jsonResponse({ ok: true, connected: true });
       }),
     );
@@ -292,7 +294,7 @@ describe('Income Tax connection', () => {
     itsGets = 0;
     itsFails = false;
     businesses = [];
-    status = { ok: true, connected: true, itsEnabled: true, needsItsReconnect: false, itsBusinessId: null };
+    status = { ok: true, connected: true, needsItsReconnect: false, itsBusinessId: null };
     vi.stubGlobal(
       'fetch',
       vi.fn(async (path: string, init?: RequestInit) => {
@@ -334,15 +336,6 @@ describe('Income Tax connection', () => {
     status = { ...status, needsItsReconnect: true };
     renderPage();
     expect(await screen.findByText(/Income Tax needs a one-time reconnect to HMRC/)).toBeInTheDocument();
-    expect(itsGets).toBe(0);
-  });
-
-  it('shows no notice and no businesses when the flag is off', async () => {
-    status = { ...status, itsEnabled: false, needsItsReconnect: false };
-    renderPage();
-    await screen.findByText('Connected to HMRC');
-    expect(screen.queryByText(/one-time reconnect/)).not.toBeInTheDocument();
-    expect(screen.queryByText('Income Tax business')).not.toBeInTheDocument();
     expect(itsGets).toBe(0);
   });
 

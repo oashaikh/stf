@@ -19,7 +19,6 @@ async function getJson(path: string, fetchFn: FetchFn) {
 
 export interface HmrcStatus {
   connected: boolean;
-  itsEnabled: boolean;
   needsItsReconnect: boolean;
   itsBusinessId: string | null;
 }
@@ -28,7 +27,6 @@ export async function fetchHmrcStatus(fetchFn: FetchFn = fetch): Promise<HmrcSta
   const body = await getJson('/api/hmrc/status', fetchFn);
   return {
     connected: body.connected === true,
-    itsEnabled: body.itsEnabled === true,
     needsItsReconnect: body.needsItsReconnect === true,
     itsBusinessId: body.itsBusinessId ?? null,
   };

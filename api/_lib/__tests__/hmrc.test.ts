@@ -225,20 +225,6 @@ describe('callback', () => {
 });
 
 describe('status', () => {
-  beforeEach(() => {
-    vi.stubEnv('HMRC_ITSA_ENABLED', 'true');
-  });
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('hides the Income Tax reconnect while the flag is off', async () => {
-    vi.stubEnv('HMRC_ITSA_ENABLED', '');
-    rows.u1 = { sandbox: true, accessToken: 'ct-a', refreshToken: 'ct-r', scope: 'read:vat write:vat' };
-    const body = await (await createStatusHandler(fakeStore(rows), authDeps)(asUser('/api/hmrc/status', 'u1'))).json();
-    expect(body).toMatchObject({ needsItsReconnect: false, itsEnabled: false });
-  });
-
   it('refuses a request without sign-in', async () => {
     const response = await createStatusHandler(fakeStore(rows), authDeps)(asUser('/api/hmrc/status'));
     expect(response.status).toBe(401);
@@ -255,11 +241,10 @@ describe('status', () => {
       expiresAt: '2030-01-01T00:00:00.000Z',
       itsBusinessId: null,
       needsItsReconnect: true,
-      itsEnabled: true,
     });
 
     const second = await (await handler(asUser('/api/hmrc/status', 'u2'))).json();
-    expect(second).toEqual({ ok: true, connected: false, expiresAt: null, itsBusinessId: null, needsItsReconnect: false, itsEnabled: true });
+    expect(second).toEqual({ ok: true, connected: false, expiresAt: null, itsBusinessId: null, needsItsReconnect: false });
   });
 
   it('needs a reconnect for a VAT-only scope and not once the Income Tax scope is stored', async () => {

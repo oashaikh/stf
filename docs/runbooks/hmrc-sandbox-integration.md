@@ -37,7 +37,7 @@ Income Tax API. This requires:
 2. A test user enrolled for both VAT (MTD) and Income Tax (ITSA).
 3. The test user's NINO captured in `HMRC_SANDBOX_NINO`.
 
-When both `HMRC_ITSA_ENABLED=true` and the owner has connected HMRC and sees the
+When the owner has connected HMRC and sees the
 "Income Tax needs a one-time reconnect" notice in Settings, they reconnect and choose
 a self-employment business from the list returned by the API.
 

@@ -214,7 +214,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
           },
         });
       case 'GET /api/hmrc/status':
-        return json(route, { connected: true, itsEnabled: false, needsItsReconnect: false, itsBusinessId: null });
+        return json(route, { connected: true, needsItsReconnect: false, itsBusinessId: null });
       case 'GET /api/hmrc/mode':
         return json(route, { live: false, envLive: false });
       case 'GET /api/settings/vat-number':

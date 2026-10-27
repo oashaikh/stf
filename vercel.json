@@ -9,7 +9,8 @@
   "functions": {
     "api/cron/refresh-hmrc-tokens.ts": { "maxDuration": 60 },
     "api/cron/create-recurring-entries.ts": { "maxDuration": 60 },
-    "api/cron/prepare-vat-draft.ts": { "maxDuration": 60 }
+    "api/cron/prepare-vat-draft.ts": { "maxDuration": 60 },
+    "api/invoice-pdf.ts": { "maxDuration": 15 }
   },
   "crons": [
     { "path": "/api/cron/refresh-hmrc-tokens", "schedule": "*/5 * * * *" },

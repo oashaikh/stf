@@ -1,5 +1,5 @@
-import { invoiceTotals, type Totals } from './invoiceMaths';
-import type { VatRate } from './vat';
+import { invoiceTotals, type Totals } from './invoiceMaths.js';
+import type { VatRate } from './vat.js';
 
 export interface InvoiceFormLine {
   description: string;

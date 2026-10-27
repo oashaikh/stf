@@ -56,3 +56,21 @@ export function invoiceTotals(lines: InvoiceLineInput[], ownerHasVatNumber: bool
     totalPence: sumPence(perLine.map((l) => l.totalPence)),
   };
 }
+
+export interface VatSummaryRow {
+  vatRatePercent: number;
+  netPence: number;
+  vatPence: number;
+}
+
+/** Groups the stored per-line figures by rate so the invoice PDF does no arithmetic of its own. */
+export function vatSummaryByRate(lines: Array<{ vatRatePercent: number; subtotalPence: number; vatPence: number }>): VatSummaryRow[] {
+  const byRate = new Map<number, VatSummaryRow>();
+  for (const line of lines) {
+    const row = byRate.get(line.vatRatePercent) ?? { vatRatePercent: line.vatRatePercent, netPence: 0, vatPence: 0 };
+    row.netPence += line.subtotalPence;
+    row.vatPence += line.vatPence;
+    byRate.set(line.vatRatePercent, row);
+  }
+  return [...byRate.values()].sort((a, b) => a.vatRatePercent - b.vatRatePercent);
+}

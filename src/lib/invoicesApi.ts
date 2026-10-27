@@ -1,3 +1,4 @@
+import { downloadFile } from './exportApi';
 import type { DraftInvoiceRequest } from './invoiceForm';
 import type { VatRate } from './vat';
 
@@ -77,4 +78,8 @@ export async function markInvoicePaid(id: string, paymentDate: string): Promise<
 
 export async function voidInvoice(id: string, reason: string): Promise<void> {
   await send(invoiceUrl(id), 'DELETE', { reason }, 'Could not void the invoice');
+}
+
+export function downloadInvoicePdf(id: string, publicNumber: string | null): Promise<void> {
+  return downloadFile(`/api/invoice-pdf?id=${encodeURIComponent(id)}`, `invoice-${publicNumber ?? id}.pdf`, 'Could not download the invoice PDF');
 }

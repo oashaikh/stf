@@ -208,6 +208,30 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
 });
 }
 
+// Mock mode only: the invoice view with its Download PDF button, as review evidence for STF-79.
+test('owner opens an invoice and sees the Download PDF button', async ({ page }) => {
+  test.skip(!mocked, 'Uses the mocked invoice API (JOURNEY_MOCK=1)');
+  const evidenceDir = path.join('browser-evidence', 'STF-79');
+  mkdirSync(evidenceDir, { recursive: true });
+  await mockApi(page, ownerPassword!);
+  await page.goto('/');
+  await page.getByLabel('Password').fill(ownerPassword!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+
+  await page.goto('/invoices');
+  await page.getByRole('button', { name: /INV-0042/ }).click();
+  const download = page.getByRole('button', { name: 'Download PDF' });
+  await expect(download).toBeVisible();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const hideFixedBars = await page.addStyleTag({ content: '.sticky, .fixed { display: none !important; }' });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: path.join(evidenceDir, `invoice-view-${width}-light.png`), fullPage: true });
+    await hideFixedBars.evaluate((node) => node.remove());
+  }
+});
+
 const boxRow = (page: Page, box: number) => page.getByRole('row').filter({ has: page.getByRole('cell', { name: String(box), exact: true }) });
 
 async function captureEvidence(page: Page, name: string) {

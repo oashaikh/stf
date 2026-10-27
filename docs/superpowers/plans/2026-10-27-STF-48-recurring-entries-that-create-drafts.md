@@ -106,3 +106,7 @@ Also depends on:
     - Doc matches the shipped behaviour
     - No secrets or machine paths in the doc
   - Commit: `d0ce285f5957`
+
+- [x] **Task 7: Fix: address 13 review findings (cycle 1)** (after 6)
+  - Intent: Review left 13 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The core flow works: drafts only, idempotent through the run ledger, and owner-scoped queries with limits. Two correctness defects need fixing. Editing any field of a temp The agent is fixing them; nothing is needed from you.
+  - Commit: `787a9e5aca34`

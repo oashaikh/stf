@@ -4,6 +4,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { formatDate } from '../lib/dates';
 import DashboardPage from './DashboardPage';
 
 const totals = { incomePence: 150000, expensesPence: 40000, profitPence: 110000, vatCollectedPence: 30000, vatPaidPence: 8000 };
@@ -28,10 +29,21 @@ const empty = {
 
 const estimate = { taxYear: '2026-27', profitPence: 110000, incomeTaxPence: 0, class2NicPence: 0, class4NicPence: 0, totalTaxPence: 12345, setAsidePence: 12345 };
 
-function renderPage(response: Response) {
+function daysFromToday(days: number) {
+  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+}
+const dueSoon = { periodKey: '26C3', start: '2026-07-01', end: '2026-09-30', due: daysFromToday(7), status: 'O', overdue: false };
+const vatReview = { ok: true, data: { boxes: { box5: 54321 }, status: 'draft' } };
+
+function renderPage(response: Response, vat: { obligations?: Response; review?: Response } = {}) {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (url: string) => (url.startsWith('/api/tax-estimate') ? Response.json({ ok: true, data: estimate }) : response)),
+    vi.fn(async (url: string) => {
+      if (url.startsWith('/api/tax-estimate')) return Response.json({ ok: true, data: estimate });
+      if (url.startsWith('/api/vat/obligations')) return vat.obligations ?? Response.json({ obligations: [] });
+      if (url.startsWith('/api/vat/return')) return vat.review ?? Response.json(vatReview);
+      return response;
+    }),
   );
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
@@ -72,5 +84,44 @@ describe('DashboardPage', () => {
   it('shows an error when the summary cannot be loaded', async () => {
     renderPage(new Response('nope', { status: 500 }));
     expect((await screen.findByRole('alert')).textContent).toMatch(/could not load the dashboard/i);
+  });
+
+  describe('upcoming VAT return card', () => {
+    const ok = () => Response.json({ ok: true, data: summary });
+
+    it('shows the due date, draft box 5 and a link to the VAT page', async () => {
+      renderPage(ok(), { obligations: Response.json({ obligations: [dueSoon] }) });
+      expect(await screen.findByText('£543.21')).toBeTruthy();
+      expect(screen.getByText(formatDate(dueSoon.due))).toBeTruthy();
+      expect(screen.getByText('Draft saved')).toBeTruthy();
+      expect(screen.getByRole('link', { name: /review vat return/i }).getAttribute('href')).toBe('/vat');
+    });
+
+    it('labels a return with no saved draft as not yet drafted', async () => {
+      renderPage(ok(), {
+        obligations: Response.json({ obligations: [dueSoon] }),
+        review: Response.json({ ok: true, data: { boxes: { box5: 0 }, status: null } }),
+      });
+      expect(await screen.findByText('Not yet drafted')).toBeTruthy();
+    });
+
+    it('shows no card when no obligation is due soon', async () => {
+      const later = { ...dueSoon, due: daysFromToday(120) };
+      renderPage(ok(), { obligations: Response.json({ obligations: [later] }) });
+      await screen.findByText('£1,500.00');
+      expect(screen.queryByText(/upcoming vat return/i)).toBeNull();
+    });
+
+    it('hides the card when obligations fail to load', async () => {
+      renderPage(ok(), { obligations: new Response('{}', { status: 409 }) });
+      await screen.findByText('£1,500.00');
+      expect(screen.queryByText(/upcoming vat return/i)).toBeNull();
+    });
+
+    it('hides the card when the return fails to load', async () => {
+      renderPage(ok(), { obligations: Response.json({ obligations: [dueSoon] }), review: new Response('{}', { status: 500 }) });
+      await screen.findByText('£1,500.00');
+      expect(screen.queryByText(/upcoming vat return/i)).toBeNull();
+    });
   });
 });

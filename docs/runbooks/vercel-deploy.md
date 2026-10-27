@@ -70,9 +70,15 @@ Always apply migrations manually **before** deploying a version that requires th
 
 ## Cron jobs
 
-The HMRC token refresh runs as a Vercel Cron job (scheduled serverless function) at `/api/cron/refresh-hmrc-tokens` every 5 minutes. Vercel sends an `Authorization: Bearer $CRON_SECRET` header. Any request without this header is refused with a 401.
+Two scheduled jobs run as Vercel Cron jobs (scheduled serverless functions). Vercel sends an `Authorization: Bearer $CRON_SECRET` header to each. Any request without this header is refused with a 401.
 
-**Cron frequency note**: Vercel's free Hobby plan allows only once-daily crons. The 5-minute schedule requires a Pro plan. If you are on Hobby, either upgrade to Pro or adjust the cron schedule in `vercel.json`.
+**HMRC token refresh** (`/api/cron/refresh-hmrc-tokens`, every 5 minutes)
+- Refreshes HMRC access tokens before they expire. Access tokens last ~4 hours; this job runs every 5 minutes to catch them well before expiry.
+
+**VAT return draft preparation** (`/api/cron/prepare-vat-draft`, daily at 08:00 UTC)
+- Fetches the owner's VAT obligations and prepares a draft return for any obligation due within the next 14 days. The draft is saved but not submitted; the owner sees it on the dashboard and can confirm and submit manually from the VAT page.
+
+**Cron frequency note**: Vercel's free Hobby plan allows only once-daily crons. The 5-minute token-refresh schedule requires a Pro plan. If you are on Hobby, either upgrade to Pro or adjust the cron schedule in `vercel.json`.
 
 ## Fraud prevention headers
 

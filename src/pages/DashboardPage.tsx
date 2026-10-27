@@ -2,9 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { DASHBOARD_QUERY_KEY, fetchDashboard } from "../lib/dashboardApi";
+import { formatDate } from "../lib/dates";
 import { formatPence } from "../lib/money";
 import { currentTaxYear } from "../lib/taxBands";
 import { fetchTaxEstimate, taxEstimateQueryKey } from "../lib/taxEstimateApi";
+
+import type { VatObligationRow } from "../lib/hmrc/vatApi";
+import { getObligationDueWithin, REMINDER_WINDOW_DAYS } from "../lib/vatReminder";
+import type { ApiResponse } from "../model/types";
+import { useVatObligations } from "./useVatObligations";
 
 const linkClass = "inline-flex min-h-11 items-center text-blue-800 underline";
 
@@ -24,6 +30,46 @@ function Row({ label, pence }: { label: string; pence: number }) {
       <dt className="text-gray-700">{label}</dt>
       <dd className="text-right font-medium tabular-nums text-gray-900">{formatPence(pence)}</dd>
     </div>
+  );
+}
+
+// Same key and response shape as the review on VatPage, so a visit to either page warms the other.
+async function fetchVatReturnDraft(period: VatObligationRow): Promise<{ boxes: { box5: number }; status: string | null }> {
+  const fields = new URLSearchParams({ periodKey: period.periodKey, start: period.start, end: period.end });
+  const response = await fetch(`/api/vat/return?${fields}`, { credentials: "same-origin" });
+  const body = (await response.json().catch(() => null)) as ApiResponse<{ boxes: { box5: number }; status: string | null }> | null;
+  if (!body?.ok) throw new Error(body?.error ?? "Request failed");
+  return body.data;
+}
+
+function UpcomingVatReturnCard() {
+  const obligations = useVatObligations();
+  const dueSoon = Array.isArray(obligations.data)
+    ? getObligationDueWithin(obligations.data, new Date().toISOString().slice(0, 10), REMINDER_WINDOW_DAYS)
+    : undefined;
+  const review = useQuery({
+    queryKey: ["vat-return", dueSoon?.periodKey],
+    queryFn: () => fetchVatReturnDraft(dueSoon as VatObligationRow),
+    enabled: dueSoon !== undefined,
+    retry: false,
+  });
+  if (!dueSoon || !review.data) return null;
+
+  return (
+    <Card title="Upcoming VAT return" period={`Period ${dueSoon.periodKey}`}>
+      <div className="flex justify-between gap-4">
+        <dt className="text-gray-700">Due</dt>
+        <dd className="text-right font-medium text-gray-900">{formatDate(dueSoon.due)}</dd>
+      </div>
+      <div className="flex justify-between gap-4">
+        <dt className="text-gray-700">Draft</dt>
+        <dd className="text-right text-gray-900">{review.data.status === null ? "Not yet drafted" : "Draft saved"}</dd>
+      </div>
+      <Row label="Box 5: net VAT to pay" pence={review.data.boxes.box5} />
+      <Link to="/vat" className={linkClass}>
+        Review VAT return
+      </Link>
+    </Card>
   );
 }
 
@@ -79,6 +125,7 @@ export default function DashboardPage() {
                 Go to the VAT page
               </Link>
             </Card>
+            <UpcomingVatReturnCard />
             {taxEstimate.data && (
               <Card title="Tax set-aside (estimate)" period={`Tax year ${taxEstimate.data.taxYear}`}>
                 <Row label="Income tax and NIC" pence={taxEstimate.data.totalTaxPence} />

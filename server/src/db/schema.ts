@@ -1,4 +1,4 @@
-import { index, boolean, date, inet, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { index, boolean, check, date, inet, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const businessTypeEnum = pgEnum('business_type', ['sole_trader', 'partnership', 'limited_company']);
@@ -22,6 +22,8 @@ export const invoiceStatusEnum = pgEnum('invoice_status', ['draft', 'sent', 'pai
 export const vatReturnDraftStatusEnum = pgEnum('vat_return_draft_status', ['draft', 'confirmed']);
 
 export const vatSubmissionStatusEnum = pgEnum('vat_submission_status', ['pending', 'submitted', 'failed']);
+
+export const mileageVehicleTypeEnum = pgEnum('mileage_vehicle_type', ['car_van', 'motorcycle', 'bicycle']);
 
 export const auditActorTypeEnum = pgEnum('audit_actor_type', ['user', 'system', 'ai_agent']);
 
@@ -320,6 +322,31 @@ export const recoveryCodes = pgTable(
   },
   (table) => ({
     userCodeIdx: index('recovery_codes_user_id_code_hash_idx').on(table.userId, table.codeHash),
+  }),
+);
+
+// Business mileage trips. Soft-deletable financial record: voiding sets deleted_at, never DELETE.
+// miles is integer tenths of a mile (12.4 miles is stored as 124).
+export const mileageTrips = pgTable(
+  'mileage_trips',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    date: date('date').notNull(),
+    fromPlace: text('from_place').notNull(),
+    toPlace: text('to_place').notNull(),
+    purpose: text('purpose').notNull(),
+    miles: integer('miles').notNull(),
+    vehicleType: mileageVehicleTypeEnum('vehicle_type').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // Mileage list and the per-tax-year claim loader: one owner's trips by date.
+    userDateIdx: index('mileage_trips_user_date_idx').on(table.userId, table.date),
+    milesPositive: check('mileage_trips_miles_positive', sql`${table.miles} > 0`),
   }),
 );
 

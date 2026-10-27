@@ -138,6 +138,39 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         authenticatorEnabled = action === 'confirm';
         return json(route, authenticatorEnabled ? { ok: true, enabled: true, recoveryCodes: mockRecoveryCodes } : { ok: true, enabled: false });
       }
+      case 'GET /api/settings/business-profile':
+        return json(route, {
+          profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 },
+        });
+      case 'GET /api/settings/tax-identifiers':
+        return json(route, { ok: true, nino: null, utr: null });
+      case 'GET /api/dashboard':
+        return json(route, {
+          data: {
+            taxYear: { start: '2026-04-06', end: '2027-04-05', incomePence: 50000, expensesPence: 12000, profitPence: 38000 },
+            month: { start: '2026-10-01', end: '2026-10-31', incomePence: 0, expensesPence: 0, profitPence: 0 },
+            vatQuarter: { start: '2026-10-01', end: '2026-12-31', vatCollectedPence: 0, vatPaidPence: 0 },
+            draftCount: 0,
+            recentEntries: [],
+          },
+        });
+      case 'GET /api/tax-estimate':
+        return json(route, {
+          data: {
+            taxYear: '2026-27',
+            profitPence: 38000,
+            incomeTaxPence: 0,
+            class2NicPence: 0,
+            class4NicPence: 0,
+            totalTaxPence: 0,
+            setAsidePence: 0,
+            expenseMethod: 'actual',
+            tradingAllowancePence: 100000,
+            profitWithActualExpensesPence: 38000,
+            profitWithAllowancePence: 0,
+            lowerProfitMethod: 'allowance',
+          },
+        });
       case 'GET /api/vat/obligations':
         return json(route, { obligations: vatState === 'none' ? [] : [{ ...period, due: '2026-08-07', status: 'O', overdue: false }] });
       case 'GET /api/entries':

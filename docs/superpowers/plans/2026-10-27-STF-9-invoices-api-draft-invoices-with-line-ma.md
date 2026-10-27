@@ -74,3 +74,7 @@
     - npm run lint, typecheck, test and build all pass
   - Risk: Auth and tenant isolation tests: opus high.
   - Commit: `cc62ab5d1e0c`
+
+- [x] **Task 5: Fix: address 4 review findings (cycle 1)** (after 4)
+  - Intent: Review left 4 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Numbering, totals, owner scoping, cursor paging and the void flow trace correctly. One blocker: editing a draft hard-deletes its invoice_lines rows, which breaks the proje The agent is fixing them; nothing is needed from you.
+  - Commit: `fd9f5369b75d`

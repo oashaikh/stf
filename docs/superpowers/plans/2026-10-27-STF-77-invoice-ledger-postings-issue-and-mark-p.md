@@ -29,8 +29,8 @@
 ## Tasks
 
 - [x] **Task 1: Add invoices.payment_transaction_id column and migration**
-  - Intent: Add a nullable uuid column payment_transaction_id (FK to transactions.id) to invoices in server/src/db/schema.ts, with the next Drizzle migration, journal entry and snapshot. Use prefix 0014_invoice_payment_transaction (0011 exists; 0011/0012 are reserved by the STF-49/STF-31 plans). Parent on current head so the journal keeps one head. Extend schema.test.ts to assert the column. The existing transaction_id column links the issue transaction. No new index: the column is only read through the invoice row.
-  - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0014_invoice_payment_transaction.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0014_snapshot.json`
+  - Intent: Add a nullable uuid column payment_transaction_id (FK to transactions.id) to invoices in server/src/db/schema.ts, with the next Drizzle migration, journal entry and snapshot. Use prefix 0015_invoice_payment_transaction (0011 exists; 0011/0012 are reserved by the STF-49/STF-31 plans). Parent on current head so the journal keeps one head. Extend schema.test.ts to assert the column. The existing transaction_id column links the issue transaction. No new index: the column is only read through the invoice row.
+  - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0015_invoice_payment_transaction.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0015_snapshot.json`
   - Acceptance criteria the planner set:
     - Migration uses ADD COLUMN IF NOT EXISTS payment_transaction_id uuid REFERENCES transactions(id)
     - _journal.json has one new entry after the current head and a matching snapshot

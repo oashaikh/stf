@@ -43,7 +43,10 @@ export const users = pgTable('users', {
   invoicePrefix: text('invoice_prefix').notNull().default('INV-'),
   nextInvoiceNumber: integer('next_invoice_number').notNull().default(1),
   businessType: businessTypeEnum('business_type').notNull().default('sole_trader'),
+  // utr is the pre-encryption plain column, emptied lazily into utr_encrypted (STF-82). NINO and UTR are encryptToken output.
   utr: text('utr'),
+  utrEncrypted: text('utr_encrypted'),
+  ninoEncrypted: text('nino_encrypted'),
   vatNumber: text('vat_number'),
   vatScheme: vatSchemeEnum('vat_scheme'),
   flatRatePercent: integer('flat_rate_percent'),

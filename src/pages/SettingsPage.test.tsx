@@ -66,6 +66,7 @@ describe('live filing opt-in', () => {
           return jsonResponse({ ok: true, live: body.live, envLive: true });
         }
         if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: liveOptIn, envLive: true });
+        if (path === '/api/settings/tax-identifiers') return jsonResponse({ ok: true, nino: null, utr: null });
         if (path === '/api/settings/business-profile') return jsonResponse({ ok: true, profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 } });
         if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
         return jsonResponse({ ok: true, connected: true });
@@ -148,6 +149,7 @@ describe('VAT registration number', () => {
           saved = '••••••' + vatNumber.slice(-3);
           return jsonResponse({ ok: true, masked: saved });
         }
+        if (path === '/api/settings/tax-identifiers') return jsonResponse({ ok: true, nino: null, utr: null });
         if (path === '/api/settings/business-profile') return jsonResponse({ ok: true, profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 } });
         if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
         if (path === '/api/settings/vat-number') return jsonResponse({ ok: true, masked: saved });
@@ -213,6 +215,7 @@ describe('Check HMRC fraud headers', () => {
         if (path === '/api/vat/fraud-headers-check') return checkResponse;
         if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: false, envLive: false });
         if (path === '/api/settings/vat-number') return jsonResponse({ ok: true, masked: null });
+        if (path === '/api/settings/tax-identifiers') return jsonResponse({ ok: true, nino: null, utr: null });
         if (path === '/api/settings/business-profile') return jsonResponse({ ok: true, profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 } });
         if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
         return jsonResponse({ ok: true, connected: true });

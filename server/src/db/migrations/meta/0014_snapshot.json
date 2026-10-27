@@ -1,5 +1,5 @@
 {
-  "id": "3bfaad9b-14ff-466e-9871-650f4dd03614",
+  "id": "30f4ed19-93d0-42d0-aea7-c219c84c795a",
   "prevId": "6b9ef291-b47e-4986-8e14-5628b06058c5",
   "version": "6",
   "dialect": "postgresql",
@@ -359,12 +359,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "payment_transaction_id": {
-          "name": "payment_transaction_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -417,19 +411,6 @@
           "tableTo": "transactions",
           "columnsFrom": [
             "transaction_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "invoices_payment_transaction_id_transactions_id_fk": {
-          "name": "invoices_payment_transaction_id_transactions_id_fk",
-          "tableFrom": "invoices",
-          "tableTo": "transactions",
-          "columnsFrom": [
-            "payment_transaction_id"
           ],
           "columnsTo": [
             "id"
@@ -1187,6 +1168,18 @@
           "primaryKey": false,
           "notNull": true,
           "default": "1"
+        },
+        "utr_encrypted": {
+          "name": "utr_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nino_encrypted": {
+          "name": "nino_encrypted",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {

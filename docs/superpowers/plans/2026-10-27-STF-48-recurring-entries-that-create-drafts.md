@@ -110,3 +110,7 @@ Also depends on:
 - [x] **Task 7: Fix: address 13 review findings (cycle 1)** (after 6)
   - Intent: Review left 13 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The core flow works: drafts only, idempotent through the run ledger, and owner-scoped queries with limits. Two correctness defects need fixing. Editing any field of a temp The agent is fixing them; nothing is needed from you.
   - Commit: `787a9e5aca34`
+
+- [x] **Task 8: Fix: address 7 review findings (cycle 2)** (after 7)
+  - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found nothing blocking. Schedule maths, ledger-based idempotency, drafts-only output and owner scoping all hold on reading. All four screenshots are clean.  The agent is fixing them; nothing is needed from you.
+  - Commit: `0a03e81e2713`

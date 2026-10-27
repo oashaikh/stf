@@ -48,7 +48,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Invoice PDF data loader and pure VAT-by-rate summary**
+- [x] **Task 1: Invoice PDF data loader and pure VAT-by-rate summary**
   - Intent: Add a server loader that returns everything the PDF needs for one owner invoice, plus a pure helper that groups stored line figures into a VAT summary by rate. Loader: reuse the existing invoice get (already owner-scoped by session user id, lines capped at INVOICE_MAX_LINES) and add one bounded query (limit 1) on users for businessName, businessAddress, vatNumber and the payment bank name, sort code and account number. Never read a client-supplied owner id. Unknown or other owner's invoice returns undefined. The VAT summary helper lives next to the existing invoice maths in src/lib/invoiceMaths.ts (summing stored pence per rate, integers only) so the template does no arithmetic. Add a store interface so the route can be tested with a fake, matching InvoiceStore / BusinessProfileStore style. Reuse the existing profile columns rather than a new type if possible.
   - Files: `api/_lib/invoicePdfData.ts`, `api/_lib/__tests__/invoicePdfData.test.ts`, `src/lib/invoiceMaths.ts`, `src/lib/invoiceMaths.test.ts`
   - Acceptance criteria the planner set:
@@ -57,6 +57,7 @@ Also depends on:
     - Unit test: loader returns undefined for another owner's invoice id
     - npm run lint, typecheck and test pass
   - Risk: Default tier. Owner scoping is the key correctness point; reviewed via the 404 test in task 3.
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 2: React PDF invoice template and render function** (after 1)
   - Intent: Create the server-side template with @react-pdf/renderer (already a dependency, v3.4.2, not yet used anywhere in src or api). It shows business name and address, VAT number only when present, client name/email/address, invoice number, issue and due dates (formatDate), a lines table (description, quantity, unit price, VAT rate, net), VAT summary by rate, total due and payment instructions (bank, sort code, account number) from the profile, and notes. All money goes through formatPence from src/lib/money.ts; no arithmetic in the template. Export renderInvoicePdf(data): Promise<Buffer> via renderToBuffer. Use built-in PDF fonts (Helvetica) so no font files need bundling; check that the pound sign renders. Write a test that renders a fixture with invented data and asserts the extracted text contains the invoice number, each total, the VAT number, and omits the VAT line when the owner is unregistered. react-pdf compresses and subsets text, so extract text via a PDF text reader. Prefer an already installed package; if none exists, add pdfjs-dist as a devDependency only and state in the PR why nothing installed can do it (). Check tsconfig.api.json (nodenext, jsx react-jsx) compiles a .tsx file under api/_lib and that eslint covers it.

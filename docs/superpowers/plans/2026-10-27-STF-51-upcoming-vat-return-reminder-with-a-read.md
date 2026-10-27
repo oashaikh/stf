@@ -76,7 +76,7 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
   - Commit: `311dbaf37f21`
 
-- [ ] **Task 4: E2E mock state and screenshots for the dashboard card** (after 3)
+- [x] **Task 4: E2E mock state and screenshots for the dashboard card** (after 3)
   - Intent: Make e2e/mockApi.ts serve an obligation due inside the window (today is 2026-10-27; the mock's fixed due date is 2026-08-07) so the card renders. Add a journey step in e2e/journey.spec.ts: sign in, open the dashboard, assert the card shows due date and box 5, follow the link to /vat. Capture 390 px and 1440 px light screenshots into browser-evidence/STF-51/ as 390-light-dashboard-vat-reminder.png and 1440-light-dashboard-vat-reminder.png (dark only if a dark theme ships). Confirm existing VAT journey steps and screenshots still work. Add a short note on the reminder job to docs/workflows/vat-return.md.
   - Files: `e2e/mockApi.ts`, `e2e/journey.spec.ts`, `browser-evidence/STF-51/`, `docs/workflows/vat-return.md`
   - Acceptance criteria the planner set:
@@ -84,3 +84,4 @@ Also depends on:
     - browser-evidence/STF-51 holds 390 and 1440 px dashboard screenshots with invented data only
     - Existing VAT journey steps still pass
     - npm run lint, typecheck, test and build pass
+  - Commit: `51cfb7eba8da`

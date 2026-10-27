@@ -79,6 +79,29 @@ export const mockMfaCode = '123456';
 const mockRecoveryCodes = ['aaaa-1111', 'bbbb-2222', 'cccc-3333', 'dddd-4444', 'eeee-5555', 'ffff-6666', 'gggg-7777', 'hhhh-8888'];
 const mockQr = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192"><rect width="192" height="192" fill="#fff"/><rect x="16" y="16" width="160" height="160" fill="#111"/><rect x="48" y="48" width="96" height="96" fill="#fff"/></svg>')}`;
 
+const sampleInvoiceRow = {
+  id: 'inv-1',
+  publicNumber: 'INV-0042',
+  clientName: 'Example Client Ltd',
+  issueDate: '2026-10-01',
+  dueDate: '2026-10-31',
+  status: 'sent',
+  totalPence: 170_000,
+};
+
+const sampleInvoice = {
+  ...sampleInvoiceRow,
+  clientEmail: 'accounts@example.test',
+  clientAddress: '1 Example Road\nSampletown',
+  subtotalPence: 150_000,
+  vatPence: 20_000,
+  notes: 'Thanks for your business',
+  lines: [
+    { id: 'l1', description: 'Consulting', quantity: 15_000, unitPricePence: 100_000, vatRatePercent: 20, subtotalPence: 100_000, vatPence: 20_000, totalPence: 120_000 },
+    { id: 'l2', description: 'Printed manual', quantity: 10_000, unitPricePence: 50_000, vatRatePercent: 0, subtotalPence: 50_000, vatPence: 0, totalPence: 50_000 },
+  ],
+};
+
 const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, json: body });
 
 /** The VAT page states the journey must cope with on live data: no open obligation, an unreviewed return, a confirmed one, a filed one. */
@@ -244,6 +267,10 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
           return json(route, { ok: false, error: 'That is too much to export at once. Choose a range of 366 days or fewer.', code: 'RANGE_TOO_LARGE' }, 400);
         }
         return route.fulfill({ status: 200, contentType: 'text/csv', body: 'Date,Description,Net,VAT,Gross,Status\n2026-05-01,Invoice 1,100.00,20.00,120.00,Confirmed\n' });
+      }
+      case 'GET /api/invoices': {
+        const id = new URL(route.request().url()).searchParams.get('id');
+        return id ? json(route, { invoice: sampleInvoice }) : json(route, { invoices: [sampleInvoiceRow], nextCursor: null });
       }
       case 'GET /api/invoice-pdf':
         return route.fulfill({ status: 200, contentType: 'application/pdf', body: '%PDF-1.4\n%%EOF\n' });

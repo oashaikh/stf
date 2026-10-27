@@ -142,8 +142,8 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await captureEvidence(page, 'reports');
       // Test error state: set a date range that exceeds the limit (400 days)
       await page.getByLabel('Period').selectOption('custom');
-      const fromInput = page.getByLabel('From');
-      const toInput = page.getByLabel('To');
+      const fromInput = page.getByLabel('From', { exact: true });
+      const toInput = page.getByLabel('To', { exact: true });
       const originalFrom = await fromInput.inputValue();
       const originalTo = await toInput.inputValue();
       // Set a range that will exceed EXPORT_MAX_RANGE_DAYS (366)

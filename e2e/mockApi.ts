@@ -174,8 +174,14 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         return json(route, { ok: true, data: previewBody(entries) });
       case 'GET /api/accounts':
         return json(route, { accounts: [incomeAccount] });
-      case 'GET /api/entries-export':
+      case 'GET /api/entries-export': {
+        const params = new URL(route.request().url()).searchParams;
+        const days = (Date.parse(params.get('to') ?? '') - Date.parse(params.get('from') ?? '')) / 86_400_000 + 1;
+        if (days > 366) {
+          return json(route, { ok: false, error: 'That is too much to export at once. Choose a range of 366 days or fewer.', code: 'RANGE_TOO_LARGE' }, 400);
+        }
         return route.fulfill({ status: 200, contentType: 'text/csv', body: 'Date,Description,Net,VAT,Gross,Status\n2026-05-01,Invoice 1,100.00,20.00,120.00,Confirmed\n' });
+      }
       default:
         return json(route, { ok: false, error: `No mock for ${key}` }, 404);
     }

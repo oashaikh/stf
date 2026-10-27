@@ -22,8 +22,8 @@ The CSV contains the following columns:
 - **net** — Net amount in pounds with two decimals
 - **VAT** — VAT amount in pounds with two decimals
 - **gross** — Gross amount (net + VAT) in pounds with two decimals
-- **status** — Entry status: `draft`, `confirmed`, `reconciled`, or `voided`
-- **source** — Source of the entry (e.g., `form`, `receipt`, `import`)
+- **status** — Entry status: `draft`, `confirmed`, or `reconciled` (voided entries are never exported)
+- **source** — Source of the entry (`manual`, `bank_feed`, `receipt_ai` or `import`)
 
 ## Included entries
 

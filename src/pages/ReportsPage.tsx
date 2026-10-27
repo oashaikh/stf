@@ -155,7 +155,7 @@ export default function ReportsPage() {
 
       <section className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-medium text-gray-700">Export entries</h2>
-        <p className="text-xs text-gray-600">All entries and their lines in the chosen period, including voided ones, as a CSV file.</p>
+        <p className="text-xs text-gray-600">All entries and their lines in the chosen period, excluding voided ones, as a CSV file.</p>
         <button
           type="button"
           onClick={downloadEntries}

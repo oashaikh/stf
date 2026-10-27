@@ -43,7 +43,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Request Income Tax scopes and return the granted scope from the token exchange**
+- [x] **Task 1: Request Income Tax scopes and return the granted scope from the token exchange**
   - Intent: In src/lib/hmrc/client.ts, widen HMRC_SCOPE from 'read:vat write:vat' to also include 'read:self-assessment write:self-assessment'. buildHmrcAuthUrl is the single builder behind api/hmrc/connect.ts, so connect.ts needs no change. Add an optional `scope` field to HmrcTokenSet and fill it from the token response in postTokenRequest, because the callback needs it to record what was granted. Refresh responses may omit scope, so keep it optional and never infer it. Update client.test.ts: the auth URL carries all four scopes, and the token exchange returns scope. Nothing logs tokens. Do not add a new helper for the business list: listItsSelfEmploymentBusinesses already exists in this file and already takes fraudHeaders.
   - Files: `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`
   - Acceptance criteria the planner set:
@@ -51,6 +51,7 @@ Also depends on:
     - postTokenRequest returns the response scope on HmrcTokenSet.scope when HMRC sends one, undefined otherwise
     - Existing client tests still pass and new tests cover both scope cases using a fake fetch
     - npm run typecheck and npm test pass
+  - Commit: `91d81fc2191a`
 
 - [ ] **Task 2: Add ITS business id and granted scope columns, store methods, and callback wiring** (after 1)
   - Intent: Add nullable users columns `hmrc_its_business_id` (text) and `hmrc_scope` (text) in server/src/db/schema.ts. justification: the business id is needed for Income Tax calls, and the scope is needed to show the one-time reconnect notice only when the connection lacks the self-assessment scopes. Write the next Drizzle migration as server/src/db/migrations/0016_hmrc_its_business.sql, with the matching _journal.json entry (idx 16) and meta/0016_snapshot.json. 0015 is already taken by the invoice payment migration. STF-48's plan also names a 0015 recurring-entries migration, so re-check the journal against main before finishing and keep a single head ().: grant the columns if the repo's role grants require it. Extend HmrcStore in api/_lib/hmrcStore.ts with: saveTokens accepting an optional scope that is written to hmrc_scope (and, when the scope changes, clears the stored business id); setItsBusinessId(userId, id); itsBusinessId read; and status() returning itsBusinessId and a `needsItsReconnect` boolean (connected but hmrc_scope lacks the self-assessment scopes). Each query filters on users.id and returns one row, so no new index is needed. api/hmrc/callback.ts passes tokens.scope to saveTokens. Do not log tokens. Update schema.test.ts if it asserts columns, and the hmrc store and callback tests, using fake stores.

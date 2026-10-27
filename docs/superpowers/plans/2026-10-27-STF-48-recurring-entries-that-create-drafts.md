@@ -99,9 +99,10 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
   - Commit: `aaab4f4cd88e`
 
-- [ ] **Task 6: Document the recurring entries workflow** (after 4, 5)
+- [x] **Task 6: Document the recurring entries workflow** (after 4, 5)
   - Intent: Write docs/workflows/recurring-entries.md: template fields, schedule and month-end rule, idempotency via the run ledger, drafts only and confirmation from the Expenses list, cron setup and CRON_SECRET, catch-up cap, retention (templates soft-deleted, kept with the books). Add a short pointer in PLAN.md if the roadmap lists this feature.
   - Files: `docs/workflows/recurring-entries.md`, `PLAN.md`
   - Acceptance criteria the planner set:
     - Doc matches the shipped behaviour
     - No secrets or machine paths in the doc
+  - Commit: `d0ce285f5957`

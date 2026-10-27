@@ -57,6 +57,7 @@ function makeStore() {
     async hasRun() {
       return false;
     },
+    async advance() {},
     async recordRun() {
       return true;
     },

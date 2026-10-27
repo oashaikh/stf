@@ -43,6 +43,9 @@ function fakes() {
       template.nextDate = nextDate;
       return true;
     },
+    async advance(template, nextDate) {
+      template.nextDate = nextDate;
+    },
     async hasRun(templateId, runDate) {
       return runs.some((run) => run.templateId === templateId && run.runDate === runDate);
     },
@@ -125,6 +128,7 @@ describe('generateDueEntries', () => {
     f.runs.push({ templateId: template.id, runDate: '2026-10-01', transactionId: id(1) });
     await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
     expect(f.entries).toHaveLength(0);
+    expect(template.nextDate > '2026-10-01').toBe(true);
   });
 
   it('keeps month-end days across short months', async () => {

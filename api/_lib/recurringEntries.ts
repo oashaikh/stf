@@ -73,6 +73,8 @@ export interface RecurringStore {
   /** Cron scan across owners: live, unpaused templates with next_date on or before today, at most `limit`. */
   due(today: string, limit: number): Promise<DueTemplate[]>;
   hasRun(templateId: string, runDate: string): Promise<boolean>;
+  /** Moves next_date for a date that already ran, so an owner edit onto a run date cannot leave the template stuck. */
+  advance(template: DueTemplate, nextDate: string): Promise<void>;
   /** In one database transaction: records the run and moves next_date. False, and nothing changed, when the date already ran. */
   recordRun(template: DueTemplate, runDate: string, transactionId: string, nextDate: string): Promise<boolean>;
 }
@@ -122,9 +124,9 @@ export async function generateDueEntries(store: RecurringStore, entryStore: Entr
       const following = nextOccurrence(date, template.schedule, template.anchorDay);
       try {
         // The draft is written by createEntry in its own transaction, so no run is claimed over a network call.
-        // A run another process already claimed advances next_date itself.
+        // The date already ran (a race, or the owner moved next_date back onto it): move past it without a second draft.
         if (await store.hasRun(template.id, date)) {
-          result.skipped += 1;
+          await store.advance(template, following);
           continue;
         }
         const entry = await createEntry(
@@ -248,6 +250,13 @@ export const databaseRecurringStore: RecurringStore = {
       .where(and(eq(recurringEntryRuns.templateId, templateId), eq(recurringEntryRuns.runDate, runDate)))
       .limit(1);
     return Boolean(row);
+  },
+
+  async advance(template, nextDate) {
+    await db
+      .update(recurringEntryTemplates)
+      .set({ nextDate, updatedAt: new Date() })
+      .where(and(eq(recurringEntryTemplates.id, template.id), eq(recurringEntryTemplates.userId, template.userId)));
   },
 
   async recordRun(template, runDate, transactionId, nextDate) {

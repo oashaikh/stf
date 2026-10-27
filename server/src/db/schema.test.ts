@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { invoices } from "./schema";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, "migrations");
@@ -129,6 +130,15 @@ describe("schema migrations", () => {
     );
     expect(sql).toMatch(
       /CREATE INDEX IF NOT EXISTS "invoice_lines_invoice_id_idx" ON "invoice_lines" \("invoice_id"\)/,
+    );
+  });
+
+  it("adds a nullable payment_transaction_id FK on invoices beside transaction_id", () => {
+    expect(invoices.transactionId.name).toBe("transaction_id");
+    expect(invoices.paymentTransactionId.name).toBe("payment_transaction_id");
+    expect(invoices.paymentTransactionId.notNull).toBe(false);
+    expect(sql).toMatch(
+      /ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "payment_transaction_id" uuid REFERENCES "public"\."transactions"\("id"\);/,
     );
   });
 

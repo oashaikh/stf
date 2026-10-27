@@ -1,11 +1,15 @@
-import { and, desc, eq, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { auditEvents, invoiceLines, invoices, users } from '../../server/src/db/schema.js';
+import { accounts, auditEvents, invoiceLines, invoices, transactionLines, transactions, users } from '../../server/src/db/schema.js';
+import { BANK_ACCOUNT_CODE, SALES_ACCOUNT_CODE, TRADE_DEBTORS_CODE, VAT_CONTROL_CODE } from '../../src/lib/chartOfAccounts.js';
 import { INVOICE_VAT_RATES, invoiceTotals, lineTotals, type Totals } from '../../src/lib/invoiceMaths.js';
+import { postInvoiceIssue, postInvoicePayment } from '../../src/lib/invoicePostings.js';
+import type { PostedLine } from '../../src/lib/postingRules.js';
 import type { VatRate } from '../../src/lib/vat.js';
+import { databaseAccountStore } from './accounts.js';
 import { db } from './db.js';
-import { isoDate } from './entries.js';
+import { MAX_DAYS_AHEAD, PERIOD_LOCKED_MESSAGE, databaseEntryStore, isoDate, voidLiveEntry } from './entries.js';
 
 export const INVOICE_MAX_LINES = 50;
 export const INVOICE_LIST_DEFAULT_PAGE = 25;
@@ -57,6 +61,9 @@ export const draftInvoiceSchema = z
   );
 
 export type DraftInvoiceBody = z.infer<typeof draftInvoiceSchema>;
+
+// Strips unknown keys, so a client cannot send status, totals or account ids.
+export const markPaidSchema = z.object({ paymentDate: isoDate });
 
 export const voidInvoiceSchema = z.object({ reason: z.string().trim().min(1).max(200) });
 
@@ -120,8 +127,13 @@ export type InvoiceListRow = InvoiceHeader & { cursorCreatedAt: string };
 
 export interface InvoiceStore {
   create(userId: string, body: DraftInvoiceBody): Promise<Invoice>;
+  /** Draft to sent: locks editing and posts the income dated the issue date. Undefined when not the owner's; 409 when not a draft; 409 PERIOD_LOCKED. */
+  issue(userId: string, invoiceId: string): Promise<Invoice | undefined>;
+  /** Sent to paid: posts debtors to bank dated paymentDate. Undefined when not the owner's; 409 when not sent. */
+  markPaid(userId: string, invoiceId: string, paymentDate: string): Promise<Invoice | undefined>;
   /** Draft invoices only. Returns undefined when the invoice is not the owner's or is voided; throws InvoiceRuleError 409 when not a draft. */
   update(userId: string, invoiceId: string, body: DraftInvoiceBody): Promise<Invoice | undefined>;
+  /** Drafts, and issued or paid invoices (their postings are voided too; 409 PERIOD_LOCKED inside a confirmed or filed period). */
   void(userId: string, invoiceId: string, reason: string): Promise<boolean>;
   get(userId: string, invoiceId: string): Promise<Invoice | undefined>;
   /** At most `limit` rows, newest first by (created_at, id), after the cursor. */
@@ -134,6 +146,16 @@ export async function listInvoices(store: InvoiceStore, userId: string, status: 
   const page = rows.slice(0, limit);
   const last = page[page.length - 1];
   return { invoices: page, nextCursor: rows.length > limit && last ? encodeInvoiceCursor({ createdAt: last.cursorCreatedAt, id: last.id }) : null };
+}
+
+/** Overdue is derived at read time and never stored, so no job has to keep it in step. */
+export const deriveInvoiceStatus = (status: InvoiceStatus, dueDate: string, today: string): InvoiceStatus =>
+  status === 'sent' && dueDate < today ? 'overdue' : status;
+
+export function assertPaymentDateAllowed(issueDate: string, paymentDate: string, now: Date): void {
+  if (paymentDate < issueDate) throw new InvoiceRuleError(400, 'BAD_REQUEST', 'Payment date is before the issue date');
+  const latest = new Date(now.getTime() + MAX_DAYS_AHEAD * 86_400_000).toISOString().slice(0, 10);
+  if (paymentDate > latest) throw new InvoiceRuleError(400, 'BAD_REQUEST', `Payment date cannot be more than ${MAX_DAYS_AHEAD} days ahead`);
 }
 
 export const formatInvoiceNumber = (prefix: string, number: number) => `${prefix}${String(number).padStart(NUMBER_PAD, '0')}`;
@@ -167,16 +189,75 @@ async function readLines(tx: Pick<typeof db, 'select'>, invoiceId: string): Prom
   return tx.select(lineColumns).from(invoiceLines).where(and(eq(invoiceLines.invoiceId, invoiceId), isNull(invoiceLines.deletedAt))).limit(INVOICE_MAX_LINES);
 }
 
-async function lockOwnedDraft(tx: Transaction, userId: string, invoiceId: string) {
+const postingLinkColumns = { transactionId: invoices.transactionId, paymentTransactionId: invoices.paymentTransactionId };
+
+async function lockOwnedInvoice(tx: Transaction, userId: string, invoiceId: string) {
   const [existing] = await tx
-    .select(invoiceColumns)
+    .select({ ...invoiceColumns, ...postingLinkColumns })
     .from(invoices)
     .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId), isNull(invoices.deletedAt)))
     .limit(1)
     .for('update');
-  if (!existing) return undefined;
-  if (existing.status !== 'draft') throw new InvoiceRuleError(409, 'CONFLICT', 'Only draft invoices can be changed');
   return existing;
+}
+
+async function lockOwnedDraft(tx: Transaction, userId: string, invoiceId: string) {
+  const existing = await lockOwnedInvoice(tx, userId, invoiceId);
+  if (existing && existing.status !== 'draft') throw new InvoiceRuleError(409, 'CONFLICT', 'Only draft invoices can be changed');
+  return existing;
+}
+
+async function assertDateOpen(userId: string, date: string) {
+  if (await databaseEntryStore.isDateLocked(userId, date)) throw new InvoiceRuleError(409, 'PERIOD_LOCKED', PERIOD_LOCKED_MESSAGE);
+}
+
+async function loadAccountIds(tx: Transaction, userId: string) {
+  const rows = await tx
+    .select({ id: accounts.id, code: accounts.code })
+    .from(accounts)
+    .where(and(eq(accounts.userId, userId), inArray(accounts.code, [SALES_ACCOUNT_CODE, BANK_ACCOUNT_CODE, TRADE_DEBTORS_CODE, VAT_CONTROL_CODE])))
+    .limit(4);
+  const idOf = (code: string) => {
+    const found = rows.find((row) => row.code === code);
+    if (!found) throw new Error('System account missing');
+    return found.id;
+  };
+  return {
+    incomeAccountId: idOf(SALES_ACCOUNT_CODE),
+    bankAccountId: idOf(BANK_ACCOUNT_CODE),
+    debtorsAccountId: idOf(TRADE_DEBTORS_CODE),
+    vatControlAccountId: idOf(VAT_CONTROL_CODE),
+  };
+}
+
+async function insertPosting(tx: Transaction, userId: string, date: string, description: string, lines: PostedLine[]) {
+  const [row] = await tx.insert(transactions).values({ userId, date, description, source: 'manual', status: 'confirmed' }).returning({ id: transactions.id });
+  await tx.insert(transactionLines).values(
+    lines.map((line) => ({ transactionId: row.id, accountId: line.accountId, amountPence: line.amountPence, vatPence: line.vatPence, vatRatePercent: line.vatRatePercent ?? 0 })),
+  );
+  return row.id;
+}
+
+async function writeAudit(tx: Transaction, userId: string, action: string, invoiceId: string, before: Parameters<typeof auditSnapshot>[0], after: Parameters<typeof auditSnapshot>[0], metadata?: object) {
+  await tx.insert(auditEvents).values({
+    userId,
+    actorType: 'user',
+    action,
+    resourceType: 'invoice',
+    resourceId: invoiceId,
+    beforeSnapshot: auditSnapshot(before),
+    afterSnapshot: auditSnapshot(after),
+    metadata,
+  });
+}
+
+async function withPostingInput(tx: Transaction, userId: string, invoice: Pick<InvoiceHeader, 'id' | 'totalPence'>) {
+  const lines = await readLines(tx, invoice.id);
+  return {
+    lines: lines.map((line) => ({ vatRate: line.vatRatePercent as VatRate, netPence: line.subtotalPence, vatPence: line.vatPence })),
+    totalPence: invoice.totalPence,
+    ...(await loadAccountIds(tx, userId)),
+  };
 }
 
 // Query audit: every query filters on user_id (or users.id) from the session and has an explicit limit.
@@ -227,6 +308,44 @@ export const databaseInvoiceStore: InvoiceStore = {
     });
   },
 
+  async issue(userId, invoiceId) {
+    // Idempotent, and kept outside the transaction like loadPostingContext does.
+    await databaseAccountStore.seedDefaults(userId);
+    return db.transaction(async (tx) => {
+      const before = await lockOwnedDraft(tx, userId, invoiceId);
+      if (!before) return undefined;
+      await assertDateOpen(userId, before.issueDate);
+      const postingLines = postInvoiceIssue(await withPostingInput(tx, userId, before));
+      const transactionId = await insertPosting(tx, userId, before.issueDate, `Invoice ${before.publicNumber}`, postingLines);
+      const [after] = await tx
+        .update(invoices)
+        .set({ status: 'sent', transactionId, updatedAt: new Date() })
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId)))
+        .returning(invoiceColumns);
+      await writeAudit(tx, userId, 'invoice.issue', invoiceId, before, after, { transactionId });
+      return { ...after, lines: await readLines(tx, invoiceId) };
+    });
+  },
+
+  async markPaid(userId, invoiceId, paymentDate) {
+    return db.transaction(async (tx) => {
+      const before = await lockOwnedInvoice(tx, userId, invoiceId);
+      if (!before) return undefined;
+      if (before.status !== 'sent') throw new InvoiceRuleError(409, 'CONFLICT', 'Only a sent invoice can be marked paid');
+      assertPaymentDateAllowed(before.issueDate, paymentDate, new Date());
+      await assertDateOpen(userId, paymentDate);
+      const postingLines = postInvoicePayment(await withPostingInput(tx, userId, before));
+      const paymentTransactionId = await insertPosting(tx, userId, paymentDate, `Payment of invoice ${before.publicNumber}`, postingLines);
+      const [after] = await tx
+        .update(invoices)
+        .set({ status: 'paid', paymentTransactionId, updatedAt: new Date() })
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId)))
+        .returning(invoiceColumns);
+      await writeAudit(tx, userId, 'invoice.paid', invoiceId, before, after, { paymentTransactionId, paymentDate });
+      return { ...after, lines: await readLines(tx, invoiceId) };
+    });
+  },
+
   async update(userId, invoiceId, body) {
     return db.transaction(async (tx) => {
       const before = await lockOwnedDraft(tx, userId, invoiceId);
@@ -272,8 +391,21 @@ export const databaseInvoiceStore: InvoiceStore = {
 
   async void(userId, invoiceId, reason) {
     return db.transaction(async (tx) => {
-      const before = await lockOwnedDraft(tx, userId, invoiceId);
+      const before = await lockOwnedInvoice(tx, userId, invoiceId);
       if (!before) return false;
+      const postingIds = [before.transactionId, before.paymentTransactionId].filter((id): id is string => id !== null);
+      if (postingIds.length > 0) {
+        // Every posting date is checked before anything is voided, so a locked period changes nothing.
+        const postings = await tx
+          .select({ date: transactions.date })
+          .from(transactions)
+          .where(and(inArray(transactions.id, postingIds), eq(transactions.userId, userId)))
+          .limit(2);
+        for (const posting of postings) await assertDateOpen(userId, posting.date);
+        for (const postingId of postingIds) {
+          if (!(await voidLiveEntry(tx, userId, postingId))) throw new InvoiceRuleError(409, 'CONFLICT', 'Invoice posting is already voided');
+        }
+      }
       const now = new Date();
       // Soft delete: the row and its number stay; the counter is never decremented.
       const [after] = await tx
@@ -281,16 +413,7 @@ export const databaseInvoiceStore: InvoiceStore = {
         .set({ status: 'voided', deletedAt: now, updatedAt: now })
         .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId)))
         .returning(invoiceColumns);
-      await tx.insert(auditEvents).values({
-        userId,
-        actorType: 'user',
-        action: 'invoice.void',
-        resourceType: 'invoice',
-        resourceId: invoiceId,
-        beforeSnapshot: auditSnapshot(before),
-        afterSnapshot: auditSnapshot(after),
-        metadata: { reason },
-      });
+      await writeAudit(tx, userId, 'invoice.void', invoiceId, before, after, { reason });
       return true;
     });
   },
@@ -302,15 +425,20 @@ export const databaseInvoiceStore: InvoiceStore = {
       .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId)))
       .limit(1);
     if (!header) return undefined;
-    return { ...header, lines: await readLines(db, invoiceId) };
+    const today = new Date().toISOString().slice(0, 10);
+    return { ...header, status: deriveInvoiceStatus(header.status, header.dueDate, today), lines: await readLines(db, invoiceId) };
   },
 
   async list(userId, status, after, limit) {
+    const today = new Date().toISOString().slice(0, 10);
     const conditions: Array<SQL | undefined> = [
       eq(invoices.userId, userId),
       // Voided invoices are soft-deleted, so they only appear when asked for by status.
       status === 'voided' ? undefined : isNull(invoices.deletedAt),
-      status ? eq(invoices.status, status) : undefined,
+      // Overdue is never stored: it is a sent invoice past its due date.
+      status === 'overdue' ? and(eq(invoices.status, 'sent'), lt(invoices.dueDate, today)) : status ? eq(invoices.status, status) : undefined,
+      // A sent invoice past due shows as overdue, so the sent filter keeps only those not yet due.
+      status === 'sent' ? gte(invoices.dueDate, today) : undefined,
       // The cursor keeps the database's microsecond timestamp as text so rows sharing a millisecond are neither repeated nor skipped.
       after
         ? or(
@@ -319,11 +447,12 @@ export const databaseInvoiceStore: InvoiceStore = {
           )
         : undefined,
     ];
-    return db
+    const rows = await db
       .select({ ...invoiceColumns, cursorCreatedAt: sql<string>`${invoices.createdAt}::text` })
       .from(invoices)
       .where(and(...conditions))
       .orderBy(desc(invoices.createdAt), desc(invoices.id))
       .limit(limit);
+    return rows.map((row) => ({ ...row, status: deriveInvoiceStatus(row.status, row.dueDate, today) }));
   },
 };

@@ -89,3 +89,7 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
   - Risk: STF-49 also edits TaxPage.tsx; keep this change in its own block.
   - Commit: `bdd9c8f90988`
+
+- [x] **Task 5: Fix: address 6 review findings (cycle 1)** (after 4)
+  - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. I traced three paths and both screenshots; I did not re-run tests, since the orchestrator's validation passed. - **Comparison an The agent is fixing them; nothing is needed from you.
+  - Commit: `a311e212283b`

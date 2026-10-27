@@ -98,3 +98,7 @@ Also depends on:
     - envExample.test.ts passes
     - npm run lint, typecheck, test and build pass
   - Commit: `bbbf92b1ab8a`
+
+- [x] **Task 6: Fix: address 7 review findings (cycle 1)** (after 5)
+  - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found no blocking defects. I traced the scope request, callback scope storage and business-id clearing, the its-businesses route and the Settings picker The agent is fixing them; nothing is needed from you.
+  - Commit: `131320d6bffd`

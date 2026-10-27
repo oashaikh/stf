@@ -85,3 +85,7 @@ Also depends on:
 - [x] **Task 4: Fix: address 17 review findings (cycle 1)** (after 3)
   - Intent: Review left 17 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The export route, scoping, limits and tests look correct. Three problems block approval. The Reports page copy says voided entries are included when the route excludes the The agent is fixing them; nothing is needed from you.
   - Commit: `63bb6c171322`
+
+- [x] **Task 5: Fix: address 9 review findings (cycle 2)** (after 4)
+  - Intent: Review left 9 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The code is correct: owner scoping, deleted_at exclusion, range and row limits, CSV injection guard and the cycle-1 fixes (copy now says voided are excluded, mock returns  The agent is fixing them; nothing is needed from you.
+  - Commit: `a44315c1dbdc`

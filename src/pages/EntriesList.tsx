@@ -1,13 +1,16 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSearchParams } from "react-router-dom";
 import EntryActions from "./EntryActions";
 import { fetchAccounts } from "../lib/accountsApi";
 import { formatDate } from "../lib/dates";
 import { ENTRIES_QUERY_KEY, fetchEntries, type ApiEntry } from "../lib/entriesApi";
 import {
+  activeFilterCount,
   DEFAULT_ENTRY_FILTERS,
+  filtersFromParams,
   taxYearRange,
+  toEntryListParams,
   vatQuarterRange,
   type EntryFilters,
 } from "../lib/entryFilters";
@@ -19,7 +22,7 @@ const fieldClass =
 const buttonClass =
   "min-h-[44px] rounded-md border border-gray-400 bg-white px-4 text-gray-900 hover:bg-gray-100 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700";
 
-function FilterBar({
+function FilterFields({
   filters,
   onChange,
 }: {
@@ -47,11 +50,7 @@ function FilterBar({
   );
 
   return (
-    <form
-      aria-label="Filter entries"
-      onSubmit={(event) => event.preventDefault()}
-      className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-    >
+    <>
       <label className="block text-sm">
         From
         <input
@@ -134,17 +133,141 @@ function FilterBar({
           <option value="confirmed">Confirmed</option>
         </select>
       </label>
-      <label className="block text-sm">
-        Search
-        <input
-          type="search"
-          value={filters.search}
-          onChange={(event) => set({ search: event.target.value })}
-          placeholder="Description"
-          maxLength={100}
-          className={fieldClass}
+    </>
+  );
+}
+
+// jsdom has no matchMedia; treating it as a wide screen keeps the inline row there.
+const PHONE_QUERY = "(max-width: 639px)";
+function usePhoneWidth() {
+  return useSyncExternalStore(
+    (notify) => {
+      const query = window.matchMedia?.(PHONE_QUERY);
+      query?.addEventListener("change", notify);
+      return () => query?.removeEventListener("change", notify);
+    },
+    () => window.matchMedia?.(PHONE_QUERY).matches ?? false,
+  );
+}
+
+function SearchBox({
+  filters,
+  onChange,
+}: {
+  filters: EntryFilters;
+  onChange: (filters: EntryFilters) => void;
+}) {
+  return (
+    <label className="block text-sm">
+      Search
+      <input
+        type="search"
+        value={filters.search}
+        onChange={(event) => onChange({ ...filters, search: event.target.value })}
+        placeholder="Description"
+        maxLength={100}
+        className={fieldClass}
+      />
+    </label>
+  );
+}
+
+// A native modal dialog gives the focus trap and Escape-to-close; nothing changes the list until Apply.
+function FiltersSheet({
+  filters,
+  onApply,
+  onClose,
+}: {
+  filters: EntryFilters;
+  onApply: (filters: EntryFilters) => void;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [draft, setDraft] = useState(filters);
+  useEffect(() => {
+    dialogRef.current?.showModal();
+  }, []);
+  return (
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="filters-sheet-title"
+      onClose={onClose}
+      className="m-0 mt-auto max-h-[90vh] w-full max-w-none overflow-y-auto rounded-t-lg p-4 backdrop:bg-black/40"
+    >
+      <h2 id="filters-sheet-title" className="text-lg font-semibold">
+        Filters
+      </h2>
+      <div className="mt-3 grid gap-3">
+        <FilterFields filters={draft} onChange={setDraft} />
+      </div>
+      <div className="mt-4 flex gap-2">
+        <button
+          type="button"
+          className={`${buttonClass} flex-1`}
+          onClick={() => setDraft({ ...DEFAULT_ENTRY_FILTERS, search: filters.search })}
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          className="min-h-[44px] flex-1 rounded-md border border-blue-700 bg-blue-700 px-4 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+          onClick={() => {
+            onApply(draft);
+            dialogRef.current?.close();
+          }}
+        >
+          Apply
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
+function FilterBar({
+  filters,
+  onChange,
+}: {
+  filters: EntryFilters;
+  onChange: (filters: EntryFilters) => void;
+}) {
+  const phone = usePhoneWidth();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  if (!phone) {
+    return (
+      <form
+        aria-label="Filter entries"
+        onSubmit={(event) => event.preventDefault()}
+        className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        <FilterFields filters={filters} onChange={onChange} />
+        <SearchBox filters={filters} onChange={onChange} />
+      </form>
+    );
+  }
+  const count = activeFilterCount(filters);
+  return (
+    <form
+      aria-label="Filter entries"
+      onSubmit={(event) => event.preventDefault()}
+      className="mt-6 flex items-end gap-2"
+    >
+      <div className="min-w-0 flex-1">
+        <SearchBox filters={filters} onChange={onChange} />
+      </div>
+      <button
+        type="button"
+        className={buttonClass}
+        onClick={() => setSheetOpen(true)}
+      >
+        Filters{count > 0 && <span aria-label={`, ${count} active`}> {count}</span>}
+      </button>
+      {sheetOpen && (
+        <FiltersSheet
+          filters={filters}
+          onApply={onChange}
+          onClose={() => setSheetOpen(false)}
         />
-      </label>
+      )}
     </form>
   );
 }
@@ -154,13 +277,15 @@ export default function EntriesList({
 }: {
   onEdit: (entry: ApiEntry) => void;
 }) {
-  // The dashboard links here with ?status=draft to show the drafts waiting for confirmation.
-  const [searchParams] = useSearchParams();
-  const [filters, setFilters] = useState<EntryFilters>(() =>
-    searchParams.get("status") === "draft"
-      ? { ...DEFAULT_ENTRY_FILTERS, status: "draft" }
-      : DEFAULT_ENTRY_FILTERS,
-  );
+  // The URL query holds the filters so the dashboard (?status=draft) and the VAT drill-down can link here.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
+  const setFilters = (next: EntryFilters) => {
+    const params = toEntryListParams(next);
+    // toEntryListParams trims for the API; the URL feeds the search box, so it keeps what was typed.
+    if (next.search) params.set('search', next.search);
+    setSearchParams(params, { replace: true });
+  };
   // The API refuses a range that ends before it starts, so wait until the dates make sense.
   const rangeReversed = Boolean(
     filters.from && filters.to && filters.from > filters.to,

@@ -66,7 +66,7 @@ Also depends on:
   - Risk: Schema and migration work; journal also edited by STF-77, so expect a trivial merge conflict to resolve.
   - Commit: `1f5bf2ae09d4`
 
-- [ ] **Task 3: Template API and due-entry generator** (after 1, 2)
+- [x] **Task 3: Template API and due-entry generator** (after 1, 2)
   - Intent: Add api/_lib/recurringEntries.ts with zod schemas, owner-scoped list/create/update/pause/soft-delete (every query filtered by auth.userId from the session, explicit LIMIT, e.g. 100 templates) and generateDueEntries(now): scan non-paused, non-deleted templates with next_date <= today (limit per run), and for each due date from dueDates() call createEntry from api/_lib/entries.ts so output goes through the posting function and is always status draft. Per date: in one DB transaction insert the run row with ON CONFLICT DO NOTHING on (template_id, run_date) and skip if nothing inserted, then advance next_date; do no network work inside the transaction. Closed VAT periods or too-far-ahead dates must not abort the whole run: log the template id only and leave next_date unchanged. Add api/recurring-entries.ts route behind withAuth (GET/POST/PATCH/DELETE by id, reject ids belonging to other users). Tests: output always draft, running twice creates once, month-end dates, paused skipped, second user refused a first user's template id, list is limited.
   - Files: `api/_lib/recurringEntries.ts`, `api/recurring-entries.ts`, `api/_lib/__tests__/recurringEntries.test.ts`, `api/_lib/__tests__/recurringEntriesRoute.test.ts`, `api/_lib/__tests__/apiRoutes.test.ts`
   - Acceptance criteria the planner set:
@@ -76,6 +76,7 @@ Also depends on:
     - All queries have an explicit limit and use the new indexes
     - npm run lint, typecheck and test pass
   - Risk: Authorisation, per-owner isolation and idempotency on financial records.
+  - Commit: `9c54f4dc78f2`
 
 - [ ] **Task 4: Cron route for recurring entries** (after 3)
   - Intent: Add api/cron/create-recurring-entries.ts mirroring refresh-hmrc-tokens.ts: fail closed without CRON_SECRET, timing-safe bearer check, runs generateDueEntries, logs counts only, non-2xx on total failure. Register a daily cron and maxDuration in vercel.json. CRON_SECRET already exists in .env.example, so no new env var. Tests mirror api/cron/__tests__/refresh-hmrc-tokens.test.ts (401 without or with a wrong secret, 200 and counts on success, 500 on failure).

@@ -225,9 +225,11 @@ function ReadOnlyInvoice({ invoice, onBack, onChanged }: { invoice: ApiInvoice; 
         <button type="button" className={buttonClass} onClick={onBack}>
           Back to invoices
         </button>
-        <button type="button" className={buttonClass} disabled={download.isPending} onClick={() => download.mutate()}>
-          {download.isPending ? 'Downloading…' : 'Download PDF'}
-        </button>
+        {invoice.status !== 'voided' && (
+          <button type="button" className={buttonClass} disabled={download.isPending} onClick={() => download.mutate()}>
+            {download.isPending ? 'Downloading…' : 'Download PDF'}
+          </button>
+        )}
         {(invoice.status === 'sent' || invoice.status === 'overdue') && (
           <button type="button" className={primaryClass} onClick={() => state.setAction('paid')}>
             Mark paid

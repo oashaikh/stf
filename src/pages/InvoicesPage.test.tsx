@@ -196,6 +196,7 @@ describe('issued invoice view', () => {
     await openInvoice({ ...sent, status: 'voided' });
     expect(await screen.findByText('Acme Ltd')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Void' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Download PDF' })).toBeNull();
   });
 });
 

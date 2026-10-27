@@ -97,7 +97,7 @@ Also depends on:
   - Risk: Default tier. Measurement only; docs plus an optional one-line config tune.
   - Commit: `04d0d51d2c98`
 
-- [ ] **Task 5: Download PDF button on the invoice view** (after 3)
+- [x] **Task 5: Download PDF button on the invoice view** (after 3)
   - Intent: Add downloadInvoicePdf(id) to src/lib/invoicesApi.ts (or src/lib/exportApi.ts pattern): fetch /api/invoice-pdf?id=... with credentials same-origin, throw with the server error message on non-OK, turn the blob into an object URL on a temporary anchor click (copy the approach in downloadEntriesCsv in src/lib/exportApi.ts, share any helper it already has rather than duplicating), then revoke the URL. In ReadOnlyInvoice in src/pages/InvoiceEditor.tsx (the invoice view shown for sent/paid/overdue/voided) add a 'Download PDF' button using buttonClass (min-h-11, 44px target, focus ring), showing a pending label while downloading and an inline role=alert error on failure. Decide whether DraftEditor also gets it (assumption: view only, as ticket says 'invoice view', and drafts can be previewed after issue). Add tests in src/pages/InvoicesPage.test.tsx with the api module mocked (): button appears on an issued invoice, click calls download with the invoice id, failure shows the error. Add GET /api/invoice-pdf to e2e/mockApi.ts returning a small PDF body so the journey and screenshots work.
   - Files: `src/lib/invoicesApi.ts`, `src/lib/exportApi.ts`, `src/pages/InvoiceEditor.tsx`, `src/pages/InvoicesPage.tsx`, `src/pages/InvoicesPage.test.tsx`, `e2e/mockApi.ts`
   - Acceptance criteria the planner set:
@@ -107,6 +107,7 @@ Also depends on:
     - Component test with the API client mocked fails if the button or call is removed
     - lint, typecheck, test, build pass
   - Risk: Default tier.
+  - Commit: `e9a9a230a127`
 
 - [ ] **Task 6: Review evidence: sample PDF and screenshots at 390 and 1440 px** (after 4, 5)
   - Intent: Produce the PR evidence. (a) Render one sample PDF from invented fixture data (a VAT-registered owner with mixed 20% and 0% lines) with the real template and save it under browser-evidence/STF-79/ as invoice-sample.pdf (invented data only/). (b) Using the Playwright mock journey (npm run test:journey:mock, no live services), capture the changed screen, the invoice view with the Download PDF button, at 1440 and 390 px; light only if there is no dark theme (check). Save as browser-evidence/STF-79/*.png following the existing STF-78 folder naming. Confirm no horizontal scroll at 1440 and that the button wraps cleanly at 390. List the files in the PR body so they can be attached. If a Playwright browser is unavailable in the sandbox, say so plainly rather than faking screenshots.

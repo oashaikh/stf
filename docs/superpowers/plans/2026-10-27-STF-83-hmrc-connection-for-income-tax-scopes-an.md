@@ -89,7 +89,7 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
   - Commit: `81c9519a24b3`
 
-- [ ] **Task 5: Sandbox integration test for business list (skipped without credentials) and docs** (after 1)
+- [x] **Task 5: Sandbox integration test for business list (skipped without credentials) and docs** (after 1)
   - Intent: Extend src/lib/hmrc/sandbox.integration.test.ts with a listItsSelfEmploymentBusinesses case, in the same describe.skipIf style as the VAT case, gated on HMRC_CLIENT_ID, HMRC_CLIENT_SECRET, HMRC_SANDBOX_REFRESH_TOKEN and a new HMRC_SANDBOX_NINO. It must also stay skipped when HMRC_SANDBOX_MODE=false, send fraud headers, and not print the NINO or tokens. Document HMRC_SANDBOX_NINO as a commented line in .env.example. src/lib/__tests__/envExample.test.ts checks env coverage, so keep it green. Update docs/runbooks/hmrc-sandbox-integration.md with the Income Tax test user prerequisite, the extra variable, and the one-time reconnect. Tick the relevant PLAN.md line only if the roadmap tracks it.
   - Files: `src/lib/hmrc/sandbox.integration.test.ts`, `.env.example`, `docs/runbooks/hmrc-sandbox-integration.md`, `PLAN.md`
   - Acceptance criteria the planner set:
@@ -97,3 +97,4 @@ Also depends on:
     - No real NINO or token appears in the repo; .env.example holds a commented placeholder only
     - envExample.test.ts passes
     - npm run lint, typecheck, test and build pass
+  - Commit: `bbbf92b1ab8a`

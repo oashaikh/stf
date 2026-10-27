@@ -88,7 +88,7 @@ Also depends on:
     - npm run lint, typecheck and test pass
   - Commit: `d282aa1b272e`
 
-- [ ] **Task 5: Manage templates on the Expenses page** (after 3)
+- [x] **Task 5: Manage templates on the Expenses page** (after 3)
   - Intent: Add src/lib/recurringEntriesApi.ts (react-query client in the style of mileageApi.ts, money via parsePence/formatPence) and a RecurringEntriesSection child component rendered from src/pages/ExpensesPage.tsx above EntriesList: list templates (kind, description, amount, schedule, next date, paused), add/edit form (kind, category, amount, VAT rate only when the business has a VAT number, description, schedule, first date), pause/resume, and delete with a confirmation naming the template. Use shared loading/empty/error components, page container and tokens (), 44px targets, table collapsing to labelled rows on phones with money right-aligned. Generated drafts appear in the existing EntriesList and are confirmed there, no new confirm flow. Component and page tests with the API client mocked; extend e2e/mockApi.ts for the new route and add a journey step. Capture screenshots of the Expenses page with templates at 1440 and 390 px (light, plus dark if themes exist) into browser-evidence/ per the operator naming (STF-48-*-light-*.png).
   - Files: `src/lib/recurringEntriesApi.ts`, `src/pages/RecurringEntriesSection.tsx`, `src/pages/RecurringEntriesSection.test.tsx`, `src/pages/ExpensesPage.tsx`, `src/pages/ExpensesPage.test.tsx`, `e2e/mockApi.ts`, `e2e/journey.spec.ts`, `browser-evidence/`
   - Acceptance criteria the planner set:
@@ -97,6 +97,7 @@ Also depends on:
     - No horizontal scroll at 1440 px; rows are labelled at 390 px
     - Screenshots at 1440 and 390 px are committed under browser-evidence/
     - npm run lint, typecheck, test and build pass
+  - Commit: `aaab4f4cd88e`
 
 - [ ] **Task 6: Document the recurring entries workflow** (after 4, 5)
   - Intent: Write docs/workflows/recurring-entries.md: template fields, schedule and month-end rule, idempotency via the run ledger, drafts only and confirmation from the Expenses list, cron setup and CRON_SECRET, catch-up cap, retention (templates soft-deleted, kept with the books). Add a short pointer in PLAN.md if the roadmap lists this feature.

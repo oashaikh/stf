@@ -45,7 +45,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Trading allowance amount in tax bands, plus the pure comparison function**
+- [x] **Task 1: Trading allowance amount in tax bands, plus the pure comparison function**
   - Intent: Add `tradingAllowancePence` (100000, £1,000, HMRC published) to the TaxBands interface and to every year entry in src/lib/taxBands.ts. Add src/lib/tradingAllowance.ts with a pure `compareExpenseMethods(grossIncomePence, allowableExpensesPence, taxYear)`. It returns profit under actual expenses (income - expenses, can be negative), profit under the allowance (max(0, income - allowance)), and `lowerProfitMethod` ('actual' | 'allowance'). A tie returns 'actual' because that is the default and needs no election. Integer pence only, with the allowance read through getTaxBands. Tests cover: income below the allowance (allowance profit 0), expenses exactly equal to the allowance (tie returns 'actual'), expenses above and below it, zero income, a loss under actual expenses, and an unknown tax year throwing.
   - Files: `src/lib/taxBands.ts`, `src/lib/taxBands.test.ts`, `src/lib/tradingAllowance.ts`, `src/lib/tradingAllowance.test.ts`
   - Acceptance criteria the planner set:
@@ -54,6 +54,7 @@ Also depends on:
     - Tests cover turnover below the allowance and expenses equal to the allowance
     - npm run typecheck, npm test and npm run lint pass
   - Risk: Tax logic, but small, pure and fully unit-tested.
+  - Commit: `b8e244335ec0`
 
 - [ ] **Task 2: Per-tax-year method choice: table, migration, store with audit event, settings route** (after 1)
   - Intent: Add a `trading_allowance_choices` table (id, user_id FK to users, tax_year, method constrained to 'actual' | 'allowance', updated_at) to server/src/db/schema.ts, with a unique index on (user_id, tax_year) that also serves every lookup. Add migration 0012_trading_allowance_choices.sql with journal entry and snapshot. Do not reuse 0010 (STF-9) or 0011 (STF-49), and the journal `when` must be later than 1792986651124. Re-check against the base branch for a single head before finishing. Add api/_lib/tradingAllowance.ts, modelled on api/_lib/businessProfile.ts: a zod schema (taxYear must be in TAX_BANDS and pass taxYearPeriod; method is an enum) and an injected store with `get(userId, taxYear)` (limit 1) and `set(userId, taxYear, method)`. `set` upserts in a transaction, locking the existing row FOR UPDATE, and writes an auditEvents row (action 'trading_allowance.update', before and after snapshots) only when the method changes. Add api/settings/trading-allowance.ts (GET ?taxYear, PUT body) behind withAuth. The user id always comes from auth.userId; the response returns only the method. Add a query-audit comment and extend schema.test.ts as for other tables. Route tests: unauthenticated refused, bad year or method gives 400, another user's choice never visible or changeable, audit event written on change and not on a no-op, repeated PUT for the same year leaves one row.

@@ -29,6 +29,7 @@ describe('invoices route', () => {
   let owners: Record<string, Owner>;
   let saved: Stored[];
   let audits: string[];
+  let filedPeriodIds: Set<string>;
   // Models the users-row lock: allocation for the same owner runs one at a time, like SELECT ... FOR UPDATE.
   let lockChain: Promise<unknown>;
 
@@ -57,9 +58,23 @@ describe('invoices route', () => {
   };
 
   const store: InvoiceStore = {
-    // Issue and mark-paid routes arrive in a later task.
-    issue: async () => undefined,
-    markPaid: async () => undefined,
+    async issue(userId, id) {
+      const found = saved.find((row) => row.userId === userId && row.id === id && row.status !== 'voided');
+      if (!found) return undefined;
+      if (found.status !== 'draft') throw new InvoiceRuleError(409, 'CONFLICT', 'Only draft invoices can be issued');
+      found.status = 'sent';
+      audits.push(`${userId}:invoice.issue`);
+      return found;
+    },
+    async markPaid(userId, id, paymentDate) {
+      const found = saved.find((row) => row.userId === userId && row.id === id && row.status !== 'voided');
+      if (!found) return undefined;
+      if (found.status !== 'sent') throw new InvoiceRuleError(409, 'CONFLICT', 'Only issued invoices can be marked paid');
+      found.status = 'paid';
+      Object.assign(found, { paymentTransactionId: `pay-${paymentDate}` });
+      audits.push(`${userId}:invoice.paid`);
+      return found;
+    },
     create(userId, body) {
       const run = lockChain.then(async () => {
         const owner = owners[userId];
@@ -85,7 +100,7 @@ describe('invoices route', () => {
     async void(userId, id, reason) {
       const found = saved.find((row) => row.userId === userId && row.id === id && row.status !== 'voided');
       if (!found) return false;
-      if (found.status !== 'draft') throw new InvoiceRuleError(409, 'CONFLICT', 'Only draft invoices can be changed');
+      if (filedPeriodIds.has(found.id)) throw new InvoiceRuleError(409, 'PERIOD_LOCKED', 'This date is in a confirmed or filed VAT period');
       found.status = 'voided';
       audits.push(`${userId}:invoice.void:${reason}`);
       return true;
@@ -127,6 +142,7 @@ describe('invoices route', () => {
     };
     saved = [];
     audits = [];
+    filedPeriodIds = new Set();
     lockChain = Promise.resolve();
   });
 
@@ -170,13 +186,12 @@ describe('invoices route', () => {
     expect(audits).toEqual(['owner:invoice.create', 'owner:invoice.edit']);
   });
 
-  it('refuses to edit or void an invoice that is no longer a draft', async () => {
+  it('refuses to edit an invoice that is no longer a draft', async () => {
     const created = (await (await call('POST', valid, 'owner')).json()).invoice;
     saved[0].status = 'sent';
     const edit = await call('PUT', valid, 'owner', `?id=${created.id}`);
     expect(edit.status).toBe(409);
     expect((await edit.json()).code).toBe('CONFLICT');
-    expect((await call('DELETE', { reason: 'x' }, 'owner', `?id=${created.id}`)).status).toBe(409);
   });
 
   it('gives a second user 404 on another owner\'s invoice and an empty list', async () => {
@@ -233,5 +248,82 @@ describe('invoices route', () => {
     expect((await call('GET', undefined, 'owner', '?status=bogus')).status).toBe(400);
     expect((await call('PATCH', valid, 'owner', `?id=${invoiceId(1)}`)).status).toBe(405);
     expect(saved).toEqual([]);
+  });
+
+  describe('issue and mark paid', () => {
+    const createDraft = async (userId = 'owner') => (await (await call('POST', valid, userId)).json()).invoice as Invoice;
+    const act = (action: string, id: string, userId?: string, body?: unknown) => call('POST', body, userId, `?id=${id}&action=${action}`);
+
+    it('issues a draft to sent and then refuses to issue it again', async () => {
+      const draft = await createDraft();
+      const issued = await act('issue', draft.id, 'owner');
+      expect(issued.status).toBe(200);
+      expect((await issued.json()).invoice.status).toBe('sent');
+      expect((await act('issue', draft.id, 'owner')).status).toBe(409);
+      expect(audits).toContain('owner:invoice.issue');
+    });
+
+    it('marks an issued invoice paid with a payment link', async () => {
+      const draft = await createDraft();
+      await act('issue', draft.id, 'owner');
+      const paid = await act('paid', draft.id, 'owner', { paymentDate: '2026-02-10' });
+      expect(paid.status).toBe(200);
+      const body = await paid.json();
+      expect(body.invoice.status).toBe('paid');
+      expect(body.invoice.paymentTransactionId).toBe('pay-2026-02-10');
+    });
+
+    it('refuses to pay a draft and ignores client-sent status or totals', async () => {
+      const draft = await createDraft();
+      expect((await act('paid', draft.id, 'owner', { paymentDate: '2026-02-10' })).status).toBe(409);
+      const markPaid = vi.spyOn(store, 'markPaid');
+      await act('issue', draft.id, 'owner');
+      await act('paid', draft.id, 'owner', { paymentDate: '2026-02-10', status: 'draft', totalPence: 1, bankAccountId: 'x' });
+      expect(markPaid).toHaveBeenLastCalledWith('owner', draft.id, '2026-02-10');
+      markPaid.mockRestore();
+    });
+
+    it('refuses a bad or missing paymentDate, a bad action and a non-uuid id', async () => {
+      const draft = await createDraft();
+      await act('issue', draft.id, 'owner');
+      for (const body of [undefined, {}, { paymentDate: 'tomorrow' }, { paymentDate: '2026-13-45' }]) {
+        const response = await act('paid', draft.id, 'owner', body);
+        expect(response.status).toBe(400);
+      }
+      expect((await act('refund', draft.id, 'owner')).status).toBe(400);
+      expect((await act('issue', 'nope', 'owner')).status).toBe(400);
+    });
+
+    it('refuses requests without a session', async () => {
+      expect((await act('issue', invoiceId(100))).status).toBe(401);
+      expect((await act('paid', invoiceId(100), undefined, { paymentDate: '2026-02-10' })).status).toBe(401);
+    });
+
+    it('gives a second user 404 on issue, paid and void of the first user\'s invoice, leaving it untouched', async () => {
+      const draft = await createDraft();
+      await act('issue', draft.id, 'owner');
+      expect((await act('issue', draft.id, 'other')).status).toBe(404);
+      expect((await act('paid', draft.id, 'other', { paymentDate: '2026-02-10' })).status).toBe(404);
+      expect((await call('DELETE', { reason: 'mine now' }, 'other', `?id=${draft.id}`)).status).toBe(404);
+      expect(saved[0].status).toBe('sent');
+    });
+
+    it('refuses to edit a sent or paid invoice', async () => {
+      const draft = await createDraft();
+      await act('issue', draft.id, 'owner');
+      expect((await call('PUT', valid, 'owner', `?id=${draft.id}`)).status).toBe(409);
+      await act('paid', draft.id, 'owner', { paymentDate: '2026-02-10' });
+      expect((await call('PUT', valid, 'owner', `?id=${draft.id}`)).status).toBe(409);
+    });
+
+    it('refuses to void an invoice posted in a filed period with PERIOD_LOCKED', async () => {
+      const draft = await createDraft();
+      await act('issue', draft.id, 'owner');
+      filedPeriodIds.add(draft.id);
+      const response = await call('DELETE', { reason: 'wrong client' }, 'owner', `?id=${draft.id}`);
+      expect(response.status).toBe(409);
+      expect((await response.json()).code).toBe('PERIOD_LOCKED');
+      expect(saved[0].status).toBe('sent');
+    });
   });
 });

@@ -62,6 +62,9 @@ export const draftInvoiceSchema = z
 
 export type DraftInvoiceBody = z.infer<typeof draftInvoiceSchema>;
 
+// Strips unknown keys, so a client cannot send status, totals or account ids.
+export const markPaidSchema = z.object({ paymentDate: isoDate });
+
 export const voidInvoiceSchema = z.object({ reason: z.string().trim().min(1).max(200) });
 
 export const invoiceListQuerySchema = z.object({

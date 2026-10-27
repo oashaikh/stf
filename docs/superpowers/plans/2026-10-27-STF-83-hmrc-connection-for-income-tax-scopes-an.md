@@ -102,3 +102,7 @@ Also depends on:
 - [x] **Task 6: Fix: address 7 review findings (cycle 1)** (after 5)
   - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found no blocking defects. I traced the scope request, callback scope storage and business-id clearing, the its-businesses route and the Settings picker The agent is fixing them; nothing is needed from you.
   - Commit: `131320d6bffd`
+
+- [x] **Task 7: Fix: address 7 review findings (cycle 2)** (after 6)
+  - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The only blocker is that HMRC_ITSA_ENABLED (default false) is still in place, so connect requests VAT scopes only by default and the reconnect notice and picker stay hidde The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

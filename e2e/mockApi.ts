@@ -102,6 +102,7 @@ function mockReturn(vatState: MockVatState, entries: SavedEntry[]) {
 export async function mockApi(page: Page, ownerPassword: string, vatState: MockVatState = 'confirmed') {
   let signedIn = false;
   const entries: SavedEntry[] = [];
+  const templates: Array<Record<string, unknown>> = [];
   let authenticatorEnabled = false;
   let codePending = false;
   await page.route('**/api/**', (route) => {
@@ -150,6 +151,21 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         if (!entry) return json(route, { ok: false }, 404);
         entry.status = 'confirmed';
         return json(route, { ok: true, entry });
+      }
+      case 'GET /api/recurring-entries':
+        return json(route, { ok: true, templates });
+      case 'POST /api/recurring-entries': {
+        const template = { ...request.postDataJSON(), id: `00000000-0000-4000-8000-00000000000${templates.length + 1}`, paused: false };
+        templates.push(template);
+        return json(route, { ok: true, template });
+      }
+      case 'PATCH /api/recurring-entries':
+      case 'DELETE /api/recurring-entries': {
+        const index = templates.findIndex((candidate) => candidate.id === new URL(request.url()).searchParams.get('id'));
+        if (index < 0) return json(route, { ok: false, error: 'Template not found' }, 404);
+        if (request.method() === 'DELETE') templates.splice(index, 1);
+        else Object.assign(templates[index], request.postDataJSON());
+        return json(route, { ok: true });
       }
       case 'GET /api/vat/return':
         return json(route, { ok: true, data: mockReturn(vatState, entries) });

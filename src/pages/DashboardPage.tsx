@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 
 import { DASHBOARD_QUERY_KEY, fetchDashboard } from "../lib/dashboardApi";
 import { formatPence } from "../lib/money";
+import { currentTaxYear } from "../lib/taxBands";
+import { fetchTaxEstimate, taxEstimateQueryKey } from "../lib/taxEstimateApi";
 
 const linkClass = "inline-flex min-h-11 items-center text-blue-800 underline";
 
@@ -28,6 +30,8 @@ function Row({ label, pence }: { label: string; pence: number }) {
 export default function DashboardPage() {
   const summary = useQuery({ queryKey: DASHBOARD_QUERY_KEY, queryFn: fetchDashboard });
   const data = summary.data;
+  const taxYear = currentTaxYear();
+  const taxEstimate = useQuery({ queryKey: taxEstimateQueryKey(taxYear), queryFn: () => fetchTaxEstimate(taxYear) });
 
   return (
     <main className="p-4 md:p-8">
@@ -51,7 +55,7 @@ export default function DashboardPage() {
             <p className="mt-6 text-gray-700">No entries yet. Add your first income or expense to see your position here.</p>
           )}
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Card title="Tax year to date" period={`${data.taxYear.start} to ${data.taxYear.end}`}>
               <Row label="Income" pence={data.taxYear.incomePence} />
               <Row label="Expenses" pence={data.taxYear.expensesPence} />
@@ -75,6 +79,14 @@ export default function DashboardPage() {
                 Go to the VAT page
               </Link>
             </Card>
+            {taxEstimate.data && (
+              <Card title="Tax set-aside (estimate)" period={`Tax year ${taxEstimate.data.taxYear}`}>
+                <Row label="Income tax and NIC" pence={taxEstimate.data.totalTaxPence} />
+                <Link to="/tax" className={linkClass}>
+                  Go to the Tax page
+                </Link>
+              </Card>
+            )}
           </div>
 
           {data.draftCount > 0 && (

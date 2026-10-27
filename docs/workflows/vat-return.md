@@ -247,3 +247,7 @@ Before submitting VAT returns to HMRC, use the built-in fraud headers check to v
 
 Everything is integer pence internally. Pounds appear only in `boxesToHmrcPayload`;
 HMRC takes whole pounds for boxes 6 to 9 and absolute value for box 5.
+
+## Upcoming return reminder
+
+A scheduled job (`api/cron/prepare-vat-draft.ts`) finds the owner's next open obligation due within `REMINDER_WINDOW_DAYS` (14 days, overdue included) and saves a draft return for it through `saveReturnDraft`. The job has no code path to confirm or submit; a test fails if the cron module imports the submit function. The dashboard shows an "Upcoming VAT return" card with the due date and draft box 5, linking to the VAT page, where the owner reviews and confirms.

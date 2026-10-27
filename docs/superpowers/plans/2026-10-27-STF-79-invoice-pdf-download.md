@@ -85,7 +85,7 @@ Also depends on:
   - Risk: Opus/high: tenant isolation and authorisation on a route returning bank details; 404 for other owners is an explicit acceptance criterion.
   - Commit: `218118df9683`
 
-- [ ] **Task 4: Measure PDF function bundle size and cold start** (after 3)
+- [x] **Task 4: Measure PDF function bundle size and cold start** (after 3)
   - Intent: The operator asked that the PDF render inside a Vercel function with bundle size and cold start checked and reported. Without deploying anything or touching live config (), build the function the way Vercel would (esbuild or `vercel build` if available offline, else bundle api/invoice-pdf.ts with esbuild that is already installed via vite, externals as Vercel treats them) and record: bundled size, node_modules footprint of @react-pdf/renderer and its fontkit/yoga deps, and a local cold-start figure (fresh `node` process importing the handler and rendering one fixture invoice, time to first byte, run several times). Compare with the 250 MB unzipped function limit. Add a short section to docs/runbooks/vercel-deploy.md with the numbers, method, and the maxDuration/memory chosen, and tune the vercel.json entry if the numbers justify it. If yoga/WASM or font loading breaks in the bundle, report it as a finding. State clearly in the PR what was measured locally versus not measured on Vercel. No scripts or generated artefacts committed beyond the doc.
   - Files: `docs/runbooks/vercel-deploy.md`, `vercel.json`
   - Acceptance criteria the planner set:
@@ -95,6 +95,7 @@ Also depends on:
     - No machine paths or secrets in the doc
     - lint, typecheck, test, build pass
   - Risk: Default tier. Measurement only; docs plus an optional one-line config tune.
+  - Commit: `04d0d51d2c98`
 
 - [ ] **Task 5: Download PDF button on the invoice view** (after 3)
   - Intent: Add downloadInvoicePdf(id) to src/lib/invoicesApi.ts (or src/lib/exportApi.ts pattern): fetch /api/invoice-pdf?id=... with credentials same-origin, throw with the server error message on non-OK, turn the blob into an object URL on a temporary anchor click (copy the approach in downloadEntriesCsv in src/lib/exportApi.ts, share any helper it already has rather than duplicating), then revoke the URL. In ReadOnlyInvoice in src/pages/InvoiceEditor.tsx (the invoice view shown for sent/paid/overdue/voided) add a 'Download PDF' button using buttonClass (min-h-11, 44px target, focus ring), showing a pending label while downloading and an inline role=alert error on failure. Decide whether DraftEditor also gets it (assumption: view only, as ticket says 'invoice view', and drafts can be previewed after issue). Add tests in src/pages/InvoicesPage.test.tsx with the api module mocked (): button appears on an issued invoice, click calls download with the invoice id, failure shows the error. Add GET /api/invoice-pdf to e2e/mockApi.ts returning a small PDF body so the journey and screenshots work.

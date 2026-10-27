@@ -73,9 +73,10 @@
   - Risk: Opus/high: authorisation and tenant isolation on new mutating routes.
   - Commit: `6d242feb48dd`
 
-- [ ] **Task 5: Document the issue, pay and void flow** (after 4)
+- [x] **Task 5: Document the issue, pay and void flow** (after 4)
   - Intent: Update docs/workflows/invoices.md with the issue, mark-paid and void rules: income posts at issue date against trade debtors, payment moves debtors to bank without touching VAT, void goes through the VAT period lock, overdue is derived at list time, and the audit actions. Note cash-accounting VAT is handled in STF-22.
   - Files: `docs/workflows/invoices.md`
   - Acceptance criteria the planner set:
     - Doc states the posting lines for issue and payment, the lock behaviour on void, and the audit event names
     - npm run build still passes
+  - Commit: `ac6a080b1c1a`

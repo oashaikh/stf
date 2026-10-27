@@ -95,3 +95,9 @@ The issue, mark-paid and void posting rules assume standard VAT accounting (VAT 
 - **`invoice.void`**: Invoice voided (draft, sent, or paid). Metadata: `reason`.
 
 Each audit event captures the invoice id, public number, status, and financial totals (net, VAT, gross) before and after the action.
+
+## PDF download (STF-79)
+
+`GET /api/invoice-pdf?id=<uuid>` renders the signed-in owner's invoice to PDF on the server. The owner id comes from the session only. A bad id is a 400; an unknown invoice, another owner's invoice and a voided invoice are all a 404 `NOT_FOUND` JSON body, so a caller cannot tell them apart. Drafts, sent, paid and overdue invoices render, so the owner can preview a draft before issuing it.
+
+The response is `application/pdf` with `Content-Disposition: attachment` (file name from the public number, with anything outside letters, digits, `_` and `-` replaced) and `Cache-Control: no-store`. `vercel.json` gives the function a 30 second `maxDuration`.

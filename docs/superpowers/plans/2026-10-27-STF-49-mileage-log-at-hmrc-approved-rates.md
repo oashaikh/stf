@@ -88,7 +88,7 @@ Also depends on:
     - Existing summary tests updated and passing; lint, typecheck and test pass
   - Commit: `365c3c607733`
 
-- [ ] **Task 5: Mileage section on the Tax page with API client** (after 3)
+- [x] **Task 5: Mileage section on the Tax page with API client** (after 3)
   - Intent: Add src/lib/mileageApi.ts (fetch client in the style of entriesApi.ts/accountsApi.ts: list for a tax year, add, void, using the shared money formatter for display, never floats) and src/pages/MileageSection.tsx rendered from src/pages/TaxPage.tsx under the existing h1 (replace the 'Coming soon' placeholder only as needed; keep the Tax Estimate heading). Section shows a tax year selector (default currentTaxYear, options from TAX_BANDS keys), the year's claim total and miles, an add-trip form (date, from, to, purpose, miles, vehicle type) with inline validation and a draft-free direct save, a list of trips with the per-trip claim, and a Void button that asks for confirmation naming the trip and the effect on the claim (). Include a short note that simplified mileage means no actual running costs can be claimed for that vehicle. Use shared loading/empty/error components, type-scale and colour tokens, 44 px tap targets, right-aligned tabular money, rows that collapse on a phone (follow EntriesList.tsx and ReportsPage.tsx patterns and the shared page container, not a page-level max-width), visible focus. Component tests with the API client mocked in src/pages/MileageSection.test.tsx: renders trips and claim, add flow posts the right body, void confirm flow, error state.
   - Files: `src/lib/mileageApi.ts`, `src/pages/MileageSection.tsx`, `src/pages/MileageSection.test.tsx`, `src/pages/TaxPage.tsx`
   - Acceptance criteria the planner set:
@@ -96,6 +96,7 @@ Also depends on:
     - Add and void work against /api/mileage and the claim comes from the server response
     - Void requires confirmation that says what it affects
     - Component tests pass with the API client mocked; lint, typecheck, test and build pass
+  - Commit: `3f3147f42409`
 
 - [ ] **Task 6: Screenshots and workflow doc** (after 4, 5)
   - Intent: Run the app against a mocked or throwaway API with invented trips and capture the Tax page Mileage section at 390 px and 1440 px (light only; no dark theme is shipped unless the repo has one) as browser-evidence/STF-49/390-light-tax.png and browser-evidence/STF-49/1440-light-tax.png, plus the empty and error states if cheap. Do not edit e2e/mockApi.ts or e2e/journey.spec.ts (STF-81 owns them); use a throwaway Playwright script or route interception outside the repo. Add docs/workflows/mileage.md covering rates and where they live, the threshold and 5/6 April rule, void semantics, that the claim feeds the tax year summary travel line, and the no-actual-costs caveat. Fixtures invented only.

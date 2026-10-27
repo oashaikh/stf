@@ -44,6 +44,7 @@ describe('buildTaxYearSummary', () => {
         expense('disallowable', 4000),
       ],
       period,
+      0,
     );
     expect(summary.turnoverPence).toBe(100000);
     expect(summary.otherIncomePence).toBe(5000);
@@ -65,17 +66,18 @@ describe('buildTaxYearSummary', () => {
         line({ date: '2027-04-06', amountPence: -1000 }),
       ],
       period,
+      0,
     );
     expect(summary.turnoverPence).toBe(110);
   });
 
   it('ignores drafts and deleted lines', () => {
-    const summary = buildTaxYearSummary([line({ status: 'draft' }), line({ deletedAt: '2026-08-01T00:00:00.000Z' })], period);
+    const summary = buildTaxYearSummary([line({ status: 'draft' }), line({ deletedAt: '2026-08-01T00:00:00.000Z' })], period, 0);
     expect(summary.turnoverPence).toBe(0);
   });
 
   it('warns about accounts with no tax category and leaves them out of the figures', () => {
-    const summary = buildTaxYearSummary([line({}), expense(null, 700), expense(null, 300), line({ accountId: 'x', accountName: 'X', taxCategory: null, amountPence: -50 })], period);
+    const summary = buildTaxYearSummary([line({}), expense(null, 700), expense(null, 300), line({ accountId: 'x', accountName: 'X', taxCategory: null, amountPence: -50 })], period, 0);
     expect(summary.uncategorisedAccounts).toEqual([
       { accountId: 'none', accountName: 'None', accountType: 'expense', totalPence: 1000 },
       { accountId: 'x', accountName: 'X', accountType: 'income', totalPence: 50 },
@@ -86,10 +88,28 @@ describe('buildTaxYearSummary', () => {
 
   it('reconciles with the profit and loss for the same range', () => {
     const lines = [line({}), line({ taxCategory: 'other-income', accountId: 'o', amountPence: -5000 }), expense('travel', 20000), expense('disallowable', 4000), expense(null, 700)];
-    const summary = buildTaxYearSummary(lines, period);
+    const summary = buildTaxYearSummary(lines, period, 0);
     const profitAndLoss = buildProfitAndLoss(lines, period);
     const uncategorisedExpensePence = 700;
     expect(summary.netProfitPence - summary.disallowableExpensesPence - uncategorisedExpensePence).toBe(profitAndLoss.profitPence);
     expect(summary.turnoverPence + summary.otherIncomePence).toBe(profitAndLoss.incomePence);
+  });
+
+  it('adds the mileage claim to travel alongside ledger travel and lowers net profit', () => {
+    const summary = buildTaxYearSummary([line({}), expense('travel', 20000)], period, 4500);
+    expect(summary.expenseCategories).toEqual([{ taxCategory: 'travel', totalPence: 24500 }]);
+    expect(summary.allowableExpensesPence).toBe(24500);
+    expect(summary.netProfitPence).toBe(75500);
+  });
+
+  it('creates the travel row when the ledger has none', () => {
+    const summary = buildTaxYearSummary([line({})], period, 4500);
+    expect(summary.expenseCategories).toEqual([{ taxCategory: 'travel', totalPence: 4500 }]);
+  });
+
+  it('changes nothing for a zero claim', () => {
+    const summary = buildTaxYearSummary([line({})], period, 0);
+    expect(summary.expenseCategories).toEqual([]);
+    expect(summary.netProfitPence).toBe(100000);
   });
 });

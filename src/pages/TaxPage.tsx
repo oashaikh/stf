@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { formatPence } from '../lib/money';
 import { currentTaxYear, TAX_BANDS } from '../lib/taxBands';
 import { fetchTaxEstimate, taxEstimateQueryKey } from '../lib/taxEstimateApi';
+import MileageSection from './MileageSection';
 import type { ExpenseMethod } from '../lib/taxYearSummary';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 
@@ -108,6 +109,8 @@ export default function TaxPage() {
           </p>
         </section>
       )}
+
+      <MileageSection />
     </main>
   );
 }

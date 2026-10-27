@@ -94,6 +94,14 @@ it('estimateTax adds voluntary Class 2 below the threshold when asked', () => {
   expect(estimateTax(pounds(6000), '2025-26').class2NicPence).toBe(0);
 });
 
+describe.each(Object.keys(TAX_BANDS))('mileage rates %s', (year) => {
+  it('hold the published simplified-mileage rates', () => {
+    const bands = TAX_BANDS[year];
+    expect([bands.mileageCarFirstRate, bands.mileageCarAfterRate, bands.mileageMotorcycleRate, bands.mileageBicycleRate]).toEqual([45, 25, 24, 20]);
+    expect(bands.mileageCarThresholdTenths).toBe(100000);
+  });
+});
+
 it.each(Object.keys(TAX_BANDS))('%s trading allowance is £1,000', (year) => {
   expect(TAX_BANDS[year].tradingAllowancePence).toBe(pounds(1000));
 });

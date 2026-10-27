@@ -7,6 +7,8 @@ import { TAX_BANDS } from '../lib/taxBands';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 import TaxPage from './TaxPage';
 
+// The mileage section has its own tests and its own API; this file's fetch mock only knows the tax estimate.
+vi.mock('./MileageSection', () => ({ default: () => <h2>Mileage</h2> }));
 vi.mock('../lib/tradingAllowanceApi', () => ({ saveExpenseMethod: vi.fn() }));
 
 const estimateFor = (taxYear: string) => ({

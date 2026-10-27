@@ -36,6 +36,9 @@ function makeStore(lines: TaxYearLine[]) {
       asked.push(`${userId}:${period.start}..${period.end}`);
       return lines;
     },
+    async loadTrips() {
+      return [];
+    },
   };
   return { store, asked };
 }

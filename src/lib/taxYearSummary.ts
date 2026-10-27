@@ -42,9 +42,10 @@ export function taxYearPeriod(taxYear: string): DatePeriod | null {
 /**
  * HMRC self-employment summary for one tax year, from the same lines and inclusion rule as the
  * profit and loss. Dates are the transaction dates, so this is the cash or accruals answer the
- * owner's posting dates give; it does not re-date invoices.
+ * owner's posting dates give; it does not re-date invoices. The simplified-mileage claim is added to
+ * the travel category, since the trip log is not in the ledger.
  */
-export function buildTaxYearSummary(lines: TaxYearLine[], period: DatePeriod): TaxYearSummary {
+export function buildTaxYearSummary(lines: TaxYearLine[], period: DatePeriod, mileageClaimPence: number): TaxYearSummary {
   let turnoverPence = 0;
   let otherIncomePence = 0;
   let disallowableExpensesPence = 0;
@@ -67,6 +68,8 @@ export function buildTaxYearSummary(lines: TaxYearLine[], period: DatePeriod): T
       else uncategorised.set(line.accountId, { accountId: line.accountId, accountName: line.accountName, accountType: isIncome ? 'income' : 'expense', totalPence });
     }
   }
+
+  if (mileageClaimPence > 0) expenseCategories.set('travel', (expenseCategories.get('travel') ?? 0) + mileageClaimPence);
 
   const categoryTotals = [...expenseCategories].map(([taxCategory, totalPence]) => ({ taxCategory, totalPence }));
   const allowableExpensesPence = categoryTotals.reduce((total, row) => total + row.totalPence, 0);

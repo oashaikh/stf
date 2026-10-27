@@ -73,7 +73,7 @@ Also depends on:
   - Risk: Authorisation, live-mode gate and tenant-scoped data.
   - Commit: `a80a6026eba5`
 
-- [ ] **Task 4: Tax page: Income Tax obligations section** (after 3)
+- [x] **Task 4: Tax page: Income Tax obligations section** (after 3)
   - Intent: Add src/lib/hmrc/itsObligationsApi.ts (fetch wrapper in vatApi/settingsApi style, browser fraud headers via browserFraudHeaders) and a hook, then an ObligationsSection component rendered from src/pages/TaxPage.tsx. Render nothing when the flag is off or HMRC/ITS is not connected (follow how Settings uses itsBusinessId/needsItsReconnect, and link to Settings to connect or choose a business). List quarterly updates and the final declaration, open and fulfilled, grouped by tax year, with period dates and due date; highlight the next due one with text ('Next due', not colour alone) and mark overdue. Dates formatted consistently, rows one line with truncation, use shared loading/empty/error components and the existing type-scale and colour tokens, 44px targets, mobile collapse to labelled rows (). When stale, show 'Showing last known dates from <date>' plus the plain-words error. Tests with the API mocked (): flag off hides section, next-due highlight, overdue, stale banner, error with no data, empty.
   - Files: `src/lib/hmrc/itsObligationsApi.ts`, `src/pages/ItsObligationsSection.tsx`, `src/pages/ItsObligationsSection.test.tsx`, `src/pages/TaxPage.tsx`, `src/pages/TaxPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -81,6 +81,7 @@ Also depends on:
     - Next due obligation shows a text label and distinct styling
     - Error text is plain words and last known data still shows when stale
     - Component tests pass; lint, typecheck, test, build pass
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 5: E2E mock, screenshots at 390 and 1440, workflow docs** (after 4)
   - Intent: Add GET /api/hmrc/its-obligations to e2e/mockApi.ts (flag on, one next-due, one fulfilled, plus a stale variant) and a Tax page scenario in the e2e journey; capture screenshots of the changed Tax page at 1440 px and 390 px (light; dark only if the app ships it) into browser-evidence/STF-84/ using invented data. Write docs/workflows/its-obligations.md (flag, double switch, fraud headers, stale behaviour, retention of the stored copy) and add a line to docs/runbooks/hmrc-sandbox-integration.md. e2e/mockApi.ts and e2e/journey.spec.ts are also being edited by STF-79, so keep hunks small and additive. Run lint, typecheck, test and build; skip anything needing Docker.

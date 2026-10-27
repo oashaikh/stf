@@ -4,6 +4,7 @@ import { accounts, transactionLines, transactions } from '../../server/src/db/sc
 import type { DatePeriod } from '../../src/lib/dashboardSummary.js';
 import { buildTaxYearSummary, taxYearPeriod, type TaxYearLine, type TaxYearSummary } from '../../src/lib/taxYearSummary.js';
 import { calculateMileageClaim } from '../../src/lib/mileage.js';
+import { TAX_BANDS } from '../../src/lib/taxBands.js';
 import { db } from './db.js';
 import { databaseMileageStore, listTrips, type StoredTrip } from './mileage.js';
 import { LEDGER_LINE_LIMIT } from './vatReturns.js';
@@ -26,8 +27,12 @@ const taxYearLabel = (period: DatePeriod): string => {
 };
 
 export async function getTaxYearSummary(store: TaxYearSummaryStore, userId: string, period: DatePeriod): Promise<TaxYearSummary> {
+  const taxYear = taxYearLabel(period);
+  // Years outside the tax bands file have no mileage rates, so they carry no claim rather than failing the summary.
+  // ponytail: loadTrips throws MileageLimitError past MILEAGE_TRIP_LIMIT (2000) trips in a year; the summary then 500s. Upgrade: map it to a 413 in both handlers.
+  if (!(taxYear in TAX_BANDS)) return buildTaxYearSummary(await store.loadLines(userId, period), period, 0);
   const [lines, trips] = await Promise.all([store.loadLines(userId, period), store.loadTrips(userId, period)]);
-  return buildTaxYearSummary(lines, period, calculateMileageClaim(trips.filter((trip) => trip.deletedAt === null), taxYearLabel(period)).totalPence);
+  return buildTaxYearSummary(lines, period, calculateMileageClaim(trips.filter((trip) => trip.deletedAt === null), taxYear).totalPence);
 }
 
 // Query audit: filters on transactions.user_id and date, served by transactions_user_date_idx

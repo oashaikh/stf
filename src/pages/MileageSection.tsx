@@ -233,7 +233,7 @@ export default function MileageSection() {
                   </span>
                   <span className="tabular-nums text-gray-700 md:text-right">{formatMiles(trip.distanceTenths)} mi</span>
                   <span className="tabular-nums text-gray-900 md:text-right">
-                    {trip.deletedAt ? 'Voided' : formatPence(claimFor(trip.id))}
+                    {trip.deletedAt ? '–' : formatPence(claimFor(trip.id))}
                   </span>
                   {trip.deletedAt ? (
                     <span className="inline-block w-fit rounded bg-gray-100 px-2 py-1 text-sm text-gray-800">Voided</span>

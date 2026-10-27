@@ -86,6 +86,14 @@ describe('tax year summary route', () => {
     expect(data.expenseCategories).toEqual([{ taxCategory: 'travel', totalPence: 9500 }]);
   });
 
+  it('still summarises a well-formed year with no mileage rates, without loading trips', async () => {
+    const { store, asked } = makeStore([trip({ date: '2022-07-11' })]);
+    const response = await get(store, '?taxYear=2022-23', 'owner');
+    expect(response.status).toBe(200);
+    expect(asked).toEqual(['owner:2022-04-06..2023-04-05']);
+    expect((await response.json()).data.expenseCategories).toEqual([{ taxCategory: 'travel', totalPence: 5000 }]);
+  });
+
   it.each(['', '?taxYear=2026', '?taxYear=2026-28'])('rejects bad tax year %s without touching the store', async (query) => {
     const { store, asked } = makeStore();
     expect((await get(store, query, 'owner')).status).toBe(400);

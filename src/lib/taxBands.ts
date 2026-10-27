@@ -36,6 +36,7 @@ export interface TaxBands {
   class4UpperLimit: number;      // pence
   class4LowerRate: number;       // percent
   class4UpperRate: number;       // percent
+  tradingAllowancePence: number; // HMRC trading allowance, pence/year
 }
 
 export const TAX_BANDS: Record<string, TaxBands> = {
@@ -54,6 +55,7 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     class4UpperLimit: 5027000,
     class4LowerRate: 6,
     class4UpperRate: 2,
+    tradingAllowancePence: 100000, // £1,000
   },
   '2025-26': {
     year: '2025-26',
@@ -70,6 +72,7 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     class4UpperLimit: 5027000,      // £50,270
     class4LowerRate: 6,
     class4UpperRate: 2,
+    tradingAllowancePence: 100000, // £1,000
   },
   '2024-25': {
     year: '2024-25',
@@ -86,6 +89,7 @@ export const TAX_BANDS: Record<string, TaxBands> = {
     class4UpperLimit: 5027000,
     class4LowerRate: 6,
     class4UpperRate: 2,
+    tradingAllowancePence: 100000, // £1,000
   },
 };
 

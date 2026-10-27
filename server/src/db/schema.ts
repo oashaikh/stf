@@ -291,6 +291,26 @@ export const vatSubmissions = pgTable(
   }),
 );
 
+export const tradingAllowanceMethodEnum = pgEnum('trading_allowance_method', ['actual', 'allowance']);
+
+// The owner's expense method for each tax year. No row means the default, actual expenses.
+export const tradingAllowanceChoices = pgTable(
+  'trading_allowance_choices',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    taxYear: text('tax_year').notNull(),
+    method: tradingAllowanceMethodEnum('method').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // Also the lookup index: every query filters on (user_id, tax_year).
+    userTaxYearUnique: unique().on(table.userId, table.taxYear),
+  }),
+);
+
 // Append-only audit trail. Never updated or deleted.
 export const auditEvents = pgTable('audit_events', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -368,6 +388,8 @@ export type VatReturnDraftInsert = typeof vatReturnDrafts.$inferInsert;
 
 export type VatSubmissionRow = typeof vatSubmissions.$inferSelect;
 export type VatSubmissionInsert = typeof vatSubmissions.$inferInsert;
+
+export type TradingAllowanceChoiceRow = typeof tradingAllowanceChoices.$inferSelect;
 
 export type AuditEventRow = typeof auditEvents.$inferSelect;
 export type AuditEventInsert = typeof auditEvents.$inferInsert;

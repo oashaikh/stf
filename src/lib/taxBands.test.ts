@@ -93,3 +93,7 @@ it('estimateTax adds voluntary Class 2 below the threshold when asked', () => {
   expect(estimateTax(pounds(6000), '2025-26', true).class2NicPence).toBe(350 * 52);
   expect(estimateTax(pounds(6000), '2025-26').class2NicPence).toBe(0);
 });
+
+it.each(Object.keys(TAX_BANDS))('%s trading allowance is £1,000', (year) => {
+  expect(TAX_BANDS[year].tradingAllowancePence).toBe(pounds(1000));
+});

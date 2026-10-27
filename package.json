@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "dev:server": "tsx watch server/src/index.ts",
-    "build": "tsc -p tsconfig.app.json --noEmit && vite build",
+    "build": "node scripts/checkApiJsx.mjs && tsc -p tsconfig.app.json --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

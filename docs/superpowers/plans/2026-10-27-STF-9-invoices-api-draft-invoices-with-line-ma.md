@@ -78,3 +78,7 @@
 - [x] **Task 5: Fix: address 4 review findings (cycle 1)** (after 4)
   - Intent: Review left 4 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Numbering, totals, owner scoping, cursor paging and the void flow trace correctly. One blocker: editing a draft hard-deletes its invoice_lines rows, which breaks the proje The agent is fixing them; nothing is needed from you.
   - Commit: `fd9f5369b75d`
+
+- [x] **Task 6: Fix: address 6 review findings (cycle 2)** (after 5)
+  - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Add the missing drizzle snapshot for migration 0011. The cycle-1 blocker (hard-deleted draft lines) is fixed. Numbering, totals, owner scoping, paging, void and the soft-d The agent is fixing them; nothing is needed from you.
+  - Commit: `7d27e27c4a61`

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { journeyTotpCode, writeIsAllowed } from './writeGuard';
 import { mockApi, mockMfaCode, mockVatStates, type MockVatState } from './mockApi';
 
 const mocked = process.env.JOURNEY_MOCK === '1';
@@ -9,9 +10,8 @@ const runName = process.env.JOURNEY_RUN_NAME ?? new Date().toISOString().replace
 // The platform journey runner sets AIP_EVIDENCE_DIR; a local run keeps its screenshots under e2e/artifacts.
 const evidenceRoot = process.env.AIP_EVIDENCE_DIR ?? path.join('e2e', 'artifacts', runName);
 
-// The login and the one entry added through the form are the only writes the journey may make; the preview is a POST that computes and stores nothing.
-// Opening a return that has never been reviewed makes the app save a draft (PUT); that is neither a confirmation nor a filing.
-const ALLOWED_WRITES = new Set(['POST /api/auth/login', 'POST /api/entries', 'PATCH /api/entries', 'POST /api/vat/preview', 'PUT /api/vat/return']);
+// A live run may only read and sign in (see writeGuard.ts); the mock run may write, so the entry form and the preview are walked there.
+const journeyTotpSecret = process.env.JOURNEY_TOTP_SECRET;
 // Set to commit the VAT screens as review evidence: <width>-light-<step>.png.
 const evidenceDir = process.env.JOURNEY_EVIDENCE_DIR;
 const evidenceWidths = [1440, 390];
@@ -37,7 +37,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   await page.route('**/api/**', (route) => {
     const request = route.request();
     const key = `${request.method()} ${new URL(request.url()).pathname}`;
-    if (request.method() === 'GET' || ALLOWED_WRITES.has(key)) return route.fallback();
+    if (writeIsAllowed(key, mocked)) return route.fallback();
     blockedWrites.push(key);
     return route.abort();
   });
@@ -48,7 +48,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     const shot = path.join(screenshotDir, `${String(stepNumber).padStart(2, '0')}-${name.replace(/\W+/g, '-')}.png`);
     try {
       await action();
-      expect(blockedWrites, 'a write other than login or preview was attempted').toEqual([]);
+      expect(blockedWrites, 'a write other than the login was attempted against a live URL').toEqual([]);
       expect(consoleErrors, 'console errors on the page').toEqual([]);
       await page.screenshot({ path: shot, fullPage: true });
     } catch (error) {
@@ -65,6 +65,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
   };
 
+  let missingTotpSecret = false;
   await step('sign-in', async () => {
     await page.goto('/');
     await expect(page.getByLabel('Password')).toBeVisible();
@@ -72,8 +73,20 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     consoleErrors.length = 0;
     await page.getByLabel('Password').fill(ownerPassword!);
     await page.getByRole('button', { name: 'Sign in' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+    const codeField = page.getByLabel('Authenticator code');
+    const dashboard = page.getByRole('heading', { level: 1, name: 'Dashboard' });
+    await expect(dashboard.or(codeField)).toBeVisible();
+    if (await codeField.isVisible()) {
+      missingTotpSecret = !journeyTotpSecret;
+      if (missingTotpSecret) return;
+      await codeField.fill(journeyTotpCode(journeyTotpSecret!));
+      await page.getByRole('button', { name: 'Verify' }).click();
+    }
+    await expect(dashboard).toBeVisible();
   });
+  // Not a failure: the owner's account is protected and this run was given no way past it. It sits outside the step because a skip thrown inside one is reported as a failure.
+  if (missingTotpSecret) console.log('JOURNEY_SKIPPED: 2FA on, no journey secret (set JOURNEY_TOTP_SECRET to the authenticator secret)');
+  test.skip(missingTotpSecret, '2FA on, no journey secret');
   await step('dashboard', openPage('/dashboard', 'Dashboard'));
   await step('expenses', openPage('/expenses', 'Expenses'));
   // Mocked only: a deployed run must not write a test entry into the owner's books.
@@ -125,6 +138,8 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     } else if (branch === 'filed') {
       await expect(page.getByText(/^Form bundle number:/)).toBeVisible();
     } else {
+      // The preview is a POST, so a live run only checks the button is there.
+      if (!mocked) return await expect(preview).toBeVisible();
       await preview.click();
       await expect(page.getByRole('table', { name: 'Boxes exactly as they will be sent' })).toBeVisible();
       if (!checkFigures) return;

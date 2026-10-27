@@ -23,6 +23,7 @@ import { entryFigures, parseEntryAmount, vatRateOf } from "../lib/entryForm";
 import { formatPence } from "../lib/money";
 import type { VatRate } from "../lib/vat";
 import EntriesList from "./EntriesList";
+import RecurringEntriesSection from "./RecurringEntriesSection";
 import { LockedMessage } from "./EntryActions";
 
 const fieldClass =
@@ -453,6 +454,7 @@ export default function ExpensesPage() {
           />
         )
       )}
+      <RecurringEntriesSection hasVatNumber={vat.data === true} />
       <EntriesList onEdit={setEditing} />
     </main>
   );

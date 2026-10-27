@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { invoices } from "./schema";
+import { invoices, recurringEntryRuns } from "./schema";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, "migrations");
@@ -186,6 +186,44 @@ describe("schema migrations", () => {
     it("indexes trips by (user_id, date) for the list and the yearly claim", () => {
       expect(sql).toMatch(
         /CREATE INDEX IF NOT EXISTS "mileage_trips_user_date_idx" ON "mileage_trips" \("user_id","date"\)/,
+      );
+    });
+  });
+
+  describe("recurring entries", () => {
+    const body = (table: string) => {
+      const match = sql.match(new RegExp(`CREATE TABLE IF NOT EXISTS "${table}" \\(([\\s\\S]*?)\\n\\);`));
+      expect(match, `could not find CREATE TABLE statement for ${table}`).not.toBeNull();
+      return match![1];
+    };
+
+    it("scopes templates to a user and soft-deletes them", () => {
+      const templates = body("recurring_entry_templates");
+      expect(templates).toMatch(/"user_id" uuid NOT NULL/);
+      expect(templates).toMatch(/"deleted_at" timestamp with time zone/);
+    });
+
+    it("stores the amount as a positive integer of pence", () => {
+      const templates = body("recurring_entry_templates");
+      expect(templates).toMatch(/"amount_pence" integer NOT NULL/);
+      expect(templates).toContain('CHECK ("recurring_entry_templates"."amount_pence" > 0)');
+    });
+
+    it("limits schedule to monthly or yearly", () => {
+      expect(sql).toMatch(/CREATE TYPE "public"\."recurring_schedule" AS ENUM\('monthly', 'yearly'\)/);
+    });
+
+    it("cannot record the same template and date twice", () => {
+      expect(body("recurring_entry_runs")).toContain('UNIQUE("template_id","run_date")');
+      expect(recurringEntryRuns.templateId.notNull).toBe(true);
+    });
+
+    it("indexes the owner list and the cron scan", () => {
+      expect(sql).toMatch(
+        /CREATE INDEX IF NOT EXISTS "recurring_entry_templates_user_list_idx" ON "recurring_entry_templates" \("user_id","deleted_at","next_date"\)/,
+      );
+      expect(sql).toMatch(
+        /CREATE INDEX IF NOT EXISTS "recurring_entry_templates_next_date_idx" ON "recurring_entry_templates" \("next_date"\)/,
       );
     });
   });

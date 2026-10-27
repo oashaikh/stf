@@ -1,5 +1,5 @@
 {
-  "id": "a584a629-fa42-4acb-8eb7-bb87de310dba",
+  "id": "380f76d4-0088-4658-b21f-08e9d924cc9a",
   "prevId": "dbe02787-de7d-4c6e-b095-4810204bc511",
   "version": "6",
   "dialect": "postgresql",
@@ -1199,18 +1199,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "hmrc_its_business_id": {
-          "name": "hmrc_its_business_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hmrc_scope": {
-          "name": "hmrc_scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -1589,6 +1577,225 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
+    },
+    "public.recurring_entry_templates": {
+      "name": "recurring_entry_templates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "recurring_entry_kind",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_account_id": {
+          "name": "category_account_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_pence": {
+          "name": "amount_pence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_is": {
+          "name": "amount_is",
+          "type": "recurring_amount_basis",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vat_rate_percent": {
+          "name": "vat_rate_percent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "schedule": {
+          "name": "schedule",
+          "type": "recurring_schedule",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anchor_day": {
+          "name": "anchor_day",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "next_date": {
+          "name": "next_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paused": {
+          "name": "paused",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "false"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "recurring_entry_templates_user_list_idx": {
+          "name": "recurring_entry_templates_user_list_idx",
+          "columns": [
+            "user_id",
+            "deleted_at",
+            "next_date"
+          ],
+          "isUnique": false
+        },
+        "recurring_entry_templates_next_date_idx": {
+          "name": "recurring_entry_templates_next_date_idx",
+          "columns": [
+            "next_date"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "recurring_entry_templates_user_id_users_id_fk": {
+          "name": "recurring_entry_templates_user_id_users_id_fk",
+          "tableFrom": "recurring_entry_templates",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "recurring_entry_templates_category_account_id_accounts_id_fk": {
+          "name": "recurring_entry_templates_category_account_id_accounts_id_fk",
+          "tableFrom": "recurring_entry_templates",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "category_account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.recurring_entry_runs": {
+      "name": "recurring_entry_runs",
+      "schema": "",
+      "columns": {
+        "template_id": {
+          "name": "template_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "run_date": {
+          "name": "run_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transaction_id": {
+          "name": "transaction_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "recurring_entry_runs_template_id_recurring_entry_templates_id_fk": {
+          "name": "recurring_entry_runs_template_id_recurring_entry_templates_id_fk",
+          "tableFrom": "recurring_entry_runs",
+          "tableTo": "recurring_entry_templates",
+          "columnsFrom": [
+            "template_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "recurring_entry_runs_transaction_id_transactions_id_fk": {
+          "name": "recurring_entry_runs_transaction_id_transactions_id_fk",
+          "tableFrom": "recurring_entry_runs",
+          "tableTo": "transactions",
+          "columnsFrom": [
+            "transaction_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "recurring_entry_runs_template_run_date_unique": {
+          "name": "recurring_entry_runs_template_run_date_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "template_id",
+            "run_date"
+          ]
+        }
+      }
     }
   },
   "enums": {
@@ -1720,6 +1927,30 @@
         "car_van",
         "motorcycle",
         "bicycle"
+      ]
+    },
+    "public.recurring_entry_kind": {
+      "name": "recurring_entry_kind",
+      "schema": "public",
+      "values": [
+        "income",
+        "expense"
+      ]
+    },
+    "public.recurring_amount_basis": {
+      "name": "recurring_amount_basis",
+      "schema": "public",
+      "values": [
+        "gross",
+        "net"
+      ]
+    },
+    "public.recurring_schedule": {
+      "name": "recurring_schedule",
+      "schema": "public",
+      "values": [
+        "monthly",
+        "yearly"
       ]
     }
   },

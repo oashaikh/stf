@@ -155,4 +155,20 @@ describe("schema migrations", () => {
     expect(whens).toEqual([...whens].sort((a, b) => a - b));
     expect(new Set(journal.entries.map((entry) => entry.idx)).size).toBe(journal.entries.length);
   });
+
+  describe("trading_allowance_choices", () => {
+    const tableBody = () => {
+      const match = sql.match(/CREATE TABLE IF NOT EXISTS "trading_allowance_choices" \(([\s\S]*?)\n\);/);
+      expect(match, "could not find CREATE TABLE statement for trading_allowance_choices").not.toBeNull();
+      return match![1];
+    };
+
+    it("locks one choice per user and tax year", () => {
+      expect(tableBody()).toContain('UNIQUE("user_id","tax_year")');
+    });
+
+    it("limits the method to actual or allowance", () => {
+      expect(sql).toMatch(/CREATE TYPE "public"\."trading_allowance_method" AS ENUM\('actual', 'allowance'\)/);
+    });
+  });
 });

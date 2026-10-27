@@ -29,9 +29,13 @@ const line = (over: Partial<TaxYearLine>): TaxYearLine => ({
   ...over,
 });
 
-function makeStore(lines: TaxYearLine[]) {
+function makeStore(lines: TaxYearLine[], choice?: 'actual' | 'allowance') {
   const asked: string[] = [];
   const store: TaxYearSummaryStore = {
+    async loadChoice(userId, taxYear) {
+      asked.push(`choice:${userId}:${taxYear}`);
+      return choice;
+    },
     async loadLines(userId, period) {
       asked.push(`${userId}:${period.start}..${period.end}`);
       return lines;
@@ -50,7 +54,7 @@ describe('tax estimate route', () => {
     const { store, asked } = makeStore([line({})]);
     const response = await get(store, '?taxYear=2026-27&userId=someone-else', 'owner_b');
     expect(response.status).toBe(200);
-    expect(asked).toEqual(['owner_b:2026-04-06..2027-04-05']);
+    expect(asked).toEqual(['owner_b:2026-04-06..2027-04-05', 'choice:owner_b:2026-27']);
     const expected = estimateTax(6000000, '2026-27');
     const { data } = await response.json();
     expect(data).toEqual({
@@ -61,8 +65,33 @@ describe('tax estimate route', () => {
       class4NicPence: expected.class4NicPence,
       totalTaxPence: expected.totalTaxPence,
       setAsidePence: expected.totalTaxPence,
+      expenseMethod: 'actual',
+      tradingAllowancePence: 100000,
+      profitWithActualExpensesPence: 6000000,
+      profitWithAllowancePence: 5900000,
+      lowerProfitMethod: 'allowance',
     });
     expect(data.totalTaxPence).toBeGreaterThan(0);
+  });
+
+  it('follows the allowance choice: estimate matches estimateTax on income minus the allowance', async () => {
+    const lines = [line({}), line({ accountId: 'travel', accountType: 'expense', taxCategory: 'travel', amountPence: 5000000 })];
+    const { data } = await (await get(makeStore(lines, 'allowance').store, '?taxYear=2026-27', 'owner')).json();
+    const expected = estimateTax(5900000, '2026-27');
+    expect(data).toMatchObject({ expenseMethod: 'allowance', profitPence: 5900000, totalTaxPence: expected.totalTaxPence });
+    const actual = await (await get(makeStore(lines).store, '?taxYear=2026-27', 'owner')).json();
+    expect(actual.data.profitPence).toBe(1000000);
+  });
+
+  it('gives nil profit and nil tax when the allowance is chosen and income is below it', async () => {
+    const { data } = await (await get(makeStore([line({ amountPence: -80000 })], 'allowance').store, '?taxYear=2026-27', 'owner')).json();
+    expect(data).toMatchObject({ profitPence: 0, totalTaxPence: 0, profitWithAllowancePence: 0 });
+  });
+
+  it('counts other income towards the gross income used for the allowance', async () => {
+    const lines = [line({ amountPence: -80000 }), line({ accountId: 'misc', taxCategory: 'other-income', amountPence: -60000 })];
+    const { data } = await (await get(makeStore(lines, 'allowance').store, '?taxYear=2026-27', 'owner')).json();
+    expect(data.profitPence).toBe(40000);
   });
 
   it('changes the estimate when a new entry is added', async () => {

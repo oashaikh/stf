@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { formatPence } from '../lib/money';
 import { currentTaxYear, TAX_BANDS } from '../lib/taxBands';
 import { fetchTaxEstimate, taxEstimateQueryKey } from '../lib/taxEstimateApi';
+import type { ExpenseMethod } from '../lib/taxYearSummary';
+import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 
 // Newest first, only years that have bands to calculate with.
 const TAX_YEARS = Object.keys(TAX_BANDS).sort().reverse();
@@ -22,6 +24,11 @@ export default function TaxPage() {
   const [taxYear, setTaxYear] = useState(TAX_YEARS.includes(thisYear) ? thisYear : TAX_YEARS[0]);
   const estimate = useQuery({ queryKey: taxEstimateQueryKey(taxYear), queryFn: () => fetchTaxEstimate(taxYear) });
   const data = estimate.data;
+  const queryClient = useQueryClient();
+  const saveMethod = useMutation({
+    mutationFn: (method: ExpenseMethod) => saveExpenseMethod(taxYear, method),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: taxEstimateQueryKey(taxYear) }),
+  });
 
   return (
     <main className="p-4 md:p-8">
@@ -62,6 +69,42 @@ export default function TaxPage() {
           <p className="mt-4 text-sm text-gray-700">
             This is an estimate from your recorded profit so far, not a tax bill. Your actual tax depends on other income, reliefs and
             the figures you file.
+          </p>
+        </section>
+      )}
+
+      {data && (
+        <section aria-labelledby="expense-method-heading" className="mt-6 rounded-lg border border-gray-200 bg-white p-4 md:max-w-xl">
+          <h2 id="expense-method-heading" className="text-lg font-semibold text-gray-900">Expenses or trading allowance</h2>
+          <dl className="mt-2 space-y-1">
+            <Row label="Profit with actual expenses" value={formatPence(data.profitWithActualExpensesPence)} />
+            <Row label={`Profit with ${formatPence(data.tradingAllowancePence)} trading allowance`} value={formatPence(data.profitWithAllowancePence)} />
+          </dl>
+          <p className="mt-2 text-sm font-medium text-gray-900">
+            {data.profitWithActualExpensesPence === data.profitWithAllowancePence
+              ? 'Both methods give the same profit.'
+              : `${data.lowerProfitMethod === 'allowance' ? 'The trading allowance' : 'Actual expenses'} gives the lower profit.`}
+          </p>
+          <fieldset className="mt-4" disabled={saveMethod.isPending}>
+            <legend className="text-sm text-gray-700">Method used for {taxYear}</legend>
+            {([['actual', 'Actual expenses'], ['allowance', 'Trading allowance']] as const).map(([method, label]) => (
+              <label key={method} className="flex min-h-11 items-center gap-2 text-gray-900">
+                <input
+                  type="radio"
+                  name="expense-method"
+                  className="h-5 w-5"
+                  checked={data.expenseMethod === method}
+                  onChange={() => saveMethod.mutate(method)}
+                />
+                {label}
+              </label>
+            ))}
+          </fieldset>
+          {saveMethod.isError && (
+            <p role="alert" className="mt-2 text-red-800">Could not save your choice. Please try again.</p>
+          )}
+          <p className="mt-4 text-sm text-gray-700">
+            These figures are an estimate. Claiming the trading allowance means you cannot deduct any expenses for that year.
           </p>
         </section>
       )}

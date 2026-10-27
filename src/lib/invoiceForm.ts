@@ -38,11 +38,14 @@ export function parseQuantityScaled(input: string): number | null {
   return scaled > 0 ? scaled : null;
 }
 
-/** Pounds with at most two decimals to integer pence. */
+const MAX_UNIT_PRICE_PENCE = 10_000_000; // matches the server cap in api/_lib/invoices.ts
+
+/** Pounds with at most two decimals to integer pence, up to the server's cap. */
 export function parseUnitPricePence(input: string): number | null {
   const match = /^(\d{1,7})(?:\.(\d{1,2}))?$/.exec(input.replace(/[£,\s]/g, ''));
   if (!match) return null;
-  return Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'));
+  const pence = Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'));
+  return pence <= MAX_UNIT_PRICE_PENCE ? pence : null;
 }
 
 function parsedLines(form: InvoiceFormState) {
@@ -77,7 +80,7 @@ export function toDraftRequest(form: InvoiceFormState): { body: DraftInvoiceRequ
       : [],
   );
   if (valid.length === 0 || valid.length !== lines.length) {
-    errors.lines = 'Each line needs a description, a quantity above zero and a unit price';
+    errors.lines = 'Each line needs a description, a quantity above zero and a unit price up to £100,000';
   }
   if (Object.keys(errors).length > 0) return { body: null, errors };
   return {

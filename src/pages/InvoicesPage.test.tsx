@@ -132,6 +132,23 @@ describe('invoice editor', () => {
     await waitFor(() => expect(issueInvoice).toHaveBeenCalledWith(invoice.id));
     expect(vi.mocked(saveDraft).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(issueInvoice).mock.invocationCallOrder[0]);
   });
+
+  it('retrying a failed issue on a new invoice updates the saved draft instead of creating another', async () => {
+    vi.mocked(saveDraft).mockResolvedValue(invoice);
+    vi.mocked(issueInvoice).mockRejectedValueOnce(new Error('Server error')).mockResolvedValue({ ...invoice, status: 'sent', publicNumber: 'INV-0002' });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'New invoice' }));
+    fireEvent.change(await screen.findByLabelText('Client name'), { target: { value: 'Acme Ltd' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Design' } });
+    fireEvent.change(screen.getByLabelText('Quantity'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Unit price (£)'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Issue' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Issue invoice' }));
+    await screen.findByText('Server error');
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Issue invoice' }));
+    await waitFor(() => expect(issueInvoice).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(saveDraft).mock.calls.map(([id]) => id)).toEqual([null, invoice.id]);
+  });
 });
 
 describe('issued invoice view', () => {

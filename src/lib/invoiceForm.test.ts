@@ -53,6 +53,10 @@ describe('toDraftRequest', () => {
     expect(result.errors).toEqual({});
     expect(result.body?.lines[0]).toEqual({ description: 'Design', quantity: 15000, unitPricePence: 10000, vatRatePercent: 20 });
   });
+  it('rejects a unit price above the server limit of £100,000', () => {
+    expect(parseUnitPricePence('100000')).toBe(10_000_000);
+    expect(parseUnitPricePence('100000.01')).toBeNull();
+  });
   it('reports each missing or invalid field', () => {
     const { body, errors } = toDraftRequest({ ...form, clientName: ' ', dueDate: '2026-04-01', lines: [{ description: '', quantity: '0', unitPrice: 'x', vatRatePercent: 20 }] });
     expect(body).toBeNull();

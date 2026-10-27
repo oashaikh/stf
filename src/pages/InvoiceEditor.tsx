@@ -246,8 +246,15 @@ function DraftEditor({ invoice, ownerHasVatNumber, onBack, onChanged }: { invoic
   const [errors, setErrors] = useState<Record<string, string>>({});
   const totals = formTotals(form, ownerHasVatNumber);
   const state = useInvoiceAction(invoice?.id ?? null, onChanged);
+  // A new invoice gets its id on first save; later saves and a retried Issue must update that draft, not POST another.
+  const savedId = useRef(invoice?.id ?? null);
+  const saveToSavedId = async (body: NonNullable<ReturnType<typeof toDraftRequest>['body']>) => {
+    const saved = await saveDraft(savedId.current, body);
+    savedId.current = saved.id;
+    return saved;
+  };
   const save = useMutation({
-    mutationFn: (body: NonNullable<ReturnType<typeof toDraftRequest>['body']>) => saveDraft(invoice?.id ?? null, body),
+    mutationFn: saveToSavedId,
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: invoicesQueryKey });
       onChanged(result);
@@ -274,7 +281,7 @@ function DraftEditor({ invoice, ownerHasVatNumber, onBack, onChanged }: { invoic
     if (!body) return;
     // The saved draft is what gets issued, so the owner never issues figures they did not see.
     state.mutation.mutate(async () => {
-      const draft = await saveDraft(invoice?.id ?? null, body);
+      const draft = await saveToSavedId(body);
       return issueInvoice(draft.id);
     });
   };

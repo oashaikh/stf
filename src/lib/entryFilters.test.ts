@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_ENTRY_FILTERS, taxYearRange, toEntryListParams, vatQuarterRange } from './entryFilters';
+import { activeFilterCount, DEFAULT_ENTRY_FILTERS, filtersFromParams, taxYearRange, toEntryListParams, vatQuarterRange, type EntryFilters } from './entryFilters';
 
 const obligation = (start: string, end: string) => ({ periodKey: start, start, end, due: end, status: 'O' as const, overdue: false });
 
@@ -41,5 +41,27 @@ describe('vatQuarterRange', () => {
 
   it('returns undefined when no obligation contains today', () => {
     expect(vatQuarterRange(obligations, '2027-01-01')).toBeUndefined();
+  });
+});
+
+describe('entry filters in the page URL', () => {
+  it('round-trips every filter through the query string', () => {
+    const filters: EntryFilters = {
+      from: '2026-04-06', to: '2026-07-05', kind: 'expense', categoryAccountId: 'a2', status: 'draft', search: 'Consulting & design',
+    };
+    expect(filtersFromParams(toEntryListParams(filters))).toEqual(filters);
+  });
+
+  it('reads a VAT drill-down link and ignores unknown or malformed values', () => {
+    expect(filtersFromParams(new URLSearchParams('from=2026-08-15&to=2026-08-15&search=Consulting+%26+design'))).toEqual({
+      ...DEFAULT_ENTRY_FILTERS, from: '2026-08-15', to: '2026-08-15', search: 'Consulting & design',
+    });
+    expect(filtersFromParams(new URLSearchParams('from=yesterday&kind=bogus&status=void'))).toEqual(DEFAULT_ENTRY_FILTERS);
+  });
+
+  it('counts the date range as one active filter and leaves search out', () => {
+    expect(activeFilterCount(DEFAULT_ENTRY_FILTERS)).toBe(0);
+    expect(activeFilterCount({ ...DEFAULT_ENTRY_FILTERS, from: '2026-04-06', to: '2026-07-05', search: 'x' })).toBe(1);
+    expect(activeFilterCount({ ...DEFAULT_ENTRY_FILTERS, to: '2026-07-05', kind: 'income', categoryAccountId: 'a1', status: 'draft' })).toBe(4);
   });
 });

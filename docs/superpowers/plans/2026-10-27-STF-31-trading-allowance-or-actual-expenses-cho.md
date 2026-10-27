@@ -79,7 +79,7 @@ Also depends on:
   - Risk: STF-49 also edits taxYearSummary files; expect a merge conflict at PR time, so keep hunks small.
   - Commit: `de65979cddeb`
 
-- [ ] **Task 4: Tax page: compare both methods and let the owner choose, with workflow note and screenshots** (after 3)
+- [x] **Task 4: Tax page: compare both methods and let the owner choose, with workflow note and screenshots** (after 3)
   - Intent: On /tax, show a section for the selected tax year with profit under actual expenses and under the £1,000 trading allowance, which is lower, and a two-option radio group for choosing the method (44px targets, labelled, keyboard reachable, shared container and tokens, money right-aligned and tabular via formatPence). Saving PUTs /api/settings/trading-allowance and invalidates the tax-estimate query so figures refresh. Add src/lib/tradingAllowanceApi.ts; the comparison fields come from the estimate response already loaded. Use shared loading and error states. State that this is an estimate and that claiming the allowance means no expenses can be deducted. Add TaxPage tests (api client mocked) for both figures, the recommendation, saving the choice, and a save error. Add docs/workflows/tax-year-method.md. Capture browser-evidence/STF-31/{1440,390}-light-tax.png (plus dark if the app ships a dark theme).
   - Files: `src/pages/TaxPage.tsx`, `src/pages/TaxPage.test.tsx`, `src/lib/taxEstimateApi.ts`, `src/lib/tradingAllowanceApi.ts`, `docs/workflows/tax-year-method.md`, `browser-evidence/STF-31/1440-light-tax.png`, `browser-evidence/STF-31/390-light-tax.png`
   - Acceptance criteria the planner set:
@@ -88,3 +88,4 @@ Also depends on:
     - Screenshots exist at both widths under browser-evidence/STF-31/
     - npm run lint, typecheck, test and build pass
   - Risk: STF-49 also edits TaxPage.tsx; keep this change in its own block.
+  - Commit: `bdd9c8f90988`

@@ -123,3 +123,7 @@ Also depends on:
 - [x] **Task 7: Fix: address 3 review findings (cycle 1)** (after 6)
   - Intent: Review left 3 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. The route takes the owner id from the session only, validates the id as a uuid, and returns 404 for another owner's invoice and  The agent is fixing them; nothing is needed from you.
   - Commit: `62186c1e953b`
+
+- [x] **Task 8: Fix: address 1 review finding (cycle 2)** (after 7)
+  - Intent: Review left 1 finding unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The route is correct on isolation and validation, and the cycle-1 doc fix is in (invoices.md now says 15 s). One defect remains: the Download PDF button is shown on voided The agent is fixing them; nothing is needed from you.
+  - Commit: `1a420e3c5482`

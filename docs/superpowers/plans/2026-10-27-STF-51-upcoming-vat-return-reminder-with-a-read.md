@@ -66,7 +66,7 @@ Also depends on:
   - Risk: Opus/high: owner-scoped cron auth, HMRC tokens and a never-submit guarantee. Fraud-prevention headers normally come from the browser; a cron has none, so the implementer must check what the HMRC sandbox accepts and report any limitation rather than invent client headers.
   - Commit: `2754fca5681a`
 
-- [ ] **Task 3: Dashboard card: upcoming VAT return with due date and draft box 5** (after 1)
+- [x] **Task 3: Dashboard card: upcoming VAT return with due date and draft box 5** (after 1)
   - Intent: In src/pages/DashboardPage.tsx add a reminder card reusing the existing useVatObligations hook (shared query key, no new request) and the existing frontend fetcher for GET /api/vat/return used by VatPage. Pick the obligation with the task 1 helper. Show the due date and draft box 5 via formatPence (right-aligned, tabular, like the existing Row), a draft / not-yet-drafted text label so colour is not the only signal, and a min-h-11 link to /vat. Hide the card when nothing is due, HMRC is not connected, or a query errors; it must not block the rest of the dashboard. Use the existing Card, linkClass and tokens (no raw hex or px sizes). Tests in DashboardPage.test.tsx with API clients mocked: due soon shows date and box 5, not due shows no card, error hides it, link goes to /vat.
   - Files: `src/pages/DashboardPage.tsx`, `src/pages/DashboardPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -74,6 +74,7 @@ Also depends on:
     - No card when nothing is due, or when obligations or return queries fail
     - Existing dashboard tests still pass; no new endpoint
     - npm run lint, typecheck, test and build pass
+  - Commit: `311dbaf37f21`
 
 - [ ] **Task 4: E2E mock state and screenshots for the dashboard card** (after 3)
   - Intent: Make e2e/mockApi.ts serve an obligation due inside the window (today is 2026-10-27; the mock's fixed due date is 2026-08-07) so the card renders. Add a journey step in e2e/journey.spec.ts: sign in, open the dashboard, assert the card shows due date and box 5, follow the link to /vat. Capture 390 px and 1440 px light screenshots into browser-evidence/STF-51/ as 390-light-dashboard-vat-reminder.png and 1440-light-dashboard-vat-reminder.png (dark only if a dark theme ships). Confirm existing VAT journey steps and screenshots still work. Add a short note on the reminder job to docs/workflows/vat-return.md.

@@ -52,7 +52,7 @@ Also depends on:
     - npm run lint, typecheck and test pass
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 2: Cron route that saves the draft for the next due obligation, with no path to submit** (after 1)
+- [x] **Task 2: Cron route that saves the draft for the next due obligation, with no path to submit** (after 1)
   - Intent: Add api/cron/prepare-vat-draft.ts modelled on api/cron/refresh-hmrc-tokens.ts: handler factory with the same fail-closed constant-time Bearer CRON_SECRET check and a default export wiring real deps. It resolves the owner user id (reuse the existing owner external-id lookup), loads HMRC credentials via databaseHmrcStore, fetches open obligations with getVatObligations (reuse callHmrcAsUser or withHmrcToken for token refresh and saving; fraud headers need a server-built Request since a cron has no browser), picks the due obligation with the task 1 helper, and calls the existing saveReturnDraft(databaseStore, userId, period, false) in api/_lib/vatReturns.ts. reopen is never true, so a confirmed draft is left alone. Does nothing (still 2xx) when nothing is due, HMRC is not connected, or no VAT number is set. Log only error classes. Register in vercel.json (maxDuration and a daily cron). The route must not import vatSubmit.ts, the submit route, or any submit function. Tests with fakes only: draft saved when due, not saved when not due, 401 on missing/wrong secret, confirmed draft not reopened, and a test that reads the route source and asserts no reference to vatSubmit, submitVatReturn or the submit route. Document the job in docs/runbooks/vercel-deploy.md; touch .env.example only if a new variable is introduced (CRON_SECRET already exists).
   - Files: `api/cron/prepare-vat-draft.ts`, `api/cron/__tests__/prepareVatDraft.test.ts`, `vercel.json`, `docs/runbooks/vercel-deploy.md`, `.env.example`
   - Acceptance criteria the planner set:
@@ -64,6 +64,7 @@ Also depends on:
     - vercel.json has a valid cron entry
     - npm run lint, typecheck, test and build pass
   - Risk: Opus/high: owner-scoped cron auth, HMRC tokens and a never-submit guarantee. Fraud-prevention headers normally come from the browser; a cron has none, so the implementer must check what the HMRC sandbox accepts and report any limitation rather than invent client headers.
+  - Commit: `2754fca5681a`
 
 - [ ] **Task 3: Dashboard card: upcoming VAT return with due date and draft box 5** (after 1)
   - Intent: In src/pages/DashboardPage.tsx add a reminder card reusing the existing useVatObligations hook (shared query key, no new request) and the existing frontend fetcher for GET /api/vat/return used by VatPage. Pick the obligation with the task 1 helper. Show the due date and draft box 5 via formatPence (right-aligned, tabular, like the existing Row), a draft / not-yet-drafted text label so colour is not the only signal, and a min-h-11 link to /vat. Hide the card when nothing is due, HMRC is not connected, or a query errors; it must not block the rest of the dashboard. Use the existing Card, linkClass and tokens (no raw hex or px sizes). Tests in DashboardPage.test.tsx with API clients mocked: due soon shows date and box 5, not due shows no card, error hides it, link goes to /vat.

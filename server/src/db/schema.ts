@@ -62,6 +62,10 @@ export const users = pgTable('users', {
   hmrcRefreshToken: text('hmrc_refresh_token'),
   hmrcTokenExpiresAt: timestamp('hmrc_token_expires_at', { withTimezone: true }),
   hmrcSandboxMode: boolean('hmrc_sandbox_mode').notNull().default(true),
+  // Needed for Income Tax calls (STF-83); cleared when a reconnect changes the granted scope.
+  hmrcItsBusinessId: text('hmrc_its_business_id'),
+  // Granted OAuth scope, used to show the one-time reconnect notice only when self-assessment is missing.
+  hmrcScope: text('hmrc_scope'),
   // Authenticator-app second factor: secret is encryptToken output; last_step blocks code reuse.
   totpSecretEncrypted: text('totp_secret_encrypted'),
   totpEnabledAt: timestamp('totp_enabled_at', { withTimezone: true }),

@@ -34,6 +34,7 @@ export type HmrcTokenSet = {
   accessToken: string;
   refreshToken: string;
   expiresAt: number; // Unix timestamp ms
+  scope?: string; // as granted by HMRC; refresh responses may omit it
 };
 
 export type HmrcApiError = {
@@ -197,7 +198,8 @@ export async function listItsSelfEmploymentBusinesses(
 
 // ─── OAuth helpers (called server-side only) ──────────────────────────────────
 
-const HMRC_SCOPE = 'read:vat write:vat';
+const HMRC_VAT_SCOPE = 'read:vat write:vat';
+const HMRC_ITSA_SCOPE = 'read:self-assessment write:self-assessment';
 
 function requireEnv(name: 'HMRC_CLIENT_ID' | 'HMRC_CLIENT_SECRET'): string {
   const value = process.env[name];
@@ -213,14 +215,14 @@ export function buildHmrcAuthUrl(redirectUri: string, state: string): string {
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: requireEnv('HMRC_CLIENT_ID'),
-    scope: HMRC_SCOPE,
+    scope: `${HMRC_VAT_SCOPE} ${HMRC_ITSA_SCOPE}`,
     redirect_uri: redirectUri,
     state,
   });
   return `${authorizeHost}/oauth/authorize?${params.toString()}`;
 }
 
-type TokenResponse = { access_token: string; refresh_token: string; expires_in: number };
+type TokenResponse = { access_token: string; refresh_token: string; expires_in: number; scope?: string };
 
 /**
  * The error carries only HMRC's error code and status, never its description,
@@ -255,6 +257,7 @@ async function postTokenRequest(
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token,
     expiresAt: Date.now() + tokens.expires_in * 1000,
+    scope: tokens.scope,
   };
 }
 

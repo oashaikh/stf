@@ -34,7 +34,9 @@ describe('buildHmrcAuthUrl', () => {
     const url = new URL(buildHmrcAuthUrl('https://app.test/cb', 'state-1'));
     expect(url.origin).toBe('https://test-www.tax.service.gov.uk');
     expect(url.pathname).toBe('/oauth/authorize');
-    expect(url.searchParams.get('scope')).toBe('read:vat write:vat');
+    expect(url.searchParams.get('scope')).toBe(
+      'read:vat write:vat read:self-assessment write:self-assessment',
+    );
     expect(url.searchParams.get('state')).toBe('state-1');
     expect(url.searchParams.get('redirect_uri')).toBe('https://app.test/cb');
     expect(url.searchParams.get('client_id')).toBe('test-client-id');
@@ -73,6 +75,13 @@ describe('token calls', () => {
       refreshToken: 'new-refresh',
       expiresAt: NOW + 14400 * 1000,
     });
+  });
+
+  it('returns the scope HMRC granted, and leaves it undefined when omitted', async () => {
+    const scoped = vi.fn().mockResolvedValue(jsonResponse(200, { ...tokenBody, scope: 'read:vat write:vat' }));
+    expect((await exchangeAuthCode('c', 'https://app.test/cb', scoped)).scope).toBe('read:vat write:vat');
+    const unscoped = vi.fn().mockResolvedValue(jsonResponse(200, tokenBody));
+    expect((await refreshAccessToken('r', unscoped)).scope).toBeUndefined();
   });
 
   it('refreshAccessToken posts the refresh grant', async () => {

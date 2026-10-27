@@ -74,6 +74,8 @@ function makeHmrcStore(sandbox: boolean | undefined, overrides: Partial<HmrcCred
   const store: HmrcStore = {
     sandboxMode: async () => sandbox,
     setSandboxMode: vi.fn(),
+    setItsBusinessId: async () => undefined,
+    itsBusinessId: async () => null,
     saveTokens: async () => undefined,
     credentials: async () => ({
       vatNumber: '123456789',
@@ -87,7 +89,7 @@ function makeHmrcStore(sandbox: boolean | undefined, overrides: Partial<HmrcCred
       saved.push(tokens.accessToken);
       return true;
     },
-    status: async () => ({ connected: true, expiresAt: null }),
+    status: async () => ({ connected: true, expiresAt: null, itsBusinessId: null, needsItsReconnect: false }),
   };
   return { store, saved };
 }

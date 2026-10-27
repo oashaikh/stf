@@ -79,13 +79,14 @@ Also depends on:
   - Risk: Per-owner data access and authorisation on a record id; needs tenant-isolation tests.
   - Commit: `f98b91666511`
 
-- [ ] **Task 4: Feed the year's mileage claim into the tax year summary as travel** (after 3)
+- [x] **Task 4: Feed the year's mileage claim into the tax year summary as travel** (after 3)
   - Intent: Change buildTaxYearSummary in src/lib/taxYearSummary.ts to take the mileage claim pence (default 0 not needed; make it an explicit argument and update callers) and add it to the 'travel' expense category total, so allowableExpensesPence and netProfitPence include it; if no travel category exists yet create the row. Update getTaxYearSummary and the TaxYearSummaryStore in api/_lib/taxYearSummary.ts to also load the owner's non-deleted trips for the period (one bounded, user-scoped query, reuse the loader from api/_lib/mileage.ts rather than writing a second one) and compute the claim with calculateMileageClaim for the tax year of the period. Update taxYearSummary.test.ts and taxYearSummaryRoute.test.ts (fake store gains the trips loader): claim adds to travel alongside ledger travel spend, zero trips changes nothing, voided trips excluded, net profit drops by the claim.
   - Files: `src/lib/taxYearSummary.ts`, `src/lib/taxYearSummary.test.ts`, `api/_lib/taxYearSummary.ts`, `api/_lib/__tests__/taxYearSummaryRoute.test.ts`
   - Acceptance criteria the planner set:
     - Summary travel total equals ledger travel plus the mileage claim and net profit reflects it
     - The trips query is scoped by session user id and bounded
     - Existing summary tests updated and passing; lint, typecheck and test pass
+  - Commit: `365c3c607733`
 
 - [ ] **Task 5: Mileage section on the Tax page with API client** (after 3)
   - Intent: Add src/lib/mileageApi.ts (fetch client in the style of entriesApi.ts/accountsApi.ts: list for a tax year, add, void, using the shared money formatter for display, never floats) and src/pages/MileageSection.tsx rendered from src/pages/TaxPage.tsx under the existing h1 (replace the 'Coming soon' placeholder only as needed; keep the Tax Estimate heading). Section shows a tax year selector (default currentTaxYear, options from TAX_BANDS keys), the year's claim total and miles, an add-trip form (date, from, to, purpose, miles, vehicle type) with inline validation and a draft-free direct save, a list of trips with the per-trip claim, and a Void button that asks for confirmation naming the trip and the effect on the claim (). Include a short note that simplified mileage means no actual running costs can be claimed for that vehicle. Use shared loading/empty/error components, type-scale and colour tokens, 44 px tap targets, right-aligned tabular money, rows that collapse on a phone (follow EntriesList.tsx and ReportsPage.tsx patterns and the shared page container, not a page-level max-width), visible focus. Component tests with the API client mocked in src/pages/MileageSection.test.tsx: renders trips and claim, add flow posts the right body, void confirm flow, error state.

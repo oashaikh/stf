@@ -59,7 +59,7 @@ Also depends on:
   - Risk: Default tier. Owner scoping is the key correctness point; reviewed via the 404 test in task 3.
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 2: React PDF invoice template and render function** (after 1)
+- [x] **Task 2: React PDF invoice template and render function** (after 1)
   - Intent: Create the server-side template with @react-pdf/renderer (already a dependency, v3.4.2, not yet used anywhere in src or api). It shows business name and address, VAT number only when present, client name/email/address, invoice number, issue and due dates (formatDate), a lines table (description, quantity, unit price, VAT rate, net), VAT summary by rate, total due and payment instructions (bank, sort code, account number) from the profile, and notes. All money goes through formatPence from src/lib/money.ts; no arithmetic in the template. Export renderInvoicePdf(data): Promise<Buffer> via renderToBuffer. Use built-in PDF fonts (Helvetica) so no font files need bundling; check that the pound sign renders. Write a test that renders a fixture with invented data and asserts the extracted text contains the invoice number, each total, the VAT number, and omits the VAT line when the owner is unregistered. react-pdf compresses and subsets text, so extract text via a PDF text reader. Prefer an already installed package; if none exists, add pdfjs-dist as a devDependency only and state in the PR why nothing installed can do it (). Check tsconfig.api.json (nodenext, jsx react-jsx) compiles a .tsx file under api/_lib and that eslint covers it.
   - Files: `api/_lib/invoicePdf.tsx`, `api/_lib/__tests__/invoicePdf.test.ts`, `package.json`, `package-lock.json`
   - Acceptance criteria the planner set:
@@ -70,6 +70,7 @@ Also depends on:
     - If a devDependency is added, package-lock.json is updated and the reason is in the commit message
     - lint, typecheck, test, build pass
   - Risk: Default tier. Main uncertainty is PDF text extraction in vitest and react-pdf running under the api tsconfig.
+  - Commit: `5bfc174a59c7`
 
 - [ ] **Task 3: GET /api/invoice-pdf serverless route, vercel.json maxDuration and route tests** (after 1, 2)
   - Intent: Add api/invoice-pdf.ts following api/entries-export.ts (withAuth, default export { fetch }). GET only (405 otherwise), validates ?id as uuid (400, same UUID regex and refuse shape as api/invoices.ts), loads via task 1 using auth.userId only, returns 404 NOT_FOUND JSON for an unknown or another owner's invoice, otherwise application/pdf with Content-Disposition attachment filename built from the public number (sanitised) and Cache-Control no-store. Drafts: decide and document (assumption: allow any non-voided status, drafts included, since the owner may want a preview; voided returns 404 or 409 per implementer choice, stated in the PR). Add a functions entry in vercel.json with a maxDuration (30) and consider memory; measure first and report in the PR. Record the route in api/_lib/__tests__/apiRoutes.test.ts if that file lists every route (check for sign-in-required coverage). Route test with fake store: owner A gets a PDF whose text contains the number, totals and VAT number; owner B requesting A's id gets 404; unauthenticated gets 401; bad id gets 400. Document in docs/workflows/invoices.md.

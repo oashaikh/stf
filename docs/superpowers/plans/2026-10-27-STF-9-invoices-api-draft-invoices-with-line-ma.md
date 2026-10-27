@@ -65,7 +65,7 @@
   - Risk: Money, row-locking and tenant isolation: opus high.
   - Commit: `cf999d663164`
 
-- [ ] **Task 4: Invoices route and tests (concurrency, no-reuse, ignored totals, isolation)** (after 3)
+- [x] **Task 4: Invoices route and tests (concurrency, no-reuse, ignored totals, isolation)** (after 3)
   - Intent: Add api/invoices.ts mirroring api/entries.ts: createInvoicesHandler(store, authDeps) wrapped in withAuth; POST create, PUT ?id= edit, GET list (status, cursor, limit), GET ?id= fetch with lines, DELETE ?id= void; uuid validation on id, 405 for other methods, JSON errors in the same {ok,error,code,fields} shape. Add api/_lib/__tests__/invoicesRoute.test.ts with an in-memory fake store that models the row lock (serialises allocation through a promise chain) and counter, mocking '../db' as the entries test does. Tests: concurrent Promise.all creates yield distinct sequential numbers; voiding does not free a number and the next create takes the next one; client-sent subtotal/vat/total/public_number/status are ignored and server totals returned; VAT lines forced to 0 without a VAT number and applied with one; edit recomputes totals and keeps number; edit/void of non-draft gives 409; second user sending first user's id gets 404 on get, edit and void and sees nothing in list (/9); list status filter and paging with limit cap; unauthenticated gets 401; bad bodies 400. Also add a short docs/workflows/invoices.md noting endpoints, numbering and that issuing/PDF/payment are separate. Add the route to any route inventory test (check apiRoutes.test.ts). State in the PR that the lock test uses a fake store and the SQL FOR UPDATE was not exercised against a real Postgres (no Docker). Run npm run lint, typecheck, test, build.
   - Files: `api/invoices.ts`, `api/_lib/__tests__/invoicesRoute.test.ts`, `api/_lib/__tests__/apiRoutes.test.ts`, `docs/workflows/invoices.md`
   - Acceptance criteria the planner set:
@@ -73,3 +73,4 @@
     - Tests exist for concurrent distinct sequential numbers, no reuse after void, ignored client totals, VAT only with VAT number, cross-user refusal
     - npm run lint, typecheck, test and build all pass
   - Risk: Auth and tenant isolation tests: opus high.
+  - Commit: `cc62ab5d1e0c`

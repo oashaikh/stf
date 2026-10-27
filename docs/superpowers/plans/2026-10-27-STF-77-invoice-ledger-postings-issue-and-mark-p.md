@@ -80,3 +80,7 @@
     - Doc states the posting lines for issue and payment, the lock behaviour on void, and the audit event names
     - npm run build still passes
   - Commit: `ac6a080b1c1a`
+
+- [x] **Task 6: Fix: address 8 review findings (cycle 1)** (after 5)
+  - Intent: Review left 8 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found no blocking defects. I read the diff and `voidLiveEntry`/`MAX_DAYS_AHEAD` in `api/_lib/entries.ts`; I did not re-run tests. Issue, mark-paid and v The agent is fixing them; nothing is needed from you.
+  - Commit: `5d7b92b3299d`

@@ -193,6 +193,8 @@ export const invoices = pgTable(
     totalPence: integer('total_pence').notNull(),
     notes: text('notes'),
     transactionId: uuid('transaction_id').references(() => transactions.id),
+    // Posting that moved the gross from debtors to bank when the invoice was marked paid (STF-77).
+    paymentTransactionId: uuid('payment_transaction_id').references(() => transactions.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),

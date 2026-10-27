@@ -76,6 +76,20 @@
       "idx": 10,
       "version": "6",
       "when": 1792986652124,
+      "tag": "0010_invoices_list_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1792986653124,
+      "tag": "0011_invoice_lines_deleted_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1792986654124,
       "tag": "0012_trading_allowance_choices",
       "breakpoints": true
     }

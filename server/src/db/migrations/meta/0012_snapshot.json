@@ -1,6 +1,6 @@
 {
   "id": "b79acb5a-16f3-4747-a261-e2c0ad135ac7",
-  "prevId": "c62f6c6e-dcd1-4ebf-965f-bf98ca62105c",
+  "prevId": "80fbe2cb-b929-412d-bad6-710ca2ee93fd",
   "version": "6",
   "dialect": "postgresql",
   "tables": {
@@ -233,9 +233,23 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "invoice_lines_invoice_id_idx": {
+          "name": "invoice_lines_invoice_id_idx",
+          "columns": [
+            "invoice_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "invoice_lines_invoice_id_invoices_id_fk": {
           "name": "invoice_lines_invoice_id_invoices_id_fk",
@@ -366,7 +380,17 @@
           "notNull": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "invoices_user_created_idx": {
+          "name": "invoices_user_created_idx",
+          "columns": [
+            "user_id",
+            "created_at",
+            "id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "invoices_user_id_users_id_fk": {
           "name": "invoices_user_id_users_id_fk",
@@ -406,6 +430,38 @@
           ]
         }
       }
+    },
+    "public.login_attempts": {
+      "name": "login_attempts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "attempted_at": {
+          "name": "attempted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "login_attempts_attempted_at_idx": {
+          "name": "login_attempts_attempted_at_idx",
+          "columns": [
+            "attempted_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
     },
     "public.receipt_extractions": {
       "name": "receipt_extractions",
@@ -613,6 +669,130 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
+    },
+    "public.recovery_codes": {
+      "name": "recovery_codes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code_hash": {
+          "name": "code_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "used_at": {
+          "name": "used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "recovery_codes_user_id_code_hash_idx": {
+          "name": "recovery_codes_user_id_code_hash_idx",
+          "columns": [
+            "user_id",
+            "code_hash"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "recovery_codes_user_id_users_id_fk": {
+          "name": "recovery_codes_user_id_users_id_fk",
+          "tableFrom": "recovery_codes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.trading_allowance_choices": {
+      "name": "trading_allowance_choices",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tax_year": {
+          "name": "tax_year",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "trading_allowance_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "trading_allowance_choices_user_id_users_id_fk": {
+          "name": "trading_allowance_choices_user_id_users_id_fk",
+          "tableFrom": "trading_allowance_choices",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "trading_allowance_choices_user_id_tax_year_unique": {
+          "name": "trading_allowance_choices_user_id_tax_year_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id",
+            "tax_year"
+          ]
+        }
+      }
     },
     "public.transaction_lines": {
       "name": "transaction_lines",
@@ -1270,162 +1450,6 @@
           ]
         }
       }
-    },
-    "public.login_attempts": {
-      "name": "login_attempts",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "attempted_at": {
-          "name": "attempted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "login_attempts_attempted_at_idx": {
-          "name": "login_attempts_attempted_at_idx",
-          "columns": [
-            "attempted_at"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
-    "public.recovery_codes": {
-      "name": "recovery_codes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "code_hash": {
-          "name": "code_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "used_at": {
-          "name": "used_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "recovery_codes_user_id_code_hash_idx": {
-          "name": "recovery_codes_user_id_code_hash_idx",
-          "columns": [
-            "user_id",
-            "code_hash"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "recovery_codes_user_id_users_id_fk": {
-          "name": "recovery_codes_user_id_users_id_fk",
-          "tableFrom": "recovery_codes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
-    "public.trading_allowance_choices": {
-      "name": "trading_allowance_choices",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tax_year": {
-          "name": "tax_year",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "method": {
-          "name": "method",
-          "type": "trading_allowance_method",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "trading_allowance_choices_user_id_users_id_fk": {
-          "name": "trading_allowance_choices_user_id_users_id_fk",
-          "tableFrom": "trading_allowance_choices",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "trading_allowance_choices_user_id_tax_year_unique": {
-          "name": "trading_allowance_choices_user_id_tax_year_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "tax_year"
-          ]
-        }
-      }
     }
   },
   "enums": {
@@ -1496,6 +1520,14 @@
         "failed"
       ]
     },
+    "public.trading_allowance_method": {
+      "name": "trading_allowance_method",
+      "schema": "public",
+      "values": [
+        "actual",
+        "allowance"
+      ]
+    },
     "public.transaction_source": {
       "name": "transaction_source",
       "schema": "public",
@@ -1540,14 +1572,6 @@
         "pending",
         "submitted",
         "failed"
-      ]
-    },
-    "public.trading_allowance_method": {
-      "name": "trading_allowance_method",
-      "schema": "public",
-      "values": [
-        "actual",
-        "allowance"
       ]
     }
   },

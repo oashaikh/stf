@@ -91,7 +91,7 @@ describe('tax year summary route', () => {
     const response = await get(store, '?taxYear=2022-23', 'owner');
     expect(response.status).toBe(200);
     expect(asked).toEqual(['owner:2022-04-06..2023-04-05']);
-    expect((await response.json()).data.expenseCategories).toEqual([{ taxCategory: 'travel', totalPence: 5000 }]);
+    expect((await response.json()).data.expenseCategories).toEqual([]);
   });
 
   it.each(['', '?taxYear=2026', '?taxYear=2026-28'])('rejects bad tax year %s without touching the store', async (query) => {

@@ -42,7 +42,7 @@ function DeleteTemplateDialog({ template, error, onCancel, onDelete }: { templat
   }, []);
 
   return (
-    <dialog ref={dialogRef} aria-labelledby="delete-template-title" onClose={onCancel} className="w-full max-w-md flex-col rounded p-0 open:flex backdrop:bg-black/50">
+    <dialog ref={dialogRef} aria-labelledby="delete-template-title" onClose={onCancel} className="w-[calc(100%-2rem)] max-w-md flex-col rounded p-0 open:flex backdrop:bg-black/50">
       <div className="p-6">
         <h3 id="delete-template-title" className="text-lg font-semibold text-gray-900">
           Delete {template.description}?

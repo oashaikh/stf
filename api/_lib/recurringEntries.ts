@@ -66,6 +66,8 @@ export interface RecurringStore {
   create(userId: string, input: NewTemplate, anchorDay: number): Promise<Template>;
   /** Undefined when it is not the owner's live template. */
   update(userId: string, templateId: string, patch: TemplatePatch & { anchorDay?: number }): Promise<Template | undefined>;
+  /** The owner's live template, or undefined. */
+  find(userId: string, templateId: string): Promise<Template | undefined>;
   softDelete(userId: string, templateId: string): Promise<boolean>;
   ownsCategory(userId: string, categoryAccountId: string): Promise<boolean>;
   /** Cron scan across owners: live, unpaused templates with next_date on or before today, at most `limit`. */
@@ -87,7 +89,10 @@ export async function createTemplate(store: RecurringStore, userId: string, inpu
 }
 
 export async function updateTemplate(store: RecurringStore, userId: string, templateId: string, patch: TemplatePatch): Promise<Template> {
-  const template = await store.update(userId, templateId, patch.nextDate ? { ...patch, anchorDay: dayOf(patch.nextDate) } : patch);
+  // The anchor only moves when the owner picks a different date: a clamped date (28 Feb for a 31st template) must not become the new anchor.
+  const current = patch.nextDate ? await store.find(userId, templateId) : undefined;
+  const moved = patch.nextDate !== undefined && current !== undefined && patch.nextDate !== current.nextDate;
+  const template = await store.update(userId, templateId, moved ? { ...patch, anchorDay: dayOf(patch.nextDate as string) } : patch);
   if (!template) throw new EntryRuleError(404, 'NOT_FOUND', 'Template not found');
   return template;
 }
@@ -111,13 +116,17 @@ export async function generateDueEntries(store: RecurringStore, entryStore: Entr
   const today = now.toISOString().slice(0, 10);
   const result: GenerateResult = { created: 0, skipped: 0 };
   for (const template of await store.due(today, RECURRING_RUN_LIMIT)) {
+    // ponytail: a template stuck on a closed period sorts first in due() and is retried every run; with 200 stuck templates the rest starve. Upgrade: pause or surface stuck templates to the owner.
     const { dates } = dueDates(template.nextDate, template.schedule, template.anchorDay, today, RECURRING_DATES_PER_RUN);
     for (const date of dates) {
       const following = nextOccurrence(date, template.schedule, template.anchorDay);
       try {
         // The draft is written by createEntry in its own transaction, so no run is claimed over a network call.
         // A run another process already claimed advances next_date itself.
-        if (await store.hasRun(template.id, date)) continue;
+        if (await store.hasRun(template.id, date)) {
+          result.skipped += 1;
+          continue;
+        }
         const entry = await createEntry(
           entryStore,
           template.userId,
@@ -133,11 +142,14 @@ export async function generateDueEntries(store: RecurringStore, entryStore: Entr
           },
           now,
         );
-        if (!(await store.recordRun(template, date, entry.id, following))) {
-          // Lost a race between the check and the write: void our draft so the date exists once.
-          await entryStore.void(template.userId, entry.id);
-          continue;
+        let recorded = false;
+        try {
+          recorded = await store.recordRun(template, date, entry.id, following);
+        } finally {
+          // Lost the race, or the claim failed: no run row points at this draft, so void it or the next run duplicates the date.
+          if (!recorded) await entryStore.void(template.userId, entry.id);
         }
+        if (!recorded) continue;
         result.created += 1;
       } catch (error) {
         result.skipped += 1;
@@ -193,6 +205,11 @@ export const databaseRecurringStore: RecurringStore = {
       .set({ ...patch, updatedAt: new Date() })
       .where(ownedLive(userId, templateId))
       .returning(templateColumns);
+    return row ? toTemplate(row) : undefined;
+  },
+
+  async find(userId, templateId) {
+    const [row] = await db.select(templateColumns).from(recurringEntryTemplates).where(ownedLive(userId, templateId)).limit(1);
     return row ? toTemplate(row) : undefined;
   },
 

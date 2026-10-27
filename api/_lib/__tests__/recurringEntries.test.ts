@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Entry, EntryStore, PostingContext } from '../entries.js';
-import { RECURRING_LIST_LIMIT, createTemplate, generateDueEntries, listTemplates, type DueTemplate, type RecurringStore } from '../recurringEntries.js';
+import { RECURRING_LIST_LIMIT, createTemplate, generateDueEntries, updateTemplate, listTemplates, type DueTemplate, type RecurringStore } from '../recurringEntries.js';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const USER = id(500);
@@ -52,8 +52,14 @@ function fakes() {
     async create() {
       throw new Error('unused');
     },
-    async update() {
-      throw new Error('unused');
+    async update(_userId, templateId, patch) {
+      const template = templates.find((candidate) => candidate.id === templateId);
+      if (!template) return undefined;
+      Object.assign(template, patch);
+      return template as never;
+    },
+    async find(_userId, templateId) {
+      return templates.find((candidate) => candidate.id === templateId) as never;
     },
     async softDelete() {
       throw new Error('unused');
@@ -98,6 +104,22 @@ describe('generateDueEntries', () => {
     expect(f.entries).toHaveLength(0);
   });
 
+  it('voids its draft and creates no duplicate when recording the run throws', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    f.add();
+    const record = f.store.recordRun;
+    f.store.recordRun = async () => {
+      throw new Error('connection reset');
+    };
+    const first = await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
+    expect(first.skipped).toBe(1);
+    expect(f.entries).toHaveLength(0);
+    f.store.recordRun = record;
+    await generateDueEntries(f.store, f.entryStore as EntryStore, NOW);
+    expect(f.entries).toHaveLength(1);
+    warn.mockRestore();
+  });
+
   it('skips a date that already has a run', async () => {
     const template = f.add();
     f.runs.push({ templateId: template.id, runDate: '2026-10-01', transactionId: id(1) });
@@ -138,6 +160,22 @@ describe('listTemplates', () => {
     const spy = vi.spyOn(f.store, 'list');
     await listTemplates(f.store, USER);
     expect(spy).toHaveBeenCalledWith(USER, RECURRING_LIST_LIMIT);
+  });
+});
+
+describe('updateTemplate', () => {
+  it('keeps the 31st anchor when a clamped template is edited without moving its date', async () => {
+    const f = fakes();
+    const template = f.add({ nextDate: '2026-02-28', anchorDay: 31 });
+    await updateTemplate(f.store, USER, template.id, { description: 'Rent', nextDate: '2026-02-28' });
+    expect(template.anchorDay).toBe(31);
+  });
+
+  it('re-anchors when the owner picks a different date', async () => {
+    const f = fakes();
+    const template = f.add({ nextDate: '2026-02-28', anchorDay: 31 });
+    await updateTemplate(f.store, USER, template.id, { nextDate: '2026-03-15' });
+    expect(template.anchorDay).toBe(15);
   });
 });
 

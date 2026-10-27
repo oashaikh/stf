@@ -61,8 +61,10 @@ A `recurringEntryRuns` table records every (template, date) already created, wit
 1. Cron scan fetches due templates.
 2. For each due date, before creating a draft, check if `(templateId, runDate)` exists in the runs table.
 3. If it already ran, skip.
-4. If not, create the draft and insert a run record in a single transaction.
-5. Insert fails (unique constraint) if another process already claimed the date — the draft is then voided and the date is skipped.
+4. If not, create the draft with `createEntry`, which commits in its own transaction.
+5. Then claim the date: one transaction inserts the run record and moves `nextDate`. If the insert hits the unique key (another process claimed the date), or the claim fails for any other reason, the draft is voided so the date exists once.
+
+A process crash between steps 4 and 5 can still leave one draft with no run record; the owner can void it from the Expenses list.
 
 The run record holds the date, the generated transaction id, and creation time. It is never deleted — it is the audit trail of when each template ran.
 
@@ -82,7 +84,7 @@ A daily cron job triggers the entry generator.
 
 **Schedule:** `0 5 * * *` (5 AM UTC daily)
 
-**Endpoint:** `POST /api/cron/create-recurring-entries`
+**Endpoint:** `GET /api/cron/create-recurring-entries` (Vercel Cron issues GET)
 
 **Timeout:** 60 seconds (sufficient for the catch-up cap below)
 
@@ -153,9 +155,7 @@ The owner cannot change the posting rules for templates; they are the same as fo
 
 ## Audit trail
 
-Each generated entry writes an audit event like any other transaction. The transaction source is logged (which can be `manual`, `bank_feed`, `receipt_ai`, or `import`) but templates do not yet have their own source; they currently post as `import` (deferred to a future enhancement).
-
-Template mutations (create, edit, pause, delete) write audit events with the before/after snapshots and the owner's user id.
+Each generated entry writes the same entry audit events as any other transaction, and posts with source `manual`; templates have no source of their own yet. Template changes (create, edit, pause, delete) are not audited; the run ledger records which template produced which entry.
 
 ## Interaction with VAT periods
 

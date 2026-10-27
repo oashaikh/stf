@@ -39,6 +39,10 @@ function makeStore() {
       Object.assign(row, patch);
       return strip(row);
     },
+    async find(userId, id) {
+      const row = live(userId, id);
+      return row ? strip(row) : undefined;
+    },
     async softDelete(userId, id) {
       const row = live(userId, id);
       if (row) row.deleted = true;

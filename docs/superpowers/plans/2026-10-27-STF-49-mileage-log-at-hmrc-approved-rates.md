@@ -106,3 +106,7 @@ Also depends on:
     - docs/workflows/mileage.md exists
     - npm run lint, typecheck, test and build pass on the final tree
   - Commit: `b22a1aa640c7`
+
+- [x] **Task 7: Fix: address 19 review findings (cycle 1)** (after 6)
+  - Intent: Review left 19 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Two correctness problems. (1) GET /api/tax-year-summary now returns 500 for any valid tax year with no TAX_BANDS entry. (2) The 390 px capture has the fixed bottom nav cov The agent is fixing them; nothing is needed from you.
+  - Commit: `6c7c4602fd67`

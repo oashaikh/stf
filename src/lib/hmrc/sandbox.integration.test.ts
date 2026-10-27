@@ -3,6 +3,7 @@ import { buildFraudHeaders } from './fraudHeaders';
 import {
   getVatObligations,
   HmrcError,
+  listItsSelfEmploymentBusinesses,
   refreshAccessToken,
   submitVatReturn,
   withHmrcToken,
@@ -16,7 +17,8 @@ const clientId = process.env.HMRC_CLIENT_ID;
 const clientSecret = process.env.HMRC_CLIENT_SECRET;
 const refreshToken = process.env.HMRC_SANDBOX_REFRESH_TOKEN;
 const vrn = process.env.HMRC_SANDBOX_VRN;
-const hasCredentials = Boolean(clientId && clientSecret && refreshToken && vrn);
+const nino = process.env.HMRC_SANDBOX_NINO;
+const hasCredentials = Boolean(clientId && clientSecret && refreshToken && vrn && nino);
 
 // Never let this suite reach production, whatever the shell has exported.
 const sandboxOnly = process.env.HMRC_SANDBOX_MODE !== 'false';
@@ -85,5 +87,18 @@ describe.skipIf(!hasCredentials || !sandboxOnly)('HMRC sandbox integration', () 
     const attempt = submitVatReturn(vrn!, tokens.accessToken, payload, fraudHeaders('DUPLICATE_SUBMISSION'));
     await expect(attempt).rejects.toBeInstanceOf(HmrcError);
     await expect(attempt).rejects.toMatchObject({ apiError: { code: 'DUPLICATE_SUBMISSION', statusCode: 403 } });
+  });
+
+  it('fetches self-employment businesses with a valid token', async () => {
+    const tokens = await refreshAccessToken(refreshToken!);
+    const { businessDetails } = await listItsSelfEmploymentBusinesses(
+      nino!, tokens.accessToken, fraudHeaders(),
+    );
+    expect(businessDetails).toBeTruthy();
+    expect(Array.isArray(businessDetails)).toBe(true);
+    if (businessDetails.length > 0) {
+      expect(businessDetails[0]).toHaveProperty('businessId');
+      expect(businessDetails[0]).toHaveProperty('typeOfBusiness');
+    }
   });
 });

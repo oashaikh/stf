@@ -6,7 +6,7 @@ import { createConnectHandler } from '../../hmrc/connect';
 import { createModeHandler } from '../../hmrc/mode';
 import { createStatusHandler } from '../../hmrc/status';
 import type { AuthDeps } from '../auth';
-import type { HmrcStore } from '../hmrcStore';
+import { lacksItsScope, type HmrcStore } from '../hmrcStore';
 
 const ACCESS = 'access-secret-AAA';
 const REFRESH = 'refresh-secret-BBB';
@@ -17,6 +17,8 @@ interface Row {
   accessToken?: string;
   refreshToken?: string;
   expiresAt?: Date;
+  scope?: string;
+  itsBusinessId?: string;
 }
 
 function fakeStore(rows: Record<string, Row>): HmrcStore {
@@ -26,13 +28,20 @@ function fakeStore(rows: Record<string, Row>): HmrcStore {
       if (rows[userId]) rows[userId].sandbox = sandbox;
     },
     saveTokens: vi.fn(async (userId, tokens) => {
+      if (tokens.scope !== undefined && tokens.scope !== rows[userId].scope) delete rows[userId].itsBusinessId;
       Object.assign(rows[userId], tokens);
     }),
+    setItsBusinessId: async (userId, id) => {
+      rows[userId].itsBusinessId = id;
+    },
+    itsBusinessId: async (userId) => rows[userId]?.itsBusinessId ?? null,
     credentials: vi.fn(),
     saveRefreshedTokens: vi.fn(),
     status: async (userId) => ({
       connected: Boolean(rows[userId]?.refreshToken),
       expiresAt: rows[userId]?.expiresAt?.toISOString() ?? null,
+      itsBusinessId: rows[userId]?.itsBusinessId ?? null,
+      needsItsReconnect: Boolean(rows[userId]?.refreshToken) && lacksItsScope(rows[userId]?.scope ?? null),
     }),
   };
 }
@@ -157,6 +166,16 @@ describe('callback', () => {
     expect(rows.u2.accessToken).toBeUndefined();
   });
 
+  it('stores the granted scope and clears a stale business id when the scope changes', async () => {
+    rows.u1 = { sandbox: true, scope: 'read:vat write:vat', itsBusinessId: 'XBIS1' };
+    const scope = 'read:vat write:vat read:self-assessment write:self-assessment';
+    await createCallbackHandler({ store: fakeStore(rows), exchange: async () => ({ ...tokens(), scope }) })(
+      asUser(callbackUrl(signState('u1'))),
+    );
+    expect(rows.u1.scope).toBe(scope);
+    expect(rows.u1.itsBusinessId).toBeUndefined();
+  });
+
   it.each([
     ['forged signature', () => `${signState('u1').split('.')[0]}.AAAA`],
     ['malformed', () => 'garbage'],
@@ -216,10 +235,30 @@ describe('status', () => {
     const handler = createStatusHandler(fakeStore(rows), authDeps);
 
     const first = await (await handler(asUser('/api/hmrc/status', 'u1'))).json();
-    expect(first).toEqual({ ok: true, connected: true, expiresAt: '2030-01-01T00:00:00.000Z' });
+    expect(first).toEqual({
+      ok: true,
+      connected: true,
+      expiresAt: '2030-01-01T00:00:00.000Z',
+      itsBusinessId: null,
+      needsItsReconnect: true,
+    });
 
     const second = await (await handler(asUser('/api/hmrc/status', 'u2'))).json();
-    expect(second).toEqual({ ok: true, connected: false, expiresAt: null });
+    expect(second).toEqual({ ok: true, connected: false, expiresAt: null, itsBusinessId: null, needsItsReconnect: false });
+  });
+
+  it('needs a reconnect for a VAT-only scope and not once the Income Tax scope is stored', async () => {
+    rows.u1 = { sandbox: true, accessToken: 'ct-a', refreshToken: 'ct-r', scope: 'read:vat write:vat' };
+    const handler = createStatusHandler(fakeStore(rows), authDeps);
+    expect((await (await handler(asUser('/api/hmrc/status', 'u1'))).json()).needsItsReconnect).toBe(true);
+
+    rows.u1.scope = 'read:vat write:vat read:self-assessment write:self-assessment';
+    expect((await (await handler(asUser('/api/hmrc/status', 'u1'))).json()).needsItsReconnect).toBe(false);
+  });
+
+  it('treats a partial self-assessment grant as needing a reconnect', () => {
+    expect(lacksItsScope('read:vat read:self-assessment')).toBe(true);
+    expect(lacksItsScope(null)).toBe(true);
   });
 });
 

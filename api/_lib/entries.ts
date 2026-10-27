@@ -270,7 +270,7 @@ export function entryListConditions(userId: string, filters: EntryListFilters, a
 }
 
 // Works on the pool or inside a transaction.
-type Executor = Pick<typeof db, 'select' | 'insert' | 'update'>;
+export type Executor = Pick<typeof db, 'select' | 'insert' | 'update'>;
 
 async function insertEntry(executor: Executor, userId: string, header: EntryHeader, lines: PostedLine[]): Promise<Entry> {
   const [row] = await executor
@@ -307,7 +307,7 @@ async function loadEntry(executor: Executor, userId: string, entryId: string): P
 }
 
 /** Marks the owner's live entry voided and returns its prior state; undefined if there is none. */
-async function voidLiveEntry(executor: Executor, userId: string, entryId: string): Promise<Entry | undefined> {
+export async function voidLiveEntry(executor: Executor, userId: string, entryId: string): Promise<Entry | undefined> {
   const before = await loadEntry(executor, userId, entryId);
   if (!before) return undefined;
   const now = new Date();

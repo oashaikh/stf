@@ -57,6 +57,9 @@ describe('invoices route', () => {
   };
 
   const store: InvoiceStore = {
+    // Issue and mark-paid routes arrive in a later task.
+    issue: async () => undefined,
+    markPaid: async () => undefined,
     create(userId, body) {
       const run = lockChain.then(async () => {
         const owner = owners[userId];

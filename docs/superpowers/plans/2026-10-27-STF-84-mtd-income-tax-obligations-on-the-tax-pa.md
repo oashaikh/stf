@@ -92,3 +92,7 @@ Also depends on:
     - Workflow doc covers flag, live double switch and stale fallback
     - npm run lint, typecheck, test and build all pass
   - Commit: `ca877d92e574`
+
+- [x] **Task 6: Fix: address 4 review findings (cycle 1)** (after 5)
+  - Intent: Review left 4 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK One correctness defect: the stale-fallback path only covers HMRC returning an error response. If the HMRC request itself fails (DNS, timeout, connection reset), the route  The agent is fixing them; nothing is needed from you.
+  - Commit: `f16198666878`

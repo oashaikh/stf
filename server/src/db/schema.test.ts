@@ -122,6 +122,22 @@ describe("schema migrations", () => {
     );
   });
 
+  it("indexes invoices by (user_id, created_at, id) and invoice_lines by invoice_id", () => {
+    const sql = readFileSync(new URL("./migrations/0010_invoices_list_indexes.sql", import.meta.url), "utf8");
+    expect(sql).toMatch(
+      /CREATE INDEX IF NOT EXISTS "invoices_user_created_idx" ON "invoices" \("user_id","created_at","id"\)/,
+    );
+    expect(sql).toMatch(
+      /CREATE INDEX IF NOT EXISTS "invoice_lines_invoice_id_idx" ON "invoice_lines" \("invoice_id"\)/,
+    );
+  });
+
+  it("adds a nullable deleted_at to invoice_lines so edited draft lines are soft-deleted", () => {
+    expect(sql).toMatch(
+      /ALTER TABLE "invoice_lines" ADD COLUMN IF NOT EXISTS "deleted_at" timestamp with time zone;/,
+    );
+  });
+
   it("creates login_attempts with only a timestamp and an attempted_at index", () => {
     const match = sql.match(/CREATE TABLE IF NOT EXISTS "login_attempts" \(([\s\S]*?)\n\);/);
     expect(match, "could not find CREATE TABLE statement for login_attempts").not.toBeNull();

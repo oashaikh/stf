@@ -78,6 +78,9 @@ Two scheduled jobs run as Vercel Cron jobs (scheduled serverless functions). Ver
 **VAT return draft preparation** (`/api/cron/prepare-vat-draft`, daily at 08:00 UTC)
 - Fetches the owner's VAT obligations and prepares a draft return for any obligation due within the next 14 days. The draft is saved but not submitted; the owner sees it on the dashboard and can confirm and submit manually from the VAT page.
 
+**Recurring entries** (`/api/cron/create-recurring-entries`, daily at 05:00 UTC)
+- Creates a draft entry for every recurring template whose next date has come. Drafts only: the owner confirms them from the Expenses list. A date in a locked VAT period is skipped and retried on the next run.
+
 **Cron frequency note**: Vercel's free Hobby plan allows only once-daily crons. The 5-minute token-refresh schedule requires a Pro plan. If you are on Hobby, either upgrade to Pro or adjust the cron schedule in `vercel.json`.
 
 ## Fraud prevention headers

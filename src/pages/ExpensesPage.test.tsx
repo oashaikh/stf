@@ -27,6 +27,7 @@ describe('ExpensesPage add entry form', () => {
       'fetch',
       vi.fn(async (url: string, init: RequestInit = {}) => {
         if (url.startsWith('/api/accounts')) return reply({ ok: true, accounts });
+        if (url.startsWith('/api/recurring-entries')) return reply({ ok: true, templates: [] });
         if (url === '/api/settings/vat-number') return reply({ ok: true, masked });
         if (init.method === 'POST') {
           if (refusal) return reply({ ok: false, ...refusal }, 400);
@@ -165,6 +166,7 @@ describe('ExpensesPage edit entry', () => {
       'fetch',
       vi.fn(async (url: string, init: RequestInit = {}) => {
         if (url.startsWith('/api/accounts')) return reply({ ok: true, accounts });
+        if (url.startsWith('/api/recurring-entries')) return reply({ ok: true, templates: [] });
         if (url === '/api/settings/vat-number') return reply({ ok: true, masked: null });
         if (init.method === 'PUT') {
           if (locked) return reply({ ok: false, code: 'PERIOD_LOCKED', error: 'locked' }, 409);
@@ -233,5 +235,34 @@ describe('ExpensesPage edit entry', () => {
     expect(await screen.findByText(/VAT period that has been confirmed or filed/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Go to VAT' })).toHaveAttribute('href', '/vat');
     expect(screen.queryByText(/Please try again/)).not.toBeInTheDocument();
+  });
+});
+
+describe('ExpensesPage recurring entries', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('shows the recurring entries section above the entries list', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url.startsWith('/api/recurring-entries')) return reply({ ok: true, templates: [] });
+        if (url === '/api/settings/vat-number') return reply({ ok: true, masked: null });
+        if (url.startsWith('/api/accounts')) return reply({ ok: true, accounts });
+        return reply({ ok: true, entries: [] });
+      }),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <ExpensesPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Recurring entries' })).toBeInTheDocument();
+    expect(await screen.findByText('No recurring entries yet.')).toBeInTheDocument();
   });
 });

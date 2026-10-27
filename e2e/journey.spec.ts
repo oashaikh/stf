@@ -105,6 +105,26 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       // The form saves drafts and has no confirm control yet; a draft is not in the return, so confirm through the API as the ledger needs.
       await page.evaluate(() => fetch('/api/entries?id=entry-1', { method: 'PATCH', body: JSON.stringify({ status: 'confirmed' }) }));
     });
+    await step('recurring-entries', async () => {
+      await page.getByRole('button', { name: 'Add recurring entry' }).click();
+      await page.getByRole('button', { name: 'Money in' }).click();
+      await page.getByLabel('Description').fill('Retainer from Acme');
+      await page.getByLabel('First date').fill('2026-11-30');
+      await page.getByLabel('Amount in pounds').fill('250.00');
+      await page.getByLabel('Category').selectOption({ label: 'Sales' });
+      await page.getByRole('button', { name: 'Save recurring entry' }).click();
+      const row = page.getByRole('row', { name: /Retainer from Acme/ });
+      await expect(row).toContainText('£250.00');
+      await captureEvidence(page, 'expenses-recurring');
+      await page.getByRole('button', { name: 'Pause Retainer from Acme' }).click();
+      await expect(row).toContainText('Paused');
+      await page.getByRole('button', { name: 'Resume Retainer from Acme' }).click();
+      await expect(row).toContainText('Active');
+      await page.getByRole('button', { name: 'Delete Retainer from Acme' }).click();
+      await expect(page.getByRole('dialog')).toContainText('Delete Retainer from Acme?');
+      await page.getByRole('button', { name: 'Delete template' }).click();
+      await expect(page.getByText('No recurring entries yet.')).toBeVisible();
+    });
   }
   // Mocked only: the mock's open obligation is past due, so the reminder card shows; a deployed run depends on the owner's real obligations.
   if (mocked && mockVatState !== 'none') {

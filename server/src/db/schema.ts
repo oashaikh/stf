@@ -25,6 +25,12 @@ export const vatSubmissionStatusEnum = pgEnum('vat_submission_status', ['pending
 
 export const mileageVehicleTypeEnum = pgEnum('mileage_vehicle_type', ['car_van', 'motorcycle', 'bicycle']);
 
+export const recurringEntryKindEnum = pgEnum('recurring_entry_kind', ['income', 'expense']);
+
+export const recurringAmountBasisEnum = pgEnum('recurring_amount_basis', ['gross', 'net']);
+
+export const recurringScheduleEnum = pgEnum('recurring_schedule', ['monthly', 'yearly']);
+
 export const auditActorTypeEnum = pgEnum('audit_actor_type', ['user', 'system', 'ai_agent']);
 
 // The single owner, created on first login. clerk_user_id keeps its legacy name to avoid a rename
@@ -383,6 +389,60 @@ export const mileageTrips = pgTable(
     // Mileage list and the per-tax-year claim loader: one owner's trips by date.
     userDateIdx: index('mileage_trips_user_date_idx').on(table.userId, table.date),
     milesPositive: check('mileage_trips_miles_positive', sql`${table.miles} > 0`),
+  }),
+);
+
+// Templates for regular income and costs. A cron run turns each due template into a draft
+// transaction. Soft-deletable: removing a template sets deleted_at, never DELETE.
+// anchor_day keeps the original day of month so a 31st template returns to the 31st after February.
+export const recurringEntryTemplates = pgTable(
+  'recurring_entry_templates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    kind: recurringEntryKindEnum('kind').notNull(),
+    categoryAccountId: uuid('category_account_id')
+      .notNull()
+      .references(() => accounts.id),
+    amountPence: integer('amount_pence').notNull(),
+    amountIs: recurringAmountBasisEnum('amount_is').notNull(),
+    vatRatePercent: integer('vat_rate_percent'),
+    description: text('description').notNull(),
+    schedule: recurringScheduleEnum('schedule').notNull(),
+    anchorDay: integer('anchor_day').notNull(),
+    nextDate: date('next_date').notNull(),
+    paused: boolean('paused').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // Owner's template list on the Expenses page.
+    userListIdx: index('recurring_entry_templates_user_list_idx').on(table.userId, table.deletedAt, table.nextDate),
+    // Cron scan for due templates across all owners.
+    nextDateIdx: index('recurring_entry_templates_next_date_idx').on(table.nextDate),
+    amountPositive: check('recurring_entry_templates_amount_positive', sql`${table.amountPence} > 0`),
+  }),
+);
+
+// One row per (template, date) already generated. The unique key is what stops two overlapping
+// cron runs creating the same date twice.
+export const recurringEntryRuns = pgTable(
+  'recurring_entry_runs',
+  {
+    templateId: uuid('template_id')
+      .notNull()
+      .references(() => recurringEntryTemplates.id),
+    runDate: date('run_date').notNull(),
+    transactionId: uuid('transaction_id')
+      .notNull()
+      .references(() => transactions.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    templateRunDateUnique: unique('recurring_entry_runs_template_run_date_unique').on(table.templateId, table.runDate),
   }),
 );
 

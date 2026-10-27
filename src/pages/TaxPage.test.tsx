@@ -8,6 +8,7 @@ import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 import TaxPage from './TaxPage';
 
 // The mileage section has its own tests and its own API; this file's fetch mock only knows the tax estimate.
+vi.mock('./ItsObligationsSection', () => ({ default: () => <h2>Income Tax obligations</h2> }));
 vi.mock('./MileageSection', () => ({ default: () => <h2>Mileage</h2> }));
 vi.mock('../lib/tradingAllowanceApi', () => ({ saveExpenseMethod: vi.fn() }));
 
@@ -44,6 +45,11 @@ afterEach(() => {
 });
 
 describe('TaxPage', () => {
+  it('renders the Income Tax obligations section', async () => {
+    renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
+    expect(await screen.findByRole('heading', { name: 'Income Tax obligations' })).toBeTruthy();
+  });
+
   it('shows the figures the route returns, the set-aside amount and an estimate note', async () => {
     renderPage(async (url) => Response.json({ ok: true, data: estimateFor(new URL(url, 'https://x').searchParams.get('taxYear')!) }));
     expect((await screen.findAllByText('£60,000.00')).length).toBeGreaterThan(0);

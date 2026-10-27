@@ -87,6 +87,13 @@ describe('EntriesList', () => {
     await waitFor(() => expect(lastParams().get(param)).toBe(value));
   });
 
+  it('keeps a space typed in the Search box while the request stays trimmed', async () => {
+    await renderList();
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'train ' } });
+    await waitFor(() => expect(screen.getByLabelText('Search')).toHaveValue('train '));
+    await waitFor(() => expect(lastParams().get('search')).toBe('train'));
+  });
+
   it('reads the filters from the URL and writes changes back to it', async () => {
     await renderList('/expenses?from=2026-08-15&to=2026-08-15&search=Consulting+%26+design');
     expect(lastParams().get('from')).toBe('2026-08-15');

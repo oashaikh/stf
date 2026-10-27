@@ -280,8 +280,12 @@ export default function EntriesList({
   // The URL query holds the filters so the dashboard (?status=draft) and the VAT drill-down can link here.
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
-  const setFilters = (next: EntryFilters) =>
-    setSearchParams(toEntryListParams(next), { replace: true });
+  const setFilters = (next: EntryFilters) => {
+    const params = toEntryListParams(next);
+    // toEntryListParams trims for the API; the URL feeds the search box, so it keeps what was typed.
+    if (next.search) params.set('search', next.search);
+    setSearchParams(params, { replace: true });
+  };
   // The API refuses a range that ends before it starts, so wait until the dates make sense.
   const rangeReversed = Boolean(
     filters.from && filters.to && filters.from > filters.to,

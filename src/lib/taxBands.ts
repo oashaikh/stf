@@ -4,14 +4,27 @@
  * All thresholds stored as integer pence.
  * Add a new entry for each tax year; never modify historical entries.
  *
- * Sources:
+ * Sources (rest-of-UK rates, not Scottish):
  *   https://www.gov.uk/income-tax-rates
+ *   https://www.gov.uk/self-employed-national-insurance-rates
  *   https://www.gov.uk/national-insurance-rates-letters
+ *
+ * Verified against the income tax page: personalAllowance, allowanceTaperLimit,
+ * basicRateLimit, higherRateLimit and the three rates, for all three years.
+ * NOT verified: the Class 2 and Class 4 fields of 2024-25 and 2025-26 (carried
+ * over unchanged). Class 2 values there look wrong against HMRC (weekly rate
+ * and small profits threshold) and need checking before NIC output is trusted.
+ *
+ * Scottish bands differ and are not covered. The owner has not said whether they
+ * are a Scottish taxpayer; until they do, this assumes rest-of-UK. Adding them
+ * means keying a second set of TaxBands by region and year and making
+ * getTaxBands region-aware; calculateIncomeTax itself would not change.
  */
 
 export interface TaxBands {
   year: string;           // e.g. '2025-26'
   personalAllowance: number;     // pence
+  allowanceTaperLimit: number;   // adjusted net income above which allowance falls £1 per £2, pence
   basicRateLimit: number;        // upper threshold for basic rate, pence
   higherRateLimit: number;       // upper threshold for higher rate, pence
   basicRate: number;             // e.g. 20 (percent)
@@ -26,9 +39,26 @@ export interface TaxBands {
 }
 
 export const TAX_BANDS: Record<string, TaxBands> = {
+  '2026-27': {
+    year: '2026-27',
+    personalAllowance: 1257000,
+    allowanceTaperLimit: 10000000,
+    basicRateLimit: 5027000,
+    higherRateLimit: 12514000,
+    basicRate: 20,
+    higherRate: 40,
+    additionalRate: 45,
+    class2WeeklyFlat: 365,          // £3.65/week
+    class2SmallProfitsThreshold: 710500, // £7,105
+    class4LowerLimit: 1257000,
+    class4UpperLimit: 5027000,
+    class4LowerRate: 6,
+    class4UpperRate: 2,
+  },
   '2025-26': {
     year: '2025-26',
     personalAllowance: 1257000,     // £12,570
+    allowanceTaperLimit: 10000000,  // £100,000
     basicRateLimit: 5027000,        // £50,270
     higherRateLimit: 12514000,      // £125,140
     basicRate: 20,
@@ -44,6 +74,7 @@ export const TAX_BANDS: Record<string, TaxBands> = {
   '2024-25': {
     year: '2024-25',
     personalAllowance: 1257000,
+    allowanceTaperLimit: 10000000,
     basicRateLimit: 5027000,
     higherRateLimit: 12514000,
     basicRate: 20,
@@ -75,6 +106,43 @@ export function currentTaxYear(now: Date = new Date()): string {
   return afterApril6 ? `${year}-${String(year + 1).slice(2)}` : `${year - 1}-${String(year).slice(2)}`;
 }
 
+export interface IncomeTaxResult {
+  personalAllowancePence: number; // after the taper
+  taxableIncomePence: number;
+  incomeTaxPence: number;
+}
+
+/**
+ * Income tax on adjusted net income (rest-of-UK bands). Pure; integer pence.
+ *
+ * Rounding: the allowance reduction (half the excess over the taper limit)
+ * is rounded down to a whole penny; tax in each band is rounded to the
+ * nearest penny (half up) and the three band amounts are summed.
+ * HMRC's own calculation works in whole pounds, so this can differ by pence.
+ *
+ * The basic band is a fixed width of taxable income (basic limit minus the
+ * standard allowance), so it does not move when the allowance tapers.
+ * The additional rate starts at higherRateLimit of taxable income.
+ */
+export function calculateIncomeTax(adjustedNetIncomePence: number, taxYear: string): IncomeTaxResult {
+  const bands = getTaxBands(taxYear);
+  const taperReduction = Math.floor(Math.max(0, adjustedNetIncomePence - bands.allowanceTaperLimit) / 2);
+  const personalAllowancePence = Math.max(0, bands.personalAllowance - taperReduction);
+  const taxableIncomePence = Math.max(0, adjustedNetIncomePence - personalAllowancePence);
+
+  const basicBandWidth = bands.basicRateLimit - bands.personalAllowance;
+  const basicPence = Math.min(taxableIncomePence, basicBandWidth);
+  const higherPence = Math.max(0, Math.min(taxableIncomePence, bands.higherRateLimit) - basicBandWidth);
+  const additionalPence = Math.max(0, taxableIncomePence - bands.higherRateLimit);
+
+  const incomeTaxPence =
+    Math.round((basicPence * bands.basicRate) / 100) +
+    Math.round((higherPence * bands.higherRate) / 100) +
+    Math.round((additionalPence * bands.additionalRate) / 100);
+
+  return { personalAllowancePence, taxableIncomePence, incomeTaxPence };
+}
+
 export interface TaxEstimate {
   profitPence: number;
   taxableIncomePence: number;
@@ -94,20 +162,7 @@ export interface TaxEstimate {
 export function estimateTax(profitPence: number, taxYear: string): TaxEstimate {
   const bands = getTaxBands(taxYear);
 
-  // Taxable income after personal allowance
-  const taxableIncomePence = Math.max(0, profitPence - bands.personalAllowance);
-
-  // Income tax
-  const basicBandWidth = bands.basicRateLimit - bands.personalAllowance;
-  const basicTaxablePence = Math.min(taxableIncomePence, basicBandWidth);
-  const higherBandWidth = bands.higherRateLimit - bands.basicRateLimit;
-  const higherTaxablePence = Math.max(0, Math.min(taxableIncomePence - basicBandWidth, higherBandWidth));
-  const additionalTaxablePence = Math.max(0, taxableIncomePence - basicBandWidth - higherBandWidth);
-
-  const incomeTaxPence =
-    Math.round((basicTaxablePence * bands.basicRate) / 100) +
-    Math.round((higherTaxablePence * bands.higherRate) / 100) +
-    Math.round((additionalTaxablePence * bands.additionalRate) / 100);
+  const { taxableIncomePence, incomeTaxPence } = calculateIncomeTax(profitPence, taxYear);
 
   // Class 2 NIC (flat weekly amount if profit > small profits threshold)
   const class2NicPence =

@@ -3,10 +3,14 @@ import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { DASHBOARD_QUERY_KEY } from '../lib/dashboardApi';
 import type { ApiEntry } from '../lib/entriesApi';
 import EntriesList from './EntriesList';
+
+function LocationProbe() {
+  return <p data-testid="location">{useLocation().search}</p>;
+}
 
 const reply = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body }) as Response;
 const account = (id: string, name: string, accountType: string) => ({ id, code: id, name, accountType, taxCategory: null, isSystem: false });
@@ -49,11 +53,12 @@ describe('EntriesList', () => {
   let writes: { method: string; url: string }[];
   let writeReply: Response | null;
   const lastParams = () => new URL(entryUrls[entryUrls.length - 1], 'http://x').searchParams;
-  async function renderList() {
+  async function renderList(url = '/expenses') {
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[url]}>
           <EntriesList onEdit={() => {}} />
+          <LocationProbe />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -80,6 +85,55 @@ describe('EntriesList', () => {
     await renderList();
     fireEvent.change(screen.getByLabelText(label), { target: { value } });
     await waitFor(() => expect(lastParams().get(param)).toBe(value));
+  });
+
+  it('keeps a space typed in the Search box while the request stays trimmed', async () => {
+    await renderList();
+    fireEvent.change(screen.getByLabelText('Search'), { target: { value: 'train ' } });
+    await waitFor(() => expect(screen.getByLabelText('Search')).toHaveValue('train '));
+    await waitFor(() => expect(lastParams().get('search')).toBe('train'));
+  });
+
+  it('reads the filters from the URL and writes changes back to it', async () => {
+    await renderList('/expenses?from=2026-08-15&to=2026-08-15&search=Consulting+%26+design');
+    expect(lastParams().get('from')).toBe('2026-08-15');
+    expect(lastParams().get('search')).toBe('Consulting & design');
+    expect(screen.getByLabelText('Search')).toHaveValue('Consulting & design');
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'draft' } });
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('status=draft'));
+    expect(screen.getByTestId('location')).toHaveTextContent('from=2026-08-15');
+  });
+
+  describe('on a phone', () => {
+    beforeEach(() => {
+      vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+    });
+
+    it('shows only search and a Filters button until the sheet is opened, then applies it to the URL', async () => {
+      await renderList();
+      expect(screen.getByLabelText('Search')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Status')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+      await waitFor(() => expect(screen.getByRole('button', { name: 'This VAT quarter' })).toBeEnabled());
+      fireEvent.click(screen.getByRole('button', { name: 'This VAT quarter' }));
+      expect(lastParams().get('from')).toBeNull(); // nothing applies until Apply
+      fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+      await waitFor(() => expect(lastParams().get('from')).toBe('2000-01-01'));
+      expect(screen.getByTestId('location')).toHaveTextContent('from=2000-01-01');
+      expect(screen.getByRole('button', { name: /Filters.*1 active/ })).toBeInTheDocument();
+    });
+
+    it('Clear in the sheet removes the sheet filters but keeps the search', async () => {
+      await renderList('/expenses?status=draft&search=train');
+      fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Clear' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+      await waitFor(() => expect(lastParams().get('status')).toBeNull());
+      expect(lastParams().get('search')).toBe('train');
+    });
   });
 
   it('presets fill the date range', async () => {

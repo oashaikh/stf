@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TAX_BANDS, calculateIncomeTax, estimateTax } from './taxBands';
+import { TAX_BANDS, calculateClass2Nic, calculateClass4Nic, calculateIncomeTax, estimateTax } from './taxBands';
 
 const pounds = (amount: number) => amount * 100;
 
@@ -45,4 +45,51 @@ it('includes 2026-27', () => {
 
 it('estimateTax uses the tapered income tax', () => {
   expect(estimateTax(pounds(125140), '2025-26').incomeTaxPence).toBe(pounds(42516));
+});
+
+// HMRC published rates (https://www.gov.uk/self-employed-national-insurance-rates).
+const nicRates: Record<string, { smallProfits: number; weekly: number }> = {
+  '2024-25': { smallProfits: 6725, weekly: 3.45 },
+  '2025-26': { smallProfits: 6845, weekly: 3.5 },
+  '2026-27': { smallProfits: 7105, weekly: 3.65 },
+};
+
+describe.each(Object.keys(TAX_BANDS))('NIC bands %s', (year) => {
+  const { smallProfits, weekly } = nicRates[year];
+  const voluntaryPence = Math.round(weekly * 100) * 52;
+
+  it('holds the published small profits threshold and weekly rate', () => {
+    expect(TAX_BANDS[year].class2SmallProfitsThreshold).toBe(pounds(smallProfits));
+    expect(TAX_BANDS[year].class2WeeklyFlat).toBe(Math.round(weekly * 100));
+  });
+
+  it('charges no Class 2 above the small profits threshold, even when voluntary is chosen', () => {
+    expect(calculateClass2Nic(pounds(smallProfits) + 1, year, true)).toBe(0);
+    expect(calculateClass2Nic(pounds(50000), year, true)).toBe(0);
+  });
+
+  it('charges Class 2 at or below the threshold only when voluntary is chosen', () => {
+    expect(calculateClass2Nic(pounds(smallProfits), year, true)).toBe(voluntaryPence);
+    expect(calculateClass2Nic(pounds(smallProfits), year, false)).toBe(0);
+    expect(calculateClass2Nic(0, year, false)).toBe(0);
+  });
+
+  it('charges Class 4 at each limit', () => {
+    expect(calculateClass4Nic(pounds(12570), year)).toBe(0);
+    expect(calculateClass4Nic(pounds(12571), year)).toBe(6); // 6% of 100p
+    expect(calculateClass4Nic(pounds(50270), year)).toBe(pounds(2262));
+    expect(calculateClass4Nic(pounds(50271), year)).toBe(pounds(2262) + 2);
+    expect(calculateClass4Nic(pounds(60270), year)).toBe(pounds(2262 + 200));
+  });
+});
+
+it('estimateTax adds no Class 2 for profits above the small profits threshold', () => {
+  const estimate = estimateTax(pounds(30000), '2025-26');
+  expect(estimate.class2NicPence).toBe(0);
+  expect(estimate.class4NicPence).toBe(calculateClass4Nic(pounds(30000), '2025-26'));
+});
+
+it('estimateTax adds voluntary Class 2 below the threshold when asked', () => {
+  expect(estimateTax(pounds(6000), '2025-26', true).class2NicPence).toBe(350 * 52);
+  expect(estimateTax(pounds(6000), '2025-26').class2NicPence).toBe(0);
 });

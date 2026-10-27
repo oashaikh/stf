@@ -4,13 +4,21 @@
  * All thresholds stored as integer pence.
  * Add a new entry for each tax year; never modify historical entries.
  *
- * Sources (checked 26 Oct 2026; rest-of-UK rates, not Scottish):
+ * Sources (rest-of-UK rates, not Scottish):
  *   https://www.gov.uk/income-tax-rates
  *   https://www.gov.uk/self-employed-national-insurance-rates
  *   https://www.gov.uk/national-insurance-rates-letters
  *
- * Scottish bands differ. To add them, key a second record set (e.g. by region
- * and year) and pass it to calculateIncomeTax; the function reads only TaxBands.
+ * Verified against the income tax page: personalAllowance, allowanceTaperLimit,
+ * basicRateLimit, higherRateLimit and the three rates, for all three years.
+ * NOT verified: the Class 2 and Class 4 fields of 2024-25 and 2025-26 (carried
+ * over unchanged). Class 2 values there look wrong against HMRC (weekly rate
+ * and small profits threshold) and need checking before NIC output is trusted.
+ *
+ * Scottish bands differ and are not covered. The owner has not said whether they
+ * are a Scottish taxpayer; until they do, this assumes rest-of-UK. Adding them
+ * means keying a second set of TaxBands by region and year and making
+ * getTaxBands region-aware; calculateIncomeTax itself would not change.
  */
 
 export interface TaxBands {

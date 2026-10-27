@@ -4,6 +4,10 @@ import { TAX_BANDS, calculateIncomeTax, estimateTax } from './taxBands';
 const pounds = (amount: number) => amount * 100;
 
 // Rest-of-UK thresholds are the same in every year held in the file.
+// HMRC publishes no worked tax totals for the taper, only the rule
+// (https://www.gov.uk/income-tax-rates: allowance falls £1 per £2 over £100,000
+// and is nil at £125,140). The allowance column below follows that rule; the tax
+// column is hand-derived from the gov.uk band rates, not copied from an HMRC example.
 const cases: Array<[string, number, number, number]> = [
   // label, adjusted net income £, allowance £, tax £
   ['zero income', 0, 12570, 0],

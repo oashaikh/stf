@@ -45,7 +45,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Mileage rates in taxBands.ts and pure claim function**
+- [x] **Task 1: Mileage rates in taxBands.ts and pure claim function**
   - Intent: Add HMRC simplified-mileage rates keyed by tax year to src/lib/taxBands.ts (integer pence per mile: cars/vans 45p for the first 10,000 miles then 25p, motorcycles 24p flat, bicycles 20p flat; threshold 10,000 miles per tax year, counted across cars and vans together; verify against gov.uk simplified expenses and record the source in the file header like the existing bands, covering 2024-25 to 2026-27). Add src/lib/mileage.ts with a pure calculateMileageClaim(trips, taxYear) returning total claim pence plus per-trip claim pence. Trips are filtered to the tax year by date (6 April to 5 April inclusive, reuse taxYearPeriod from taxYearSummary.ts), ordered by date then createdAt then id, and the threshold runs cumulatively through that order so a trip crossing 10,000 miles is split between the 45p and 25p rate. Miles are whole integers, no floats; reject or ignore non-positive and non-integer miles at the validation layer in task 3, but the function must not use floating point. Tests cover: below threshold, exactly at threshold, one trip straddling the threshold, all trips after threshold, motorcycle and bicycle flat rates not consuming the car threshold, 5 April trip counted in the old year and 6 April trip in the new year with the threshold restarting at 6 April, a trip in a year with no rates throws like getTaxBands, and order independence of input array.
   - Files: `src/lib/taxBands.ts`, `src/lib/taxBands.test.ts`, `src/lib/mileage.ts`, `src/lib/mileage.test.ts`
   - Acceptance criteria the planner set:
@@ -54,6 +54,7 @@ Also depends on:
     - Tests exist and pass for threshold crossing within a year, exactly at threshold, and the 5/6 April boundary with threshold reset
     - npm run lint, typecheck and test pass
   - Risk: Money and tax logic; rate values must be checked against gov.uk before being committed.
+  - Commit: `5e215cf89f44`
 
 - [ ] **Task 2: mileage_trips table, Drizzle schema and migration**
   - Intent: Add a mileageTrips table to server/src/db/schema.ts: id uuid pk, userId uuid not null referencing users, date date not null, fromPlace text not null, toPlace text not null, purpose text not null, miles integer not null (check > 0), vehicleType as a pgEnum ('car_van','motorcycle','bicycle'), createdAt, deletedAt (soft delete, void sets it; never DELETE). Index on (user_id, date) for the per-year loader and list, with a comment naming the queries it serves, matching the existing style. Add migration server/src/db/migrations/0011_mileage_trips.sql with matching meta/_journal.json entry (idx 11) and meta/0011_snapshot.json, using CREATE ... IF NOT EXISTS style like earlier files. Use 0011 rather than 0010 because the STF-9 plan owns 0010_invoices_list_indexes; parent on the current head and, before finishing, re-check against the base branch that the journal has a single head and no duplicate idx/prefix, rebasing the number if STF-9 has landed. Extend server/src/db/schema.test.ts to cover the new table and index. Generate with drizzle-kit if it works offline (no Docker); otherwise hand-write consistent with the snapshot format.

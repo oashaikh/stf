@@ -199,23 +199,34 @@ export const invoices = pgTable(
   },
   (table) => ({
     userPublicNumberUnique: unique().on(table.userId, table.publicNumber),
+    // Invoice list: one owner's rows, newest first, id as tiebreaker.
+    userCreatedIdx: index('invoices_user_created_idx').on(table.userId, table.createdAt, table.id),
   }),
 );
 
 // Invoice lines. Quantity is scaled x10000 (4 dp) integer, never numeric/decimal.
-export const invoiceLines = pgTable('invoice_lines', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  invoiceId: uuid('invoice_id')
-    .notNull()
-    .references(() => invoices.id),
-  description: text('description').notNull(),
-  quantity: integer('quantity').notNull(),
-  unitPricePence: integer('unit_price_pence').notNull(),
-  vatRatePercent: integer('vat_rate_percent').notNull(),
-  subtotalPence: integer('subtotal_pence').notNull(),
-  vatPence: integer('vat_pence').notNull(),
-  totalPence: integer('total_pence').notNull(),
-});
+export const invoiceLines = pgTable(
+  'invoice_lines',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    invoiceId: uuid('invoice_id')
+      .notNull()
+      .references(() => invoices.id),
+    description: text('description').notNull(),
+    quantity: integer('quantity').notNull(),
+    unitPricePence: integer('unit_price_pence').notNull(),
+    vatRatePercent: integer('vat_rate_percent').notNull(),
+    subtotalPence: integer('subtotal_pence').notNull(),
+    vatPence: integer('vat_pence').notNull(),
+    totalPence: integer('total_pence').notNull(),
+    // Set when a draft edit replaces the line; replaced lines are never removed.
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // Fetching one invoice's lines.
+    invoiceIdx: index('invoice_lines_invoice_id_idx').on(table.invoiceId),
+  }),
+);
 
 // Saved review state of a computed VAT return. All boxes are integer pence
 // (box1-5, 8-9 are VAT or EC values, box6-7 are net values). Rows are never

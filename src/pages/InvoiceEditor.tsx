@@ -210,7 +210,7 @@ function ReadOnlyInvoice({ invoice, onBack, onChanged }: { invoice: ApiInvoice; 
       </p>
       <ul className="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
         {invoice.lines.map((line) => (
-          <li key={line.id} className="grid grid-cols-2 gap-1 p-3 md:grid-cols-[1fr_6rem_8rem_5rem_8rem]">
+          <li key={line.id} className="grid grid-cols-2 gap-x-6 gap-y-1 p-3 md:grid-cols-[1fr_6rem_8rem_5rem_8rem] md:gap-x-1">
             <span className="col-span-2 truncate text-gray-900 md:col-span-1" title={line.description}>{line.description}</span>
             <span className="flex justify-between gap-2 text-gray-700 md:justify-end">
               <span className="text-sm md:hidden">Qty</span>

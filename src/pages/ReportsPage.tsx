@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { formatDate } from '../lib/dates';
 import { downloadEntriesCsv } from '../lib/exportApi';
 import { formatPence } from '../lib/money';
 import { profitAndLossPresets, type ProfitAndLossPreset } from '../lib/profitAndLoss';
@@ -121,7 +122,7 @@ export default function ReportsPage() {
         )}
       </div>
       <p className="mt-2 text-xs text-gray-600">
-        {range.start} to {range.end}
+        {formatDate(range.start)} to {formatDate(range.end)}
       </p>
 
       {!rangeValid && (

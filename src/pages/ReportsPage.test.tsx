@@ -56,6 +56,10 @@ describe('ReportsPage', () => {
     expect(link.querySelector('span.truncate')?.textContent).toBe('Travel');
   });
 
+  it('shows the period in UK date format like the dashboard', async () => {
+    expect(await screen.findByText('6 Apr 2026 to 5 Apr 2027')).toBeTruthy();
+  });
+
   it('requests the range of the chosen preset', async () => {
     await screen.findByText('Sales');
     fireEvent.change(screen.getByLabelText('Period'), { target: { value: 'last-tax-year' } });

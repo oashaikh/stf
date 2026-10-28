@@ -187,7 +187,7 @@ export default function SettingsPage() {
   const status = describeHmrcStatus(connected, searchParams.get('hmrc'));
 
   return (
-    <main className="p-8">
+    <main className="p-4 md:p-8">
       <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
       <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="hmrc-heading">
         <h2 id="hmrc-heading" className="text-lg font-semibold text-gray-900">HMRC (Government Gateway)</h2>

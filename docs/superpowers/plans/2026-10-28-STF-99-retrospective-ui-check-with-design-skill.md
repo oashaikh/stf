@@ -50,7 +50,7 @@ Starts at: Signed-in owner opens the main nav
     - No file under src/ or api/ is modified
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 2: Fix VAT screen defects in place (page, preview panel, history, obligations)** (after 1)
+- [x] **Task 2: Fix VAT screen defects in place (page, preview panel, history, obligations)** (after 1)
   - Intent: Fix the VAT-side defects from AUDIT.md in VatPage.tsx, VatPreviewPanel.tsx, VatHistoryList.tsx and VatObligationsList.tsx. Known candidates to check: raw pixel sizes such as min-h-[44px] versus the min-h-11 used elsewhere, text-gray-500 on white for small text, red-700 versus red-800 inconsistency (VatObligationsList uses text-red-700 and blue-700, siblings use 800), max-w-3xl set on a table, and copy that is not plain. Run every changed visible string through humanize:humanize. Do not move sections or change behaviour, data, routes or the layout. Update the matching *.test.tsx only where a changed string or class is asserted.
   - Files: `src/pages/VatPage.tsx`, `src/pages/VatPreviewPanel.tsx`, `src/pages/VatHistoryList.tsx`, `src/pages/VatObligationsList.tsx`, `src/pages/VatPage.test.tsx`, `src/pages/VatPreviewPanel.test.tsx`, `src/pages/VatHistoryList.test.tsx`, `src/pages/VatObligationsList.test.tsx`
   - Acceptance criteria the planner set:
@@ -58,6 +58,7 @@ Starts at: Signed-in owner opens the main nav
     - Money amounts stay integer pence and go through formatPence
     - npm run lint, typecheck and test pass
     - The diff contains no layout restructuring and no behaviour change
+  - Commit: `ed29914731dc`
 
 - [ ] **Task 3: Fix Tax page, Income Tax obligations and Tax identifiers defects in place** (after 1)
   - Intent: Fix the tax-side defects from AUDIT.md in TaxPage.tsx, ItsObligationsSection.tsx and TaxIdentifiersSection.tsx. Known candidates to check: the heading style of the h1 'Tax Estimate' and other titles, whether the main wrapper uses the shared page container (), the 'Next due' badge contrast and its dependence on the colour of the row, input field sizes at 390, and the sentence-case, plain wording of strings. Run every changed visible string through humanize:humanize. Keep behaviour and layout unchanged. Update the matching tests only where an asserted string or class changes.

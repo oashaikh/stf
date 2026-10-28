@@ -116,7 +116,8 @@ export default function VatPage() {
       {/* Keyed by period so switching obligations drops the ticked declaration, mutation state and open dialog. */}
       {selected && <VatReturnReview key={selected.periodKey} period={selected} />}
 
-      <VatHistoryList />
+      {/* An empty history above the connect prompt only adds noise; the connect prompt should be the one thing shown. */}
+      {!notConnected && <VatHistoryList />}
       <VatObligationsList />
     </main>
   );

@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import type { VatPreview } from '../lib/hmrc/vatApi';
 import type { VatReturnPayload } from '../lib/hmrc/client';
 import { formatPence } from '../lib/money';
@@ -28,9 +28,12 @@ function formatPounds(pounds: number): string {
 
 export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
   const { endpoint, body, headers } = preview;
+  // Phones start with the table closed because it repeats the review table above; from md up it is always shown.
+  const [boxesOpen, setBoxesOpen] = useState(false);
   return (
     <div className="mt-4 text-sm text-gray-900">
-      <p>
+      <h3 className="text-base font-semibold">What will be sent to HMRC</h3>
+      <p className="mt-2">
         <span className="font-medium">{endpoint.sandbox ? 'Sent to the HMRC test service' : 'Sent to HMRC'}</span>{' '}
         <span className="break-words">
           {endpoint.url.split('/').map((part, index) => (
@@ -42,6 +45,16 @@ export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
         </span>
       </p>
 
+      <button
+        type="button"
+        className="mt-2 min-h-[44px] text-blue-700 underline md:hidden"
+        aria-expanded={boxesOpen}
+        aria-controls="vat-preview-boxes"
+        onClick={() => setBoxesOpen((open) => !open)}
+      >
+        {boxesOpen ? 'Hide the nine boxes' : 'Show all nine boxes'}
+      </button>
+      <div id="vat-preview-boxes" className={`${boxesOpen ? '' : 'hidden '}md:block`}>
       <table className="mt-4 w-full border-collapse">
         <caption className="sr-only">Boxes exactly as they will be sent</caption>
         <thead>
@@ -69,9 +82,10 @@ export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
           })}
         </tbody>
       </table>
+      </div>
       <p className="mt-2 text-gray-700">Period {body.periodKey}, {body.finalised ? 'confirmed' : 'not yet confirmed'}</p>
 
-      <h3 className="mt-4 font-medium">Request headers</h3>
+      <h4 className="mt-4 font-medium">Request headers</h4>
       <dl className="mt-2 space-y-1">
         {Object.entries(headers).map(([name, value]) => (
           <div key={name} className="flex flex-col gap-1 sm:flex-row sm:gap-4">

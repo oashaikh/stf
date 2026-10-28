@@ -379,8 +379,8 @@ export default function SettingsPage() {
         >
           Check HMRC fraud headers
         </button>
-        {checking && <p className="mt-2 text-gray-500" role="status">Checking…</p>}
-        {checkFailed && <p className="mt-2 text-red-800" role="alert">Could not run the check. Please try again.</p>}
+        {checking && <StateMessage kind="loading" className="mt-2">Checking…</StateMessage>}
+        {checkFailed && <StateMessage kind="error" className="mt-2">Could not run the check. Please try again.</StateMessage>}
         {checkResult && (
           <div className="mt-4" role="status">
             {checkResult.outcome === 'pass' && (

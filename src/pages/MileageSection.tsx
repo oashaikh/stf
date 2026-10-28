@@ -219,7 +219,7 @@ export default function MileageSection() {
           <AddTripForm taxYear={taxYear} />
 
           {trips.length === 0 ? (
-            <p className="mt-6 text-gray-700">No trips recorded for {taxYear} yet.</p>
+            <StateMessage kind="empty" className="mt-6">No trips recorded for {taxYear} yet.</StateMessage>
           ) : (
             <ul className="mt-6 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
               {trips.map((trip) => (

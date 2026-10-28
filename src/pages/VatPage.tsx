@@ -353,9 +353,9 @@ interface PreviewResultProps {
 }
 
 function PreviewResult({ mutation }: PreviewResultProps) {
-  if (mutation.isPending) return <p role="status" className="mt-4 text-sm text-gray-700">Building the preview…</p>;
+  if (mutation.isPending) return <StateMessage kind="loading">Building the preview…</StateMessage>;
   if (mutation.isError) {
-    return <p role="alert" className="mt-4 text-sm text-red-700">Could not build the preview. Try again.</p>;
+    return <StateMessage kind="error">Could not build the preview. Try again.</StateMessage>;
   }
   return mutation.data ? <VatPreviewPanel preview={mutation.data} /> : null;
 }

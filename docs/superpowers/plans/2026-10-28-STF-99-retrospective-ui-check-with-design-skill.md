@@ -79,3 +79,7 @@ Starts at: Signed-in owner opens the main nav
     - lint, typecheck, test and build all pass
     - AUDIT.md names the driving skill for each change
   - Commit: `e30dd0ae18ab`
+
+- [x] **Task 5: Fix: address 20 review findings (cycle 1)** (after 4)
+  - Intent: Review left 20 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens. The code diff is small and safe: Tailwind class and copy edits, one role change, and one test-clock fix. The orchestrator's validation passed, and I foun The agent is fixing them; nothing is needed from you.
+  - Commit: `80308e2dbd7c`

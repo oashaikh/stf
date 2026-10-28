@@ -70,7 +70,7 @@ Starts at: Signed-in owner opens the main nav
     - npm run lint, typecheck and test pass
   - Commit: `b1f2393610a8`
 
-- [ ] **Task 4: Capture AFTER screenshots and finish PR evidence notes** (after 2, 3)
+- [x] **Task 4: Capture AFTER screenshots and finish PR evidence notes** (after 2, 3)
   - Intent: Re-run the same capture as task 1 into browser-evidence/STF-99/after/ for every screen changed, at 1440 and 390, then run the full checks (npm run lint, typecheck, test, build). Complete AUDIT.md: per fix, say which skill drove it (ui-ux-pro-max, ui-styling or taste-skill), and keep the 'Proposed, not done' list with before-screenshot references. This is the source for the PR body.
   - Files: `browser-evidence/STF-99/after/`, `browser-evidence/STF-99/AUDIT.md`
   - Acceptance criteria the planner set:
@@ -78,3 +78,4 @@ Starts at: Signed-in owner opens the main nav
     - Screenshots show only invented mock records
     - lint, typecheck, test and build all pass
     - AUDIT.md names the driving skill for each change
+  - Commit: `e30dd0ae18ab`

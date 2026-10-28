@@ -60,7 +60,7 @@ Starts at: Signed-in owner opens the main nav
     - The diff contains no layout restructuring and no behaviour change
   - Commit: `ed29914731dc`
 
-- [ ] **Task 3: Fix Tax page, Income Tax obligations and Tax identifiers defects in place** (after 1)
+- [x] **Task 3: Fix Tax page, Income Tax obligations and Tax identifiers defects in place** (after 1)
   - Intent: Fix the tax-side defects from AUDIT.md in TaxPage.tsx, ItsObligationsSection.tsx and TaxIdentifiersSection.tsx. Known candidates to check: the heading style of the h1 'Tax Estimate' and other titles, whether the main wrapper uses the shared page container (), the 'Next due' badge contrast and its dependence on the colour of the row, input field sizes at 390, and the sentence-case, plain wording of strings. Run every changed visible string through humanize:humanize. Keep behaviour and layout unchanged. Update the matching tests only where an asserted string or class changes.
   - Files: `src/pages/TaxPage.tsx`, `src/pages/ItsObligationsSection.tsx`, `src/pages/TaxIdentifiersSection.tsx`, `src/pages/TaxPage.test.tsx`, `src/pages/ItsObligationsSection.test.tsx`, `src/pages/TaxIdentifiersSection.test.tsx`
   - Acceptance criteria the planner set:
@@ -68,6 +68,7 @@ Starts at: Signed-in owner opens the main nav
     - NINO and UTR remain masked and nothing sensitive is logged or shown
     - Tax band values stay in src/lib/taxBands.ts and no computation is changed
     - npm run lint, typecheck and test pass
+  - Commit: `b1f2393610a8`
 
 - [ ] **Task 4: Capture AFTER screenshots and finish PR evidence notes** (after 2, 3)
   - Intent: Re-run the same capture as task 1 into browser-evidence/STF-99/after/ for every screen changed, at 1440 and 390, then run the full checks (npm run lint, typecheck, test, build). Complete AUDIT.md: per fix, say which skill drove it (ui-ux-pro-max, ui-styling or taste-skill), and keep the 'Proposed, not done' list with before-screenshot references. This is the source for the PR body.

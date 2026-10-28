@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import type { VatPreview } from '../lib/hmrc/vatApi';
 import type { VatReturnPayload } from '../lib/hmrc/client';
 import { formatPence } from '../lib/money';
-import { boxLabel } from './vatReviewState';
+import { box5SentNote, boxLabel } from './vatReviewState';
 
 // Box number to the HMRC body field it is sent as.
 const BOX_FIELDS: Record<number, keyof VatReturnPayload> = {
@@ -18,8 +18,12 @@ const BOX_FIELDS: Record<number, keyof VatReturnPayload> = {
 };
 
 // The server sends pounds with at most two decimals; rounding back to pence is exact and keeps one currency format with the rest of the page.
+function poundsToPence(pounds: number): number {
+  return Math.round(pounds * 100);
+}
+
 function formatPounds(pounds: number): string {
-  return formatPence(Math.round(pounds * 100));
+  return formatPence(poundsToPence(pounds));
 }
 
 export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
@@ -51,11 +55,15 @@ export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
           {Object.entries(BOX_FIELDS).map(([box, field]) => {
             const pounds = body[field] as number;
             const label = boxLabel(Number(box), pounds);
+            // Box 5 is unsigned on the wire; reclaiming more than is due is the refund case.
+            const note = box === '5' ? box5SentNote(poundsToPence(pounds), poundsToPence(body.vatReclaimedCurrPeriod) > poundsToPence(body.totalVatDue)) : null;
             return (
               <tr key={box} className="border-b border-gray-100">
                 <td className="py-1 pr-4">{box}</td>
                 <td className="break-words py-1 pr-4">{label}</td>
-                <td className="py-1 text-right tabular-nums">{formatPounds(pounds)}</td>
+                <td className="py-1 text-right tabular-nums">{formatPounds(pounds)}
+                  {note && <span className="block text-xs text-gray-700">{note}</span>}
+                </td>
               </tr>
             );
           })}

@@ -35,7 +35,7 @@ function setup({
             accessToken: 'access',
             refreshToken: 'refresh',
             storedRefreshToken: 'stored',
-            // withHmrcToken compares against the real clock, so keep the token valid far ahead of it.
+            // withHmrcToken compares against the wall clock, not the injected now, so a fixed near date goes stale.
             expiresAt: new Date('2099-01-01T00:00:00Z'),
           }
         : undefined,

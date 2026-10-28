@@ -37,7 +37,7 @@ function VoidTripDialog({ trip, claimPence, error, onCancel, onVoid }: { trip: A
       ref={dialogRef}
       aria-labelledby={`void-trip-title-${trip.id}`}
       onClose={onCancel}
-      className="w-full max-w-md flex-col rounded p-0 open:flex backdrop:bg-black/50"
+      className="w-[calc(100%-2rem)] max-w-md flex-col rounded p-0 open:flex backdrop:bg-black/50"
     >
       <div className="p-6">
         <h3 id={`void-trip-title-${trip.id}`} className="text-lg font-semibold text-gray-900">
@@ -231,9 +231,13 @@ export default function MileageSection() {
                   <span className="truncate text-gray-900" title={`${trip.from} to ${trip.to}: ${trip.purpose}`}>
                     {trip.from} to {trip.to}, {trip.purpose}
                   </span>
-                  <span className="tabular-nums text-gray-700 md:text-right">{formatMiles(trip.distanceTenths)} mi</span>
-                  <span className="tabular-nums text-gray-900 md:text-right">
-                    {trip.deletedAt ? '–' : formatPence(claimFor(trip.id))}
+                  <span className="flex justify-between gap-2 text-gray-700 md:justify-end">
+                    <span className="text-sm md:hidden">Miles</span>
+                    <span className="tabular-nums">{formatMiles(trip.distanceTenths)} mi</span>
+                  </span>
+                  <span className="flex justify-between gap-2 text-gray-900 md:justify-end">
+                    <span className="text-sm text-gray-700 md:hidden">Claim</span>
+                    <span className="tabular-nums">{trip.deletedAt ? '–' : formatPence(claimFor(trip.id))}</span>
                   </span>
                   {trip.deletedAt ? (
                     <span className="inline-block w-fit rounded bg-gray-100 px-2 py-1 text-sm text-gray-800">Voided</span>

@@ -56,6 +56,14 @@ describe('MileageSection', () => {
     expect(screen.getByText(/cannot also claim fuel/)).toBeTruthy();
   });
 
+  it('labels the miles and claim on a trip row so phone rows are not bare figures', async () => {
+    vi.mocked(fetchMileage).mockResolvedValue(loaded);
+    renderSection();
+    const row = (await screen.findByText(/Office to Client/)).closest('li') as HTMLElement;
+    expect(within(row).getByText('Miles').parentElement?.textContent).toBe('Miles12.4 mi');
+    expect(within(row).getByText('Claim').parentElement?.textContent).toBe('Claim£5.58');
+  });
+
   it('posts the trip with miles as integer tenths', async () => {
     vi.mocked(fetchMileage).mockResolvedValue(loaded);
     vi.mocked(addTrip).mockResolvedValue();

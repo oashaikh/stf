@@ -75,7 +75,7 @@ Also depends on:
     - Visible strings have been through humanize
   - Commit: `73fb45f93f3d`
 
-- [ ] **Task 3: Fix dashboard and reports screens** (after 2)
+- [x] **Task 3: Fix dashboard and reports screens** (after 2)
   - Intent: Fix the task 1 defects for DashboardPage and ReportsPage: money alignment and tabular figures, one currency format per page, truncation, empty/loading/error states, contrast, hit targets, copy. Money stays integer pence via formatPence. Do not touch report calculations.
   - Files: `src/pages/DashboardPage.tsx`, `src/pages/DashboardPage.test.tsx`, `src/pages/ReportsPage.tsx`, `src/pages/ReportsPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -83,6 +83,7 @@ Also depends on:
     - Money columns right-aligned with tabular figures
     - Tables do not scroll sideways at 1440 and collapse to labelled rows at 390
     - No arithmetic, query or data behaviour changed
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 4: Fix expenses, entries list and entry actions** (after 2)
   - Intent: Fix the task 1 defects for ExpensesPage, EntriesList and EntryActions: one-line rows with ellipsis and tooltip, 44px row actions at 390, labelled-row collapse on phones, filter field alignment, destructive-action confirmations that say what they affect, empty/loading/error states, focus and Escape in the sheet/dialog, copy. No change to filters, export or delete behaviour.

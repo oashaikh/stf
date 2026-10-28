@@ -105,7 +105,7 @@ Also depends on:
     - No pence or totals logic changed
   - Commit: `7c1ac5503b42`
 
-- [ ] **Task 6: Fix settings page and business profile, chart of accounts and authenticator sections** (after 2)
+- [x] **Task 6: Fix settings page and business profile, chart of accounts and authenticator sections** (after 2)
   - Intent: Fix the task 1 defects for SettingsPage, BusinessProfileSection, ChartOfAccountsSection and AuthenticatorSection: field alignment, help icon straight after label, hit targets, focus, contrast of status text, error/empty states, destructive confirmation, copy. Keep section order and the auth flow unchanged.
   - Files: `src/pages/SettingsPage.tsx`, `src/pages/SettingsPage.test.tsx`, `src/pages/BusinessProfileSection.tsx`, `src/pages/BusinessProfileSection.test.tsx`, `src/pages/ChartOfAccountsSection.tsx`, `src/pages/ChartOfAccountsSection.test.tsx`, `src/pages/AuthenticatorSection.tsx`, `src/pages/AuthenticatorSection.test.tsx`
   - Acceptance criteria the planner set:
@@ -113,6 +113,7 @@ Also depends on:
     - No change to auth, TOTP or save behaviour
     - Visible strings have been through humanize
   - Risk: The authenticator section is security-adjacent, so only presentation and copy may change.
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 7: Fix mileage and recurring entries sections** (after 2)
   - Intent: Fix the task 1 defects for MileageSection and RecurringEntriesSection: table collapse at 390, money and mileage alignment, one-line rows, 44px targets, confirmations for destructive actions, empty/loading/error states, copy.

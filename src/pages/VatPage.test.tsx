@@ -128,6 +128,15 @@ describe('VatPage', () => {
     expect(returnRequests()).toHaveLength(0);
   });
 
+  it('hides the returns history while HMRC is not connected, leaving the connect prompt', async () => {
+    const { NotConnectedError } = await import('../lib/hmrc/vatApi');
+    fetchVatObligations.mockRejectedValue(new NotConnectedError());
+    renderPage();
+    await screen.findAllByRole('link', { name: 'Connect HMRC in Settings' });
+    expect(screen.queryByText('No past VAT returns yet.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'VAT return history' })).not.toBeInTheDocument();
+  });
+
   describe('preview of what will be sent', () => {
     const confirmed = { ...review, status: 'confirmed', confirmedAt: '2026-10-25T09:00:00Z' };
     const preview = {

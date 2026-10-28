@@ -95,7 +95,7 @@ Also depends on:
     - No change to routes, API calls or soft-delete behaviour
   - Commit: `256ecb186d53`
 
-- [ ] **Task 5: Fix invoices list and invoice editor** (after 2)
+- [x] **Task 5: Fix invoices list and invoice editor** (after 2)
   - Intent: Fix the task 1 defects for InvoicesPage and InvoiceEditor: line-item row alignment, money right-aligned in tabular figures, 44px targets at 390, label/help alignment, validation and error copy, loading and empty states, focus order. Invoice maths and PDF download unchanged.
   - Files: `src/pages/InvoicesPage.tsx`, `src/pages/InvoicesPage.test.tsx`, `src/pages/InvoiceEditor.tsx`
   - Acceptance criteria the planner set:
@@ -103,6 +103,7 @@ Also depends on:
     - Fields sharing a row top-align
     - No horizontal scroll in the editor at 390
     - No pence or totals logic changed
+  - Commit: `7c1ac5503b42`
 
 - [ ] **Task 6: Fix settings page and business profile, chart of accounts and authenticator sections** (after 2)
   - Intent: Fix the task 1 defects for SettingsPage, BusinessProfileSection, ChartOfAccountsSection and AuthenticatorSection: field alignment, help icon straight after label, hit targets, focus, contrast of status text, error/empty states, destructive confirmation, copy. Keep section order and the auth flow unchanged.

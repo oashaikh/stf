@@ -5,6 +5,7 @@ import { fetchFiledVatReturn, type VatHistoryItem, type VatHistoryStatus } from 
 import { formatPence } from '../lib/money';
 import { useVatHistory } from './useVatHistory';
 import { BOX_LABELS, boxLabel } from './vatReviewState';
+import StateMessage from '../components/StateMessage';
 
 const STATUS_LABELS: Record<VatHistoryStatus, string> = {
   draft: 'Draft',
@@ -75,13 +76,11 @@ export default function VatHistoryList() {
     <section className="mt-8" aria-labelledby="vat-history-heading">
       <h2 id="vat-history-heading" className="text-lg font-semibold text-gray-900">VAT return history</h2>
 
-      {history.isPending && <p role="status" className="mt-4 text-gray-700">Loading your past VAT returns…</p>}
+      {history.isPending && <StateMessage kind="loading">Loading your past VAT returns…</StateMessage>}
       {history.isError && (
-        <p role="alert" className="mt-4 text-red-700">
-          Could not load your past VAT returns. Reload the page to try again.
-        </p>
+        <StateMessage kind="error">Could not load your past VAT returns. Reload the page to try again.</StateMessage>
       )}
-      {history.data?.length === 0 && <p className="mt-4 text-gray-700">No past VAT returns yet.</p>}
+      {history.data?.length === 0 && <StateMessage kind="empty">No past VAT returns yet.</StateMessage>}
 
       {history.data && history.data.length > 0 && (
         <table className="mt-4 w-full max-w-3xl table-fixed border-collapse text-sm">

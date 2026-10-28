@@ -11,6 +11,7 @@ import type { VatObligationRow } from "../lib/hmrc/vatApi";
 import { getObligationDueWithin, REMINDER_WINDOW_DAYS } from "../lib/vatReminder";
 import type { ApiResponse } from "../model/types";
 import { useVatObligations } from "./useVatObligations";
+import StateMessage from '../components/StateMessage';
 
 const linkClass = "inline-flex min-h-11 items-center text-blue-800 underline";
 
@@ -88,17 +89,15 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {summary.isPending && <p role="status" className="mt-6 text-gray-700">Loading…</p>}
+      {summary.isPending && <StateMessage kind="loading" className="mt-6">Loading…</StateMessage>}
       {summary.isError && (
-        <p role="alert" className="mt-6 text-red-800">
-          Could not load the dashboard. Please try again.
-        </p>
+        <StateMessage kind="error" className="mt-6">Could not load the dashboard. Please try again.</StateMessage>
       )}
 
       {data && (
         <>
           {data.recentEntries.length === 0 && data.draftCount === 0 && data.taxYear.incomePence === 0 && data.taxYear.expensesPence === 0 && (
-            <p className="mt-6 text-gray-700">No entries yet. Add your first income or expense to see your position here.</p>
+            <StateMessage kind="empty" className="mt-6">No entries yet. Add your first income or expense to see your position here.</StateMessage>
           )}
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">

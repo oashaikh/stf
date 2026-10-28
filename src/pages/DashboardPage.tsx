@@ -102,7 +102,7 @@ export default function DashboardPage() {
           )}
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Card title="Tax year to date" period={`${data.taxYear.start} to ${data.taxYear.end}`}>
+            <Card title="Tax year to date" period={`${formatDate(data.taxYear.start)} to ${formatDate(data.taxYear.end)}`}>
               <Row label="Income" pence={data.taxYear.incomePence} />
               <Row label="Expenses" pence={data.taxYear.expensesPence} />
               <Row label="Profit" pence={data.taxYear.profitPence} />
@@ -110,7 +110,7 @@ export default function DashboardPage() {
                 View entries
               </Link>
             </Card>
-            <Card title="This month" period={`${data.month.start} to ${data.month.end}`}>
+            <Card title="This month" period={`${formatDate(data.month.start)} to ${formatDate(data.month.end)}`}>
               <Row label="Income" pence={data.month.incomePence} />
               <Row label="Expenses" pence={data.month.expensesPence} />
               <Row label="Profit" pence={data.month.profitPence} />
@@ -118,7 +118,7 @@ export default function DashboardPage() {
                 View entries
               </Link>
             </Card>
-            <Card title="VAT this quarter (estimate)" period={`${data.vatQuarter.start} to ${data.vatQuarter.end}`}>
+            <Card title="VAT this quarter (estimate)" period={`${formatDate(data.vatQuarter.start)} to ${formatDate(data.vatQuarter.end)}`}>
               <Row label="VAT collected" pence={data.vatQuarter.vatCollectedPence} />
               <Row label="VAT paid" pence={data.vatQuarter.vatPaidPence} />
               <Link to="/vat" className={linkClass}>
@@ -150,12 +150,12 @@ export default function DashboardPage() {
               <ul className="mt-2 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
                 {data.recentEntries.map((entry) => (
                   <li key={entry.id} className="flex items-center justify-between gap-2 p-3">
-                    <span className="text-sm text-gray-600">{entry.date}</span>
+                    <span className="shrink-0 text-sm text-gray-600">{formatDate(entry.date)}</span>
                     <span className="min-w-0 flex-1 truncate text-gray-900" title={entry.description}>
                       {entry.description}
                     </span>
-                    <span className="text-xs text-gray-700">{entry.status === "draft" ? "Draft" : "Confirmed"}</span>
-                    <span className="text-right tabular-nums text-gray-900">{formatPence(entry.grossPence)}</span>
+                    <span className="shrink-0 text-xs text-gray-700">{entry.status === "draft" ? "Draft" : "Confirmed"}</span>
+                    <span className="shrink-0 whitespace-nowrap text-right tabular-nums text-gray-900">{formatPence(entry.grossPence)}</span>
                   </li>
                 ))}
               </ul>

@@ -74,6 +74,12 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('link', { name: /tax page/i }).getAttribute('href')).toBe('/tax');
   });
 
+  it('shows dates in the UK display format, like the rest of the app', async () => {
+    renderPage(Response.json({ ok: true, data: summary }));
+    expect(await screen.findByText('20 Oct 2026')).toBeTruthy();
+    expect(screen.getByText('6 Apr 2026 to 5 Apr 2027')).toBeTruthy();
+  });
+
   it('shows the empty state for a new ledger', async () => {
     renderPage(Response.json({ ok: true, data: empty }));
     expect(await screen.findByText(/no entries yet/i)).toBeTruthy();

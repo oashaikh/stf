@@ -35,12 +35,12 @@ function CategoryTable({ title, rows, totalLabel, totalPence, range }: {
             <dt className="min-w-0 truncate" title={row.accountName}>
               <Link
                 to={`/expenses?${new URLSearchParams({ from: range.start, to: range.end, categoryAccountId: row.accountId })}`}
-                className="inline-flex min-h-11 items-center text-blue-800 underline"
+                className="flex min-h-11 items-center text-blue-800 underline"
               >
-                {row.accountName}
+                <span className="truncate">{row.accountName}</span>
               </Link>
             </dt>
-            <dd className="self-center text-right tabular-nums text-gray-900">{formatPence(row.totalPence)}</dd>
+            <dd className="shrink-0 self-center whitespace-nowrap text-right tabular-nums text-gray-900">{formatPence(row.totalPence)}</dd>
           </div>
         ))}
         <div className="flex justify-between gap-4 border-t border-gray-200 pt-2 font-medium">

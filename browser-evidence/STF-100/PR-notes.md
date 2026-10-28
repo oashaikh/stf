@@ -9,11 +9,9 @@ Presentation-only fixes found while checking each listed screen at 1440 and 390 
 - humanize: dashboard tax-year, month and quarter periods and the Reports period line use the UK date format ("6 Apr 2026 to 5 Apr 2027") already used elsewhere.
 - taste-skill: no change; it targets public marketing pages, not app screens.
 
-Also in the diff: `api/cron/__tests__/prepareVatDraft.test.ts` now uses a far-future token expiry. The old fixed date (27 Oct 2026) had passed, so four tests failed against the real clock. This is a test fix, not a UI change.
-
 ## Screenshots
 
-`before/` is the base branch build, `after/` is this branch, both under `browser-evidence/STF-100/`. At 390 px the fixed bottom nav is hidden in full-page captures so it cannot cover content. The recurring-entries captures show that section on its own (it sits at the bottom of Expenses, empty in the mock data).
+`before/` is the base branch build, `after/` is this branch, both under `browser-evidence/STF-100/`. At 390 px the fixed bottom nav is hidden in captures so it cannot cover content; the Privacy and terms links on Settings stay visible. The recurring-entries captures show that section on its own (it sits at the bottom of Expenses, empty in the mock data).
 
 Screens with no visible difference between before and after: login, settings at 1440 and 390, invoices at 1440, expenses list and entry sheet at 1440, privacy and terms. Their code changes are focus, label or state changes that a still image does not show (for example Saving… and the disabled states).
 

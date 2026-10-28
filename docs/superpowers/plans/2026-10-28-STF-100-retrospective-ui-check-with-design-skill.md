@@ -137,3 +137,7 @@ Also depends on:
 - [x] **Task 9: Fix: address 31 review findings (cycle 1)** (after 8)
   - Intent: Review left 31 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The source changes are correct and presentation-only; the correctness lens found no logic defect. The screenshot evidence does not hold up. The recurring-entries capture i The agent is fixing them; nothing is needed from you.
   - Commit: (none — no code change for this task)
+
+- [x] **Task 10: Fix: address 12 review findings (cycle 2)** (after 9)
+  - Intent: Review left 12 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The source changes are correct and presentation-only; I found no logic defect. The ISO dates in Reports, the read-only invoice Qty/Unit price run-together and the recurrin The agent is fixing them; nothing is needed from you.
+  - Commit: `8111ad1ecafd`

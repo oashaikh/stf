@@ -81,6 +81,8 @@ describe('ItsObligationsSection', () => {
     expect(await screen.findByText(/Showing last known dates from 20 Oct 2026/)).toBeTruthy();
     expect(screen.getByText(/HMRC could not be reached just now/)).toBeTruthy();
     expect(screen.getByText('5 Aug 2026')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toMatch(/Showing last known dates/);
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('shows an error in plain words when the route fails and there is nothing stored', async () => {

@@ -87,28 +87,28 @@ export default function ItsObligationsSection() {
 
       {obligations.isError && (
         <p role="alert" className="mt-4 text-red-800">
-          Could not load your income tax dates. Reload the page to try again.
+          Could not load your Income Tax dates. Reload the page to try again.
         </p>
       )}
 
       {result && 'gap' in result && (
-        <p className="mt-4 text-gray-700">
-          {SETUP_STEPS[result.gap].text}{' '}
+        <div className="mt-4 text-gray-700">
+          <p>{SETUP_STEPS[result.gap].text}</p>
           <Link to="/settings" className="inline-flex min-h-11 items-center text-blue-800 underline">
             {SETUP_STEPS[result.gap].link}
           </Link>
-        </p>
+        </div>
       )}
 
       {result && 'obligations' in result && (
         <>
           {result.stale && (
-            <p role="alert" className="mt-4 text-gray-900">
+            <p role="status" className="mt-4 text-gray-900">
               {result.fetchedAt && `Showing last known dates from ${formatDate(result.fetchedAt)}. `}
               {result.error}
             </p>
           )}
-          {result.obligations.length === 0 && <p className="mt-4 text-gray-700">No income tax obligations found.</p>}
+          {result.obligations.length === 0 && <p className="mt-4 text-gray-700">No Income Tax obligations found.</p>}
           {groupByTaxYear(result.obligations).map(([taxYear, rows]) => (
             <ObligationsTable key={taxYear} taxYear={taxYear} obligations={rows} />
           ))}

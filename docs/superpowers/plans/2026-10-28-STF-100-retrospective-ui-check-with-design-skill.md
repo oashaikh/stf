@@ -66,13 +66,14 @@ Also depends on:
   - Risk: Needs a Chromium via JOURNEY_CHROMIUM_PATH. If none is available, report that screenshots could not be taken instead of faking them.
   - Commit: `205dee8029ef`
 
-- [ ] **Task 2: Fix shell, login, sign-in and legal pages (AppShell, LoginPage, LegalPages, global CSS)** (after 1)
+- [x] **Task 2: Fix shell, login, sign-in and legal pages (AppShell, LoginPage, LegalPages, global CSS)** (after 1)
   - Intent: Fix the task 1 defects in place for the shell, login/sign-in and legal pages: focus rings, 44px hit targets at 390, contrast, type-scale tokens, copy. Run every visible string through humanize:humanize. Do not restructure layouts. Changes to src/styles/index.css must be token or focus fixes only, since they affect every screen. Update component tests only where text or roles changed.
   - Files: `src/components/AppShell.tsx`, `src/components/AppShell.test.tsx`, `src/pages/LoginPage.tsx`, `src/pages/LoginPage.test.tsx`, `src/pages/LegalPages.tsx`, `src/styles/index.css`
   - Acceptance criteria the planner set:
     - npm run lint, typecheck, test and build pass
     - Tap targets in shell and login are at least 44px at 390
     - Visible strings have been through humanize
+  - Commit: `73fb45f93f3d`
 
 - [ ] **Task 3: Fix dashboard and reports screens** (after 2)
   - Intent: Fix the task 1 defects for DashboardPage and ReportsPage: money alignment and tabular figures, one currency format per page, truncation, empty/loading/error states, contrast, hit targets, copy. Money stays integer pence via formatPence. Do not touch report calculations.

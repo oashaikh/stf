@@ -25,14 +25,14 @@ export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
   const { endpoint, body, headers } = preview;
   return (
     <div className="mt-4 text-sm text-gray-900">
-      <p className="break-all">
-        <span className="font-medium">{endpoint.sandbox ? 'Sandbox' : 'Live'}</span> {endpoint.method} {endpoint.url}
+      <p>
+        <span className="font-medium">{endpoint.sandbox ? 'Sandbox' : 'Live'}</span> {endpoint.method} <span className="break-words">{endpoint.url}</span>
       </p>
 
       <table className="mt-4 w-full border-collapse">
         <caption className="sr-only">Boxes exactly as they will be sent</caption>
         <thead>
-          <tr className="border-b border-gray-200 text-left text-gray-500">
+          <tr className="border-b border-gray-200 text-left text-gray-700">
             <th scope="col" className="py-2 pr-4 font-medium">Box</th>
             <th scope="col" className="py-2 pr-4 font-medium">Description</th>
             <th scope="col" className="py-2 text-right font-medium">Amount</th>
@@ -52,9 +52,9 @@ export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
           })}
         </tbody>
       </table>
-      <p className="mt-2 text-gray-500">Period key: {body.periodKey}. Finalised: {body.finalised ? 'yes' : 'no'}</p>
+      <p className="mt-2 text-gray-700">Period {body.periodKey}, {body.finalised ? 'confirmed' : 'not yet confirmed'}</p>
 
-      <h3 className="mt-4 font-medium">Headers</h3>
+      <h3 className="mt-4 font-medium">Request headers</h3>
       <dl className="mt-2 space-y-1">
         {Object.entries(headers).map(([name, value]) => (
           <div key={name} className="flex flex-col gap-1 sm:flex-row sm:gap-4">

@@ -36,7 +36,7 @@ describe('VatPreviewPanel', () => {
     expect(within(rows[0]).getByText('£120.50')).toBeInTheDocument();
     expect(within(rows[5]).getByText('£602.00')).toBeInTheDocument();
     expect(screen.getByText('Bearer (hidden)')).toBeInTheDocument();
-    expect(screen.getByText(/Finalised: yes/)).toBeInTheDocument();
+    expect(screen.getByText(/confirmed/)).toBeInTheDocument();
     const raw = screen.getByText('Raw JSON').closest('details')!;
     expect(raw).not.toHaveAttribute('open');
     expect(raw.textContent).toContain('"periodKey": "26C3"');

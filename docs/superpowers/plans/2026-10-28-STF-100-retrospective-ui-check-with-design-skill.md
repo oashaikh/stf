@@ -133,3 +133,7 @@ Also depends on:
     - PR notes name the skill behind each change and list 'Proposed, not done'
     - No machine paths, job ids or tokens in the notes
   - Commit: `bc66c2041a31`
+
+- [x] **Task 9: Fix: address 31 review findings (cycle 1)** (after 8)
+  - Intent: Review left 31 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The source changes are correct and presentation-only; the correctness lens found no logic defect. The screenshot evidence does not hold up. The recurring-entries capture i The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

@@ -85,7 +85,7 @@ Also depends on:
     - No arithmetic, query or data behaviour changed
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 4: Fix expenses, entries list and entry actions** (after 2)
+- [x] **Task 4: Fix expenses, entries list and entry actions** (after 2)
   - Intent: Fix the task 1 defects for ExpensesPage, EntriesList and EntryActions: one-line rows with ellipsis and tooltip, 44px row actions at 390, labelled-row collapse on phones, filter field alignment, destructive-action confirmations that say what they affect, empty/loading/error states, focus and Escape in the sheet/dialog, copy. No change to filters, export or delete behaviour.
   - Files: `src/pages/ExpensesPage.tsx`, `src/pages/ExpensesPage.test.tsx`, `src/pages/EntriesList.tsx`, `src/pages/EntriesList.test.tsx`, `src/pages/EntryActions.tsx`
   - Acceptance criteria the planner set:
@@ -93,6 +93,7 @@ Also depends on:
     - Rows are one line at 1440 with a title carrying full text
     - Destructive actions name what they affect
     - No change to routes, API calls or soft-delete behaviour
+  - Commit: `256ecb186d53`
 
 - [ ] **Task 5: Fix invoices list and invoice editor** (after 2)
   - Intent: Fix the task 1 defects for InvoicesPage and InvoiceEditor: line-item row alignment, money right-aligned in tabular figures, 44px targets at 390, label/help alignment, validation and error copy, loading and empty states, focus order. Invoice maths and PDF download unchanged.

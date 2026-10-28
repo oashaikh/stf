@@ -1,3 +1,5 @@
+import { formatPence } from '../lib/money';
+
 export type ReviewStatus = 'draft' | 'confirmed' | null;
 
 export interface ReviewStateInput {
@@ -53,6 +55,18 @@ export const BOX_LABELS: Record<number, string> = {
 /** Box 5 is signed on the server: negative means HMRC owes the user a refund. */
 export function boxLabel(box: number, pence: number): string {
   return box === 5 && pence < 0 ? `${BOX_LABELS[5]} (refund due to you)` : BOX_LABELS[box];
+}
+
+/** Plain-words reading of the signed Box 5 shown in the review, so -£45.00 is not mistaken for an error. */
+export function box5ReviewNote(pence: number): string | null {
+  if (pence === 0) return null;
+  return pence < 0 ? `${formatPence(-pence)} refund due to you` : `${formatPence(pence)} to pay`;
+}
+
+/** HMRC takes Box 5 unsigned, so the preview says which way the money goes. */
+export function box5SentNote(absolutePence: number, isRefund: boolean): string | null {
+  if (absolutePence === 0) return null;
+  return `Sent to HMRC as ${formatPence(absolutePence)} (${isRefund ? 'refund' : 'payment'})`;
 }
 
 export function reviewState(input: ReviewStateInput): ReviewState {

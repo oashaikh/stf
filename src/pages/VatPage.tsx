@@ -18,7 +18,7 @@ import VatHistoryList from './VatHistoryList';
 import VatObligationsList from './VatObligationsList';
 import VatPreviewPanel from './VatPreviewPanel';
 import { useVatObligations } from './useVatObligations';
-import { boxLabel, DRILLABLE_BOXES, reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
+import { box5ReviewNote, boxLabel, DRILLABLE_BOXES, reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
 
 interface DrillLine {
   lineId: string;
@@ -394,7 +394,10 @@ function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: B
             label
           )}
         </td>
-        <td className="py-1 text-right tabular-nums text-gray-900">{formatPence(pence)}</td>
+        <td className="py-1 text-right tabular-nums text-gray-900">
+          {formatPence(pence)}
+          {box === 5 && box5ReviewNote(pence) && <span className="block text-xs text-gray-700">{box5ReviewNote(pence)}</span>}
+        </td>
       </tr>
       {lines && expanded && (
         <tr id={detailId}>

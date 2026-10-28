@@ -53,4 +53,17 @@ describe('VatPreviewPanel', () => {
     render(<VatPreviewPanel preview={nil} />);
     expect(screen.getAllByText('£0.00')).toHaveLength(9);
   });
+
+  it('labels box 5 as a payment when VAT due exceeds VAT reclaimed', () => {
+    render(<VatPreviewPanel preview={preview} />);
+    expect(screen.getByText('Sent to HMRC as £100.50 (payment)')).toBeInTheDocument();
+  });
+
+  it('labels box 5 as a refund while still sending the unsigned amount', () => {
+    const refund = { ...preview, body: { ...preview.body, totalVatDue: 20, vatReclaimedCurrPeriod: 65, netVatDue: 45 } };
+    render(<VatPreviewPanel preview={refund} />);
+    const row = screen.getAllByRole('row')[5];
+    expect(within(row).getByText('£45.00')).toBeInTheDocument();
+    expect(within(row).getByText('Sent to HMRC as £45.00 (refund)')).toBeInTheDocument();
+  });
 });

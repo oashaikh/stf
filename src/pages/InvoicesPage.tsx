@@ -6,14 +6,15 @@ import { fetchHasVatNumber } from '../lib/entriesApi';
 import { fetchInvoice, fetchInvoices, INVOICE_STATUSES, invoicesQueryKey, type InvoiceStatus } from '../lib/invoicesApi';
 import { formatPence } from '../lib/money';
 import InvoiceEditor, { buttonClass } from './InvoiceEditor';
+import StateMessage from '../components/StateMessage';
 
 type View = { kind: 'list' } | { kind: 'new' } | { kind: 'open'; id: string };
 
 function OpenInvoice({ id, onBack, onOpen }: { id: string; onBack: () => void; onOpen: (view: View) => void }) {
   const invoice = useQuery({ queryKey: [...invoicesQueryKey, id], queryFn: () => fetchInvoice(id) });
   const vat = useQuery({ queryKey: ['vat-number-present'], queryFn: fetchHasVatNumber });
-  if (invoice.isError) return <p role="alert" className="mt-6 text-red-800">Could not load the invoice.</p>;
-  if (!invoice.data || vat.isPending) return <p className="mt-6 text-gray-700">Loading…</p>;
+  if (invoice.isError) return <StateMessage kind="error" className="mt-6">Could not load the invoice.</StateMessage>;
+  if (!invoice.data || vat.isPending) return <StateMessage kind="loading" className="mt-6">Loading…</StateMessage>;
   return (
     <InvoiceEditor
       invoice={invoice.data}
@@ -26,7 +27,7 @@ function OpenInvoice({ id, onBack, onOpen }: { id: string; onBack: () => void; o
 
 function NewInvoice({ onBack, onOpen }: { onBack: () => void; onOpen: (view: View) => void }) {
   const vat = useQuery({ queryKey: ['vat-number-present'], queryFn: fetchHasVatNumber });
-  if (vat.isPending) return <p className="mt-6 text-gray-700">Loading…</p>;
+  if (vat.isPending) return <StateMessage kind="loading" className="mt-6">Loading…</StateMessage>;
   return (
     <InvoiceEditor
       invoice={null}
@@ -64,9 +65,9 @@ function InvoiceList({ onOpen }: { onOpen: (view: View) => void }) {
           ))}
         </select>
       </label>
-      {list.isError && <p role="alert" className="mt-4 text-red-800">Could not load invoices.</p>}
-      {list.isPending && <p className="mt-4 text-gray-700">Loading…</p>}
-      {list.isSuccess && rows.length === 0 && <p className="mt-4 text-gray-700">No invoices yet.</p>}
+      {list.isError && <StateMessage kind="error">Could not load invoices.</StateMessage>}
+      {list.isPending && <StateMessage kind="loading">Loading…</StateMessage>}
+      {list.isSuccess && rows.length === 0 && <StateMessage kind="empty">No invoices yet.</StateMessage>}
       {rows.length > 0 && (
         <ul className="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
           {rows.map((row) => (

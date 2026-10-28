@@ -21,6 +21,6 @@ export default defineConfig({
   },
   test: {
     passWithNoTests: true,
-    exclude: ['**/node_modules/**', 'e2e/**'],
+    exclude: ['**/node_modules/**', 'e2e/**', '.agent-tmp/**'],
   },
 });

@@ -24,6 +24,7 @@ import {
   type HmrcStatus,
   type ItsBusinessesState,
 } from '../lib/hmrc/settingsApi';
+import StateMessage from '../components/StateMessage';
 
 export const LIVE_CONFIRMATION_TEXT = 'FILE LIVE';
 
@@ -191,7 +192,7 @@ export default function SettingsPage() {
       <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="hmrc-heading">
         <h2 id="hmrc-heading" className="text-lg font-semibold text-gray-900">HMRC (Government Gateway)</h2>
         {loading ? (
-          <p className="mt-2 text-gray-500" role="status">Loading…</p>
+          <StateMessage kind="loading" className="mt-2">Loading…</StateMessage>
         ) : (
           <p className={`mt-2 ${toneText[status.tone]}`} role="status">
             <span aria-hidden="true">{toneIcon[status.tone]} </span>
@@ -199,7 +200,7 @@ export default function SettingsPage() {
           </p>
         )}
         {failed && !loading && (
-          <p className="mt-2 text-red-800" role="alert">Could not reach HMRC. Please try again.</p>
+          <StateMessage kind="error" className="mt-2">Could not reach HMRC. Please try again.</StateMessage>
         )}
         <button
           type="button"
@@ -215,9 +216,9 @@ export default function SettingsPage() {
         {wantsItsBusinesses && (
           <div className="mt-4" aria-labelledby="its-business-heading" role="group">
             <h3 id="its-business-heading" className="font-semibold text-gray-900">Income Tax business</h3>
-            {itsLoading && <p className="mt-2 text-gray-500" role="status">Loading…</p>}
+            {itsLoading && <StateMessage kind="loading" className="mt-2">Loading…</StateMessage>}
             {itsFailed && !itsLoading && (
-              <p className="mt-2 text-red-800" role="alert">Could not load your HMRC businesses. Please try again.</p>
+              <StateMessage kind="error" className="mt-2">Could not load your HMRC businesses. Please try again.</StateMessage>
             )}
             {itsState && itsState.selectedBusinessId && (
               <p className="mt-2 text-gray-900">
@@ -378,8 +379,8 @@ export default function SettingsPage() {
         >
           Check HMRC fraud headers
         </button>
-        {checking && <p className="mt-2 text-gray-500" role="status">Checking…</p>}
-        {checkFailed && <p className="mt-2 text-red-800" role="alert">Could not run the check. Please try again.</p>}
+        {checking && <StateMessage kind="loading" className="mt-2">Checking…</StateMessage>}
+        {checkFailed && <StateMessage kind="error" className="mt-2">Could not run the check. Please try again.</StateMessage>}
         {checkResult && (
           <div className="mt-4" role="status">
             {checkResult.outcome === 'pass' && (

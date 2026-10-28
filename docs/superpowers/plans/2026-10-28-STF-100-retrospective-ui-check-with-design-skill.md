@@ -115,13 +115,14 @@ Also depends on:
   - Risk: The authenticator section is security-adjacent, so only presentation and copy may change.
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 7: Fix mileage and recurring entries sections** (after 2)
+- [x] **Task 7: Fix mileage and recurring entries sections** (after 2)
   - Intent: Fix the task 1 defects for MileageSection and RecurringEntriesSection: table collapse at 390, money and mileage alignment, one-line rows, 44px targets, confirmations for destructive actions, empty/loading/error states, copy.
   - Files: `src/pages/MileageSection.tsx`, `src/pages/MileageSection.test.tsx`, `src/pages/RecurringEntriesSection.tsx`, `src/pages/RecurringEntriesSection.test.tsx`
   - Acceptance criteria the planner set:
     - npm run lint, typecheck, test and build pass
     - HMRC rate and recurrence logic unchanged
     - Tables never scroll sideways at 1440
+  - Commit: `58d91e72f75f`
 
 - [ ] **Task 8: Capture after-screenshots and write the PR notes** (after 2, 3, 4, 5, 6, 7)
   - Intent: Re-run the capture from task 1 and save 'after' PNGs for every changed screen at 1440 and 390 to browser-evidence/STF-100/after/. Run full checks. Write PR notes: what changed, why, verification; name which skill (ui-ux-pro-max, ui-styling, taste-skill, humanize) drove each change; add 'Proposed, not done' with before screenshots.

@@ -126,4 +126,15 @@ describe('ChartOfAccountsSection', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Unarchive Advertising' }));
     await waitFor(() => expect(requests[0].body).toEqual({ id: 'i4', archived: false }));
   });
+
+  it('says so when there are no accounts to show', async () => {
+    active = [];
+    render(<ChartOfAccountsSection />);
+    expect(await screen.findByText('No accounts to show.')).toBeInTheDocument();
+  });
+
+  it('does not claim there are no accounts while they are loading', () => {
+    render(<ChartOfAccountsSection />);
+    expect(screen.queryByText('No accounts to show.')).toBeNull();
+  });
 });

@@ -11,8 +11,8 @@ import {
 const fieldClass =
   'mt-1 min-h-[44px] w-full rounded-md border border-gray-400 px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700';
 const secondaryButton = 'min-h-[44px] min-w-[44px] rounded-md border border-gray-400 px-4 text-gray-900 hover:bg-gray-100';
-const primaryButton = 'min-h-[44px] min-w-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800';
-const dangerButton = 'min-h-[44px] min-w-[44px] rounded-md bg-red-700 px-4 text-white hover:bg-red-800';
+const primaryButton = 'min-h-[44px] min-w-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-50';
+const dangerButton = 'min-h-[44px] min-w-[44px] rounded-md bg-red-700 px-4 text-white hover:bg-red-800 disabled:opacity-50';
 
 export const TURN_OFF_WARNING =
   'Turning this off removes the authenticator and its recovery codes. Signing in will need only your password, and HMRC will again warn that multi-factor authentication is missing.';
@@ -143,7 +143,7 @@ export default function AuthenticatorSection() {
             <input type="checkbox" className="h-5 w-5" checked={saved} onChange={(event) => setSaved(event.target.checked)} />
             I have saved these recovery codes
           </label>
-          <button type="button" className={`${primaryButton} mt-3 disabled:opacity-50`} disabled={!saved} onClick={dismissRecoveryCodes}>Done</button>
+          <button type="button" className={`${primaryButton} mt-3`} disabled={!saved} onClick={dismissRecoveryCodes}>Done</button>
         </div>
       )}
 

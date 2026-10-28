@@ -124,7 +124,7 @@ Also depends on:
     - Tables never scroll sideways at 1440
   - Commit: `58d91e72f75f`
 
-- [ ] **Task 8: Capture after-screenshots and write the PR notes** (after 2, 3, 4, 5, 6, 7)
+- [x] **Task 8: Capture after-screenshots and write the PR notes** (after 2, 3, 4, 5, 6, 7)
   - Intent: Re-run the capture from task 1 and save 'after' PNGs for every changed screen at 1440 and 390 to browser-evidence/STF-100/after/. Run full checks. Write PR notes: what changed, why, verification; name which skill (ui-ux-pro-max, ui-styling, taste-skill, humanize) drove each change; add 'Proposed, not done' with before screenshots.
   - Files: `browser-evidence/STF-100/after/*.png`, `browser-evidence/STF-100/PR-notes.md`
   - Acceptance criteria the planner set:
@@ -132,3 +132,4 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
     - PR notes name the skill behind each change and list 'Proposed, not done'
     - No machine paths, job ids or tokens in the notes
+  - Commit: `bc66c2041a31`

@@ -4,7 +4,7 @@ import { fetchBusinessProfile, maskAccountNumber, saveBusinessProfile, type Busi
 const fieldClass =
   'mt-1 min-h-[44px] w-full rounded-md border border-gray-400 px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700';
 const secondaryButton = 'min-h-[44px] min-w-[44px] rounded-md border border-gray-400 px-4 text-gray-900 hover:bg-gray-100';
-const primaryButton = 'min-h-[44px] min-w-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800';
+const primaryButton = 'min-h-[44px] min-w-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-50';
 
 interface Draft {
   businessName: string;
@@ -110,7 +110,7 @@ export default function BusinessProfileSection() {
             </label>
           ))}
           <div className="flex flex-wrap gap-2">
-            <button type="submit" className={primaryButton} disabled={saving}>Save business profile</button>
+            <button type="submit" className={primaryButton} disabled={saving}>{saving ? 'Saving…' : 'Save business profile'}</button>
             <button type="button" className={secondaryButton} onClick={() => { setError(''); setDraft(null); }}>Cancel</button>
           </div>
         </form>

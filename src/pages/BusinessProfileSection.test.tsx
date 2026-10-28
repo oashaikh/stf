@@ -65,4 +65,12 @@ describe('BusinessProfileSection', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Sort code must be 6 digits'));
     expect(screen.getByLabelText('Sort code (6 digits)')).toBeInTheDocument();
   });
+
+  it('labels the save button while the profile is being saved', async () => {
+    render(<BusinessProfileSection />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit business profile' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save business profile' }));
+    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Edit business profile' })).toBeInTheDocument();
+  });
 });

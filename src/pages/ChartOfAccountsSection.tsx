@@ -20,6 +20,7 @@ type NewType = 'income' | 'expense';
 export default function ChartOfAccountsSection() {
   const [accounts, setAccounts] = useState<ApiAccount[]>([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -35,6 +36,7 @@ export default function ChartOfAccountsSection() {
     try {
       setAccounts(await fetchAccounts(showArchived));
       setLoadError('');
+      setLoaded(true);
     } catch {
       setLoadError('Could not load your accounts. Please try again.');
     }
@@ -89,6 +91,8 @@ export default function ChartOfAccountsSection() {
         />
         Show archived accounts
       </label>
+
+      {loaded && accounts.length === 0 && <p className="mt-4 text-gray-700">No accounts to show.</p>}
 
       {ACCOUNT_TYPE_GROUPS.map(({ type, label }) => {
         const group = accounts.filter((account) => account.accountType === type);

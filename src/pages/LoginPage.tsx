@@ -57,6 +57,8 @@ export default function LoginPage() {
               autoComplete="one-time-code"
               autoFocus
               required
+              aria-invalid={failure !== null}
+              aria-describedby={failure ? 'login-error' : undefined}
               value={code}
               onChange={(event) => setCode(event.target.value)}
               className={`mt-2 min-h-[44px] w-full rounded-md border border-gray-400 px-3 ${focusRing}`}
@@ -79,21 +81,23 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               required
+              aria-invalid={failure !== null}
+              aria-describedby={failure ? 'login-error' : undefined}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="mt-2 min-h-[44px] w-full rounded-md border border-gray-400 px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+              className={`mt-2 min-h-[44px] w-full rounded-md border border-gray-400 px-3 ${focusRing}`}
             />
           </>
         )}
         {failure && (
-          <p role="alert" className="mt-2 text-red-800">
+          <p id="login-error" role="alert" className="mt-2 text-sm text-red-800">
             {MESSAGES[failure]}
           </p>
         )}
         <button
           type="submit"
           disabled={submitting}
-          className="mt-4 min-h-[44px] w-full rounded-md bg-brand px-4 text-sm font-medium text-white disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+          className={`mt-4 min-h-[44px] w-full rounded-md bg-brand px-4 text-sm font-medium text-white disabled:opacity-60 ${focusRing}`}
         >
           {codeStep ? 'Verify' : 'Sign in'}
         </button>

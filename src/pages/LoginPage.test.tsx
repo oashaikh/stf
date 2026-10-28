@@ -103,6 +103,14 @@ describe('LoginPage', () => {
       expect(queryClient.getQueryData(SESSION_QUERY_KEY)).toBeUndefined();
     });
 
+    it('ties the error to the code field for screen readers', async () => {
+      const { input } = await reachCodeStep(reply(401));
+      fireEvent.change(input, { target: { value: '000000' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
+      const alert = await screen.findByRole('alert');
+      expect(screen.getByLabelText('Authenticator code')).toHaveAttribute('aria-describedby', alert.id);
+    });
+
     it('returns to the password step when the sign-in challenge has expired', async () => {
       const { input } = await reachCodeStep(reply(401, { ok: false, code: 'CHALLENGE_EXPIRED' }));
       fireEvent.change(input, { target: { value: '123456' } });

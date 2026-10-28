@@ -80,6 +80,12 @@ describe('InvoicesPage list', () => {
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'paid' } });
     await waitFor(() => expect(fetchInvoices).toHaveBeenLastCalledWith('paid', undefined));
   });
+
+  it('labels the total on a phone row so the amount is not a bare figure', async () => {
+    renderPage();
+    const amount = await screen.findByText('£181.98');
+    expect(amount.parentElement?.textContent).toBe('Total £181.98');
+  });
 });
 
 describe('invoice editor', () => {
@@ -154,6 +160,12 @@ describe('invoice editor', () => {
 
 describe('issued invoice view', () => {
   const sent: ApiInvoice = { ...invoice, status: 'sent', publicNumber: 'INV-0001' };
+
+  it('labels each figure on a read-only line so phone rows make sense', async () => {
+    await openInvoice({ ...invoice, status: 'sent', publicNumber: 'INV-0001' });
+    const line = screen.getByText('Design').closest('li') as HTMLElement;
+    for (const label of ['Qty', 'Unit price', 'VAT rate', 'Line total']) expect(within(line).getByText(label)).toBeTruthy();
+  });
 
   it('is read-only: no inputs and no Save or Issue', async () => {
     await openInvoice(sent);

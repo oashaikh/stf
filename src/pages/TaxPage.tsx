@@ -8,6 +8,7 @@ import ItsObligationsSection from './ItsObligationsSection';
 import MileageSection from './MileageSection';
 import type { ExpenseMethod } from '../lib/taxYearSummary';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
+import StateMessage from '../components/StateMessage';
 
 // Newest first, only years that have bands to calculate with.
 const TAX_YEARS = Object.keys(TAX_BANDS).sort().reverse();
@@ -51,11 +52,9 @@ export default function TaxPage() {
         </select>
       </label>
 
-      {estimate.isPending && <p role="status" className="mt-6 text-gray-700">Loading your tax estimate…</p>}
+      {estimate.isPending && <StateMessage kind="loading" className="mt-6">Loading your tax estimate…</StateMessage>}
       {estimate.isError && (
-        <p role="alert" className="mt-6 text-red-800">
-          Could not load the tax estimate. Please try again.
-        </p>
+        <StateMessage kind="error" className="mt-6">Could not load the tax estimate. Please try again.</StateMessage>
       )}
 
       {data && (

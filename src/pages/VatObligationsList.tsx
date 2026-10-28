@@ -2,6 +2,7 @@ import { formatDate } from '../lib/dates';
 import { Link } from 'react-router-dom';
 import { NotConnectedError, VatNumberMissingError, type VatObligationRow } from '../lib/hmrc/vatApi';
 import { useVatObligations } from './useVatObligations';
+import StateMessage from '../components/StateMessage';
 
 function statusLabel(obligation: VatObligationRow): string {
   if (obligation.status === 'F') return 'Fulfilled';
@@ -15,7 +16,7 @@ export default function VatObligationsList() {
     <section className="mt-8" aria-labelledby="vat-obligations-heading">
       <h2 id="vat-obligations-heading" className="text-lg font-semibold text-gray-900">VAT obligations</h2>
 
-      {obligations.isPending && <p role="status" className="mt-4 text-gray-700">Loading your VAT obligations…</p>}
+      {obligations.isPending && <StateMessage kind="loading">Loading your VAT obligations…</StateMessage>}
       {obligations.error instanceof NotConnectedError && (
         <p className="mt-4 text-gray-700">
           HMRC is not connected yet.{' '}
@@ -33,11 +34,9 @@ export default function VatObligationsList() {
         </p>
       )}
       {obligations.isError && !(obligations.error instanceof NotConnectedError) && !(obligations.error instanceof VatNumberMissingError) && (
-        <p role="alert" className="mt-4 text-red-700">
-          Could not load your VAT obligations. Reload the page to try again.
-        </p>
+        <StateMessage kind="error">Could not load your VAT obligations. Reload the page to try again.</StateMessage>
       )}
-      {obligations.data?.length === 0 && <p className="mt-4 text-gray-700">No VAT obligations found.</p>}
+      {obligations.data?.length === 0 && <StateMessage kind="empty">No VAT obligations found.</StateMessage>}
 
       {obligations.data && obligations.data.length > 0 && (
         <table className="mt-4 w-full max-w-3xl border-collapse text-sm">

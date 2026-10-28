@@ -19,6 +19,7 @@ import VatObligationsList from './VatObligationsList';
 import VatPreviewPanel from './VatPreviewPanel';
 import { useVatObligations } from './useVatObligations';
 import { box5ReviewNote, boxLabel, DRILLABLE_BOXES, reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
+import StateMessage from '../components/StateMessage';
 
 interface DrillLine {
   lineId: string;
@@ -68,7 +69,7 @@ export default function VatPage() {
     <main className="p-4 md:p-8">
       <h1 className="text-2xl font-semibold text-gray-900">VAT Returns</h1>
 
-      {obligations.isPending && <p role="status" className="mt-4 text-gray-700">Loading your VAT obligations…</p>}
+      {obligations.isPending && <StateMessage kind="loading">Loading your VAT obligations…</StateMessage>}
       {notConnected && (
         <p className="mt-4 text-gray-700">
           HMRC is not connected yet.{' '}
@@ -86,12 +87,10 @@ export default function VatPage() {
         </p>
       )}
       {obligations.isError && !notConnected && !vatNumberMissing && (
-        <p role="alert" className="mt-4 text-red-700">
-          Could not load your VAT obligations. Reload the page to try again.
-        </p>
+        <StateMessage kind="error">Could not load your VAT obligations. Reload the page to try again.</StateMessage>
       )}
       {obligations.data && open.length === 0 && (
-        <p className="mt-4 text-gray-700">No open VAT obligations to file.</p>
+        <StateMessage kind="empty">No open VAT obligations to file.</StateMessage>
       )}
       {open.length > 1 && (
         <fieldset className="mt-4">
@@ -201,11 +200,9 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
         Period {formatDate(period.start)} to {formatDate(period.end)}
       </p>
 
-      {review.isPending && <p role="status" className="mt-6 text-gray-700">Loading your VAT return…</p>}
+      {review.isPending && <StateMessage kind="loading" className="mt-6">Loading your VAT return…</StateMessage>}
       {review.isError && (
-        <p role="alert" className="mt-6 text-red-700">
-          Could not load your VAT return. Reload the page to try again.
-        </p>
+        <StateMessage kind="error" className="mt-6">Could not load your VAT return. Reload the page to try again.</StateMessage>
       )}
 
       {review.data && (
@@ -356,9 +353,9 @@ interface PreviewResultProps {
 }
 
 function PreviewResult({ mutation }: PreviewResultProps) {
-  if (mutation.isPending) return <p role="status" className="mt-4 text-sm text-gray-700">Building the preview…</p>;
+  if (mutation.isPending) return <StateMessage kind="loading">Building the preview…</StateMessage>;
   if (mutation.isError) {
-    return <p role="alert" className="mt-4 text-sm text-red-700">Could not build the preview. Try again.</p>;
+    return <StateMessage kind="error">Could not build the preview. Try again.</StateMessage>;
   }
   return mutation.data ? <VatPreviewPanel preview={mutation.data} /> : null;
 }

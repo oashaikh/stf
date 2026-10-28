@@ -7,6 +7,7 @@ import { downloadEntriesCsv } from '../lib/exportApi';
 import { formatPence } from '../lib/money';
 import { profitAndLossPresets, type ProfitAndLossPreset } from '../lib/profitAndLoss';
 import { fetchProfitAndLoss, profitAndLossCsv, type ProfitAndLoss } from '../lib/profitAndLossReport';
+import StateMessage from '../components/StateMessage';
 
 type RangeChoice = ProfitAndLossPreset | 'custom';
 
@@ -126,15 +127,11 @@ export default function ReportsPage() {
       </p>
 
       {!rangeValid && (
-        <p role="alert" className="mt-4 text-red-800">
-          Choose a start date that is on or before the end date.
-        </p>
+        <StateMessage kind="error">Choose a start date that is on or before the end date.</StateMessage>
       )}
-      {rangeValid && report.isPending && <p role="status" className="mt-6 text-gray-700">Loading…</p>}
+      {rangeValid && report.isPending && <StateMessage kind="loading" className="mt-6">Loading…</StateMessage>}
       {report.isError && (
-        <p role="alert" className="mt-6 text-red-800">
-          Could not load the report. Please try again.
-        </p>
+        <StateMessage kind="error" className="mt-6">Could not load the report. Please try again.</StateMessage>
       )}
 
       {data && (

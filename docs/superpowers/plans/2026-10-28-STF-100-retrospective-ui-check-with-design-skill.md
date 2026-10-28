@@ -55,7 +55,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Load the design skills and capture before-screenshots of every listed screen**
+- [x] **Task 1: Load the design skills and capture before-screenshots of every listed screen**
   - Intent: Invoke ui-ux-pro-max:ui-ux-pro-max, ui-styling:ui-styling and taste-skill:taste-skill first, and read the existing tokens (src/styles/index.css, tailwind.config.js, brand and success/warning/danger CSS variables, Inter font). Build the app, serve it with `npm run preview` and drive it with the mocked API in e2e/mockApi.ts. Capture 'before' PNGs at 1440 and 390 for: dashboard, expenses (list, filters, entry sheet, entry actions), invoices, invoice editor, reports, settings (business profile, chart of accounts, mileage, recurring entries, authenticator), login, and privacy/terms. The app has no dark theme (one `dark:` use in src), so light only. Write a defect list per screen against spacing, type scale, WCAG AA contrast, focus, 44px hit targets at 390, truncation and overflow, empty/loading/error states and copy. Save to browser-evidence/STF-100/before/. Use a throwaway capture script kept out of the diff. No source changes.
   - Files: `browser-evidence/STF-100/before/*.png`
   - Acceptance criteria the planner set:
@@ -64,6 +64,7 @@ Also depends on:
     - A per-screen defect list exists in the task report, naming file and line
     - Anything needing a restructure, new feature or behaviour change is flagged for 'Proposed, not done' and not implemented
   - Risk: Needs a Chromium via JOURNEY_CHROMIUM_PATH. If none is available, report that screenshots could not be taken instead of faking them.
+  - Commit: `205dee8029ef`
 
 - [ ] **Task 2: Fix shell, login, sign-in and legal pages (AppShell, LoginPage, LegalPages, global CSS)** (after 1)
   - Intent: Fix the task 1 defects in place for the shell, login/sign-in and legal pages: focus rings, 44px hit targets at 390, contrast, type-scale tokens, copy. Run every visible string through humanize:humanize. Do not restructure layouts. Changes to src/styles/index.css must be token or focus fixes only, since they affect every screen. Update component tests only where text or roles changed.

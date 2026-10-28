@@ -52,7 +52,7 @@ Each needs a layout, feature, data or route change.
 
 ## Fixes made, and the skill that drove each
 
-After screenshots are in `after/`, same 24 scenarios, same names, at 1440 and 390 (light only). They use the mock API's invented records.
+After screenshots are in `after/`, same 24 scenarios, same names, at 1440 and 390 (light only). They use the mock API's invented records. The stale-notice and preview-panel captures were retaken after commit 80308e2, so they show the final copy: the notice ends with a stop, and the preview line reads "Sent to the HMRC test service" with the URL wrapping only at slashes.
 
 | # | Fix | Driving skill | Commit |
 |---|-----|---------------|--------|

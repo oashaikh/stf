@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { VatPreview } from '../lib/hmrc/vatApi';
 import VatPreviewPanel from './VatPreviewPanel';
@@ -40,6 +40,22 @@ describe('VatPreviewPanel', () => {
     const raw = screen.getByText('Raw JSON').closest('details')!;
     expect(raw).not.toHaveAttribute('open');
     expect(raw.textContent).toContain('"periodKey": "26C3"');
+  });
+
+  it('has its own heading above the endpoint', () => {
+    render(<VatPreviewPanel preview={preview} />);
+    expect(screen.getByRole('heading', { name: 'What will be sent to HMRC' })).toBeInTheDocument();
+  });
+
+  it('keeps the box table behind a toggle that starts closed on phones', () => {
+    render(<VatPreviewPanel preview={preview} />);
+    const toggle = screen.getByRole('button', { name: 'Show all nine boxes' });
+    const region = document.getElementById(toggle.getAttribute('aria-controls')!)!;
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(region).toHaveClass('hidden', 'md:block');
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: 'Hide the nine boxes' })).toHaveAttribute('aria-expanded', 'true');
+    expect(region).not.toHaveClass('hidden');
   });
 
   it('groups thousands like the rest of the page', () => {

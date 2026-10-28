@@ -208,7 +208,7 @@ export default function MileageSection() {
 
       {mileage.data && (
         <>
-          <dl className="mt-4 flex gap-8 rounded-lg border border-gray-200 bg-white p-4 md:max-w-xl">
+          <dl className="mt-4 flex gap-8 rounded-lg border border-gray-200 bg-white p-4">
             <div>
               <dt className="text-sm text-gray-700">Claim for {taxYear}</dt>
               <dd className="text-lg font-medium tabular-nums text-gray-900">{formatPence(mileage.data.claim.totalPence)}</dd>

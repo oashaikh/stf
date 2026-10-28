@@ -33,7 +33,7 @@ export default function TaxPage() {
   });
 
   return (
-    <main className="p-4 md:p-8">
+    <main className="max-w-4xl p-4 md:p-8">
       <h1 className="text-2xl font-semibold text-gray-900">Tax Estimate</h1>
 
       <label className="mt-4 flex flex-col gap-1 text-sm text-gray-700">
@@ -59,7 +59,7 @@ export default function TaxPage() {
       )}
 
       {data && (
-        <section className="mt-6 rounded-lg border border-gray-200 bg-white p-4 md:max-w-xl">
+        <section className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
           <dl className="space-y-1">
             <Row label="Profit to date" value={formatPence(data.profitPence)} />
             <Row label="Income tax" value={formatPence(data.incomeTaxPence)} />
@@ -76,7 +76,7 @@ export default function TaxPage() {
       )}
 
       {data && (
-        <section aria-labelledby="expense-method-heading" className="mt-6 rounded-lg border border-gray-200 bg-white p-4 md:max-w-xl">
+        <section aria-labelledby="expense-method-heading" className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
           <h2 id="expense-method-heading" className="text-lg font-semibold text-gray-900">Expenses or trading allowance</h2>
           <dl className="mt-2 space-y-1">
             <Row label="Profit with actual expenses" value={formatPence(data.profitWithActualExpensesPence)} />

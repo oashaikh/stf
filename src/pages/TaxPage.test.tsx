@@ -45,6 +45,14 @@ afterEach(() => {
 });
 
 describe('TaxPage', () => {
+  it('uses one content width: the page sets it and no section narrows itself', async () => {
+    renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
+    await screen.findAllByText('£60,000.00');
+    const main = screen.getByRole('main');
+    expect(main.className).toContain('max-w-4xl');
+    expect(main.querySelectorAll('section[class*="max-w-"]')).toHaveLength(0);
+  });
+
   it('renders the Income Tax obligations section', async () => {
     renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
     expect(await screen.findByRole('heading', { name: 'Income Tax obligations' })).toBeTruthy();

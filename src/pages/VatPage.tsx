@@ -65,10 +65,10 @@ export default function VatPage() {
   const vatNumberMissing = obligations.error instanceof VatNumberMissingError;
 
   return (
-    <main className="p-8">
+    <main className="p-4 md:p-8">
       <h1 className="text-2xl font-semibold text-gray-900">VAT Returns</h1>
 
-      {obligations.isPending && <p role="status" className="mt-4 text-gray-500">Loading your VAT obligations…</p>}
+      {obligations.isPending && <p role="status" className="mt-4 text-gray-700">Loading your VAT obligations…</p>}
       {notConnected && (
         <p className="mt-4 text-gray-700">
           HMRC is not connected yet.{' '}
@@ -91,7 +91,7 @@ export default function VatPage() {
         </p>
       )}
       {obligations.data && open.length === 0 && (
-        <p className="mt-4 text-gray-500">No open VAT obligations to file.</p>
+        <p className="mt-4 text-gray-700">No open VAT obligations to file.</p>
       )}
       {open.length > 1 && (
         <fieldset className="mt-4">
@@ -196,11 +196,11 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
 
   return (
     <>
-      <p className="mt-4 text-sm text-gray-500">
+      <p className="mt-4 text-sm text-gray-700">
         Period {formatDate(period.start)} to {formatDate(period.end)}
       </p>
 
-      {review.isPending && <p role="status" className="mt-6 text-gray-500">Loading your VAT return…</p>}
+      {review.isPending && <p role="status" className="mt-6 text-gray-700">Loading your VAT return…</p>}
       {review.isError && (
         <p role="alert" className="mt-6 text-red-700">
           Could not load your VAT return. Reload the page to try again.
@@ -213,7 +213,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
             Status: {state.statusLabel}
           </p>
           {review.data.entryCount === 0 && (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-gray-700">
               No VAT-relevant transactions in this period.{state.needsConfirming && ' This is a nil return and still needs confirming.'}
             </p>
           )}
@@ -221,7 +221,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
           <table className="mt-6 w-full max-w-3xl border-collapse text-sm">
             <caption className="sr-only">VAT return boxes for the period</caption>
             <thead>
-              <tr className="border-b border-gray-200 text-left text-gray-500">
+              <tr className="border-b border-gray-200 text-left text-gray-700">
                 <th scope="col" className="py-2 pr-4 font-medium">Box</th>
                 <th scope="col" className="py-2 pr-4 font-medium">Description</th>
                 <th scope="col" className="py-2 text-right font-medium">Amount</th>
@@ -355,7 +355,7 @@ interface PreviewResultProps {
 }
 
 function PreviewResult({ mutation }: PreviewResultProps) {
-  if (mutation.isPending) return <p role="status" className="mt-4 text-sm text-gray-500">Building the preview…</p>;
+  if (mutation.isPending) return <p role="status" className="mt-4 text-sm text-gray-700">Building the preview…</p>;
   if (mutation.isError) {
     return <p role="alert" className="mt-4 text-sm text-red-700">Could not build the preview. Try again.</p>;
   }
@@ -399,7 +399,7 @@ function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: B
         <tr id={detailId}>
           <td colSpan={3} className="bg-gray-50 px-4 py-2">
             {lines.length === 0 ? (
-              <p className="text-gray-500">No transactions contribute to this box.</p>
+              <p className="text-gray-700">No transactions contribute to this box.</p>
             ) : (
               <ul className="divide-y divide-gray-200">
                 {lines.map((line) => (
@@ -421,7 +421,7 @@ function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: B
               </ul>
             )}
             {lines.length < totalLines && (
-              <p className="mt-2 text-gray-500">
+              <p className="mt-2 text-gray-700">
                 Showing the first {lines.length} of {totalLines} transactions, so the list does not add up to the box.
               </p>
             )}

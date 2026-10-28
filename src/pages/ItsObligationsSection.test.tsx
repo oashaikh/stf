@@ -81,6 +81,15 @@ describe('ItsObligationsSection', () => {
     expect(await screen.findByText(/Showing last known dates from 20 Oct 2026/)).toBeTruthy();
     expect(screen.getByText(/HMRC could not be reached just now/)).toBeTruthy();
     expect(screen.getByText('5 Aug 2026')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toMatch(/Showing last known dates/);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('ends the stale notice with a full stop when the server text has none', async () => {
+    renderSection(async () =>
+      Response.json({ ok: true, stale: true, fetchedAt: '2026-10-20T09:00:00.000Z', error: 'HMRC did not answer', obligations: [row({ nextDue: true })] }),
+    );
+    expect((await screen.findByRole('status')).textContent).toMatch(/HMRC did not answer\.$/);
   });
 
   it('shows an error in plain words when the route fails and there is nothing stored', async () => {

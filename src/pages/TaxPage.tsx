@@ -51,7 +51,7 @@ export default function TaxPage() {
         </select>
       </label>
 
-      {estimate.isPending && <p role="status" className="mt-6 text-gray-700">Loading…</p>}
+      {estimate.isPending && <p role="status" className="mt-6 text-gray-700">Loading your tax estimate…</p>}
       {estimate.isError && (
         <p role="alert" className="mt-6 text-red-800">
           Could not load the tax estimate. Please try again.

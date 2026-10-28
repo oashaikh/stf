@@ -28,7 +28,7 @@ afterEach(cleanup);
 describe('VatPreviewPanel', () => {
   it('shows the endpoint, nine box rows with fixed two-decimal amounts, headers and raw JSON', () => {
     render(<VatPreviewPanel preview={preview} />);
-    expect(screen.getByText(/Sandbox/)).toBeInTheDocument();
+    expect(screen.getByText(/Sent to the HMRC test service/)).toBeInTheDocument();
     expect(screen.getByText(/XXXXXX789/)).toBeInTheDocument();
     const rows = screen.getAllByRole('row').slice(1);
     expect(rows).toHaveLength(9);
@@ -36,7 +36,7 @@ describe('VatPreviewPanel', () => {
     expect(within(rows[0]).getByText('£120.50')).toBeInTheDocument();
     expect(within(rows[5]).getByText('£602.00')).toBeInTheDocument();
     expect(screen.getByText('Bearer (hidden)')).toBeInTheDocument();
-    expect(screen.getByText(/Finalised: yes/)).toBeInTheDocument();
+    expect(screen.getByText(/confirmed/)).toBeInTheDocument();
     const raw = screen.getByText('Raw JSON').closest('details')!;
     expect(raw).not.toHaveAttribute('open');
     expect(raw.textContent).toContain('"periodKey": "26C3"');

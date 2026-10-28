@@ -388,14 +388,21 @@ export default function EntriesList({
                   )}
                 </span>
                 <span className="min-w-0">
-                  <span className="text-sm text-gray-700 md:hidden">
-                    Category:{" "}
-                  </span>
-                  <span className="truncate" title={entry.categoryName}>
-                    {entry.categoryName}
-                  </span>
+                  {entry.categoryName && (
+                    <>
+                      <span className="text-sm text-gray-700 md:hidden">
+                        Category:{" "}
+                      </span>
+                      <span className="truncate" title={entry.categoryName}>
+                        {entry.categoryName}
+                      </span>
+                    </>
+                  )}
                 </span>
                 <span className="tabular-nums md:text-right">
+                  <span className="text-sm text-gray-700 md:hidden">
+                    Amount:{" "}
+                  </span>
                   {entry.kind === "income" ? "In " : "Out "}
                   {formatPence(entry.grossPence)}
                 </span>

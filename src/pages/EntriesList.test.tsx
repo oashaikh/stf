@@ -74,6 +74,13 @@ describe('EntriesList', () => {
     expect(screen.getAllByRole('img', { name: 'Receipt attached' })).toHaveLength(1);
   });
 
+  it('labels the amount on a phone row and leaves out the category label when there is no category', async () => {
+    pages[''] = { entries: [entry('e1', { categoryName: '' })], nextCursor: null };
+    await renderList();
+    expect(screen.getByText('Amount:')).toBeInTheDocument();
+    expect(screen.queryByText('Category:')).not.toBeInTheDocument();
+  });
+
   it.each([
     ['From', '2026-04-06', 'from'],
     ['To', '2026-04-05', 'to'],

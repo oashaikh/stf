@@ -12,9 +12,12 @@ export default function TaxIdentifiersSection() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  function load() {
+    setError('');
     fetchTaxIdentifiers().then(setSaved, () => setError('Could not load your tax identifiers.'));
-  }, []);
+  }
+
+  useEffect(load, []);
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -38,6 +41,10 @@ export default function TaxIdentifiersSection() {
       <h2 id="tax-identifiers-heading" className="text-lg font-semibold text-gray-900">Tax identifiers</h2>
       <p className="mt-2 text-gray-700">HMRC needs these for Income Tax submissions. They are stored encrypted and only shown masked.</p>
       {error && <p role="alert" className="mt-2 text-red-800">{error}</p>}
+      {/* Without saved values the only error possible is a failed load, so offer another go. */}
+      {error && !saved && (
+        <button type="button" className={`${secondaryButton} mt-3`} onClick={load}>Try again</button>
+      )}
 
       {saved && !draft && (
         <>

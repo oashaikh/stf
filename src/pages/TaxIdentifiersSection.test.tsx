@@ -44,6 +44,18 @@ describe('TaxIdentifiersSection', () => {
     expect(screen.queryByText(/AB123456C/)).toBeNull();
   });
 
+  it('offers a Retry button when loading fails and shows the values once it works', async () => {
+    const working = globalThis.fetch;
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+    render(<TaxIdentifiersSection />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load your tax identifiers.');
+    expect(screen.queryByRole('button', { name: 'Edit tax identifiers' })).toBeNull();
+    vi.stubGlobal('fetch', working);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('••••••7890')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('keeps the form open and shows the server message when saving fails', async () => {
     render(<TaxIdentifiersSection />);
     fireEvent.click(await screen.findByRole('button', { name: 'Edit tax identifiers' }));

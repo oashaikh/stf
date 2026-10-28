@@ -11,6 +11,7 @@ import TaxPage from './pages/TaxPage.tsx';
 import ReportsPage from './pages/ReportsPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import AppShell from './components/AppShell.tsx';
+import StateMessage from './components/StateMessage.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import { PrivacyPage, TermsPage } from './pages/LegalPages.tsx';
 import { SESSION_QUERY_KEY, fetchSignedIn } from './lib/session.ts';
@@ -26,7 +27,7 @@ const queryClient = new QueryClient({
 
 function AuthGate() {
   const session = useQuery({ queryKey: SESSION_QUERY_KEY, queryFn: fetchSignedIn, staleTime: Infinity, retry: false });
-  if (session.isPending) return <p role="status" className="p-6 text-gray-700">Loading…</p>;
+  if (session.isPending) return <StateMessage kind="loading" className="p-6">Loading…</StateMessage>;
   // A failed check (server down) shows the login page rather than a protected screen: fail closed.
   if (!session.data) return <LoginPage />;
 

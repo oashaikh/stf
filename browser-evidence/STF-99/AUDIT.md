@@ -49,3 +49,22 @@ Each needs a layout, feature, data or route change.
 5. **Tax identifiers load error leaves no way to retry** and hides the Edit button; the page must be reloaded. Adding a retry is a feature. Screenshot: `tax-identifiers-error-1440`.
 6. **Settings and Receipts also use `p-8` gutters** (same fix as item 1) but are not on this ticket's screens list. Screenshot: `tax-identifiers-empty-390`.
 7. **VAT tables are capped at `max-w-3xl` and the Tax cards at `max-w-xl`** while the Income Tax table runs the full 1440 width, so the Tax page has two column widths. Unifying means a layout change. Screenshot: `tax-page-1440`.
+
+## Fixes made, and the skill that drove each
+
+After screenshots are in `after/`, same 24 scenarios, same names, at 1440 and 390 (light only). They use the mock API's invented records.
+
+| # | Fix | Driving skill | Commit |
+|---|-----|---------------|--------|
+| 1 | VAT page gutters `p-8` to `p-4 md:p-8`, matching Tax | ui-styling | ed29914 |
+| 2 | VAT secondary text `text-gray-500` to `text-gray-700` (labels, loading, empty, headers) | ui-ux-pro-max (contrast) | ed29914 |
+| 3 | VAT history row centred, period-key link `min-w-[44px]` | ui-ux-pro-max (hit targets) | ed29914 |
+| 4 | Preview URL breaks at word boundaries, not mid-word | ui-ux-pro-max (truncation, overflow) | ed29914 |
+| 5 | Preview copy tidied | humanize | ed29914 |
+| 6 | Income Tax setup link on its own line, still 44px tall | taste-skill (spacing rhythm) | b1f2393 |
+| 7 | "Income Tax" capitalised in body copy; Tax loading line now says "Loading your tax estimate…" | humanize | b1f2393 |
+| 8 | Stale-dates notice uses `role="status"` instead of `role="alert"` | ui-ux-pro-max (accessibility) | b1f2393 |
+
+Re-measured at 390 on the after build: no horizontal overflow on any scenario, and the VAT history link no longer appears among sub-44px targets. The only items under 44px are still the native radio/checkbox inputs inside 44px labels.
+
+Not in the screenshot set: no dark theme exists, so there are no dark captures.

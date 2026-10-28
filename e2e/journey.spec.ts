@@ -261,7 +261,7 @@ test('owner sees Income Tax obligations with the next due one marked, and last k
     }),
   );
   await page.reload();
-  await expect(page.getByRole('alert').filter({ hasText: 'Showing last known dates' })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Showing last known dates' })).toBeVisible();
 });
 
 const boxRow = (page: Page, box: number) => page.getByRole('row').filter({ has: page.getByRole('cell', { name: String(box), exact: true }) });

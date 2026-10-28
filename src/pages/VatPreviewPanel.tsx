@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import type { VatPreview } from '../lib/hmrc/vatApi';
 import type { VatReturnPayload } from '../lib/hmrc/client';
 import { formatPence } from '../lib/money';
@@ -26,7 +27,15 @@ export default function VatPreviewPanel({ preview }: { preview: VatPreview }) {
   return (
     <div className="mt-4 text-sm text-gray-900">
       <p>
-        <span className="font-medium">{endpoint.sandbox ? 'Sandbox' : 'Live'}</span> {endpoint.method} <span className="break-words">{endpoint.url}</span>
+        <span className="font-medium">{endpoint.sandbox ? 'Sent to the HMRC test service' : 'Sent to HMRC'}</span>{' '}
+        <span className="break-words">
+          {endpoint.url.split('/').map((part, index) => (
+            <Fragment key={index}>
+              {index > 0 && <>/<wbr /></>}
+              {part}
+            </Fragment>
+          ))}
+        </span>
       </p>
 
       <table className="mt-4 w-full border-collapse">

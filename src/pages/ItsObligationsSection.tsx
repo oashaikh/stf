@@ -105,7 +105,7 @@ export default function ItsObligationsSection() {
           {result.stale && (
             <p role="status" className="mt-4 text-gray-900">
               {result.fetchedAt && `Showing last known dates from ${formatDate(result.fetchedAt)}. `}
-              {result.error}
+              {result.error && (/[.!?]$/.test(result.error) ? result.error : `${result.error}.`)}
             </p>
           )}
           {result.obligations.length === 0 && <p className="mt-4 text-gray-700">No Income Tax obligations found.</p>}

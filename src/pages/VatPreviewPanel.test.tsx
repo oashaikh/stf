@@ -28,7 +28,7 @@ afterEach(cleanup);
 describe('VatPreviewPanel', () => {
   it('shows the endpoint, nine box rows with fixed two-decimal amounts, headers and raw JSON', () => {
     render(<VatPreviewPanel preview={preview} />);
-    expect(screen.getByText(/Sandbox/)).toBeInTheDocument();
+    expect(screen.getByText(/Sent to the HMRC test service/)).toBeInTheDocument();
     expect(screen.getByText(/XXXXXX789/)).toBeInTheDocument();
     const rows = screen.getAllByRole('row').slice(1);
     expect(rows).toHaveLength(9);

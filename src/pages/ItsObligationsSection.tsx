@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { formatDate } from '../lib/dates';
 import { fetchItsObligations, type ItsObligationRow, type ItsSetupGap } from '../lib/hmrc/itsObligationsApi';
+import StateMessage from '../components/StateMessage';
 
 const SETUP_STEPS: Record<ItsSetupGap, { text: string; link: string }> = {
   'not-connected': { text: 'Connect HMRC to see your Income Tax dates.', link: 'Connect HMRC in Settings' },
@@ -86,9 +87,9 @@ export default function ItsObligationsSection() {
       <h2 id="its-obligations-heading" className="text-lg font-semibold text-gray-900">Income Tax obligations</h2>
 
       {obligations.isError && (
-        <p role="alert" className="mt-4 text-red-800">
+        <StateMessage kind="error">
           Could not load your Income Tax dates. Reload the page to try again.
-        </p>
+        </StateMessage>
       )}
 
       {result && 'gap' in result && (

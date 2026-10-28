@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import StateMessage from '../components/StateMessage';
 import {
   ACCOUNT_TYPE_GROUPS,
   createAccount,
@@ -80,7 +81,7 @@ export default function ChartOfAccountsSection() {
     <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-4 sm:p-6" aria-labelledby="accounts-heading">
       <h2 id="accounts-heading" className="text-lg font-semibold text-gray-900">Chart of accounts</h2>
       <p className="mt-2 text-gray-700">The income and expense categories you file under.</p>
-      {loadError && <p className="mt-2 text-red-800" role="alert">{loadError}</p>}
+      {loadError && <StateMessage kind="error" className="mt-2">{loadError}</StateMessage>}
 
       <label className="mt-4 flex min-h-[44px] items-center gap-3 text-gray-900">
         <input

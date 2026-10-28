@@ -16,6 +16,7 @@ import {
 } from "../lib/entryFilters";
 import { formatPence } from "../lib/money";
 import { useVatObligations } from "./useVatObligations";
+import StateMessage from '../components/StateMessage';
 
 const fieldClass =
   "mt-1 min-h-[44px] w-full rounded-md border border-gray-400 bg-white px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700";
@@ -313,37 +314,31 @@ export default function EntriesList({
     >
       <FilterBar filters={filters} onChange={setFilters} />
       {rangeReversed ? (
-        <p role="alert" className="mt-6 text-red-800">
+        <StateMessage kind="error" className="mt-6">
           The From date is after the To date. Change one of them to see entries.
-        </p>
+        </StateMessage>
       ) : entries.isPending ? (
-        <p role="status" className="mt-6 text-gray-700">
-          Loading entries…
-        </p>
+        <StateMessage kind="loading" className="mt-6">Loading entries…</StateMessage>
       ) : entries.isError ? (
-        <p role="alert" className="mt-6 text-red-800">
-          Could not load your entries. Please try again.
-        </p>
+        <StateMessage kind="error" className="mt-6">Could not load your entries. Please try again.</StateMessage>
       ) : rows.length === 0 ? (
-        <div className="mt-6 text-gray-700">
-          {isFiltered ? (
-            <>
-              <p>No entries match these filters.</p>
-              <button
-                type="button"
-                className={`${buttonClass} mt-2`}
-                onClick={() => setFilters(DEFAULT_ENTRY_FILTERS)}
-              >
-                Clear filters
-              </button>
-            </>
-          ) : (
-            <p>
-              No entries yet. Choose Add entry above, fill in the date,
-              description, category and amount, and save it as a draft.
-            </p>
-          )}
-        </div>
+        isFiltered ? (
+          <>
+            <StateMessage kind="empty" className="mt-6">No entries match these filters.</StateMessage>
+            <button
+              type="button"
+              className={`${buttonClass} mt-2`}
+              onClick={() => setFilters(DEFAULT_ENTRY_FILTERS)}
+            >
+              Clear filters
+            </button>
+          </>
+        ) : (
+          <StateMessage kind="empty" className="mt-6">
+            No entries yet. Choose Add entry above, fill in the date,
+            description, category and amount, and save it as a draft.
+          </StateMessage>
+        )
       ) : (
         <>
           <ul className="mt-6 divide-y divide-gray-200 rounded-lg border border-gray-300 bg-white">

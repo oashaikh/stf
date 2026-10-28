@@ -40,7 +40,7 @@ Starts at: Signed-in owner opens the main nav
 
 ## Tasks
 
-- [ ] **Task 1: Invoke design skills, capture BEFORE screenshots and write the defect list**
+- [x] **Task 1: Invoke design skills, capture BEFORE screenshots and write the defect list**
   - Intent: Invoke ui-ux-pro-max:ui-ux-pro-max, ui-styling:ui-styling and taste-skill:taste-skill before looking at any screen. Run the app against the mock API (JOURNEY_MOCK=1, existing e2e/mockApi.ts and the captureEvidence helper in e2e/journey.spec.ts, which already saves 1440 and 390 full-page shots). Capture VAT page, VAT preview panel, VAT history, VAT obligations, Tax page, Income Tax obligations and Tax identifiers (Settings) at 1440 and 390, including the loading, empty, error and not-connected states the mock can produce. Save them to browser-evidence/STF-99/before/. The app ships light only (src/styles/index.css has no dark tokens), so dark is recorded as not applicable. Audit each screen against: spacing rhythm, type scale, contrast, focus ring (index.css), 44px hit targets at 390, truncation/overflow (/), empty/loading/error states (), money alignment (), and copy. Write the numbered defect list, and the separate 'Proposed, not done' list for anything that needs a layout, feature, data or route change, to browser-evidence/STF-99/AUDIT.md. Also check git log for any other STF-3..98 ticket that touched these files. No source edits.
   - Files: `browser-evidence/STF-99/before/`, `browser-evidence/STF-99/AUDIT.md`
   - Acceptance criteria the planner set:
@@ -48,6 +48,7 @@ Starts at: Signed-in owner opens the main nav
     - 14 before screenshots exist (7 screens x 1440/390) under browser-evidence/STF-99/before/, and none contain real data
     - AUDIT.md lists each defect with file, screen and viewport, plus a 'Proposed, not done' section
     - No file under src/ or api/ is modified
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 2: Fix VAT screen defects in place (page, preview panel, history, obligations)** (after 1)
   - Intent: Fix the VAT-side defects from AUDIT.md in VatPage.tsx, VatPreviewPanel.tsx, VatHistoryList.tsx and VatObligationsList.tsx. Known candidates to check: raw pixel sizes such as min-h-[44px] versus the min-h-11 used elsewhere, text-gray-500 on white for small text, red-700 versus red-800 inconsistency (VatObligationsList uses text-red-700 and blue-700, siblings use 800), max-w-3xl set on a table, and copy that is not plain. Run every changed visible string through humanize:humanize. Do not move sections or change behaviour, data, routes or the layout. Update the matching *.test.tsx only where a changed string or class is asserted.

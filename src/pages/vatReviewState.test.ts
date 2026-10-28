@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boxLabel, reviewState } from './vatReviewState';
+import { box5ReviewNote, box5SentNote, boxLabel, reviewState } from './vatReviewState';
 
 const base = { status: 'draft' as const, declarationTicked: true, confirmPending: false };
 
@@ -85,5 +85,19 @@ describe('boxLabel', () => {
   it('labels a negative box 5 as a refund', () => {
     expect(boxLabel(5, -1200)).toMatch(/refund/);
     expect(boxLabel(5, 1200)).not.toMatch(/refund/);
+  });
+});
+
+describe('box 5 notes', () => {
+  it('explains the signed review figure for a refund and a payment', () => {
+    expect(box5ReviewNote(-4500)).toBe('£45.00 refund due to you');
+    expect(box5ReviewNote(4500)).toBe('£45.00 to pay');
+    expect(box5ReviewNote(0)).toBeNull();
+  });
+
+  it('explains the unsigned figure HMRC receives for a refund and a payment', () => {
+    expect(box5SentNote(4500, true)).toBe('Sent to HMRC as £45.00 (refund)');
+    expect(box5SentNote(4500, false)).toBe('Sent to HMRC as £45.00 (payment)');
+    expect(box5SentNote(0, false)).toBeNull();
   });
 });

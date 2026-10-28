@@ -80,7 +80,10 @@ function InvoiceList({ onOpen }: { onOpen: (view: View) => void }) {
                 <span className="truncate text-right text-gray-900 md:text-left" title={row.clientName}>{row.clientName}</span>
                 <span className="text-sm text-gray-700"><span className="md:hidden">Issued </span>{formatDate(row.issueDate)}</span>
                 <span className="text-right text-sm text-gray-700 md:text-left"><span className="md:hidden">Due </span>{formatDate(row.dueDate)}</span>
-                <span className="tabular-nums text-gray-900 md:text-right">{formatPence(row.totalPence)}</span>
+                <span className="text-gray-900 md:text-right">
+                  <span className="text-sm text-gray-700 md:hidden">Total </span>
+                  <span className="tabular-nums">{formatPence(row.totalPence)}</span>
+                </span>
                 <span className="text-right text-sm capitalize text-gray-800 md:text-left">{row.status}</span>
               </button>
             </li>

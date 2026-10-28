@@ -212,10 +212,22 @@ function ReadOnlyInvoice({ invoice, onBack, onChanged }: { invoice: ApiInvoice; 
         {invoice.lines.map((line) => (
           <li key={line.id} className="grid grid-cols-2 gap-1 p-3 md:grid-cols-[1fr_6rem_8rem_5rem_8rem]">
             <span className="col-span-2 truncate text-gray-900 md:col-span-1" title={line.description}>{line.description}</span>
-            <span className="tabular-nums text-gray-700 md:text-right">{formatQuantity(line.quantity)}</span>
-            <span className="tabular-nums text-gray-700 md:text-right">{formatPence(line.unitPricePence)}</span>
-            <span className="tabular-nums text-gray-700 md:text-right">{line.vatRatePercent}%</span>
-            <span className="tabular-nums text-gray-900 md:text-right">{formatPence(line.totalPence)}</span>
+            <span className="flex justify-between gap-2 text-gray-700 md:justify-end">
+              <span className="text-sm md:hidden">Qty</span>
+              <span className="tabular-nums">{formatQuantity(line.quantity)}</span>
+            </span>
+            <span className="flex justify-between gap-2 text-gray-700 md:justify-end">
+              <span className="text-sm md:hidden">Unit price</span>
+              <span className="tabular-nums">{formatPence(line.unitPricePence)}</span>
+            </span>
+            <span className="flex justify-between gap-2 text-gray-700 md:justify-end">
+              <span className="text-sm md:hidden">VAT rate</span>
+              <span className="tabular-nums">{line.vatRatePercent}%</span>
+            </span>
+            <span className="flex justify-between gap-2 text-gray-900 md:justify-end">
+              <span className="text-sm text-gray-700 md:hidden">Line total</span>
+              <span className="tabular-nums">{formatPence(line.totalPence)}</span>
+            </span>
           </li>
         ))}
       </ul>
@@ -340,10 +352,10 @@ function DraftEditor({ invoice, ownerHasVatNumber, onBack, onChanged }: { invoic
               </Field>
             </div>
             <Field label="Quantity">
-              <input inputMode="decimal" className={`${inputClass} tabular-nums`} value={line.quantity} onChange={(event) => setLine(index, { quantity: event.target.value })} />
+              <input inputMode="decimal" className={`${inputClass} text-right tabular-nums`} value={line.quantity} onChange={(event) => setLine(index, { quantity: event.target.value })} />
             </Field>
             <Field label="Unit price (£)">
-              <input inputMode="decimal" className={`${inputClass} tabular-nums`} value={line.unitPrice} onChange={(event) => setLine(index, { unitPrice: event.target.value })} />
+              <input inputMode="decimal" className={`${inputClass} text-right tabular-nums`} value={line.unitPrice} onChange={(event) => setLine(index, { unitPrice: event.target.value })} />
             </Field>
             <Field label="VAT rate">
               <select className={inputClass} value={line.vatRatePercent} onChange={(event) => setLine(index, { vatRatePercent: Number(event.target.value) as InvoiceFormLine['vatRatePercent'] })}>

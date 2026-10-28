@@ -5,6 +5,7 @@ import { fetchAccounts } from '../lib/accountsApi';
 import { formatDate } from '../lib/dates';
 import { parseEntryAmount } from '../lib/entryForm';
 import { formatPence } from '../lib/money';
+import StateMessage from '../components/StateMessage';
 import {
   createTemplate,
   deleteTemplate,
@@ -263,16 +264,12 @@ export default function RecurringEntriesSection({ hasVatNumber }: { hasVatNumber
       )}
 
       {templates.isPending && (
-        <p role="status" className="mt-4 text-gray-700">
-          Loading recurring entries…
-        </p>
+        <StateMessage kind="loading">Loading recurring entries…</StateMessage>
       )}
       {templates.isError && (
-        <p role="alert" className="mt-4 text-red-800">
-          Could not load recurring entries. Please try again.
-        </p>
+        <StateMessage kind="error">Could not load recurring entries. Please try again.</StateMessage>
       )}
-      {templates.data?.length === 0 && <p className="mt-4 text-gray-700">No recurring entries yet.</p>}
+      {templates.data?.length === 0 && <StateMessage kind="empty">No recurring entries yet.</StateMessage>}
       {togglePause.isError && (
         <p role="alert" className="mt-4 text-red-800">
           {togglePause.error.message}

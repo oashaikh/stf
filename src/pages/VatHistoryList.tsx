@@ -40,11 +40,11 @@ function FiledWithHmrc({ periodKey }: { periodKey: string }) {
           View as filed with HMRC
         </button>
       )}
-      {filed.isPending && requested && <p role="status">Asking HMRC for this return…</p>}
+      {filed.isPending && requested && <StateMessage kind="loading" className="">Asking HMRC for this return…</StateMessage>}
       {filed.isError && (
-        <p role="alert" className="text-red-800">
+        <StateMessage kind="error" className="">
           Could not get this return from HMRC. Check HMRC is connected in Settings, then try again.
-        </p>
+        </StateMessage>
       )}
       {filed.data && (
         <>

@@ -15,6 +15,7 @@ import {
 } from '../lib/mileageApi';
 import { formatPence } from '../lib/money';
 import { currentTaxYear, TAX_BANDS } from '../lib/taxBands';
+import StateMessage from '../components/StateMessage';
 
 // Newest first, only years that have rates to claim with.
 const TAX_YEARS = Object.keys(TAX_BANDS).sort().reverse();
@@ -199,12 +200,8 @@ export default function MileageSection() {
         </select>
       </label>
 
-      {mileage.isPending && <p role="status" className="mt-4 text-gray-700">Loading mileage…</p>}
-      {mileage.isError && (
-        <p role="alert" className="mt-4 text-red-800">
-          Could not load mileage. Please try again.
-        </p>
-      )}
+      {mileage.isPending && <StateMessage kind="loading">Loading mileage…</StateMessage>}
+      {mileage.isError && <StateMessage kind="error">Could not load mileage. Please try again.</StateMessage>}
 
       {mileage.data && (
         <>

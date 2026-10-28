@@ -322,25 +322,23 @@ export default function EntriesList({
       ) : entries.isError ? (
         <StateMessage kind="error" className="mt-6">Could not load your entries. Please try again.</StateMessage>
       ) : rows.length === 0 ? (
-        <div className="mt-6 text-gray-700">
-          {isFiltered ? (
-            <>
-              <p>No entries match these filters.</p>
-              <button
-                type="button"
-                className={`${buttonClass} mt-2`}
-                onClick={() => setFilters(DEFAULT_ENTRY_FILTERS)}
-              >
-                Clear filters
-              </button>
-            </>
-          ) : (
-            <p>
-              No entries yet. Choose Add entry above, fill in the date,
-              description, category and amount, and save it as a draft.
-            </p>
-          )}
-        </div>
+        isFiltered ? (
+          <>
+            <StateMessage kind="empty" className="mt-6">No entries match these filters.</StateMessage>
+            <button
+              type="button"
+              className={`${buttonClass} mt-2`}
+              onClick={() => setFilters(DEFAULT_ENTRY_FILTERS)}
+            >
+              Clear filters
+            </button>
+          </>
+        ) : (
+          <StateMessage kind="empty" className="mt-6">
+            No entries yet. Choose Add entry above, fill in the date,
+            description, category and amount, and save it as a draft.
+          </StateMessage>
+        )
       ) : (
         <>
           <ul className="mt-6 divide-y divide-gray-200 rounded-lg border border-gray-300 bg-white">

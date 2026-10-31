@@ -243,6 +243,6 @@ Checked on 2026-10-31 against this branch.
 | Imported file (CSV, bank statement) | No | export exists (`api/entries-export.ts`), import does not; no CSV parser is used on request data |
 | Rich text or markdown | No | no markdown library in `package.json`; `grep -rnE "dangerouslySetInnerHTML\|innerHTML" src` finds nothing, so all user text renders as React text |
 | User-supplied links | No | no field stores a URL; the only `<img src>` is a server-generated QR data URL in `src/pages/AuthenticatorSection.tsx` |
-| AI input | Prompt only | `src/lib/receiptPrompt.ts` builds a fixed system prompt and an optional `imageNote`, and `parseReceiptDraft` only checks the reply is a JSON object (**GAP**: no schema check, task 4). Nothing in `api/` or `src/` imports it yet, so no user text reaches a model today |
+| AI input | Prompt only | `src/lib/receiptPrompt.ts` builds a fixed system prompt (no keys or settings) and wraps the optional `imageNote` in `<receipt_note>` tags with a never-follow instruction; output is always a draft the user confirms. `parseReceiptDraft` only checks the reply is a JSON object (**GAP**: no field-level schema check; do it when the extraction route is built). Nothing in `api/` or `src/` imports it yet, so no user text reaches a model today |
 
 When one of these classes is added, move its row into the tables above in the same pull request.

@@ -23,6 +23,3 @@ export const INERT_TEXT: Record<string, string> = {
 
 /** Everything a format-bound field (date, number, uuid, choice, digits) must refuse. */
 export const NOT_A_FORMAT: string[] = [...Object.values(REJECTED_TEXT), ...Object.values(INERT_TEXT)];
-
-/** Uploads the app must not accept as a receipt or import. */
-export const WRONG_FILE_TYPES = ['text/html', 'image/svg+xml', 'application/x-msdownload', 'application/javascript'];

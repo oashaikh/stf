@@ -84,6 +84,10 @@
   - Risk: Large test volume; use table-driven tests to stay near the size guide.
   - Commit: (none — no code change for this task)
 
-- [x] **Task 6: Fix: address 8 review findings (cycle 1)** (after 5)
+- [x] **Task 6: Fix (recovered): address 8 review findings (cycle 1)** (after 5)
   - Intent: Review left 8 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found no blocking defects. I read the diff and the login handler, and ran no tests; the orchestrator's typecheck, test, lint and build runs all passed.  The agent is fixing them; nothing is needed from you.
   - Commit: `5757e0886eb8`
+
+- [x] **Task 7: Fix: address 8 review findings (cycle 0)** (after 6)
+  - Intent: Review left 8 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found no defects. The earlier unused WRONG_FILE_TYPES export is gone. The per-client throttle is keyed consistently across login, MFA and authenticator. The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

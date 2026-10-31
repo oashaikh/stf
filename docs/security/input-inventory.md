@@ -56,7 +56,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/cron/create-recurring-entries.ts` | any | Cron |
 | `api/cron/prepare-vat-draft.ts` | any | Cron |
 | `api/cron/refresh-hmrc-tokens.ts` | any | Cron |
-| `server/src/index.ts` | none | Fastify control plane: listens on 127.0.0.1 by default and registers no routes, so it takes no input. `server/src/scheduled-jobs/*` read the database and HMRC only. |
+| `server/src/index.ts` | none | Fastify control plane: listens on 127.0.0.1 by default and registers no routes, so it takes no input. `server/src/scheduled-jobs/index.ts` and `refreshHmrcTokens.ts` read the database and HMRC only. |
 
 ## Sign-in
 

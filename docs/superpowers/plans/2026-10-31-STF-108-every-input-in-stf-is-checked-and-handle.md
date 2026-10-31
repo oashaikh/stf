@@ -27,7 +27,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Write the input inventory document**
+- [x] **Task 1: Write the input inventory document**
   - Intent: Create docs/security/input-inventory.md listing every input with its server-side rule and where it is enforced: login password and MFA code; entries body and list query (search, dates, amounts, cursor); invoices and invoice-pdf id; accounts (code, name, type, id); mileage trips; recurring entries; business profile, tax identifiers, VAT number and trading allowance; hmrc mode, callback (code/state) and its-businesses; vat preview/return/submit/return-confirm; export and report query params; cron routes (auth header); trusted headers (cookie, fraud-prevention headers, x-forwarded-for); the receipt/AI prompt path; and uploads. Each row says validated by (zod schema, hand validator or none) and marks gaps. Include a short 'how to update' note and state which input classes do not exist (webhooks, imported files, rich text), verified by grep. Done when every api/*.ts, api/*/*.ts and server/src route is covered.
   - Files: `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -36,6 +36,7 @@
     - Upload, webhook, imported-file, rich-text and AI input classes are each listed as present or absent with evidence
     - Doc explains it must be updated whenever an input changes
   - Risk: Documentation only. Gaps found feed tasks 2 to 4.
+  - Commit: `f764e5587850`
 
 - [ ] **Task 2: Shared server text checks and close the validation gaps** (after 1)
   - Intent: Add one shared zod text helper (api/_lib/inputRules.ts) that trims, rejects control characters (except newline/tab where multiline is allowed) and enforces max length, and reuse it in the existing schemas (entries, invoices, accounts, mileage, recurring entries, business profile, tax identifiers). Fix the gaps task 1 found: hand validators in accounts, mileage, login, mfa and hmrc callback lacking max length or control-character rejection, and unbounded password length. Reject with a clear 400 message, keep existing error codes, keep valid input working. Keep escapeLike and parameterised queries. Change shared functions, not single callers.

@@ -50,7 +50,7 @@
   - Risk: Touches many handlers; must not change behaviour for valid input or any layout.
   - Commit: `8cd5ee097f0c`
 
-- [ ] **Task 3: Rate limit sign-in, MFA and message-sending routes** (after 1)
+- [x] **Task 3: Rate limit sign-in, MFA and message-sending routes** (after 1)
   - Intent: Review api/_lib/loginThrottle.ts and its use in login and MFA. Ensure MFA code attempts and any route that sends email or messages are rate limited per client, with a tighter limit on sign-in, via one shared limiter reused by the routes. Add no dependency unless the existing throttle cannot be reused. If no route sends email, record that in the inventory. Derive the client key from a trusted source, not a spoofable header taken at face value.
   - Files: `api/_lib/loginThrottle.ts`, `api/auth/login.ts`, `api/auth/mfa.ts`, `api/_lib/auth.ts`, `api/auth/__tests__/login.test.ts`, `api/auth/__tests__/mfa.test.ts`, `api/_lib/__tests__/loginThrottle.test.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -59,6 +59,7 @@
     - Queries added or changed are indexed and bounded, and noted in the query audit comment
     - Existing auth tests pass
   - Risk: Authentication and session work: Opus at high per . A mistake could lock out the owner.
+  - Commit: `660ced0da781`
 
 - [ ] **Task 4: Safe display, links, AI prompt and upload guards** (after 1)
   - Intent: Verify and enforce safe output: confirm no dangerouslySetInnerHTML or innerHTML in src, that user text renders as text in React and in api/_lib/invoicePdf.ts, and that any user-supplied URL rendered as a link allows http/https only (one small helper in src/lib if such links exist). Review src/lib/receiptPrompt.ts so receipt text is passed as delimited data, not instructions, with no keys or settings in the prompt, and output stays a draft. Record or enforce upload type, size and safe-name rules where ReceiptsPage submits; document as absent if no upload endpoint exists. Check the CSV export neutralises formula-leading characters (= + - @) in entriesExport and fix there if not. Change only real gaps.

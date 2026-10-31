@@ -61,7 +61,7 @@
   - Risk: Authentication and session work: Opus at high per . A mistake could lock out the owner.
   - Commit: `660ced0da781`
 
-- [ ] **Task 4: Safe display, links, AI prompt and upload guards** (after 1)
+- [x] **Task 4: Safe display, links, AI prompt and upload guards** (after 1)
   - Intent: Verify and enforce safe output: confirm no dangerouslySetInnerHTML or innerHTML in src, that user text renders as text in React and in api/_lib/invoicePdf.ts, and that any user-supplied URL rendered as a link allows http/https only (one small helper in src/lib if such links exist). Review src/lib/receiptPrompt.ts so receipt text is passed as delimited data, not instructions, with no keys or settings in the prompt, and output stays a draft. Record or enforce upload type, size and safe-name rules where ReceiptsPage submits; document as absent if no upload endpoint exists. Check the CSV export neutralises formula-leading characters (= + - @) in entriesExport and fix there if not. Change only real gaps.
   - Files: `api/_lib/entriesExport.ts`, `src/lib/receiptPrompt.ts`, `src/lib/safeUrl.ts`, `src/pages/ReceiptsPage.tsx`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -71,6 +71,7 @@
     - Receipt prompt wraps user content as data with an instruction not to follow it, and output remains a draft
     - Upload rules are enforced or the inventory states there is no upload endpoint
   - Risk: Some items may be no-ops; change only what is a real gap. ReceiptsPage change must not alter layout.
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 5: Malicious-input test suite across every input class** (after 2, 3, 4)
   - Intent: Add one shared fixture of hostile strings (script tags, HTML, SQL fragments, 10k-char values, control characters and NUL, path traversal, wrong file types, formula prefixes) and run it through each input class: entries, invoices, accounts, mileage, recurring entries, business profile, tax identifiers, VAT number, trading allowance, login/MFA, list query params, export params. Assert each is rejected with 400 or round-trips as inert text via fake stores (no live DB). Add a component test that hostile text renders as text on entries list and invoices. Add a test that fails when an api route file is missing from the inventory doc.

@@ -9,19 +9,23 @@ const ENV = { OWNER_PASSWORD: PASSWORD, SESSION_SECRET: 'a-test-session-secret-o
 const NOW = new Date('2026-10-26T12:00:00Z');
 
 function memoryRows(): LoginAttemptRows {
-  let attempts: Date[] = [];
+  let attempts: { key: string; at: Date }[] = [];
   return {
-    async insert(at) {
-      attempts.push(at);
+    async insert(key, at) {
+      attempts.push({ key, at });
     },
-    async latestSince(since, limit) {
-      return attempts.filter((at) => at > since).sort((a, b) => b.getTime() - a.getTime()).slice(0, limit);
+    async latestSince(key, since, limit) {
+      return attempts
+        .filter((row) => row.key === key && row.at > since)
+        .map((row) => row.at)
+        .sort((a, b) => b.getTime() - a.getTime())
+        .slice(0, limit);
     },
     async deleteBefore(cutoff) {
-      attempts = attempts.filter((at) => at > cutoff);
+      attempts = attempts.filter((row) => row.at > cutoff);
     },
-    async deleteAll() {
-      attempts = [];
+    async deleteForClient(key) {
+      attempts = attempts.filter((row) => row.key !== key);
     },
   };
 }
@@ -34,8 +38,14 @@ function setup(now: () => Date = () => NOW) {
   const throttle = createLoginThrottle(memoryRows());
   const totp = { isEnabled: vi.fn(async () => false) };
   const handler = createLoginHandler({ throttle, users, totp, env: ENV, now });
-  const login = (password: unknown) =>
-    handler(new Request('https://x.test/api/auth/login', { method: 'POST', body: JSON.stringify({ password }) }));
+  const login = (password: unknown, address = '203.0.113.7') =>
+    handler(
+      new Request('https://x.test/api/auth/login', {
+        method: 'POST',
+        headers: { 'x-vercel-forwarded-for': address },
+        body: JSON.stringify({ password }),
+      }),
+    );
   return { login, users, handler, totp };
 }
 
@@ -72,6 +82,27 @@ describe('POST /api/auth/login', () => {
     expect(response.status).toBe(429);
     expect(response.headers.get('set-cookie')).toBeNull();
     expect(Number(response.headers.get('retry-after'))).toBe(LOCKOUT_MS / 1000);
+  });
+
+  it('does not refuse a second client because the first was locked out', async () => {
+    const { login } = setup();
+    for (let i = 0; i < 5; i += 1) await login(WRONG, '198.51.100.9');
+    expect((await login(PASSWORD, '198.51.100.9')).status).toBe(429);
+    expect((await login(PASSWORD, '203.0.113.7')).status).toBe(200);
+  });
+
+  it('cannot dodge the lockout by rotating a spoofed x-forwarded-for', async () => {
+    const { handler } = setup();
+    const attempt = (spoof: string) =>
+      handler(
+        new Request('https://x.test/api/auth/login', {
+          method: 'POST',
+          headers: { 'x-vercel-forwarded-for': '198.51.100.9', 'x-forwarded-for': spoof },
+          body: JSON.stringify({ password: WRONG }),
+        }),
+      );
+    for (let i = 0; i < 5; i += 1) await attempt(`10.0.0.${i}`);
+    expect((await attempt('10.0.0.99')).status).toBe(429);
   });
 
   it('accepts the right password again once the lockout has passed', async () => {

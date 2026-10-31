@@ -69,7 +69,9 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `code` | authenticator body | same as mfa `code`, plus the same lockout | `api/settings/authenticator.ts` |
 | logout | POST, no input | method only | `api/auth/logout.ts` |
 
-Rate limits: login, MFA and authenticator confirm share the failed-attempt lockout. No per-client limit on any other route. **GAP** (SEC-14), task 3.
+Rate limits: login, MFA and authenticator confirm share one failed-attempt lockout (`api/_lib/loginThrottle.ts`): 5 failures in 15 minutes locks that client out with 429 and `Retry-After`. The bucket is keyed per client by a SHA-256 hash of `x-vercel-forwarded-for`, the header Vercel sets at the edge. `x-forwarded-for` is never read because a client can send it; with no trusted header everyone shares one bucket. Rows are indexed on `(client_key, attempted_at)`, read with a limit of 5 and pruned past the window.
+
+No route sends email or messages (no mail or SMS dependency or call in `api/` or `server/`), so there is nothing to limit there. The other authenticated routes have no per-client limit: they sit behind the single-owner session.
 
 ## Entries
 

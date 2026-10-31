@@ -1,6 +1,6 @@
 import type { ApiError } from '../../src/model/types.js';
 import { databaseUsers, type UserStore } from '../_lib/auth.js';
-import { loginThrottle } from '../_lib/loginThrottle.js';
+import { clientKey, loginThrottle } from '../_lib/loginThrottle.js';
 import {
   challengeCookie,
   createChallengeToken,
@@ -36,15 +36,16 @@ export function createLoginHandler(deps: LoginDeps) {
       }
 
       // Lockout comes first so a locked client never learns whether the password was right.
+      const client = clientKey(request);
       const now = deps.now();
-      const lockedUntil = await deps.throttle.lockedUntil(now);
+      const lockedUntil = await deps.throttle.lockedUntil(client, now);
       if (lockedUntil) {
         const retryAfter = Math.max(1, Math.ceil((lockedUntil.getTime() - now.getTime()) / 1000));
         return refuse(429, 'Too many attempts', 'LOCKED', { 'Retry-After': String(retryAfter) });
       }
 
       if (!verifyOwnerPassword(password, deps.env)) {
-        await deps.throttle.recordFailure(now);
+        await deps.throttle.recordFailure(client, now);
         return refuse(401, 'Invalid password', 'UNAUTHORIZED');
       }
 
@@ -56,7 +57,7 @@ export function createLoginHandler(deps: LoginDeps) {
           { headers: { 'Set-Cookie': challengeCookie(createChallengeToken(now, deps.env)) } },
         );
       }
-      await deps.throttle.clear();
+      await deps.throttle.clear(client);
       const token = createSessionToken(now, deps.env);
       return Response.json({ ok: true }, { headers: { 'Set-Cookie': sessionCookie(token) } });
     } catch (error) {

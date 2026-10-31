@@ -1,5 +1,5 @@
 import { withAuth, type AuthDeps } from '../_lib/auth.js';
-import { loginThrottle } from '../_lib/loginThrottle.js';
+import { clientKey, loginThrottle } from '../_lib/loginThrottle.js';
 import { generateSecret, otpauthUri, qrCodeDataUrl } from '../_lib/totp.js';
 import { totp } from '../_lib/totpStore.js';
 
@@ -48,8 +48,9 @@ export function createAuthenticatorHandler(deps: AuthenticatorDeps, authDeps?: A
       return refuse(400, 'code must be a non-empty string', 'BAD_REQUEST');
     }
 
+    const client = clientKey(request);
     const now = deps.now();
-    const lockedUntil = await deps.throttle.lockedUntil(now);
+    const lockedUntil = await deps.throttle.lockedUntil(client, now);
     if (lockedUntil) {
       const retryAfter = Math.max(1, Math.ceil((lockedUntil.getTime() - now.getTime()) / 1000));
       return refuse(429, 'Too many attempts', 'LOCKED', { 'Retry-After': String(retryAfter) });
@@ -58,14 +59,14 @@ export function createAuthenticatorHandler(deps: AuthenticatorDeps, authDeps?: A
     if (action === 'confirm') {
       const recoveryCodes = await deps.totp.confirm(auth.userId, code, now);
       if (!recoveryCodes) {
-        await deps.throttle.recordFailure(now);
+        await deps.throttle.recordFailure(client, now);
         return refuse(401, 'Invalid code', 'INVALID_CODE');
       }
       return Response.json({ ok: true, enabled: true, recoveryCodes }, { headers: NO_STORE });
     }
 
     if (!(await deps.totp.verifyLogin(auth.userId, code, now))) {
-      await deps.throttle.recordFailure(now);
+      await deps.throttle.recordFailure(client, now);
       return refuse(401, 'Invalid code', 'INVALID_CODE');
     }
     await deps.totp.disable(auth.userId);

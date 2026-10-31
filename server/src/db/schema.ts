@@ -343,16 +343,19 @@ export const auditEvents = pgTable('audit_events', {
   metadata: jsonb('metadata').notNull().default({}),
 });
 
-// Failed owner-login attempts, for the brute-force lockout. Holds only a timestamp (no IP, no
-// password data); rows older than the lockout window are pruned on each failure.
+// Failed owner-login attempts, for the brute-force lockout. Holds a timestamp and a hash of the client
+// address (never the address or any password data); rows older than the lockout window are pruned on
+// each failure.
 export const loginAttempts = pgTable(
   'login_attempts',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     attemptedAt: timestamp('attempted_at', { withTimezone: true }).notNull().defaultNow(),
+    clientKey: text('client_key').notNull().default('unknown'),
   },
   (table) => ({
     attemptedAtIdx: index('login_attempts_attempted_at_idx').on(table.attemptedAt),
+    clientKeyAttemptedAtIdx: index('login_attempts_client_key_attempted_at_idx').on(table.clientKey, table.attemptedAt),
   }),
 );
 

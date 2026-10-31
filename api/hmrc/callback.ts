@@ -7,6 +7,9 @@ interface CallbackDeps {
   exchange: (code: string, redirectUri: string) => Promise<HmrcTokenSet>;
 }
 
+// HMRC authorisation codes are short; the cap stops a crafted link from posting a huge value to the token endpoint.
+const MAX_AUTH_CODE_LENGTH = 256;
+
 const defaultDeps: CallbackDeps = { store: databaseHmrcStore, exchange: (code, redirectUri) => exchangeAuthCode(code, redirectUri) };
 
 function settingsRedirect(outcome: 'connected' | 'error'): Response {
@@ -24,7 +27,7 @@ export function createCallbackHandler(deps: CallbackDeps = defaultDeps) {
     if (!userId) return Response.json({ ok: false, error: 'Invalid state', code: 'INVALID_STATE' }, { status: 400 });
 
     const code = params.get('code');
-    if (!code || params.get('error')) return settingsRedirect('error');
+    if (!code || code.length > MAX_AUTH_CODE_LENGTH || params.get('error')) return settingsRedirect('error');
 
     try {
       const redirectUri = process.env.HMRC_REDIRECT_URI;

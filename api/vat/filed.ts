@@ -2,6 +2,7 @@ import { getVatReturn, refreshAccessToken } from '../../src/lib/hmrc/client.js';
 import { withAuth, type AuthDeps } from '../_lib/auth.js';
 import { callHmrcAsUser, type HmrcCallDeps } from '../_lib/hmrcCall.js';
 import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore.js';
+import { PERIOD_KEY_PATTERN } from '../_lib/vatReturns.js';
 
 // Rate limiting: see the ponytail note in submit.ts (SEC-14).
 export function createFiledReturnHandler(
@@ -14,7 +15,7 @@ export function createFiledReturnHandler(
     if (request.method !== 'GET') return fail(405, 'METHOD_NOT_ALLOWED', 'Method not allowed');
 
     const periodKey = new URL(request.url).searchParams.get('periodKey');
-    if (!periodKey || periodKey.length > 20) return fail(400, 'BAD_REQUEST', 'Invalid periodKey');
+    if (!periodKey || !PERIOD_KEY_PATTERN.test(periodKey)) return fail(400, 'BAD_REQUEST', 'Invalid periodKey');
 
     const credentials = await store.credentials(auth.userId);
     if (!credentials) return fail(409, 'HMRC_NOT_CONNECTED', 'HMRC is not connected');

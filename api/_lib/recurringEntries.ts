@@ -6,6 +6,7 @@ import { dueDates, nextOccurrence, type RecurringSchedule } from '../../src/lib/
 import { MAX_AMOUNT_PENCE } from '../../src/lib/entryForm.js';
 import { db } from './db.js';
 import { createEntry, EntryRuleError, isoDate, type EntryStore } from './entries.js';
+import { plainText } from './inputRules.js';
 
 export const RECURRING_LIST_LIMIT = 100;
 /** Templates scanned per cron run; a larger backlog is picked up by the next run. */
@@ -21,7 +22,7 @@ export const newTemplateSchema = z.object({
   amountPence: z.number().int().positive().max(MAX_AMOUNT_PENCE),
   amountIs: z.enum(['gross', 'net']),
   vatRatePercent: vatRate.default(0),
-  description: z.string().trim().min(1).max(200),
+  description: plainText(200, { required: true }),
   schedule: z.enum(['monthly', 'yearly']),
   nextDate: isoDate,
 });
@@ -33,7 +34,7 @@ export const templatePatchSchema = z
     amountPence: z.number().int().positive().max(MAX_AMOUNT_PENCE),
     amountIs: z.enum(['gross', 'net']),
     vatRatePercent: vatRate,
-    description: z.string().trim().min(1).max(200),
+    description: plainText(200, { required: true }),
     nextDate: isoDate,
     paused: z.boolean(),
   })

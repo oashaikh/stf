@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   LOCKOUT_MS,
   MAX_FAILURES,
+  clientKey,
   createLoginThrottle,
   lockedUntil,
   type LoginAttemptRows,
@@ -38,52 +39,78 @@ describe('lockedUntil', () => {
   });
 });
 
-function fakeRows(): LoginAttemptRows & { rows: Date[] } {
-  const rows: Date[] = [];
+function fakeRows(): LoginAttemptRows & { rows: { clientKey: string; at: Date }[] } {
+  const rows: { clientKey: string; at: Date }[] = [];
   return {
     rows,
-    async insert(attemptedAt) {
-      rows.push(attemptedAt);
+    async insert(key, attemptedAt) {
+      rows.push({ clientKey: key, at: attemptedAt });
     },
-    async latestSince(since, limit) {
+    async latestSince(key, since, limit) {
       return rows
-        .filter((row) => row > since)
+        .filter((row) => row.clientKey === key && row.at > since)
+        .map((row) => row.at)
         .sort((a, b) => b.getTime() - a.getTime())
         .slice(0, limit);
     },
     async deleteBefore(cutoff) {
-      for (let i = rows.length - 1; i >= 0; i--) if (rows[i] <= cutoff) rows.splice(i, 1);
+      for (let i = rows.length - 1; i >= 0; i--) if (rows[i].at <= cutoff) rows.splice(i, 1);
     },
-    async deleteAll() {
-      rows.length = 0;
+    async deleteForClient(key) {
+      for (let i = rows.length - 1; i >= 0; i--) if (rows[i].clientKey === key) rows.splice(i, 1);
     },
   };
 }
 
 describe('createLoginThrottle', () => {
   it('is not locked until the 5th recorded failure', async () => {
-    const rows = fakeRows();
-    const throttle = createLoginThrottle(rows);
-    for (let i = 0; i < 4; i++) await throttle.recordFailure(at(i));
-    expect(await throttle.lockedUntil(at(4))).toBeNull();
-    await throttle.recordFailure(at(4));
-    expect(await throttle.lockedUntil(at(5))).toEqual(at(19));
+    const throttle = createLoginThrottle(fakeRows());
+    for (let i = 0; i < 4; i++) await throttle.recordFailure('a', at(i));
+    expect(await throttle.lockedUntil('a', at(4))).toBeNull();
+    await throttle.recordFailure('a', at(4));
+    expect(await throttle.lockedUntil('a', at(5))).toEqual(at(19));
   });
 
-  it('clears the counter on success', async () => {
+  it('keeps one client from locking out another', async () => {
+    const throttle = createLoginThrottle(fakeRows());
+    for (let i = 0; i < 5; i++) await throttle.recordFailure('attacker', at(i));
+    expect(await throttle.lockedUntil('attacker', at(5))).not.toBeNull();
+    expect(await throttle.lockedUntil('owner', at(5))).toBeNull();
+  });
+
+  it('clears only the calling client on success', async () => {
     const rows = fakeRows();
     const throttle = createLoginThrottle(rows);
-    for (let i = 0; i < 5; i++) await throttle.recordFailure(at(i));
-    await throttle.clear();
-    expect(rows.rows).toHaveLength(0);
-    expect(await throttle.lockedUntil(at(5))).toBeNull();
+    for (let i = 0; i < 5; i++) await throttle.recordFailure('a', at(i));
+    await throttle.recordFailure('b', at(5));
+    await throttle.clear('a');
+    expect(rows.rows.map((row) => row.clientKey)).toEqual(['b']);
+    expect(await throttle.lockedUntil('a', at(5))).toBeNull();
   });
 
   it('prunes rows older than the window when a failure is recorded', async () => {
     const rows = fakeRows();
     const throttle = createLoginThrottle(rows);
-    await throttle.recordFailure(at(0));
-    await throttle.recordFailure(at(20));
-    expect(rows.rows).toEqual([at(20)]);
+    await throttle.recordFailure('a', at(0));
+    await throttle.recordFailure('a', at(20));
+    expect(rows.rows.map((row) => row.at)).toEqual([at(20)]);
+  });
+});
+
+describe('clientKey', () => {
+  const keyFor = (headers: Record<string, string>) => clientKey(new Request('https://x.test', { headers }));
+
+  it('uses the platform-set client address and ignores a client-supplied x-forwarded-for', () => {
+    const real = keyFor({ 'x-vercel-forwarded-for': '203.0.113.7' });
+    expect(keyFor({ 'x-vercel-forwarded-for': '203.0.113.7', 'x-forwarded-for': '198.51.100.1' })).toBe(real);
+    expect(keyFor({ 'x-vercel-forwarded-for': '203.0.113.8' })).not.toBe(real);
+  });
+
+  it('falls back to one shared bucket when no trusted address is present', () => {
+    expect(keyFor({ 'x-forwarded-for': '198.51.100.1' })).toBe(keyFor({ 'x-forwarded-for': '198.51.100.2' }));
+  });
+
+  it('does not store the raw address', () => {
+    expect(keyFor({ 'x-vercel-forwarded-for': '203.0.113.7' })).not.toContain('203.0.113.7');
   });
 });

@@ -7,7 +7,7 @@ import { callHmrcAsUser, type HmrcCallDeps } from '../_lib/hmrcCall.js';
 import { databaseHmrcStore, type HmrcStore } from '../_lib/hmrcStore.js';
 import { databaseTaxIdentifiersStore, type TaxIdentifiersStore } from '../_lib/taxIdentifiers.js';
 
-const chooseBusinessSchema = z.object({ businessId: z.string().min(1).max(40) });
+const chooseBusinessSchema = z.object({ businessId: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/, 'businessId has invalid characters') });
 
 // Rate limiting: see the ponytail note in submit.ts (SEC-14).
 export function createItsBusinessesHandler(

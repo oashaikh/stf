@@ -4,6 +4,7 @@ import { mileageTrips } from '../../server/src/db/schema.js';
 import type { DatePeriod } from '../../src/lib/dashboardSummary.js';
 import type { VehicleType } from '../../src/lib/mileage.js';
 import { db } from './db.js';
+import { hasControlCharacters } from './inputRules.js';
 
 /** One tax year of trips is far below this; the store reads one extra row to detect overflow. */
 export const MILEAGE_TRIP_LIMIT = 2000;
@@ -41,7 +42,7 @@ export interface MileageStore {
 const cleanText = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
   const text = value.trim();
-  return text.length > 0 && text.length <= MAX_TEXT_LENGTH ? text : null;
+  return text.length > 0 && text.length <= MAX_TEXT_LENGTH && !hasControlCharacters(text) ? text : null;
 };
 
 const isRealDate = (value: unknown): value is string => {

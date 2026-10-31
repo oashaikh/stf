@@ -1,4 +1,6 @@
-import { desc, gt, lte } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
+
+import { and, desc, eq, gt, lte } from 'drizzle-orm';
 
 import { loginAttempts } from '../../server/src/db/schema.js';
 import { db } from './db.js';
@@ -19,43 +21,54 @@ export function lockedUntil(failures: Date[], now: Date): Date | null {
   return inWindow.length >= MAX_FAILURES ? new Date(until) : null;
 }
 
+/**
+ * Throttle bucket for the caller. Only x-vercel-forwarded-for is read: Vercel overwrites it at the edge,
+ * whereas x-forwarded-for can carry whatever the client sent. Without it (local dev) everyone shares one
+ * bucket, which fails closed. The address is hashed so the table never holds a raw IP.
+ */
+export function clientKey(request: Request): string {
+  const address = request.headers.get('x-vercel-forwarded-for')?.split(',')[0].trim() || 'unknown';
+  return createHash('sha256').update(address).digest('hex').slice(0, 32);
+}
+
 // The port exists so the throttle logic is testable without a database.
 export interface LoginAttemptRows {
-  insert(attemptedAt: Date): Promise<void>;
-  /** At most `limit` attempts strictly after `since`, newest first. */
-  latestSince(since: Date, limit: number): Promise<Date[]>;
+  insert(clientKey: string, attemptedAt: Date): Promise<void>;
+  /** At most `limit` of this client's attempts strictly after `since`, newest first. */
+  latestSince(clientKey: string, since: Date, limit: number): Promise<Date[]>;
   deleteBefore(cutoff: Date): Promise<void>;
-  deleteAll(): Promise<void>;
+  deleteForClient(clientKey: string): Promise<void>;
 }
 
 export function createLoginThrottle(rows: LoginAttemptRows) {
   return {
-    async lockedUntil(now: Date): Promise<Date | null> {
+    async lockedUntil(key: string, now: Date): Promise<Date | null> {
       const since = new Date(now.getTime() - LOCKOUT_MS);
-      return lockedUntil(await rows.latestSince(since, MAX_FAILURES), now);
+      return lockedUntil(await rows.latestSince(key, since, MAX_FAILURES), now);
     },
-    async recordFailure(now: Date): Promise<void> {
-      await rows.insert(now);
+    async recordFailure(key: string, now: Date): Promise<void> {
+      await rows.insert(key, now);
       // Retention (DP-6): rows past the window can never count again, so drop them.
       await rows.deleteBefore(new Date(now.getTime() - LOCKOUT_MS));
     },
-    async clear(): Promise<void> {
-      await rows.deleteAll();
+    async clear(key: string): Promise<void> {
+      await rows.deleteForClient(key);
     },
   };
 }
 
 // login_attempts is a counter, not a financial record, so rows are really deleted.
-// Reads use login_attempts_attempted_at_idx and are capped by `limit`.
+// Reads use login_attempts_client_key_attempted_at_idx and are capped by `limit`; the prune uses
+// login_attempts_attempted_at_idx.
 export const databaseLoginAttemptRows: LoginAttemptRows = {
-  async insert(attemptedAt) {
-    await db.insert(loginAttempts).values({ attemptedAt });
+  async insert(key, attemptedAt) {
+    await db.insert(loginAttempts).values({ clientKey: key, attemptedAt });
   },
-  async latestSince(since, limit) {
+  async latestSince(key, since, limit) {
     const found = await db
       .select({ attemptedAt: loginAttempts.attemptedAt })
       .from(loginAttempts)
-      .where(gt(loginAttempts.attemptedAt, since))
+      .where(and(eq(loginAttempts.clientKey, key), gt(loginAttempts.attemptedAt, since)))
       .orderBy(desc(loginAttempts.attemptedAt))
       .limit(limit);
     return found.map((row) => row.attemptedAt);
@@ -63,8 +76,8 @@ export const databaseLoginAttemptRows: LoginAttemptRows = {
   async deleteBefore(cutoff) {
     await db.delete(loginAttempts).where(lte(loginAttempts.attemptedAt, cutoff));
   },
-  async deleteAll() {
-    await db.delete(loginAttempts);
+  async deleteForClient(key) {
+    await db.delete(loginAttempts).where(eq(loginAttempts.clientKey, key));
   },
 };
 

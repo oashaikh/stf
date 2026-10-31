@@ -46,19 +46,23 @@ function memoryRows() {
 }
 
 function memoryThrottleRows(): LoginAttemptRows {
-  let attempts: Date[] = [];
+  let attempts: { key: string; at: Date }[] = [];
   return {
-    async insert(at) {
-      attempts.push(at);
+    async insert(key, at) {
+      attempts.push({ key, at });
     },
-    async latestSince(since, limit) {
-      return attempts.filter((at) => at > since).sort((a, b) => b.getTime() - a.getTime()).slice(0, limit);
+    async latestSince(key, since, limit) {
+      return attempts
+        .filter((row) => row.key === key && row.at > since)
+        .map((row) => row.at)
+        .sort((a, b) => b.getTime() - a.getTime())
+        .slice(0, limit);
     },
     async deleteBefore(cutoff) {
-      attempts = attempts.filter((at) => at > cutoff);
+      attempts = attempts.filter((row) => row.at > cutoff);
     },
-    async deleteAll() {
-      attempts = [];
+    async deleteForClient(key) {
+      attempts = attempts.filter((row) => row.key !== key);
     },
   };
 }

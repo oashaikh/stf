@@ -15,19 +15,23 @@ const codeAt = (date: Date) =>
   new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(SECRET), digits: 6, period: 30 }).generate({ timestamp: date.getTime() });
 
 function memoryThrottleRows(): LoginAttemptRows {
-  let attempts: Date[] = [];
+  let attempts: { key: string; at: Date }[] = [];
   return {
-    async insert(at) {
-      attempts.push(at);
+    async insert(key, at) {
+      attempts.push({ key, at });
     },
-    async latestSince(since, limit) {
-      return attempts.filter((at) => at > since).sort((a, b) => b.getTime() - a.getTime()).slice(0, limit);
+    async latestSince(key, since, limit) {
+      return attempts
+        .filter((row) => row.key === key && row.at > since)
+        .map((row) => row.at)
+        .sort((a, b) => b.getTime() - a.getTime())
+        .slice(0, limit);
     },
     async deleteBefore(cutoff) {
-      attempts = attempts.filter((at) => at > cutoff);
+      attempts = attempts.filter((row) => row.at > cutoff);
     },
-    async deleteAll() {
-      attempts = [];
+    async deleteForClient(key) {
+      attempts = attempts.filter((row) => row.key !== key);
     },
   };
 }
@@ -58,11 +62,11 @@ async function setup(recoveryCodes: string[] = []) {
   await service.begin('owner-row-id', SECRET);
   const users = { findId: vi.fn(), createIfAbsent: vi.fn(async () => 'owner-row-id') };
   const handler = createMfaHandler({ throttle: createLoginThrottle(memoryThrottleRows()), users, totp: service, env: ENV, now: () => NOW });
-  const submit = (code: unknown, challenge: string | null = createChallengeToken(NOW, ENV)) =>
+  const submit = (code: unknown, challenge: string | null = createChallengeToken(NOW, ENV), address = '203.0.113.7') =>
     handler(
       new Request('https://x.test/api/auth/mfa', {
         method: 'POST',
-        headers: challenge ? { cookie: `stf_mfa_challenge=${challenge}` } : {},
+        headers: { 'x-vercel-forwarded-for': address, ...(challenge ? { cookie: `stf_mfa_challenge=${challenge}` } : {}) },
         body: JSON.stringify({ code }),
       }),
     );
@@ -112,6 +116,13 @@ describe('POST /api/auth/mfa', () => {
     const token = first.headers.getSetCookie()[0].split(';')[0].split('=').slice(1).join('=');
     expect(readSecondFactor(new Request('https://x.test', { headers: { cookie: `stf_session=${token}` } }), NOW, ENV)?.type).toBe('TOTP');
     expect((await submit('abcdef0123-4567890123')).status).toBe(401);
+  });
+
+  it('locks out only the client that guessed wrong', async () => {
+    const { submit } = await setup();
+    for (let i = 0; i < 5; i += 1) await submit('000000', undefined, '198.51.100.9');
+    expect((await submit(codeAt(NOW), undefined, '198.51.100.9')).status).toBe(429);
+    expect((await submit(codeAt(NOW))).status).toBe(200);
   });
 
   it('counts wrong codes toward the lockout: the 6th attempt gets 429 even with a right code', async () => {

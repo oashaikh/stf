@@ -1,6 +1,6 @@
 import type { ApiError } from '../../src/model/types.js';
 import { databaseUsers, type UserStore } from '../_lib/auth.js';
-import { loginThrottle } from '../_lib/loginThrottle.js';
+import { clientKey, loginThrottle } from '../_lib/loginThrottle.js';
 import {
   clearedChallengeCookie,
   createSessionToken,
@@ -36,8 +36,9 @@ export function createMfaHandler(deps: MfaDeps) {
       }
 
       // Same lockout as the password step, checked first so a locked client learns nothing about the code.
+      const client = clientKey(request);
       const now = deps.now();
-      const lockedUntil = await deps.throttle.lockedUntil(now);
+      const lockedUntil = await deps.throttle.lockedUntil(client, now);
       if (lockedUntil) {
         const retryAfter = Math.max(1, Math.ceil((lockedUntil.getTime() - now.getTime()) / 1000));
         return refuse(429, 'Too many attempts', 'LOCKED', { 'Retry-After': String(retryAfter) });
@@ -51,11 +52,11 @@ export function createMfaHandler(deps: MfaDeps) {
       const userId = await deps.users.createIfAbsent(OWNER_EXTERNAL_ID, OWNER_EMAIL);
       const accepted = (await deps.totp.verifyLogin(userId, code, now)) || (await deps.totp.consumeRecoveryCode(userId, code));
       if (!accepted) {
-        await deps.throttle.recordFailure(now);
+        await deps.throttle.recordFailure(client, now);
         return refuse(401, 'Invalid code', 'UNAUTHORIZED');
       }
 
-      await deps.throttle.clear();
+      await deps.throttle.clear(client);
       const headers = new Headers();
       headers.append('Set-Cookie', sessionCookie(createSessionToken(now, deps.env, now)));
       headers.append('Set-Cookie', clearedChallengeCookie());

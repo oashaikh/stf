@@ -38,7 +38,7 @@
   - Risk: Documentation only. Gaps found feed tasks 2 to 4.
   - Commit: `f764e5587850`
 
-- [ ] **Task 2: Shared server text checks and close the validation gaps** (after 1)
+- [x] **Task 2: Shared server text checks and close the validation gaps** (after 1)
   - Intent: Add one shared zod text helper (api/_lib/inputRules.ts) that trims, rejects control characters (except newline/tab where multiline is allowed) and enforces max length, and reuse it in the existing schemas (entries, invoices, accounts, mileage, recurring entries, business profile, tax identifiers). Fix the gaps task 1 found: hand validators in accounts, mileage, login, mfa and hmrc callback lacking max length or control-character rejection, and unbounded password length. Reject with a clear 400 message, keep existing error codes, keep valid input working. Keep escapeLike and parameterised queries. Change shared functions, not single callers.
   - Files: `api/_lib/inputRules.ts`, `api/_lib/entries.ts`, `api/_lib/invoices.ts`, `api/_lib/accounts.ts`, `api/_lib/mileage.ts`, `api/_lib/recurringEntries.ts`, `api/_lib/businessProfile.ts`, `api/_lib/taxIdentifiers.ts`, `api/_lib/tradingAllowance.ts`, `api/_lib/vatReturns.ts`, `api/auth/login.ts`, `api/auth/mfa.ts`, `api/hmrc/callback.ts`, `api/hmrc/mode.ts`, `api/accounts.ts`, `api/mileage.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -48,6 +48,7 @@
     - Inventory rows for fixed gaps are updated
     - npm run lint, typecheck and test pass
   - Risk: Touches many handlers; must not change behaviour for valid input or any layout.
+  - Commit: `8cd5ee097f0c`
 
 - [ ] **Task 3: Rate limit sign-in, MFA and message-sending routes** (after 1)
   - Intent: Review api/_lib/loginThrottle.ts and its use in login and MFA. Ensure MFA code attempts and any route that sends email or messages are rate limited per client, with a tighter limit on sign-in, via one shared limiter reused by the routes. Add no dependency unless the existing throttle cannot be reused. If no route sends email, record that in the inventory. Derive the client key from a trusted source, not a spoofable header taken at face value.

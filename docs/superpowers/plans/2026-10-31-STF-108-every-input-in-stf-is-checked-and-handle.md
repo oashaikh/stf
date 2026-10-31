@@ -73,7 +73,7 @@
   - Risk: Some items may be no-ops; change only what is a real gap. ReceiptsPage change must not alter layout.
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 5: Malicious-input test suite across every input class** (after 2, 3, 4)
+- [x] **Task 5: Malicious-input test suite across every input class** (after 2, 3, 4)
   - Intent: Add one shared fixture of hostile strings (script tags, HTML, SQL fragments, 10k-char values, control characters and NUL, path traversal, wrong file types, formula prefixes) and run it through each input class: entries, invoices, accounts, mileage, recurring entries, business profile, tax identifiers, VAT number, trading allowance, login/MFA, list query params, export params. Assert each is rejected with 400 or round-trips as inert text via fake stores (no live DB). Add a component test that hostile text renders as text on entries list and invoices. Add a test that fails when an api route file is missing from the inventory doc.
   - Files: `api/_lib/__tests__/maliciousInputs.ts`, `api/_lib/__tests__/maliciousInputRoutes.test.ts`, `src/pages/__tests__/hostileTextRender.test.tsx`, `api/_lib/__tests__/inputInventory.test.ts`
   - Acceptance criteria the planner set:
@@ -82,3 +82,4 @@
     - Inventory coverage test fails when a route is added without an entry
     - npm run lint, typecheck, test and build pass
   - Risk: Large test volume; use table-driven tests to stay near the size guide.
+  - Commit: (none — no code change for this task)

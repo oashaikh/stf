@@ -3,6 +3,7 @@ import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { DEFAULT_ACCOUNTS } from '../../src/lib/chartOfAccounts.js';
 import { accounts, auditEvents, type AccountRow } from '../../server/src/db/schema.js';
 import { db } from './db.js';
+import { hasControlCharacters } from './inputRules.js';
 
 /** Explicit columns only (SEC-12). */
 export type Account = Pick<AccountRow, 'id' | 'code' | 'name' | 'accountType' | 'taxCategory' | 'isSystem' | 'archivedAt'>;
@@ -46,7 +47,7 @@ export const isUniqueViolation = (error: unknown): boolean =>
 export function validateAccountName(input: unknown): string | null {
   if (typeof input !== 'string') return null;
   const name = input.trim();
-  return name.length >= 1 && name.length <= 100 ? name : null;
+  return name.length >= 1 && name.length <= 100 && !hasControlCharacters(name) ? name : null;
 }
 
 export function validateAccountCode(input: unknown): string | null {

@@ -18,6 +18,7 @@ import { MAX_AMOUNT_PENCE } from '../../src/lib/entryForm.js';
 import { postEntry, type PostedLine } from '../../src/lib/postingRules.js';
 import { databaseAccountStore } from './accounts.js';
 import { db } from './db.js';
+import { plainText } from './inputRules.js';
 
 export const MAX_DAYS_AHEAD = 7;
 export const ENTRY_LINE_LIMIT = 10;
@@ -120,8 +121,8 @@ export const isoDate = z
 
 export const newEntrySchema = z.object({
   date: isoDate,
-  description: z.string().trim().min(1).max(200),
-  reference: z.string().trim().min(1).max(60).optional(),
+  description: plainText(200, { required: true }),
+  reference: plainText(60, { required: true }).optional(),
   kind: z.enum(['income', 'expense']),
   categoryAccountId: z.string().uuid(),
   amountPence: z.number().int().positive().max(MAX_AMOUNT_PENCE),
@@ -143,7 +144,7 @@ export const entryListQuerySchema = z
     status: z.enum(['draft', 'confirmed']).optional(),
     minAmountPence: optionalNonNegativeInt,
     maxAmountPence: optionalNonNegativeInt,
-    search: z.string().trim().max(100).optional(),
+    search: plainText(100).optional(),
     cursor: z.string().max(200).optional(),
     limit: z.coerce.number().int().min(1).transform((value) => Math.min(value, ENTRY_LIST_MAX_PAGE)).default(ENTRY_LIST_MAX_PAGE),
   })

@@ -3,10 +3,11 @@ import { z } from 'zod';
 
 import { auditEvents, users } from '../../server/src/db/schema.js';
 import { db } from './db.js';
+import { plainText } from './inputRules.js';
 
 // Blank form fields arrive as empty strings; store them as null.
 const optionalText = (max: number) =>
-  z.preprocess((value) => (typeof value === 'string' && value.trim() === '' ? null : value), z.string().trim().max(max).nullable());
+  z.preprocess((value) => (typeof value === 'string' && value.trim() === '' ? null : value), plainText(max, { multiline: true }).nullable());
 
 export const businessProfileSchema = z.object({
   businessName: optionalText(120),
@@ -14,7 +15,7 @@ export const businessProfileSchema = z.object({
   paymentBankName: optionalText(80),
   paymentSortCode: z.preprocess((value) => (value === '' ? null : value), z.string().regex(/^\d{6}$/, 'Sort code must be 6 digits').nullable()),
   paymentAccountNumber: z.preprocess((value) => (value === '' ? null : value), z.string().regex(/^\d{8}$/, 'Account number must be 8 digits').nullable()),
-  invoicePrefix: z.string().trim().min(1).max(12),
+  invoicePrefix: plainText(12, { required: true }),
   nextInvoiceNumber: z.number().int().min(1).max(999_999_999),
 });
 

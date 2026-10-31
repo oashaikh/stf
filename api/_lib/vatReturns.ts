@@ -96,9 +96,13 @@ const DRILL_DOWN_LINES_PER_BOX = 50;
 
 export const HISTORY_LIMIT = 40;
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)) && new Date(`${value}T00:00:00Z`).toISOString().startsWith(value), 'Must be a real calendar date');
+export const PERIOD_KEY_PATTERN = /^[A-Za-z0-9#-]{1,20}$/;
 export const periodSchema = z
-  .object({ periodKey: z.string().min(1).max(20), start: isoDate, end: isoDate })
+  .object({ periodKey: z.string().regex(PERIOD_KEY_PATTERN, 'periodKey must be 1 to 20 letters, digits, # or -'), start: isoDate, end: isoDate })
   .refine((period) => period.start <= period.end, { message: 'start after end' });
 
 export const saveBodySchema = z.object({ reopen: z.boolean().optional() });

@@ -10,6 +10,7 @@ import type { VatRate } from '../../src/lib/vat.js';
 import { databaseAccountStore } from './accounts.js';
 import { db } from './db.js';
 import { MAX_DAYS_AHEAD, PERIOD_LOCKED_MESSAGE, databaseEntryStore, isoDate, voidLiveEntry } from './entries.js';
+import { plainText } from './inputRules.js';
 
 export const INVOICE_MAX_LINES = 50;
 export const INVOICE_LIST_DEFAULT_PAGE = 25;
@@ -28,10 +29,10 @@ export class InvoiceRuleError extends Error {
 }
 
 const optionalText = (max: number) =>
-  z.preprocess((value) => (typeof value === 'string' && value.trim() === '' ? null : value), z.string().trim().max(max).nullish().transform((value) => value ?? null));
+  z.preprocess((value) => (typeof value === 'string' && value.trim() === '' ? null : value), plainText(max, { multiline: true }).nullish().transform((value) => value ?? null));
 
 const lineSchema = z.object({
-  description: z.string().trim().min(1).max(300),
+  description: plainText(300, { required: true }),
   // Scaled x10000. The caps keep quantity x price below 2^53 before the total check runs.
   quantity: z.number().int().min(1).max(100_000_000),
   unitPricePence: z.number().int().min(0).max(10_000_000),
@@ -41,7 +42,7 @@ const lineSchema = z.object({
 // Plain z.object strips unknown keys, so client-sent totals, public_number and status never reach the store.
 export const draftInvoiceSchema = z
   .object({
-    clientName: z.string().trim().min(1).max(200),
+    clientName: plainText(200, { required: true }),
     clientEmail: optionalText(254),
     clientAddress: optionalText(500),
     issueDate: isoDate,
@@ -65,7 +66,7 @@ export type DraftInvoiceBody = z.infer<typeof draftInvoiceSchema>;
 // Strips unknown keys, so a client cannot send status, totals or account ids.
 export const markPaidSchema = z.object({ paymentDate: isoDate });
 
-export const voidInvoiceSchema = z.object({ reason: z.string().trim().min(1).max(200) });
+export const voidInvoiceSchema = z.object({ reason: plainText(200, { required: true }) });
 
 export const invoiceListQuerySchema = z.object({
   status: z.enum(['draft', 'sent', 'paid', 'overdue', 'voided']).optional(),

@@ -77,8 +77,8 @@ Rate limits: login, MFA and authenticator confirm share the failed-attempt locko
 | --- | --- | --- | --- |
 | `id` | query (single entry, edit, void, confirm) | uuid regex, else 400 | `api/entries.ts` |
 | `date` | POST/PUT body | `YYYY-MM-DD` regex and a real calendar date, not more than 7 days ahead | `newEntrySchema`, `api/_lib/entries.ts` |
-| `description` | body | string, trimmed, 1 to 200 chars. Stored as text, shown as text. No character set limit: control characters are accepted. **GAP**, task 2 | `api/_lib/entries.ts` |
-| `reference` | body | optional string, trimmed, 1 to 60 chars. Same control-character **GAP** | `api/_lib/entries.ts` |
+| `description` | body | string, trimmed, 1 to 200 chars. Stored as text, shown as text. Control characters rejected (`plainText`). | `api/_lib/entries.ts` |
+| `reference` | body | optional string, trimmed, 1 to 60 chars. Control characters rejected (`plainText`) | `api/_lib/entries.ts` |
 | `kind` | body | `income` or `expense` | `api/_lib/entries.ts` |
 | `categoryAccountId` | body | uuid; account must belong to the caller and not be archived | `api/_lib/entries.ts` |
 | `amountPence` | body | positive integer up to `MAX_AMOUNT_PENCE` | `api/_lib/entries.ts` |
@@ -114,7 +114,7 @@ Rate limits: login, MFA and authenticator confirm share the failed-attempt locko
 | `status` | list query | `draft`, `sent`, `paid`, `overdue`, `voided` | `invoiceListQuerySchema` |
 | `limit`, `cursor` | list query | integer capped at the page maximum; cursor at most 200 chars, decoded to `{createdAt, id: uuid}` | `invoiceListQuerySchema`, `decodeInvoiceCursor` |
 
-Text fields have a length cap but no control-character check. **GAP**, task 2. The PDF file name is built from the server-generated public number with every character outside `A-Za-z0-9_-` replaced (`api/invoice-pdf.ts`).
+Text fields have a length cap and reject control characters (`plainText`; notes and addresses allow newline and tab). The PDF file name is built from the server-generated public number with every character outside `A-Za-z0-9_-` replaced (`api/invoice-pdf.ts`).
 
 ## Accounts
 
@@ -122,7 +122,7 @@ Text fields have a length cap but no control-character check. **GAP**, task 2. T
 | --- | --- | --- | --- |
 | `archived` | GET query | only the literal `true` turns it on | `api/accounts.ts` |
 | `code` | POST body | `^[A-Za-z0-9-]{1,10}$` | `validateAccountCode`, `api/_lib/accounts.ts` |
-| `name` | POST/PATCH body | string, trimmed, 1 to 100 chars; control characters accepted. **GAP**, task 2 | `validateAccountName` |
+| `name` | POST/PATCH body | string, trimmed, 1 to 100 chars; control characters rejected | `validateAccountName` |
 | `accountType` | POST body | one of income, expense, asset, liability, equity | `validateNewAccount` |
 | `taxCategory` | POST body | optional, `^[a-z-]{1,40}$` | `validateNewAccount` |
 | `id` | PATCH body | uuid regex | `api/accounts.ts` |
@@ -135,7 +135,7 @@ Text fields have a length cap but no control-character check. **GAP**, task 2. T
 | --- | --- | --- | --- |
 | `taxYear` | GET query | key of `TAX_BANDS` and a real `YYYY-YY` period | `api/mileage.ts`, `parseTaxYearPeriod` |
 | `date` | POST body | `YYYY-MM-DD` and a real calendar date | `validateNewTrip`, `api/_lib/mileage.ts` |
-| `from`, `to`, `purpose` | POST body | string, trimmed, 1 to 200 chars; control characters accepted. **GAP**, task 2 | `cleanText` |
+| `from`, `to`, `purpose` | POST body | string, trimmed, 1 to 200 chars; control characters rejected | `cleanText` |
 | `distanceTenths` | POST body | integer 1 to 50,000 | `validateNewTrip` |
 | `vehicleType` | POST body | `car`, `motorcycle`, `bicycle` | `validateNewTrip` |
 | `id` | PATCH/DELETE body | uuid regex | `validateTripId` |
@@ -149,7 +149,7 @@ Text fields have a length cap but no control-character check. **GAP**, task 2. T
 | `categoryAccountId` | POST body | uuid | `newTemplateSchema` |
 | `amountPence` | POST/PATCH body | positive integer up to `MAX_AMOUNT_PENCE` | `newTemplateSchema`, `templatePatchSchema` |
 | `amountIs`, `vatRatePercent`, `schedule` | POST/PATCH body | enums (gross/net, 0/5/20, monthly/yearly) | same |
-| `description` | POST/PATCH body | trimmed, 1 to 200 chars; control characters accepted. **GAP**, task 2 | same |
+| `description` | POST/PATCH body | trimmed, 1 to 200 chars; control characters rejected | same |
 | `paused` | PATCH body | boolean | `templatePatchSchema` |
 | `nextDate` | POST body | `YYYY-MM-DD` | `newTemplateSchema` |
 
@@ -162,7 +162,7 @@ Text fields have a length cap but no control-character check. **GAP**, task 2. T
 | `paymentBankName` | same | at most 80 chars | same |
 | `paymentSortCode` | same | `^\d{6}$` or null | same |
 | `paymentAccountNumber` | same | `^\d{8}$` or null; stored and returned masked | same |
-| `invoicePrefix` | same | trimmed, 1 to 12 chars; no charset rule. **GAP**, task 2 | same |
+| `invoicePrefix` | same | trimmed, 1 to 12 chars; control characters rejected | same |
 | `nextInvoiceNumber` | same | integer 1 to 999,999,999 | same |
 | `nino` | tax-identifiers PUT | HMRC NINO pattern, upper-cased; encrypted at rest | `taxIdentifiersSchema`, `api/_lib/taxIdentifiers.ts` |
 | `utr` | same | `^\d{10}$` | same |
@@ -176,9 +176,9 @@ Text fields have a length cap but no control-character check. **GAP**, task 2. T
 | --- | --- | --- | --- |
 | `live` | mode POST body | boolean; going live also needs `HMRC_SANDBOX_MODE=false` | `api/hmrc/mode.ts`, `api/hmrc/connect.ts` |
 | `state` | callback query | HMAC-signed value naming the user; invalid or missing gives 400. This is the credential for this public route | `verifiedStateUserId`, `src/lib/hmrc/client.ts` |
-| `code` | callback query | any non-empty string, passed to the HMRC token endpoint; no length cap. **GAP**, task 2 | `api/hmrc/callback.ts` |
+| `code` | callback query | non-empty string of at most 256 chars, passed to the HMRC token endpoint | `api/hmrc/callback.ts` |
 | `error` | callback query | presence only | `api/hmrc/callback.ts` |
-| `businessId` | its-businesses POST body | string, 1 to 40 chars; no charset rule; also checked against the businesses HMRC returned. **GAP** (charset), task 2 | `chooseBusinessSchema`, `api/hmrc/its-businesses.ts` |
+| `businessId` | its-businesses POST body | string, 1 to 40 of `A-Za-z0-9_-`; also checked against the businesses HMRC returned | `chooseBusinessSchema`, `api/hmrc/its-businesses.ts` |
 
 Public route: `api/hmrc/callback.ts` is the only route outside `withAuth` besides login, MFA and logout.
 
@@ -186,13 +186,13 @@ Public route: `api/hmrc/callback.ts` is the only route outside `withAuth` beside
 
 | Input | Where | Rule | Enforced in |
 | --- | --- | --- | --- |
-| `periodKey` | body (preview, return, return-confirm, submit); query (return GET) | string 1 to 20 chars; no charset rule. **GAP**, task 2 | `periodSchema`, `api/_lib/vatReturns.ts` |
-| `start`, `end` | same | `YYYY-MM-DD` regex; calendar validity and ordering not checked by the schema. **GAP**, task 2 | `periodSchema` |
+| `periodKey` | body (preview, return, return-confirm, submit); query (return GET) | string, 1 to 20 of `A-Za-z0-9#-` | `periodSchema`, `api/_lib/vatReturns.ts` |
+| `start`, `end` | same | `YYYY-MM-DD`, a real calendar date, and start not after end | `periodSchema` |
 | `reopen` | return POST body | optional boolean | `saveBodySchema` |
 | `declaration` | return-confirm body | literal `true`, else 422 | `confirmBodySchema` |
 | `confirm` | submit body | literal `true`; boxes are never read from the body | `api/vat/submit.ts` |
 | `from`, `to`, `status` | obligations query | `YYYY-MM-DD`, real dates, `from` not after `to`, range capped; `status` is `O` or `F` | `parseQuery`, `api/vat/obligations.ts` |
-| `periodKey` | filed query | non-empty, at most 20 chars; URL-encoded before it goes to HMRC. **GAP** (charset), task 2 | `api/vat/filed.ts` |
+| `periodKey` | filed query | same pattern as above; URL-encoded before it goes to HMRC | `api/vat/filed.ts` |
 
 The VAT submit route has no per-client rate limit (comment in `api/vat/submit.ts`); a single claim per period stops double filing.
 
@@ -223,10 +223,10 @@ Cron routes read no body or query.
 | `x-vercel-forwarded-for`, `x-forwarded-for` | HMRC fraud header client IP and port | first entry only; must pass `isIP`; port digits 0 to 65535 | `src/lib/hmrc/fraudHeaders.ts` |
 | `x-stf-device-id` | `Gov-Client-Device-ID` | uuid regex, else omitted | same |
 | `x-stf-timezone` | `Gov-Client-Timezone` | `^UTC[+-]\d{2}:\d{2}$`, else omitted | same |
-| `x-stf-screens` | `Gov-Client-Screens` | each entry matches the screen pattern, else omitted; no overall length cap. **GAP**, task 2 | same |
+| `x-stf-screens` | `Gov-Client-Screens` | each entry matches the screen pattern, else omitted; no overall length cap. **GAP**, not closed in task 2 (file outside its scope) | same |
 | `x-stf-window-size` | `Gov-Client-Window-Size` | `^width=\d+&height=\d+$` | same |
 | `x-stf-do-not-track` | `Gov-Client-Browser-Do-Not-Track` | `true` or `false` | same |
-| `x-stf-js-user-agent` | `Gov-Client-Browser-JS-User-Agent` | percent-encoded; no pattern and no length cap. **GAP**, task 2 | same |
+| `x-stf-js-user-agent` | `Gov-Client-Browser-JS-User-Agent` | percent-encoded; no pattern and no length cap. **GAP**, not closed in task 2 (file outside its scope) | same |
 
 These headers only describe the device to HMRC. A forged value cannot change what the owner sees or reach the database.
 

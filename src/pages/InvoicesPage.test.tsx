@@ -93,8 +93,8 @@ describe('invoice editor', () => {
     await openInvoice(invoice);
     expect(await screen.findByText('£180.00', { selector: '[data-testid="total"]' })).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Quantity'), { target: { value: '2' } });
-    expect(screen.getByText('£240.00', { selector: '[data-testid="total"]' })).toBeTruthy();
-    expect(screen.getByText('£40.00', { selector: '[data-testid="vat"]' })).toBeTruthy();
+    expect(await screen.findByText('£240.00', { selector: '[data-testid="total"]' })).toBeTruthy();
+    expect(await screen.findByText('£40.00', { selector: '[data-testid="vat"]' })).toBeTruthy();
   });
 
   it('charges no VAT when the owner has no VAT number', async () => {

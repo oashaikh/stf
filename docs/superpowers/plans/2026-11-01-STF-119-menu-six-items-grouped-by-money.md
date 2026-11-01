@@ -64,7 +64,7 @@ Starts at: Signed-in user lands on / and is sent to Home
   - Risk: Redirects must preserve search and hash or existing deep links from the VAT page break.
   - Commit: `a7fafb667f1f`
 
-- [ ] **Task 2: Shared tab bar; Money in and Money out pages** (after 1)
+- [x] **Task 2: Shared tab bar; Money in and Money out pages** (after 1)
   - Intent: Add one small accessible tab-bar component (nav links, aria-current, wraps at 390px, 44px targets, tokens only) reused by every section. Build Money in (Invoices, Other income) and Money out (Expenses, Receipts, Mileage) as nested routes composing the existing InvoicesPage, ExpensesPage, ReceiptsPage and MileageSection. Move MileageSection off TaxPage. Plain tab names, no jargon. 'Other income' content is not defined by the spec: assume it reuses the entries list/form filtered to income entries; if that needs a new design, stop and ask in the ticket.
   - Files: `src/components/SectionTabs.tsx`, `src/components/SectionTabs.test.tsx`, `src/pages/MoneyInPage.tsx`, `src/pages/MoneyOutPage.tsx`, `src/pages/MoneyInPage.test.tsx`, `src/pages/MoneyOutPage.test.tsx`, `src/pages/TaxPage.tsx`, `src/pages/TaxPage.test.tsx`, `src/pages/ExpensesPage.tsx`, `src/pages/InvoicesPage.tsx`, `src/App.tsx`
   - Acceptance criteria the planner set:
@@ -74,6 +74,7 @@ Starts at: Signed-in user lands on / and is sent to Home
     - Tab bar usable by keyboard and at 390px without sideways scroll
     - npm run lint, typecheck, test pass
   - Risk: 'Other income' scope is ambiguous in the spec; do not invent screens.
+  - Commit: `7123f25f39e9`
 
 - [ ] **Task 3: Tax tabs and Bank page; clear Settings** (after 2)
   - Intent: Tax gets tabs: VAT, Income Tax (current estimate plus quarterly updates), Past returns (existing VatHistoryList), Reports (ReportsPage). Create a Bank page holding the connected-accounts BankSection and remove it from SettingsPage so Settings holds business details, HMRC, security and preferences. Do not hard-code tax values. Reports is not a menu item.

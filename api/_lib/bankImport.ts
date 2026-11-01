@@ -21,6 +21,8 @@ export interface BankImportConnection {
 export interface BankImportStore {
   /** Active connections whose token has not expired, at most `limit`. */
   listConnections(limit: number, now: Date): Promise<BankImportConnection[]>;
+  /** Active connections skipped by listConnections because their access token or consent has expired. */
+  countExpiredConnections(now: Date): Promise<number>;
   /** Staged lines dated `sinceDate` or later, bounded. */
   stagedSince(connectionId: string, sinceDate: string): Promise<StagedBankLine[]>;
   latestDate(connectionId: string): Promise<string | null>;
@@ -33,6 +35,8 @@ export interface BankImportSummary {
   imported: number;
   flagged: number;
   failed: number;
+  /** Connections skipped for an expired token; nothing renews them yet, so they stay silent unless counted. */
+  expired: number;
 }
 
 const FIRST_IMPORT_DAYS = 90;
@@ -55,7 +59,7 @@ export async function importBankTransactions(
   const maxLines = options.maxLinesPerConnection ?? MAX_LINES_PER_CONNECTION;
   // ponytail: first N connections by id each run; beyond MAX_CONNECTIONS_PER_RUN, rotate by last-imported time.
   const connections = await store.listConnections(MAX_CONNECTIONS_PER_RUN, now);
-  const summary: BankImportSummary = { connections: connections.length, imported: 0, flagged: 0, failed: 0 };
+  const summary: BankImportSummary = { connections: connections.length, imported: 0, flagged: 0, failed: 0, expired: await store.countExpiredConnections(now) };
 
   for (const connection of connections) {
     try {

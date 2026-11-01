@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, isNull, max } from 'drizzle-orm';
+import { and, count, eq, gt, gte, isNull, lte, max, or } from 'drizzle-orm';
 
 import { bankConnections, bankTransactions } from '../../server/src/db/schema.js';
 import { decryptToken } from '../../server/src/lib/hmrcCrypto.js';
@@ -19,6 +19,14 @@ export const databaseBankImportStore: BankImportStore = {
       .orderBy(bankConnections.id)
       .limit(limit);
     return rows.map((row) => ({ id: row.id, providerAccountId: row.providerAccountId, accessToken: decryptToken(row.accessTokenEncrypted) }));
+  },
+
+  async countExpiredConnections(now) {
+    const [row] = await db
+      .select({ expired: count() })
+      .from(bankConnections)
+      .where(and(isNull(bankConnections.deletedAt), or(lte(bankConnections.tokenExpiresAt, now), lte(bankConnections.consentExpiresAt, now))));
+    return row?.expired ?? 0;
   },
 
   async stagedSince(connectionId, sinceDate) {

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createBankImportCronHandler } from '../import-bank-transactions';
 
 const SECRET = 'test-cron-secret-value';
-const summary = { connections: 2, imported: 3, flagged: 1, failed: 0 };
+const summary = { connections: 2, imported: 3, flagged: 1, failed: 0, expired: 0 };
 
 function request(authorization?: string): Request {
   return new Request('https://stf.example/api/cron/import-bank-transactions', { headers: authorization === undefined ? {} : { authorization } });
@@ -32,7 +32,7 @@ describe('import-bank-transactions cron route', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const thrown = createBankImportCronHandler(vi.fn().mockRejectedValue(new Error('secret-token')), SECRET);
     expect((await thrown(request(`Bearer ${SECRET}`))).status).toBe(500);
-    const allFailed = createBankImportCronHandler(vi.fn().mockResolvedValue({ connections: 1, imported: 0, flagged: 0, failed: 1 }), SECRET);
+    const allFailed = createBankImportCronHandler(vi.fn().mockResolvedValue({ connections: 1, imported: 0, flagged: 0, failed: 1, expired: 0 }), SECRET);
     expect((await allFailed(request(`Bearer ${SECRET}`))).status).toBe(500);
   });
 });

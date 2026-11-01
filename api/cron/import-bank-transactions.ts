@@ -25,7 +25,7 @@ export function createBankImportCronHandler(run: () => Promise<BankImportSummary
       console.error(`[import-bank-transactions] cron run failed: ${error instanceof Error ? error.name : typeof error}`);
       return Response.json({ ok: false }, { status: 500 });
     }
-    console.log(`[import-bank-transactions] connections=${summary.connections} imported=${summary.imported} flagged=${summary.flagged} failed=${summary.failed}`);
+    console.log(`[import-bank-transactions] connections=${summary.connections} imported=${summary.imported} flagged=${summary.flagged} failed=${summary.failed} expired=${summary.expired}`);
     // Non-2xx when every connection failed, so a total outage can be alerted on.
     if (summary.connections > 0 && summary.failed === summary.connections) {
       return Response.json({ ok: false, ...summary }, { status: 500 });

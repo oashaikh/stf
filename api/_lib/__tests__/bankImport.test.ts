@@ -5,11 +5,14 @@ import { importBankTransactions, type BankImportStore, type StagedBankLine } fro
 
 const NOW = new Date('2026-11-01T12:00:00Z');
 
-function fakeStore(connections = [{ id: 'c1', providerAccountId: 'acc-1', accessToken: 'tok' }]) {
+function fakeStore(connections = [{ id: 'c1', providerAccountId: 'acc-1', accessToken: 'tok' }], expired = 0) {
   const lines: StagedBankLine[] = [];
   const store: BankImportStore = {
     async listConnections() {
       return connections;
+    },
+    async countExpiredConnections() {
+      return expired;
     },
     async stagedSince(connectionId, sinceDate) {
       return lines.filter((line) => line.connectionId === connectionId && line.date >= sinceDate);
@@ -91,5 +94,12 @@ describe('importBankTransactions', () => {
       },
     } as unknown as BankFeedProvider;
     expect(await importBankTransactions(store, provider, NOW)).toMatchObject({ connections: 2, failed: 1, imported: 1 });
+  });
+});
+
+describe('expired connections', () => {
+  it('reports connections skipped for an expired token', async () => {
+    const { store } = fakeStore([], 2);
+    expect(await importBankTransactions(store, fakeProvider([]).provider, NOW)).toMatchObject({ connections: 0, expired: 2 });
   });
 });

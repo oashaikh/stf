@@ -8,6 +8,7 @@ import {
   HmrcError,
   refreshAccessToken,
   SELF_EMPLOYMENT_API_ACCEPT,
+  submitAnnualSubmission,
   submitCumulativePeriodSummary,
   validateFraudHeaders,
   withHmrcToken,
@@ -360,5 +361,31 @@ describe('submitCumulativePeriodSummary', () => {
     await expect(
       submitCumulativePeriodSummary('AA123456A', 'biz1', '2026-27', payload, 'tok', fraudHeaders, fetchFn),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('submitAnnualSubmission', () => {
+  const payload = { allowances: { tradingIncomeAllowance: '1000.00' } };
+  const fraudHeaders = { 'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER' };
+
+  it('PUTs the body to the annual path with the API accept header and fraud headers', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    await submitAnnualSubmission('AA123456A', 'biz1', '2026-27', payload, 'tok', fraudHeaders, fetchFn);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe(
+      'https://test-api.service.hmrc.gov.uk/individuals/business/self-employment/AA123456A/biz1/annual/2026-27',
+    );
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBe(JSON.stringify(payload));
+    expect(init.headers.Accept).toBe(SELF_EMPLOYMENT_API_ACCEPT);
+    expect(init.headers.Authorization).toBe('Bearer tok');
+    expect(init.headers['Gov-Client-Connection-Method']).toBe('WEB_APP_VIA_SERVER');
+  });
+
+  it('maps a 4xx to HmrcError', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(422, { code: 'RULE_X', message: 'nope' }));
+    await expect(
+      submitAnnualSubmission('AA123456A', 'biz1', '2026-27', payload, 'tok', fraudHeaders, fetchFn),
+    ).rejects.toMatchObject({ apiError: { code: 'RULE_X', statusCode: 422 } });
   });
 });

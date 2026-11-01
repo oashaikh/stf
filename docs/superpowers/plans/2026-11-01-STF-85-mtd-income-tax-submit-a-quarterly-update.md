@@ -29,7 +29,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Add its_submissions table and migration 0021**
+- [x] **Task 1: Add its_submissions table and migration 0021**
   - Intent: Add a Drizzle table `its_submissions` and the SQL migration for it. Columns: id, user_id (FK users), tax_year, quarter (1-4), sandbox, status enum (confirmed, pending, submitted, rejected), confirmed_payload jsonb (the server-computed cumulative body at confirmation), confirmed_at, HMRC receipt fields (hmrc_correlation_id, submitted_at), created_at and updated_at. A UNIQUE(user_id, tax_year, quarter, sandbox) constraint doubles as the per-period, per-environment idempotency lock and the lookup index, as vat_submissions does. Use migration prefix 0021_its_submissions, because 0020 is claimed by STF-35. Parent the journal entry on the current head, which is 0019. Add the row types. Extend schema.test.ts only if it enumerates tables.
   - Files: `server/src/db/schema.ts`, `server/src/db/migrations/0021_its_submissions.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/schema.test.ts`
   - Acceptance criteria the planner set:
@@ -38,6 +38,7 @@
     - npm run typecheck and npm test pass
     - No other table is changed
   - Risk: Schema and migration work touching financial records, so opus at high. The journal file will conflict with STF-35 at merge; re-check the revision graph against main before finishing.
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 2: Add the cumulative update submit call to the HMRC client**
   - Intent: Add `submitCumulativePeriodSummary(nino, businessId, taxYear, payload, accessToken, fraudHeaders, fetchFn)` to src/lib/hmrc/client.ts. It sends PUT to selfEmploymentCumulativePath with Accept set to SELF_EMPLOYMENT_API_ACCEPT, via hmrcFetch. HMRC may answer 204 or an empty body, so make the shared hmrcFetch tolerate an empty success body instead of crashing on response.json(). That is a fix in the shared function, not a one-off. The 'recheck against HMRC docs' caveat on the existing endpoint stays. Add client.test.ts cases with a fake fetch for: the PUT URL, headers and body; a 4xx mapped to HmrcError; and an empty 2xx body.

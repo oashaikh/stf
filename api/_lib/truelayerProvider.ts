@@ -22,6 +22,7 @@ interface TrueLayerAccount {
   account_id: string;
   display_name: string;
   currency: string;
+  account_number?: { number?: string };
 }
 
 interface TrueLayerTransaction {
@@ -80,6 +81,7 @@ export function createTrueLayerProvider(config: TrueLayerConfig, fetchFn: typeof
       return accounts.filter((account) => account.currency === 'GBP').map((account) => ({
         id: account.account_id,
         name: account.display_name,
+        maskedNumber: account.account_number?.number?.slice(-4),
       }));
     },
 

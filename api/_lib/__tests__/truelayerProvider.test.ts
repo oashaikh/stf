@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createTrueLayerProvider } from '../truelayerProvider.js';
 import { accountsResponse, tokenResponse, transactionsResponse } from './fixtures/truelayerSandbox.js';
 
-const config = { clientId: 'client-1', clientSecret: 'secret-1', redirectUri: 'http://localhost:5173/settings/bank/callback' };
+const config = { clientId: 'client-1', clientSecret: 'secret-1', redirectUri: 'http://localhost:5173/api/bank/callback' };
 
 function providerReturning(body: unknown, status = 200) {
   const fetchFn = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(body), { status }));
@@ -34,7 +34,7 @@ describe('TrueLayer provider (sandbox)', () => {
   it('lists only GBP accounts', async () => {
     const { provider } = providerReturning(accountsResponse);
     expect(await provider.listAccounts('token')).toEqual([
-      { id: 'acc-gbp-1', name: 'Sandbox Current' },
+      { id: 'acc-gbp-1', name: 'Sandbox Current', maskedNumber: '5678' },
     ]);
   });
 

@@ -85,7 +85,7 @@ export function box5SentNote(absolutePence: number, isRefund: boolean): string |
 export function reviewState(input: ReviewStateInput): ReviewState {
   const stale = input.stale === true;
   const statusLabel = stale
-    ? 'Ledger changed since you confirmed. Review and confirm again.'
+    ? 'Your payments changed since you confirmed. Review and confirm again.'
     : input.status === 'confirmed'
       ? 'Confirmed'
       : input.status === 'draft'

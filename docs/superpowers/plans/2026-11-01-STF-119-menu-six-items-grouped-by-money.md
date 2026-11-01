@@ -53,7 +53,7 @@ Starts at: Signed-in user lands on / and is sent to Home
 
 ## Tasks
 
-- [ ] **Task 1: Six-item menu and new route table with old-address redirects**
+- [x] **Task 1: Six-item menu and new route table with old-address redirects**
   - Intent: Replace the eight-item nav in AppShell with Home, Money in, Money out, Bank, Tax, Settings (all six in the 390px bottom bar; the 'More' menu goes). Add routes /home, /money-in, /money-out, /bank, /tax, /settings. Redirect /dashboard->/home, /invoices->/money-in, /expenses->/money-out, /receipts->/money-out/receipts, /vat->/tax/vat, /reports->/tax/reports, keeping query strings and hashes (VatPage and Dashboard deep-link to /expenses?status=draft and /expenses?from=..#entry-..). Point '/' and the catch-all at /home. Update in-app links (DashboardPage, EntryActions, VatPage) to new paths. At first the new routes render the existing pages so the app works after this task. Active-link highlighting must cover child paths.
   - Files: `src/components/AppShell.tsx`, `src/components/AppShell.test.tsx`, `src/App.tsx`, `src/App.test.tsx`, `src/pages/DashboardPage.tsx`, `src/pages/DashboardPage.test.tsx`, `src/pages/EntryActions.tsx`, `src/pages/VatPage.tsx`, `src/pages/VatPage.test.tsx`, `src/pages/ExpensesPage.test.tsx`, `src/pages/EntriesList.test.tsx`, `e2e/journey.spec.ts`
   - Acceptance criteria the planner set:
@@ -62,6 +62,7 @@ Starts at: Signed-in user lands on / and is sent to Home
     - Section highlights stay active on child routes
     - npm run lint, typecheck, test pass
   - Risk: Redirects must preserve search and hash or existing deep links from the VAT page break.
+  - Commit: `a7fafb667f1f`
 
 - [ ] **Task 2: Shared tab bar; Money in and Money out pages** (after 1)
   - Intent: Add one small accessible tab-bar component (nav links, aria-current, wraps at 390px, 44px targets, tokens only) reused by every section. Build Money in (Invoices, Other income) and Money out (Expenses, Receipts, Mileage) as nested routes composing the existing InvoicesPage, ExpensesPage, ReceiptsPage and MileageSection. Move MileageSection off TaxPage. Plain tab names, no jargon. 'Other income' content is not defined by the spec: assume it reuses the entries list/form filtered to income entries; if that needs a new design, stop and ask in the ticket.

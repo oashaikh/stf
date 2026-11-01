@@ -39,7 +39,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Receipts index migration for the paged list**
+- [x] **Task 1: Receipts index migration for the paged list**
   - Intent: Add an index on receipts (user_id, created_at, id) so the newest-first list query is served by an index (). Add it to the drizzle schema and generate one new migration with a version later than 0021 (held by STF-85), keeping a single head. Re-check the journal against main before finishing. Extend schema.test.ts to assert the index exists.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0022_receipts_user_created_idx.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0022_snapshot.json`
   - Acceptance criteria the planner set:
@@ -48,6 +48,7 @@ Also depends on:
     - Schema test covers the new index
     - npm run typecheck and npm test pass
   - Risk: Schema/migration work, and the journal file is shared with STF-85. Opus at high.
+  - Commit: `fe74d26db675`
 
 - [ ] **Task 2: Receipts GET: paged list with extraction status and signed read URLs** (after 1)
   - Intent: Add a GET method to api/receipts.ts returning the signed-in owner's live receipts (deleted_at is null), newest first, with a limit and cursor/page parameter. Each item has id, fileName, mimeType, sizeBytes, uploadStatus, aiStatus (extraction status) and createdAt; ready uploads also get a short-lived signed read URL. Add presignRead to ReceiptStorage (GetObjectCommand via getSignedUrl) and a bounded list method to ReceiptStore scoped by session user id. Never expose fileKey. Validate query params. Presign outside any transaction. Register the query for the audit if the repo has an audit list. Update the input inventory. Tests: ordering, limit, user scoping, second user cannot see the first user's receipts, 503 when storage is unconfigured, presignRead.

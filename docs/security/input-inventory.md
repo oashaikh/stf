@@ -62,6 +62,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/vat/history.ts` | GET | VAT (no input) |
 | `api/vat/fraud-headers-check.ts` | GET | VAT (no input beyond fraud headers) |
 | `api/cron/create-recurring-entries.ts` | any | Cron |
+| `api/cron/import-bank-transactions.ts` | any | Cron |
 | `api/cron/prepare-vat-draft.ts` | any | Cron |
 | `api/cron/refresh-hmrc-tokens.ts` | any | Cron |
 | `server/src/index.ts` | none | Fastify control plane: listens on 127.0.0.1 by default and registers no routes, so it takes no input. `server/src/scheduled-jobs/index.ts` and `refreshHmrcTokens.ts` read the database and HMRC only. |
@@ -242,7 +243,7 @@ The VAT submit route has no per-client rate limit (comment in `api/vat/submit.ts
 
 | Input | Where | Rule | Enforced in |
 | --- | --- | --- | --- |
-| `Authorization` header | all three cron routes | must equal `Bearer <CRON_SECRET>`, compared as SHA-256 digests with `timingSafeEqual`; no secret configured means 401 | `api/cron/*.ts` |
+| `Authorization` header | all cron routes | must equal `Bearer <CRON_SECRET>`, compared as SHA-256 digests with `timingSafeEqual`; no secret configured means 401 | `api/cron/*.ts` |
 
 Cron routes read no body or query.
 

@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { formatDate } from '../lib/dates';
 import { fetchItsObligations, type ItsObligationRow, type ItsSetupGap } from '../lib/hmrc/itsObligationsApi';
 import StateMessage from '../components/StateMessage';
+import { quarterOf } from '../lib/hmrc/itsUpdateApi';
+import ItsQuarterlyReview from './ItsQuarterlyReview';
 
 const SETUP_STEPS: Record<ItsSetupGap, { text: string; link: string }> = {
   'not-connected': { text: 'Connect HMRC to see your Income Tax dates.', link: 'Connect HMRC in Settings' },
@@ -32,7 +35,7 @@ function Cell({ label, children, className = '' }: { label: string; children: Re
   );
 }
 
-function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligations: ItsObligationRow[] }) {
+function ObligationsTable({ taxYear, obligations, onReview }: { taxYear: string; obligations: ItsObligationRow[]; onReview: (obligation: ItsObligationRow) => void }) {
   return (
     <div className="mt-4">
       <h3 className="text-base font-semibold text-gray-900">{taxYear}</h3>
@@ -43,7 +46,8 @@ function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligatio
             <th scope="col" className="py-2 pr-4 font-medium">Update</th>
             <th scope="col" className="py-2 pr-4 font-medium">Period</th>
             <th scope="col" className="py-2 pr-4 font-medium">Due date</th>
-            <th scope="col" className="py-2 font-medium">Status</th>
+            <th scope="col" className="py-2 pr-4 font-medium">Status</th>
+            <th scope="col" className="py-2 font-medium"><span className="sr-only">Action</span></th>
           </tr>
         </thead>
         <tbody>
@@ -67,6 +71,15 @@ function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligatio
                   {statusLabel(obligation)}
                   {obligation.nextDue && <strong className="ml-2 rounded bg-blue-800 px-2 py-0.5 text-xs text-white">Next due</strong>}
                 </Cell>
+                {obligation.status === 'open' && quarterOf(obligation) ? (
+                  <Cell label="Action">
+                    <button type="button" onClick={() => onReview(obligation)} className="inline-flex min-h-11 items-center text-blue-800 underline">
+                      Review and submit
+                    </button>
+                  </Cell>
+                ) : (
+                  <td className="hidden sm:table-cell" />
+                )}
               </tr>
             );
           })}
@@ -80,6 +93,7 @@ function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligatio
 export default function ItsObligationsSection() {
   const obligations = useQuery({ queryKey: ['its-obligations'], queryFn: () => fetchItsObligations(), retry: false });
   const result = obligations.data;
+  const [reviewing, setReviewing] = useState<ItsObligationRow | null>(null);
   if (result === null || obligations.isPending) return null;
 
   return (
@@ -111,8 +125,9 @@ export default function ItsObligationsSection() {
           )}
           {result.obligations.length === 0 && <p className="mt-4 text-gray-700">No Income Tax obligations found.</p>}
           {groupByTaxYear(result.obligations).map(([taxYear, rows]) => (
-            <ObligationsTable key={taxYear} taxYear={taxYear} obligations={rows} />
+            <ObligationsTable key={taxYear} taxYear={taxYear} obligations={rows} onReview={setReviewing} />
           ))}
+          {reviewing && <ItsQuarterlyReview key={reviewing.periodStart} obligation={reviewing} onClose={() => setReviewing(null)} />}
         </>
       )}
     </section>

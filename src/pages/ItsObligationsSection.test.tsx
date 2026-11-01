@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -20,7 +20,7 @@ const row = (overrides: Partial<ItsObligationRow>): ItsObligationRow => ({
   ...overrides,
 });
 
-function renderSection(respond: () => Promise<Response>) {
+function renderSection(respond: (url: string) => Promise<Response>) {
   const fetchSpy = vi.fn(respond);
   vi.stubGlobal('fetch', fetchSpy);
   render(
@@ -67,6 +67,24 @@ describe('ItsObligationsSection', () => {
     expect(screen.getAllByText('Next due')).toHaveLength(1);
     expect(screen.getByText('Final declaration')).toBeTruthy();
     expect(screen.getByText('Fulfilled')).toBeTruthy();
+  });
+
+  it('opens the review only for an open quarterly obligation', async () => {
+    renderSection(async (url) =>
+      String(url).includes('its-cumulative-preview')
+        ? Response.json({ ok: false, code: 'X', error: 'Not now' }, { status: 409 })
+        : ok({
+            obligations: [
+              row({ taxYear: '2025-26', kind: 'finalDeclaration', periodStart: '2025-04-06', periodEnd: '2026-04-05' }),
+              row({ status: 'fulfilled', periodStart: '2026-07-06', periodEnd: '2026-10-05' }),
+              row({}),
+            ],
+          }),
+    );
+    const buttons = await screen.findAllByRole('button', { name: 'Review and submit' });
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]);
+    expect(await screen.findByRole('heading', { name: 'Review quarterly update' })).toBeTruthy();
   });
 
   it('marks an overdue obligation with the word Overdue', async () => {

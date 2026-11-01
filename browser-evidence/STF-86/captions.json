@@ -1,0 +1,14 @@
+{
+  "review-1440-light.png": {
+    "title": "Review screen for a quarterly Income Tax update: figures by HMRC category, a sandbox notice and a declaration box before you can submit"
+  },
+  "review-390-light.png": {
+    "title": "Review screen for a quarterly Income Tax update: figures by HMRC category, a sandbox notice and a declaration box before you can submit"
+  },
+  "receipt-1440-light.png": {
+    "title": "After submitting, the screen confirms HMRC accepted the quarterly update and says whether it was a test or live"
+  },
+  "receipt-390-light.png": {
+    "title": "After submitting, the screen confirms HMRC accepted the quarterly update and says whether it was a test or live"
+  }
+}

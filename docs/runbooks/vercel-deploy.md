@@ -40,6 +40,58 @@ Set these in your Vercel project settings. Never commit them to the repository.
 - `STORAGE_ACCESS_KEY` — read/write access key
 - `STORAGE_SECRET_KEY` — read/write secret key
 
+#### Bucket configuration
+
+The bucket must be **private** (no public read access). Browser uploads use signed PUT URLs valid for 5 minutes, scoped to a specific object key with signed content type and content length.
+
+**CORS rule:** Browsers uploading receipts directly to the bucket need the following CORS configuration. Replace `https://your-domain` with your `APP_ORIGIN`:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://your-domain"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "MaxAgeSeconds": 300
+  }
+]
+```
+
+For AWS S3, this is set in the bucket's CORS settings (Permissions tab); for Cloudflare R2, in the bucket's Settings under CORS; for Backblaze B2, in bucket settings under CORS Rules.
+
+#### Local testing with MinIO
+
+To manually test receipt uploads against a local S3-compatible store:
+
+1. Start the local MinIO server:
+   ```bash
+   docker compose up -d
+   ```
+
+2. Create a new receipt via the API (this returns a signed upload URL):
+   ```bash
+   curl -X POST http://localhost:5173/api/receipts \
+     -H "Content-Type: application/json" \
+     -d '{"fileName": "receipt.jpg", "fileType": "image/jpeg", "sizeBytes": 102400}'
+   ```
+   Note the `uploadUrl` and `id` from the response.
+
+3. Upload a test file to the URL:
+   ```bash
+   curl -X PUT -T /path/to/receipt.jpg '<upload-url>'
+   ```
+
+4. Confirm the upload is ready:
+   ```bash
+   curl -X PATCH http://localhost:5173/api/receipts \
+     -H "Content-Type: application/json" \
+     -d '{"id": "<receipt-id>"}'
+   ```
+
+5. Verify the receipt status changed to `ready`.
+
+**Note:** The agent has no Docker daemon available, so this manual test was not run and is left to the orchestrator or owner to verify before production deployment.
+
 ### Application
 
 - `APP_ORIGIN` — the deployed URL: `https://<your-domain>`

@@ -47,8 +47,9 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Add bank_connections table and migration 0020**
+- [x] **Task 1: Add bank_connections table and migration 0020**
   - Intent: Add a `bank_connections` Drizzle table in server/src/db/schema.ts with these columns:
+  - Commit: `fa823e8bcfc3`
 - Identity and ownership: id; user_id (uuid, FK to users, on delete cascade); provider (text); provider_account_id (text).
 - Display: display_name (text); masked_account_number (nullable text, last 4 digits only).
 - Consent and tokens: [REDACTED]] (timestamptz); access_token_encrypted and refresh_token_encrypted (text, ciphertext from encryptToken); token_expires_at (timestamptz).
@@ -71,7 +72,6 @@ Re-check that there is a single migration head before finishing.
 
 - [ ] **Task 2: Bank store and consent routes: start, callback, status, disconnect** (after 1)
   - Intent: Add api/_lib/bankStore.ts, modelled on hmrcStore.ts: a BankStore interface plus a database implementation. Every query filters on the session user id and has `.limit()`. Tokens are written with encryptToken. Disconnect sets deleted_at and clears the token ciphertext; it never runs DELETE.
-
 Add routes under api/bank/:
 1. connect.ts (GET, auth): returns { ok: true, url } from provider.startConsent(signState(auth.userId)), using createTrueLayerProvider(trueLayerConfigFromEnv()).
 2. callback.ts (GET, public like api/hmrc/callback.ts): verifiedStateUserId decides the user; invalid state returns 400 INVALID_STATE. Cap the code length, call finishConsent, list accounts, save the first GBP account with consent expiry = now + 90 days. No GBP account redirects to /settings?bank=error. The provider call finishes before the single-statement write (no transaction across the network call). Redirect to /settings?bank=connected or ?bank=error; log only the error class name.
@@ -95,7 +95,6 @@ Tests with fakes: bad, forged and expired state refused on callback; stored toke
 
 - [ ] **Task 3: Bank section on the Settings page** (after 2)
   - Intent: Add src/lib/bankApi.ts (fetchBankStatus, fetchBankConnectUrl, disconnectBank) in the style of tradingAllowanceApi.ts. Add src/pages/BankSection.tsx and render it in SettingsPage.tsx.
-
 The section uses StateMessage for loading, empty and error states, and existing tokens and container. With no connection it shows a Connect button. With a connection it shows display name, masked number, consent expiry date, and a Disconnect button that confirms and names what it affects. An expired or expiring-soon (within 14 days) notice shows a Reconnect button; colour is never the only signal. It reads ?bank=connected|error on return. Tap targets are at least 44px with visible focus.
 
 Put expiry-state logic in a small pure function with a unit test. Add component tests with the API module mocked (connected, expiring, expired, error). Add the /api/bank/status case to e2e/mockApi.ts.

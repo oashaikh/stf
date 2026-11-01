@@ -54,7 +54,7 @@ export default function BankSection() {
   const state = status?.connected && status.consentExpiresAt ? consentState(status.consentExpiresAt) : null;
 
   return (
-    <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="bank-heading">
+    <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-4 sm:p-6" aria-labelledby="bank-heading">
       <h2 id="bank-heading" className="text-lg font-semibold text-gray-900">Bank account</h2>
       {returned === 'connected' && <p role="status" className="mt-2 text-green-800">✓ Bank account connected.</p>}
       {returned === 'error' && (

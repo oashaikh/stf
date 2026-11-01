@@ -43,7 +43,7 @@
   - Risk: Adds a dependency (: check for open advisories on chosen versions and name any in the PR) and handles secrets, so opus at high.
   - Commit: `b796950a49ec`
 
-- [ ] **Task 2: Receipts route: signed upload URL, confirm-ready check, soft delete** (after 1)
+- [x] **Task 2: Receipts route: signed upload URL, confirm-ready check, soft delete** (after 1)
   - Intent: Add api/_lib/receipts.ts and api/receipts.ts following the mileage pattern: withAuth, injected ReceiptStore and ReceiptStorage, default-exported { fetch }, userId only from the session. POST validates fileName with the inputRules.ts helpers, allows only image/jpeg, image/png, image/webp or application/pdf, and requires an integer size from 1 up to a 10 MB constant. It inserts a receipts row with uploadStatus pending and fileKey '<userId>/<crypto.randomUUID()>' (no client-supplied name in the key), and returns the receipt id plus a signed PUT URL valid 5 minutes. A refused type or size returns 400 and inserts nothing. PATCH with {id} loads the row by (id, userId, deletedAt null), calls statObject, sets ready when size and type match what was declared, and sets failed on a mismatch or missing object. No storage call happens inside a DB transaction (). DELETE with {id} soft-deletes by setting deletedAt and keeps the object. Another owner's id returns 404. Responses use explicit columns and never include userId or fileKey. Every query is scoped to the session owner and is either a single-row (id, userId) lookup or has an explicit limit. No migration is needed (table exists). Add the route to docs/security/input-inventory.md, since inputInventory.test.ts fails without it. Tests use a fake store and fake storage: unsupported type refused, oversize refused, mismatch marks failed, ready path works, second owner cannot PATCH or DELETE, client-supplied userId ignored, no signed URL or key in console output.
   - Files: `api/receipts.ts`, `api/_lib/receipts.ts`, `api/_lib/__tests__/receiptsRoute.test.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -58,6 +58,7 @@
     - apiRoutes.test.ts and inputInventory.test.ts pass with the new route
     - npm run lint, typecheck, test and build pass
   - Risk: Upload authorization, tenant isolation and signed-URL handling, so opus at high.
+  - Commit: `67fc99b0dc3d`
 
 - [ ] **Task 3: Document bucket CORS rule and local MinIO check in the Vercel runbook** (after 2)
   - Intent: Update the Receipt storage section of docs/runbooks/vercel-deploy.md with the bucket CORS rule browsers need for direct upload: allowed origin is the APP_ORIGIN value, method PUT, headers including Content-Type, short max age. Note signed URLs last 5 minutes and the bucket stays private. Add short steps for the local MinIO manual check (docker compose up -d, create a receipt, PUT a file to the returned URL with curl, call the confirm action). The implementer has no Docker, so the PR must say the MinIO check was not run by the agent and is left to the orchestrator or owner.

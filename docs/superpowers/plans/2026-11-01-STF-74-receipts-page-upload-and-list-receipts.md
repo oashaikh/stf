@@ -74,7 +74,7 @@ Also depends on:
     - npm test and typecheck pass
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 4: Receipts page: upload, list and remove with confirmation, plus component tests** (after 3)
+- [x] **Task 4: Receipts page: upload, list and remove with confirmation, plus component tests** (after 3)
   - Intent: Replace the Coming soon text in src/pages/ReceiptsPage.tsx. Add a react-dropzone area with a camera-friendly input, per-file progress, and clear errors for wrong type or size. Add a TanStack Query paged list, newest first, showing file name, date added, upload status and extraction status (plain-language, never as confirmed data), with a thumbnail from the signed URL or a file icon. Remove opens a confirm dialog naming the file, then soft-deletes. Use StateMessage for loading/empty/error, shared page gutters, 44px targets, single-line truncating rows, and labelled rows on phones. Component tests (receiptsApi mocked) cover upload success, wrong-type and oversize refusal, list loading/empty/error/populated states, remove confirm/cancel and load more. Add receipts mocks to e2e/mockApi.ts if needed. Capture screenshots at 390 and 1440 px as review evidence.
   - Files: `src/pages/ReceiptsPage.tsx`, `src/pages/ReceiptsPage.test.tsx`, `e2e/mockApi.ts`
   - Acceptance criteria the planner set:
@@ -86,3 +86,4 @@ Also depends on:
     - Component tests cover upload success, refusal and the list states
     - Screenshots at 390 px and 1440 px produced
     - npm run lint, typecheck, test and build pass
+  - Commit: `50b1c93be46a`

@@ -3,9 +3,8 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 
 // Pages — lazy imports to be added as features are built
 import DashboardPage from './pages/DashboardPage.tsx';
-import ExpensesPage from './pages/ExpensesPage.tsx';
-import InvoicesPage from './pages/InvoicesPage.tsx';
-import ReceiptsPage from './pages/ReceiptsPage.tsx';
+import MoneyInPage from './pages/MoneyInPage.tsx';
+import MoneyOutPage from './pages/MoneyOutPage.tsx';
 import VatPage from './pages/VatPage.tsx';
 import TaxPage from './pages/TaxPage.tsx';
 import ReportsPage from './pages/ReportsPage.tsx';
@@ -52,9 +51,8 @@ function AuthGate() {
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route element={<AppShell />}>
         <Route path="/home" element={<DashboardPage />} />
-        <Route path="/money-in" element={<InvoicesPage />} />
-        <Route path="/money-out" element={<ExpensesPage />} />
-        <Route path="/money-out/receipts" element={<ReceiptsPage />} />
+        <Route path="/money-in/*" element={<MoneyInPage />} />
+        <Route path="/money-out/*" element={<MoneyOutPage />} />
         <Route path="/bank" element={<SettingsPage />} />
         <Route path="/tax" element={<TaxPage />} />
         <Route path="/tax/vat" element={<VatPage />} />

@@ -419,7 +419,7 @@ function AddEntryForm({
   );
 }
 
-export default function ExpensesPage() {
+export default function ExpensesPage({ heading = "Expenses" }: { heading?: string }) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ApiEntry | null>(null);
   const vat = useQuery({
@@ -427,9 +427,9 @@ export default function ExpensesPage() {
     queryFn: fetchHasVatNumber,
   });
   return (
-    <main className="p-4 md:p-8">
+    <div className="mt-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-gray-900">Expenses</h1>
+        <h2 className="text-xl font-semibold text-gray-900">{heading}</h2>
         <button
           type="button"
           aria-expanded={adding}
@@ -456,6 +456,6 @@ export default function ExpensesPage() {
       )}
       <RecurringEntriesSection hasVatNumber={vat.data === true} />
       <EntriesList onEdit={setEditing} />
-    </main>
+    </div>
   );
 }

@@ -104,9 +104,9 @@ export default function InvoicesPage() {
   const [view, setView] = useState<View>({ kind: 'list' });
   const toList = () => setView({ kind: 'list' });
   return (
-    <main className="p-4 md:p-8">
+    <div className="mt-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-gray-900">Invoices</h1>
+        <h2 className="text-xl font-semibold text-gray-900">Invoices</h2>
         {view.kind === 'list' && (
           <button type="button" onClick={() => setView({ kind: 'new' })} className="min-h-11 rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800">
             New invoice
@@ -116,6 +116,6 @@ export default function InvoicesPage() {
       {view.kind === 'list' && <InvoiceList onOpen={setView} />}
       {view.kind === 'new' && <NewInvoice onBack={toList} onOpen={setView} />}
       {view.kind === 'open' && <OpenInvoice key={view.id} id={view.id} onBack={toList} onOpen={setView} />}
-    </main>
+    </div>
   );
 }

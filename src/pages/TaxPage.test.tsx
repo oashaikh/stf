@@ -7,9 +7,8 @@ import { TAX_BANDS } from '../lib/taxBands';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 import TaxPage from './TaxPage';
 
-// The mileage section has its own tests and its own API; this file's fetch mock only knows the tax estimate.
+// This file's fetch mock only knows the tax estimate.
 vi.mock('./ItsObligationsSection', () => ({ default: () => <h2>Income Tax obligations</h2> }));
-vi.mock('./MileageSection', () => ({ default: () => <h2>Mileage</h2> }));
 vi.mock('../lib/tradingAllowanceApi', () => ({ saveExpenseMethod: vi.fn() }));
 
 const estimateFor = (taxYear: string) => ({
@@ -56,6 +55,12 @@ describe('TaxPage', () => {
   it('renders the Income Tax obligations section', async () => {
     renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
     expect(await screen.findByRole('heading', { name: 'Income Tax obligations' })).toBeTruthy();
+  });
+
+  it('no longer shows mileage, which lives under Money out', async () => {
+    renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
+    await screen.findByRole('heading', { name: 'Income Tax obligations' });
+    expect(screen.queryByText(/mileage/i)).toBeNull();
   });
 
   it('shows the figures the route returns, the set-aside amount and an estimate note', async () => {

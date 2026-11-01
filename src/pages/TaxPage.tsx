@@ -5,7 +5,6 @@ import { formatPence } from '../lib/money';
 import { currentTaxYear, TAX_BANDS } from '../lib/taxBands';
 import { fetchTaxEstimate, taxEstimateQueryKey } from '../lib/taxEstimateApi';
 import ItsObligationsSection from './ItsObligationsSection';
-import MileageSection from './MileageSection';
 import type { ExpenseMethod } from '../lib/taxYearSummary';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 import StateMessage from '../components/StateMessage';
@@ -111,7 +110,6 @@ export default function TaxPage() {
       )}
 
       <ItsObligationsSection />
-      <MileageSection />
     </main>
   );
 }

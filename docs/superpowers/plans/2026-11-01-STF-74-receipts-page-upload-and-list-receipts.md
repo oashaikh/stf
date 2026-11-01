@@ -63,7 +63,7 @@ Also depends on:
   - Risk: Signed URLs and per-user data isolation. Opus at high.
   - Commit: `29e9d32cd173`
 
-- [ ] **Task 3: Receipts API client module** (after 2)
+- [x] **Task 3: Receipts API client module** (after 2)
   - Intent: Add src/lib/receiptsApi.ts following the mileageApi.ts pattern: fetchReceipts(page), startReceiptUpload (POST), uploadToSignedUrl with progress via XMLHttpRequest, confirmReceiptUpload (PATCH) and removeReceipt (DELETE). Include client-side type and size checks mirroring the server (JPEG, PNG, WEBP, PDF, max 10 MB). Unit-test validation and request shapes with faked fetch and XHR.
   - Files: `src/lib/receiptsApi.ts`, `src/lib/__tests__/receiptsApi.test.ts`
   - Acceptance criteria the planner set:
@@ -72,6 +72,7 @@ Also depends on:
     - Server refusal messages are surfaced
     - No live network in tests
     - npm test and typecheck pass
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 4: Receipts page: upload, list and remove with confirmation, plus component tests** (after 3)
   - Intent: Replace the Coming soon text in src/pages/ReceiptsPage.tsx. Add a react-dropzone area with a camera-friendly input, per-file progress, and clear errors for wrong type or size. Add a TanStack Query paged list, newest first, showing file name, date added, upload status and extraction status (plain-language, never as confirmed data), with a thumbnail from the signed URL or a file icon. Remove opens a confirm dialog naming the file, then soft-deletes. Use StateMessage for loading/empty/error, shared page gutters, 44px targets, single-line truncating rows, and labelled rows on phones. Component tests (receiptsApi mocked) cover upload success, wrong-type and oversize refusal, list loading/empty/error/populated states, remove confirm/cancel and load more. Add receipts mocks to e2e/mockApi.ts if needed. Capture screenshots at 390 and 1440 px as review evidence.

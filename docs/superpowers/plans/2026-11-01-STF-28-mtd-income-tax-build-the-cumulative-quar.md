@@ -42,7 +42,7 @@
   - Risk: Money mapping against an external API spec. The implementer must verify field names against the live HMRC docs rather than memory; the ticket says to confirm the endpoint and version at build time.
   - Commit: `fba1f5608cb5`
 
-- [ ] **Task 2: Income Tax quarterly update preview route with audit event** (after 1)
+- [x] **Task 2: Income Tax quarterly update preview route with audit event** (after 1)
   - Intent: Add api/_lib/itsCumulativePreview.ts and a route file api/hmrc/its-cumulative-preview.ts (POST), modelled on api/_lib/vatPreview.ts and api/vat/preview.ts. Input is validated with zod and holds only taxYear (YYYY-YY, must be a key of TAX_BANDS, reuse parseTaxYearPeriod's rule) and quarter (1 to 4). The NINO and business id are never taken from the client. The route is gated the way api/hmrc/its-obligations.ts is: HMRC_ITSA_ENABLED=true, sandbox/live mode check (LIVE_MODE_REFUSED), HMRC connected, ITS scope present, business selected and NINO present. It loads the summary with getTaxYearSummary(databaseTaxYearSummaryStore, userId, period) over 6 April to quarter end, then maps it with the function from task 1. It makes no HMRC call and writes no HMRC state. It returns the endpoint (method, url using hmrcApiBase() with the NINO masked via maskNino and the business id masked), the exact body, and the headers with Authorization hidden, like the VAT preview. The only write is an audit event (action 'its_update.previewed', resourceType 'its_cumulative_update', metadata taxYear, quarter and sandbox only, never the body or NINO) into auditEvents. Dependencies are injected so tests use fakes. Tests, in the style of api/_lib/__tests__/vatPreview*.test.ts, cover: 405 for non-POST, 400 for bad input, 404 when ITSA is disabled, 403 when the mode is refused, 409 for each missing prerequisite, the happy path returning the exact payload, the audit event written with no body and no NINO, no fetch called, and the unauthenticated 401 from withAuth. Add the route to docs/security/input-inventory.md, since api/_lib/__tests__/inputInventory.test.ts fails otherwise. The route must default-export { fetch } and use .js import extensions, as apiRoutes.test.ts checks. Check whether e2e/mockApi.ts or the journeyWriteGuard test needs an entry.
   - Files: `api/_lib/itsCumulativePreview.ts`, `api/hmrc/its-cumulative-preview.ts`, `api/_lib/__tests__/itsCumulativePreview.test.ts`, `api/_lib/__tests__/itsCumulativePreviewRoute.test.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -53,6 +53,7 @@
     - The userId comes from the session, never the request
     - The input inventory test, the apiRoutes tests, lint, typecheck, test and build all pass
   - Risk: Authenticated route that handles a NINO, HMRC mode gating and an audit write. This is permission and identifier work, so opus at high.
+  - Commit: `70f545c5c974`
 
 - [ ] **Task 3: Document the cumulative quarterly update workflow** (after 2)
   - Intent: Add docs/workflows/its-quarterly-update.md describing the quarter-end dates, the field mapping table (STF category to HMRC field), the allowance versus actual expenses rule, the preview route's request and response and its audit event, and the HMRC doc version confirmed at build time. State plainly that submission is STF-85 and not done here.

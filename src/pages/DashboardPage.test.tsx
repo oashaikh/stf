@@ -67,9 +67,9 @@ describe('DashboardPage', () => {
     expect(screen.getByText('£1,100.00')).toBeTruthy();
     expect(screen.getByText('£300.00')).toBeTruthy();
     expect(screen.getByText('Train tickets')).toBeTruthy();
-    expect(screen.getByRole('link', { name: /3 drafts to confirm/i }).getAttribute('href')).toBe('/expenses?status=draft');
-    expect(screen.getByRole('link', { name: /add entry/i }).getAttribute('href')).toBe('/expenses');
-    expect(screen.getByRole('link', { name: /vat page/i }).getAttribute('href')).toBe('/vat');
+    expect(screen.getByRole('link', { name: /3 drafts to confirm/i }).getAttribute('href')).toBe('/money-out?status=draft');
+    expect(screen.getByRole('link', { name: /add entry/i }).getAttribute('href')).toBe('/money-out');
+    expect(screen.getByRole('link', { name: /vat page/i }).getAttribute('href')).toBe('/tax/vat');
     expect(await screen.findByText('£123.45')).toBeTruthy();
     expect(screen.getByRole('link', { name: /tax page/i }).getAttribute('href')).toBe('/tax');
   });
@@ -83,7 +83,7 @@ describe('DashboardPage', () => {
   it('shows the empty state for a new ledger', async () => {
     renderPage(Response.json({ ok: true, data: empty }));
     expect(await screen.findByText(/no entries yet/i)).toBeTruthy();
-    expect(screen.getByRole('link', { name: /add entry/i }).getAttribute('href')).toBe('/expenses');
+    expect(screen.getByRole('link', { name: /add entry/i }).getAttribute('href')).toBe('/money-out');
     expect(screen.queryByText(/drafts to confirm/i)).toBeNull();
   });
 
@@ -100,7 +100,7 @@ describe('DashboardPage', () => {
       expect(await screen.findByText('£543.21')).toBeTruthy();
       expect(screen.getByText(formatDate(dueSoon.due))).toBeTruthy();
       expect(screen.getByText('Draft saved')).toBeTruthy();
-      expect(screen.getByRole('link', { name: /review vat return/i }).getAttribute('href')).toBe('/vat');
+      expect(screen.getByRole('link', { name: /review vat return/i }).getAttribute('href')).toBe('/tax/vat');
     });
 
     it('labels a return with no saved draft as not yet drafted', async () => {

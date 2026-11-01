@@ -25,6 +25,22 @@ const queryClient = new QueryClient({
   },
 });
 
+// Bookmarks and in-app deep links from before the six-item menu still work.
+const OLD_ADDRESSES = [
+  ['/dashboard', '/home'],
+  ['/invoices', '/money-in'],
+  ['/expenses', '/money-out'],
+  ['/receipts', '/money-out/receipts'],
+  ['/vat', '/tax/vat'],
+  ['/reports', '/tax/reports'],
+] as const;
+
+// Filters (?status=draft) and entry anchors (#entry-1) must survive the move.
+function RedirectKeepingSearch({ to }: { to: string }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={{ pathname: to, search, hash }} replace />;
+}
+
 function AuthGate() {
   const session = useQuery({ queryKey: SESSION_QUERY_KEY, queryFn: fetchSignedIn, staleTime: Infinity, retry: false });
   if (session.isPending) return <StateMessage kind="loading" className="p-6">Loading…</StateMessage>;
@@ -33,18 +49,22 @@ function AuthGate() {
 
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="/home" replace />} />
       <Route element={<AppShell />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/expenses" element={<ExpensesPage />} />
-        <Route path="/invoices" element={<InvoicesPage />} />
-        <Route path="/receipts" element={<ReceiptsPage />} />
-        <Route path="/vat" element={<VatPage />} />
+        <Route path="/home" element={<DashboardPage />} />
+        <Route path="/money-in" element={<InvoicesPage />} />
+        <Route path="/money-out" element={<ExpensesPage />} />
+        <Route path="/money-out/receipts" element={<ReceiptsPage />} />
+        <Route path="/bank" element={<SettingsPage />} />
         <Route path="/tax" element={<TaxPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/tax/vat" element={<VatPage />} />
+        <Route path="/tax/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      {OLD_ADDRESSES.map(([from, to]) => (
+        <Route key={from} path={from} element={<RedirectKeepingSearch to={to} />} />
+      ))}
+      <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
   );
 }

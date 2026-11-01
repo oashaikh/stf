@@ -225,7 +225,7 @@ describe('VatPage', () => {
       const link = screen.getByRole('link', { name: /Consulting & design/ });
       expect(link).toHaveAttribute(
         'href',
-        '/expenses?from=2026-08-15&to=2026-08-15&search=Consulting+%26+design#entry-entry-42',
+        '/money-out?from=2026-08-15&to=2026-08-15&search=Consulting+%26+design#entry-entry-42',
       );
       expect(link).toHaveTextContent('15 Aug 2026');
       expect(link).toHaveTextContent('£100.00');

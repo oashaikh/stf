@@ -1,33 +1,16 @@
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  BarChart3,
-  CalendarCheck,
-  Ellipsis,
-  Home,
-  Landmark,
-  Receipt,
-  ReceiptText,
-  Settings,
-  Wallet,
-  type LucideIcon,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { ArrowDownToLine, ArrowUpFromLine, FileText, Home, Landmark, Settings, type LucideIcon } from 'lucide-react';
+import { NavLink, Outlet } from 'react-router-dom';
 import { SESSION_QUERY_KEY, signOut } from '../lib/session';
 
 type NavItem = { to: string; label: string; icon: LucideIcon };
 
-// The four most used sections stay in the phone bar; the rest sit behind "More". From md up all eight show inline.
-const PRIMARY_ITEMS: NavItem[] = [
-  { to: '/dashboard', label: 'Dashboard', icon: Home },
-  { to: '/vat', label: 'VAT', icon: CalendarCheck },
-  { to: '/receipts', label: 'Receipts', icon: Receipt },
-  { to: '/reports', label: 'Reports', icon: BarChart3 },
-];
-const MORE_ITEMS: NavItem[] = [
-  { to: '/expenses', label: 'Expenses', icon: Wallet },
-  { to: '/invoices', label: 'Invoices', icon: ReceiptText },
-  { to: '/tax', label: 'Tax', icon: Landmark },
+const NAV_ITEMS: NavItem[] = [
+  { to: '/home', label: 'Home', icon: Home },
+  { to: '/money-in', label: 'Money in', icon: ArrowDownToLine },
+  { to: '/money-out', label: 'Money out', icon: ArrowUpFromLine },
+  { to: '/bank', label: 'Bank', icon: Landmark },
+  { to: '/tax', label: 'Tax', icon: FileText },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -47,13 +30,9 @@ function renderLink({ to, label, icon: Icon }: NavItem) {
   );
 }
 
-// One nav element serves both layouts: a bottom bar with a More menu on phones, inline links in the header from md up.
+// One nav element serves both layouts: all six links in a bottom bar on phones, inline in the header from md up.
 export default function AppShell() {
-  const [moreOpen, setMoreOpen] = useState(false);
-  const { pathname } = useLocation();
   const queryClient = useQueryClient();
-  const moreActive = MORE_ITEMS.some(({ to }) => pathname.startsWith(to));
-  useEffect(() => setMoreOpen(false), [pathname]);
 
   async function handleSignOut() {
     await signOut();
@@ -79,23 +58,7 @@ export default function AppShell() {
           aria-label="Main"
           className="fixed inset-x-0 bottom-0 z-10 flex border-t border-gray-200 bg-white md:static md:order-2 md:border-0"
         >
-          {PRIMARY_ITEMS.map(renderLink)}
-          <button
-            type="button"
-            aria-expanded={moreOpen}
-            aria-controls="more-nav"
-            onClick={() => setMoreOpen((open) => !open)}
-            className={`${LINK_CLASS} md:hidden ${moreActive || moreOpen ? 'bg-blue-50 text-brand' : 'text-gray-700 hover:bg-gray-100'}`}
-          >
-            <Ellipsis aria-hidden="true" size={20} />
-            More
-          </button>
-          <div
-            id="more-nav"
-            className={`${moreOpen ? 'grid' : 'hidden'} absolute inset-x-0 bottom-full grid-cols-4 border-t border-gray-200 bg-white md:static md:flex md:border-0`}
-          >
-            {MORE_ITEMS.map(renderLink)}
-          </div>
+          {NAV_ITEMS.map(renderLink)}
         </nav>
       </header>
       <Outlet />

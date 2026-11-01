@@ -87,8 +87,8 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   // Not a failure: the owner's account is protected and this run was given no way past it. It sits outside the step because a skip thrown inside one is reported as a failure.
   if (missingTotpSecret) console.log('JOURNEY_SKIPPED: 2FA on, no journey secret (set JOURNEY_TOTP_SECRET to the authenticator secret)');
   test.skip(missingTotpSecret, '2FA on, no journey secret');
-  await step('dashboard', openPage('/dashboard', 'Dashboard'));
-  await step('expenses', openPage('/expenses', 'Expenses'));
+  await step('dashboard', openPage('/home', 'Dashboard'));
+  await step('expenses', openPage('/money-out', 'Expenses'));
   // Mocked only: a deployed run must not write a test entry into the owner's books.
   if (mocked) {
     await step('add-income-entry', async () => {
@@ -129,16 +129,16 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   // Mocked only: the mock's open obligation is past due, so the reminder card shows; a deployed run depends on the owner's real obligations.
   if (mocked && mockVatState !== 'none') {
     await step('dashboard-vat-reminder', async () => {
-      await page.goto('/dashboard');
+      await page.goto('/home');
       const card = page.getByRole('heading', { name: 'Upcoming VAT return' }).locator('xpath=ancestor::section[1]');
       await expect(card.getByText('7 Aug 2026')).toBeVisible();
       await expect(card.getByText('Box 5: net VAT to pay')).toBeVisible();
       await captureEvidence(page, 'dashboard-vat-reminder');
       await card.getByRole('link', { name: 'Review VAT return' }).click();
-      await expect(page).toHaveURL(/\/vat$/);
+      await expect(page).toHaveURL(/\/tax\/vat$/);
     });
   }
-  await step('vat-obligations', openPage('/vat', 'VAT Returns'));
+  await step('vat-obligations', openPage('/tax/vat', 'VAT Returns'));
   // The entry's figures are only checked where the mocked return is confirmed and still open, so the preview is reachable.
   const checkFigures = mockVatState === 'confirmed';
   await step('vat-review', async () => {
@@ -153,7 +153,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await page.getByRole('button', { name: /^Box 1\b|VAT due on sales/ }).first().click();
       const line = page.getByRole('link', { name: /Invoice 1001 website build/ });
       await expect(line).toContainText('£500.00 + £100.00 VAT');
-      await expect(line).toHaveAttribute('href', /^\/expenses\?.*#entry-entry-1$/);
+      await expect(line).toHaveAttribute('href', /^\/money-out\?.*#entry-entry-1$/);
       await captureEvidence(page, 'vat-drill-down');
     });
   }
@@ -219,7 +219,7 @@ test('owner opens an invoice and sees the Download PDF button', async ({ page })
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
 
-  await page.goto('/invoices');
+  await page.goto('/money-in');
   await page.getByRole('button', { name: /INV-0042/ }).click();
   const download = page.getByRole('button', { name: 'Download PDF' });
   await expect(download).toBeVisible();

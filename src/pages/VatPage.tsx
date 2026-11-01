@@ -51,7 +51,7 @@ interface VatPeriod {
 function expensesLink(line: DrillLine): string {
   const filters = new URLSearchParams({ from: line.date, to: line.date });
   if (line.description) filters.set('search', line.description);
-  return `/expenses?${filters}#entry-${line.transactionId}`;
+  return `/money-out?${filters}#entry-${line.transactionId}`;
 }
 
 const boxNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;

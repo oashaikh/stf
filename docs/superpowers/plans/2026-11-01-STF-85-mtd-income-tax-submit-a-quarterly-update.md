@@ -67,7 +67,7 @@ Reuse hmrcCall.ts, hmrcStore.ts, withHmrcToken and the refresh pattern from vatS
     - npm run lint, npm run typecheck and npm test pass
   - Risk: Financial submission, idempotency lock, authorisation and live-mode gating, so opus at high. A wrong lock release could double-file with HMRC.
 
-- [ ] **Task 4: Add confirm and submit API routes with route tests** (after 3)
+- [x] **Task 4: Add confirm and submit API routes with route tests** (after 3)
   - Intent: Add api/hmrc/its-cumulative-confirm.ts (POST body `{taxYear, quarter, declaration: true}`, strict zod schema reusing itsCumulativePreviewSchema) and api/hmrc/its-cumulative-submit.ts (POST `{taxYear, quarter, confirm: true}`). Both use withAuth and take the user id only from the session. Map ItsSubmitError and HmrcError to codes without leaking HMRC messages, as api/vat/submit.ts does. Reuse the existing ponytail note rather than adding a rate limiter. Add both routes to docs/security/input-inventory.md, which inputInventory.test.ts enforces. Add route tests for the 400/401/405 paths, a missing declaration, and a second user's confirmation not being usable.
   - Files: `api/hmrc/its-cumulative-confirm.ts`, `api/hmrc/its-cumulative-submit.ts`, `api/_lib/__tests__/itsSubmitRoute.test.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -75,6 +75,7 @@ Reuse hmrcCall.ts, hmrcStore.ts, withHmrcToken and the refresh pattern from vatS
     - Bodies with extra keys or a missing declaration/confirm are 400
     - The input-inventory test passes with both new routes listed
     - npm run lint, npm run typecheck, npm test and npm run build pass
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 5: Sandbox integration test (skipped without credentials) and workflow docs** (after 3)
   - Intent: Add a describe.skipIf block to src/lib/hmrc/sandbox.integration.test.ts for the cumulative PUT, running only when HMRC_CLIENT_ID, HMRC_SANDBOX_NINO and the refresh token are set (the existing hasCredentials pattern), sandbox only. Check the endpoint, version and field names against the HMRC docs where reachable. Update docs/workflows/its-quarterly-update.md with the confirm and submit flow, the status and lock lifecycle, the OUTCOME_UNKNOWN recovery, and the sandbox/live gating. Keep the NINO mask and business id examples in sync with the code.

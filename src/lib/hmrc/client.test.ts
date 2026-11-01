@@ -7,6 +7,8 @@ import {
   getVatObligations,
   HmrcError,
   refreshAccessToken,
+  SELF_EMPLOYMENT_API_ACCEPT,
+  submitCumulativePeriodSummary,
   validateFraudHeaders,
   withHmrcToken,
   type HmrcTokenSet,
@@ -322,5 +324,41 @@ describe('validateFraudHeaders', () => {
   it('keeps the token out of the returned value', async () => {
     const result = await validateFraudHeaders(headers, fakeHmrc(jsonResponse(200, { code: 'VALID_HEADERS', message: 'ok' })));
     expect(JSON.stringify(result)).not.toContain(SECRET_TOKEN);
+  });
+});
+
+describe('submitCumulativePeriodSummary', () => {
+  const payload = {
+    periodDates: { periodStartDate: '2026-04-06', periodEndDate: '2026-07-05' },
+    periodIncome: { turnover: '1000.00', other: '0.00' },
+  };
+  const fraudHeaders = { 'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER' };
+
+  it('PUTs the payload to the cumulative path with the API accept header and fraud headers', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    await submitCumulativePeriodSummary('AA123456A', 'biz1', '2026-27', payload, 'tok', fraudHeaders, fetchFn);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe(
+      'https://test-api.service.hmrc.gov.uk/individuals/business/self-employment/AA123456A/biz1/cumulative/2026-27',
+    );
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBe(JSON.stringify(payload));
+    expect(init.headers.Accept).toBe(SELF_EMPLOYMENT_API_ACCEPT);
+    expect(init.headers.Authorization).toBe('Bearer tok');
+    expect(init.headers['Gov-Client-Connection-Method']).toBe('WEB_APP_VIA_SERVER');
+  });
+
+  it('maps a 4xx to HmrcError', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(422, { code: 'RULE_X', message: 'nope' }));
+    await expect(
+      submitCumulativePeriodSummary('AA123456A', 'biz1', '2026-27', payload, 'tok', fraudHeaders, fetchFn),
+    ).rejects.toMatchObject({ apiError: { code: 'RULE_X', statusCode: 422 } });
+  });
+
+  it('resolves on an empty 2xx body', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response('', { status: 200 }));
+    await expect(
+      submitCumulativePeriodSummary('AA123456A', 'biz1', '2026-27', payload, 'tok', fraudHeaders, fetchFn),
+    ).resolves.toBeUndefined();
   });
 });

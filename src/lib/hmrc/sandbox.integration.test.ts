@@ -5,8 +5,10 @@ import {
   HmrcError,
   listItsSelfEmploymentBusinesses,
   refreshAccessToken,
+  submitCumulativePeriodSummary,
   submitVatReturn,
   withHmrcToken,
+  type CumulativePeriodSummary,
   type HmrcTokenSet,
   type VatReturnPayload,
 } from './client';
@@ -100,5 +102,23 @@ describe.skipIf(!hasCredentials || !sandboxOnly)('HMRC sandbox integration', () 
       expect(businessDetails[0]).toHaveProperty('businessId');
       expect(businessDetails[0]).toHaveProperty('typeOfBusiness');
     }
+  });
+
+  it('submits a cumulative period summary for a self-employment business', async () => {
+    const tokens = await refreshAccessToken(refreshToken!);
+    const { businessDetails } = await listItsSelfEmploymentBusinesses(nino!, tokens.accessToken, fraudHeaders());
+    expect(businessDetails.length).toBeGreaterThan(0);
+    const businessId = businessDetails[0]!.businessId;
+    const payload: CumulativePeriodSummary = {
+      periodDates: { periodStartDate: '2024-04-06', periodEndDate: '2024-07-05' },
+      periodIncome: { turnover: '5000.00', other: '100.00' },
+      periodExpenses: {
+        costOfGoods: '250.00',
+        carVanTravelExpenses: '150.00',
+      },
+    };
+    await expect(submitCumulativePeriodSummary(
+      nino!, businessId, '2024-25', payload, tokens.accessToken, fraudHeaders(),
+    )).resolves.not.toThrow();
   });
 });

@@ -93,7 +93,9 @@ async function hmrcFetch<T>(
     throw new HmrcError(apiError);
   }
 
-  return response.json() as Promise<T>;
+  // Some HMRC writes answer 204 or 200 with no body; response.json() would throw on those.
+  const text = await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 // ─── Income Tax: Self Employment Business API ────────────────────────────────
@@ -120,6 +122,29 @@ export type CumulativePeriodSummary = {
   >>;
   periodAllowances?: { tradingIncomeAllowance: string };
 };
+
+/** Submit a cumulative update. MUST only be called after user explicitly confirms. HMRC may reply with no body. */
+export async function submitCumulativePeriodSummary(
+  nino: string,
+  businessId: string,
+  taxYear: string,
+  payload: CumulativePeriodSummary,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<void> {
+  await hmrcFetch<void>(
+    selfEmploymentCumulativePath(nino, businessId, taxYear),
+    accessToken,
+    fraudHeaders,
+    {
+      method: 'PUT',
+      headers: { Accept: SELF_EMPLOYMENT_API_ACCEPT },
+      body: JSON.stringify(payload),
+    },
+    fetchFn,
+  );
+}
 
 // ─── VAT ──────────────────────────────────────────────────────────────────────
 

@@ -30,7 +30,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Add S3 client dependency and storage helper under api/_lib**
+- [x] **Task 1: Add S3 client dependency and storage helper under api/_lib**
   - Intent: Install the AWS SDK S3 client and its request presigner (works with R2 and MinIO; path-style addressing needed for MinIO). Add api/_lib/receiptStorage.ts. It reads STORAGE_ENDPOINT, STORAGE_REGION, STORAGE_BUCKET, STORAGE_ACCESS_KEY and STORAGE_SECRET_KEY and fails closed with an error naming the missing variable (never its value). It exports a small ReceiptStorage interface: presignUpload(key, mimeType, sizeBytes, expiresInSeconds) returns a PUT URL that signs content type and content length, and statObject(key) does a HEAD and returns { sizeBytes, mimeType } or null if missing. The default implementation uses the real S3 client, built lazily so imports and tests never connect. The interface lets tests inject a fake, as the mileage store does. Nothing logs URLs, keys or secrets. A short test covers the missing-env error and that no secret value appears in the message.
   - Files: `package.json`, `package-lock.json`, `api/_lib/receiptStorage.ts`, `api/_lib/__tests__/receiptStorage.test.ts`
   - Acceptance criteria the planner set:
@@ -41,6 +41,7 @@
     - A unit test covers the missing-config path
     - npm run lint, typecheck and test pass
   - Risk: Adds a dependency (: check for open advisories on chosen versions and name any in the PR) and handles secrets, so opus at high.
+  - Commit: `b796950a49ec`
 
 - [ ] **Task 2: Receipts route: signed upload URL, confirm-ready check, soft delete** (after 1)
   - Intent: Add api/_lib/receipts.ts and api/receipts.ts following the mileage pattern: withAuth, injected ReceiptStore and ReceiptStorage, default-exported { fetch }, userId only from the session. POST validates fileName with the inputRules.ts helpers, allows only image/jpeg, image/png, image/webp or application/pdf, and requires an integer size from 1 up to a 10 MB constant. It inserts a receipts row with uploadStatus pending and fileKey '<userId>/<crypto.randomUUID()>' (no client-supplied name in the key), and returns the receipt id plus a signed PUT URL valid 5 minutes. A refused type or size returns 400 and inserts nothing. PATCH with {id} loads the row by (id, userId, deletedAt null), calls statObject, sets ready when size and type match what was declared, and sets failed on a mismatch or missing object. No storage call happens inside a DB transaction (). DELETE with {id} soft-deletes by setting deletedAt and keeps the object. Another owner's id returns 404. Responses use explicit columns and never include userId or fileKey. Every query is scoped to the session owner and is either a single-row (id, userId) lookup or has an explicit limit. No migration is needed (table exists). Add the route to docs/security/input-inventory.md, since inputInventory.test.ts fails without it. Tests use a fake store and fake storage: unsupported type refused, oversize refused, mismatch marks failed, ready path works, second owner cannot PATCH or DELETE, client-supplied userId ignored, no signed URL or key in console output.

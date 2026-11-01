@@ -49,7 +49,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Add step-flow helpers: plain wording, sentence builder, resume storage**
+- [x] **Task 1: Add step-flow helpers: plain wording, sentence builder, resume storage**
   - Intent: Create a small pure module for the guided VAT flow: ordered step list, a function building the final plain sentence from signed Box 5 pence and the period (owe, refund, nil variants), plain-word box labels with the box number kept as separate small text, and get/set of the last step per period key in localStorage (client only). Reuse formatPence/formatDate and existing BOX_LABELS/box5 helpers; add plain label fields beside them without rewriting reviewState.
   - Files: `src/pages/vatFlowState.ts`, `src/pages/vatFlowState.test.ts`, `src/pages/vatReviewState.ts`, `src/pages/vatReviewState.test.ts`
   - Acceptance criteria the planner set:
@@ -58,6 +58,7 @@ Also depends on:
     - Saved step round-trips per period key and ignores invalid stored values
     - reviewState output and existing tests unchanged
     - typecheck, lint, test pass
+  - Commit: `41524354e28c`
 
 - [ ] **Task 2: Build the guided flow shell with the return-due step and early-stop problems** (after 1)
   - Intent: Restructure VatPage.tsx so the review is a step flow with 'Step N of M', Back and 'Save and leave' (stores step, returns to Tax, resumes next visit). Step 1 picks the return due, skipped when only one is open. Problems stop the flow early in plain words with the fix beside them: HMRC not connected, VAT number missing, stale ledger, nothing due. Keep callApi, draft-save effect, confirm/submit mutations and period keying unchanged. Put new step UI in VatFlow.tsx. Past returns stay listed. No changes under api/ or src/lib/hmrc.

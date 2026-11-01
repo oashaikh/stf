@@ -60,7 +60,7 @@ Also depends on:
     - typecheck, lint, test pass
   - Commit: `41524354e28c`
 
-- [ ] **Task 2: Build the guided flow shell with the return-due step and early-stop problems** (after 1)
+- [x] **Task 2: Build the guided flow shell with the return-due step and early-stop problems** (after 1)
   - Intent: Restructure VatPage.tsx so the review is a step flow with 'Step N of M', Back and 'Save and leave' (stores step, returns to Tax, resumes next visit). Step 1 picks the return due, skipped when only one is open. Problems stop the flow early in plain words with the fix beside them: HMRC not connected, VAT number missing, stale ledger, nothing due. Keep callApi, draft-save effect, confirm/submit mutations and period keying unchanged. Put new step UI in VatFlow.tsx. Past returns stay listed. No changes under api/ or src/lib/hmrc.
   - Files: `src/pages/VatPage.tsx`, `src/pages/VatFlow.tsx`, `src/pages/VatPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -71,6 +71,7 @@ Also depends on:
     - Test mode label on every step when not live
     - Server calls unchanged; typecheck, lint, test pass
   - Risk: STF-119 and STF-120 also edit VatPage.tsx; keep its diff narrow by moving UI into VatFlow.tsx.
+  - Commit: `b95814578f8c`
 
 - [ ] **Task 3: Figures step: plain words, box number in small text, and 'Why is this amount?'** (after 2)
   - Intent: Replace the nine-row box table with a figures step listing each amount in plain words per the spec table, with the box number in small muted text. Drillable boxes (1,3,4,5,6,7) get 'Why is this amount?' revealing the payments behind it, reusing existing drill-down lines, expensesLink and truncation note. Always-zero boxes 2,8,9 are folded into small text. Money right-aligned, tabular, labelled rows at 390px.

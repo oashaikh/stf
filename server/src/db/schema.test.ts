@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { invoices, recurringEntryRuns } from "./schema";
+import { bankConnections, invoices, recurringEntryRuns } from "./schema";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, "migrations");
@@ -250,6 +250,44 @@ describe("schema migrations", () => {
 
     it("limits the method to actual or allowance", () => {
       expect(sql).toMatch(/CREATE TYPE "public"\."trading_allowance_method" AS ENUM\('actual', 'allowance'\)/);
+    });
+  });
+
+  describe("bank_connections", () => {
+    const tableBody = () => {
+      const match = sql.match(/CREATE TABLE IF NOT EXISTS "bank_connections" \(([\s\S]*?)\n\);/);
+      expect(match, "could not find CREATE TABLE statement for bank_connections").not.toBeNull();
+      return match![1];
+    };
+
+    it("is owned by a user, cascades on delete and soft-deletes", () => {
+      const body = tableBody();
+      expect(body).toMatch(/"user_id" uuid NOT NULL/);
+      expect(body).toMatch(/"deleted_at" timestamp with time zone/);
+      expect(sql).toMatch(
+        /ALTER TABLE "bank_connections" ADD CONSTRAINT "bank_connections_user_id_users_id_fk" FOREIGN KEY \("user_id"\) REFERENCES "public"\."users"\("id"\) ON DELETE cascade/,
+      );
+    });
+
+    it("stores tokens only as ciphertext columns", () => {
+      const body = tableBody();
+      expect(body).toMatch(/"access_token_encrypted" text NOT NULL/);
+      expect(body).toMatch(/"refresh_token_encrypted" text NOT NULL/);
+      expect(body).not.toMatch(/"(access|refresh)_token" /);
+      expect(Object.keys(bankConnections)).not.toContain("accessToken");
+    });
+
+    it("keeps the account number masked and nullable", () => {
+      expect(tableBody()).toMatch(/"masked_account_number" text,/);
+    });
+
+    it("allows one live connection per user, provider and account, and indexes user_id", () => {
+      expect(sql).toMatch(
+        /CREATE UNIQUE INDEX IF NOT EXISTS "bank_connections_user_provider_account_uidx" ON "bank_connections" \("user_id","provider","provider_account_id"\) WHERE "bank_connections"\."deleted_at" is null/,
+      );
+      expect(sql).toMatch(
+        /CREATE INDEX IF NOT EXISTS "bank_connections_user_id_idx" ON "bank_connections" \("user_id"\)/,
+      );
     });
   });
 });

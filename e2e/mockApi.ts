@@ -172,6 +172,8 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         return json(route, {
           profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 },
         });
+      case 'GET /api/bank/status':
+        return json(route, { ok: true, connected: false, displayName: null, maskedAccountNumber: null, consentExpiresAt: null, expired: false });
       case 'GET /api/settings/tax-identifiers':
         return json(route, { ok: true, nino: null, utr: null });
       case 'GET /api/dashboard':

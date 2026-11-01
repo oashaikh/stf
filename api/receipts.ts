@@ -23,7 +23,9 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
     let receiptStorage: ReceiptStorage;
     try {
       receiptStorage = storage ?? createReceiptStorage();
-    } catch {
+    } catch (error) {
+      // The message names only the missing variable, never a value.
+      console.error('Receipt storage config error:', error instanceof Error ? error.message : 'unknown');
       return refuse(503, 'Receipt storage is not configured', 'STORAGE_UNAVAILABLE');
     }
 
@@ -33,8 +35,9 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
       const upload = validateNewReceipt(body);
       if (!upload) return refuse(400, 'Receipt needs a file name, a JPEG, PNG, WEBP or PDF type and a size of 1 byte to 10 MB', 'BAD_REQUEST');
       const fileKey = `${auth.userId}/${crypto.randomUUID()}`;
-      const receipt = await store.insert(auth.userId, { ...upload, fileKey });
+      // Presign first so a signing failure leaves no pending row behind.
       const uploadUrl = await receiptStorage.presignUpload(fileKey, upload.mimeType, upload.sizeBytes, UPLOAD_URL_SECONDS);
+      const receipt = await store.insert(auth.userId, { ...upload, fileKey });
       return Response.json({ ok: true, receipt: toResponse(receipt), uploadUrl, expiresInSeconds: UPLOAD_URL_SECONDS });
     }
 
@@ -47,6 +50,7 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
       // The storage call runs outside any transaction (COD-4); each store call is its own statement.
       const stored = await receiptStorage.statObject(record.fileKey);
       const matches = stored !== null && stored.sizeBytes === record.sizeBytes && stored.mimeType === record.mimeType;
+      if (!matches) console.error('Receipt upload failed check:', stored === null ? 'missing' : stored.sizeBytes !== record.sizeBytes ? 'size' : 'type');
       const receipt = await store.setUploadStatus(auth.userId, id, matches ? 'ready' : 'failed');
       if (!receipt) return refuse(404, 'Receipt not found', 'NOT_FOUND');
       return Response.json({ ok: true, receipt: toResponse(receipt) });

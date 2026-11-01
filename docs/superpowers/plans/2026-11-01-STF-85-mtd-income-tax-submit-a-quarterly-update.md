@@ -40,7 +40,7 @@
   - Risk: Schema and migration work touching financial records, so opus at high. The journal file will conflict with STF-35 at merge; re-check the revision graph against main before finishing.
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 2: Add the cumulative update submit call to the HMRC client**
+- [x] **Task 2: Add the cumulative update submit call to the HMRC client**
   - Intent: Add `submitCumulativePeriodSummary(nino, businessId, taxYear, payload, accessToken, fraudHeaders, fetchFn)` to src/lib/hmrc/client.ts. It sends PUT to selfEmploymentCumulativePath with Accept set to SELF_EMPLOYMENT_API_ACCEPT, via hmrcFetch. HMRC may answer 204 or an empty body, so make the shared hmrcFetch tolerate an empty success body instead of crashing on response.json(). That is a fix in the shared function, not a one-off. The 'recheck against HMRC docs' caveat on the existing endpoint stays. Add client.test.ts cases with a fake fetch for: the PUT URL, headers and body; a 4xx mapped to HmrcError; and an empty 2xx body.
   - Files: `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`
   - Acceptance criteria the planner set:
@@ -48,6 +48,7 @@
     - Empty 2xx bodies resolve without throwing, and the existing VAT client tests still pass
     - Tests use a fake fetch and no live network
     - npm run typecheck and npm test pass
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 3: Confirm and submit logic for the Income Tax quarterly update** (after 1, 2)
   - Intent: Create api/_lib/itsSubmit.ts, modelled on vatSubmit.ts and vatReturns.ts, with an injectable store (database default). Every query filters by the session userId and has LIMIT 1. The pieces are:

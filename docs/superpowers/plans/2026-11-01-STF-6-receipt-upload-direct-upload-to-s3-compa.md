@@ -77,3 +77,7 @@
 - [x] **Task 5: Fix: address 8 review findings (cycle 1)** (after 4)
   - Intent: Review left 8 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The route and storage logic are correct, but the runbook's MinIO check uses a wrong field name and omits the session cookie, so the steps as written fail. Fix `fileType` t The agent is fixing them; nothing is needed from you.
   - Commit: (none — no code change for this task)
+
+- [x] **Task 6: Fix: address 4 review findings (cycle 2)** (after 5)
+  - Intent: Review left 4 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found nothing. The cycle-1 findings are fixed. The runbook uses mimeType and the session cookie. The storage-config catch logs the missing variable name. Pr The agent is fixing them; nothing is needed from you.
+  - Commit: `d8486953c356`

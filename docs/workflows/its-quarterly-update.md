@@ -27,7 +27,7 @@ This URL pattern is from:
 https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/self-employment-business-api
 ```
 
-**Confirmed at build time: Self Employment Business API v5.0 (Accept header `application/vnd.hmrc.5.0+json`).**
+**Not yet verified against HMRC's live documentation.** The endpoint, version (v5.0, Accept header `application/vnd.hmrc.5.0+json`) and field names were written from the published spec without access to the docs page at build time, as the comment in `src/lib/hmrc/client.ts` says. STF-85 must re-check them before the first sandbox submission.
 
 Income and expense categories map to HMRC's `CumulativePeriodSummary` type. The mapping is defined in `src/lib/itsCumulativeUpdate.ts::HMRC_EXPENSE_FIELD`.
 
@@ -72,7 +72,7 @@ All amounts are **integer pence** internally and converted to **pounds with two 
 - `5 pence` → `"0.05"`
 - `100 pence` → `"1.00"`
 - `123456 pence` → `"1234.56"`
-- `−5 pence` → `"−0.05"`
+- `-5 pence` → `"-0.05"`
 
 ## Preview route: request and response
 
@@ -95,7 +95,7 @@ The route requires a signed-in user. No NINO or business ID are accepted from th
 
 **Validation:**
 - Both fields are required.
-- `taxYear` must exist in `TAX_BANDS` (lines 1–5).
+- `taxYear` must exist as a key in `TAX_BANDS` in `src/lib/taxBands.ts`.
 - `quarter` must be one of the literal integers 1, 2, 3 or 4.
 - Invalid input returns `400 BAD_REQUEST`.
 
@@ -109,7 +109,7 @@ On success, returns a preview object with no HMRC call made and no state written
   "data": {
     "endpoint": {
       "method": "PUT",
-      "url": "https://[test-]api.service.hmrc.gov.uk/individuals/business/self-employment/*AA*A/XAIS12345678910/cumulative/2026-27",
+      "url": "https://[test-]api.service.hmrc.gov.uk/individuals/business/self-employment/••••••56C/•••••••••••910/cumulative/2026-27",
       "sandbox": true
     },
     "body": {
@@ -129,7 +129,7 @@ On success, returns a preview object with no HMRC call made and no state written
 }
 ```
 
-The `endpoint.url` includes the NINO and business ID masked (showing only the last character of each, e.g. `*AA*A` for NINO `AA123456A` and similar for the business ID, via `maskNino()`). The full credentials are never returned. `Authorization` reads `Bearer (hidden)` so callers can see the header was present but never access the token.
+The `endpoint.url` includes the NINO and business ID masked (bullets with only the last three characters of each shown, e.g. `••••••56C` for NINO `AB123456C`, via `maskNino()`, which is applied to both). The full credentials are never returned. `Authorization` reads `Bearer (hidden)` so callers can see the header was present but never access the token.
 
 The `body` is the exact cumulative period summary that would be sent to HMRC. Its structure and fields are identical to the submission payload. See above for field names and rules.
 
@@ -166,7 +166,7 @@ The preview route enforces the same gating as `api/hmrc/its-obligations.ts`:
    - Both true (sandbox) → preview uses sandbox API endpoint
    - Mismatch → returns `403 LIVE_MODE_REFUSED`
 3. **HMRC credentials:** OAuth token must be present and not expired.
-4. **ITS scope:** The token must include `read:self-assessment` scope (confirmed via `hmrcStore.status(userId).needsItsReconnect`).
+4. **ITS scope:** The token must include both `read:self-assessment` and `write:self-assessment` scopes (checked by `lacksItsScope`, surfaced via `hmrcStore.status(userId).needsItsReconnect`).
 5. **Business chosen:** `hmrcStore.status(userId).itsBusinessId` must not be null (user has selected a business in Settings).
 6. **NINO stored:** `databaseTaxIdentifiersStore.get(userId).ninoEncrypted` must exist (user has entered their NINO in Settings).
 

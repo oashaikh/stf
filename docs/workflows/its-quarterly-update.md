@@ -201,9 +201,197 @@ The pure mapping function (`src/lib/itsCumulativeUpdate.ts::buildCumulativePerio
 - The allowance method (sending a trading allowance in place of expenses)
 - Disallowable and uncategorised amounts never appearing in the payload
 
-## Submission
+## Submission flow
 
-**Submission to HMRC is handled in STF-85.** This ticket builds and previews only. The submission flow (claiming the period, sending the payload to HMRC, recording the receipt and handling errors) is a separate ticket and is not done here. Both the preview and submission share the same mapping function, so this ticket is a complete and testable building block for submission.
+The submission workflow has two steps: confirm and submit. Both are gated by the same prerequisites as the preview (mode, credentials, business, NINO). The submission itself is irreversible on HMRC's side, so confirmation is a separate API call that computes and stores a snapshot before the user commits.
+
+### Confirm request: `POST /api/hmrc/its-cumulative-confirm`
+
+**Request body:**
+```json
+{
+  "taxYear": "2026-27",
+  "quarter": 1,
+  "declaration": true
+}
+```
+
+- `taxYear`, `quarter`: Same as preview (required, validated)
+- `declaration`: Must be the literal boolean `true` — requires the user to tick a checkbox
+
+**Response: `200 OK`**
+
+Returns a confirmation snapshot:
+```json
+{
+  "ok": true,
+  "data": {
+    "sandbox": true,
+    "body": { "periodDates": { ... }, "periodIncome": { ... }, ... }
+  }
+}
+```
+
+The `body` is the computed cumulative period summary that will be sent to HMRC if the user submits.
+
+**Error responses:**
+
+| Status | Code | Condition |
+|---|---|---|
+| `400` | `BAD_REQUEST` | Invalid taxYear or quarter |
+| `400` | `DECLARATION_REQUIRED` | declaration is not `true` |
+| `401` | `UNAUTHORIZED` | No signed-in user |
+| `403` | `LIVE_MODE_REFUSED` | Sandbox mode mismatch |
+| `404` | `ITSA_DISABLED` | HMRC Income Tax not enabled |
+| `409` | `HMRC_NOT_CONNECTED` | HMRC credentials missing |
+| `409` | `ITS_SCOPE_MISSING` | OAuth token lacks Income Tax scope |
+| `409` | `NO_BUSINESS_SELECTED` | No business chosen in Settings |
+| `409` | `NO_NINO` | NINO not recorded in Settings |
+| `409` | `ALREADY_SUBMITTED` | Period already confirmed or submitted in this session |
+
+### Submit request: `POST /api/hmrc/its-cumulative-submit`
+
+The period must be confirmed before submission. Submission sends the stored confirmation snapshot to HMRC and cannot be retried if HMRC's response is ambiguous.
+
+**Request body:**
+```json
+{
+  "taxYear": "2026-27",
+  "quarter": 1,
+  "confirm": true
+}
+```
+
+- `taxYear`, `quarter`: Same as preview and confirm (required)
+- `confirm`: Must be the literal boolean `true` — guards against accidental submission
+
+**Validation:**
+1. A confirmation must exist in status `confirmed` for this period and sandbox mode.
+2. The stored confirmation body must match the current ledger (recomputed, compared).
+3. The submission atomically moves the record to `pending` before touching HMRC (the claim).
+4. If the claim fails (another request got there first), `409 ALREADY_SUBMITTED` is returned.
+
+**Response: `200 OK`**
+
+On success:
+```json
+{
+  "ok": true,
+  "data": { "sandbox": true }
+}
+```
+
+**HMRC submission:**
+
+The cumulative period summary is sent via PUT to HMRC's Self Employment Business API v5.0:
+
+```
+PUT https://[test-]api.service.hmrc.gov.uk/individuals/business/self-employment/{nino}/{businessId}/cumulative/{taxYear}
+Accept: application/vnd.hmrc.5.0+json
+Authorization: Bearer <access-token>
+<fraud-prevention-headers>
+
+{
+  "periodDates": { "periodStartDate": "2026-04-06", "periodEndDate": "2026-07-05" },
+  "periodIncome": { "turnover": "5000.00", "other": "50.00" },
+  "periodExpenses": { ... }
+}
+```
+
+HMRC returns no body on success (204 or 200 with empty response).
+
+**Error responses:**
+
+| Status | Code | Condition |
+|---|---|---|
+| `400` | `BAD_REQUEST` | Invalid input |
+| `400` | `DECLARATION_REQUIRED` | confirm is not `true` |
+| `401` | `UNAUTHORIZED` | No signed-in user |
+| `403` | `LIVE_MODE_REFUSED` | Sandbox mode mismatch |
+| `404` | `ITSA_DISABLED` | HMRC Income Tax not enabled |
+| `405` | `METHOD_NOT_ALLOWED` | HTTP method is not POST |
+| `409` | `HMRC_NOT_CONNECTED` | HMRC credentials missing |
+| `409` | `ITS_SCOPE_MISSING` | OAuth token lacks Income Tax scope |
+| `409` | `NO_BUSINESS_SELECTED` | No business chosen in Settings |
+| `409` | `NO_NINO` | NINO not recorded in Settings |
+| `409` | `NOT_CONFIRMED` | No confirmed submission exists |
+| `409` | `STALE_CONFIRMATION` | Ledger changed since confirmation |
+| `409` | `ALREADY_SUBMITTED` | Period already submitted (claim failed) |
+| `502` | HMRC error code | HMRC rejected (4xx) or unknown outcome (5xx) |
+
+### Status and lock lifecycle
+
+The `its_submissions` table tracks each period's submission state per sandbox mode:
+
+| Status | Meaning | Next steps |
+|---|---|---|
+| `confirmed` | Confirmation snapshot stored, awaiting submission | Submit, or confirm again to update |
+| `pending` | Claimed for submission, HMRC call running | On success → `submitted`; on 4xx → `rejected`; on 5xx or network → stays `pending` |
+| `submitted` | HMRC accepted the update, receipt recorded | Final state |
+| `rejected` | HMRC rejected the submission (4xx error) | Confirm again to unlock and retry |
+
+**Idempotency lock:**
+
+Only one submission may proceed for a given `(user_id, tax_year, quarter, sandbox)` at a time. The unique constraint on these columns prevents duplicate confirmations. The claim operation (confirmed → pending) is atomic and returns false if another request claimed first.
+
+### Rejection recovery
+
+When HMRC returns a 4xx status (definite rejection), the record is moved to `rejected` status and the lock is released. The user must:
+
+1. Review the HMRC error code and fix the submission (e.g., missing field, invalid value).
+2. Confirm again via `/api/hmrc/its-cumulative-confirm` to recompute the payload and try a different submission.
+
+This prevents infinite retry loops on definite validation failures.
+
+### Unknown outcome recovery
+
+If HMRC returns a 5xx status or the network times out, the record stays in `pending` status. The submission is not retried automatically; the user must:
+
+1. Check HMRC's website or contact HMRC to verify whether the submission was accepted.
+2. If accepted: the submission is recorded in `submitted` status (contact support or manually update the database).
+3. If not accepted: the record remains `pending` and a new submission may be attempted; the unique constraint allows no duplicate filing for the same quarter.
+
+The error `OUTCOME_UNKNOWN` is returned to the client with guidance: "Do not resubmit; check HMRC before trying again."
+
+### Audit trail
+
+Every status change is recorded as an audit event:
+
+| Action | Condition |
+|---|---|
+| `its_update.confirmed` | User confirmed the submission |
+| `its_update.submitted` | HMRC accepted and receipt recorded |
+| `its_update.rejected` | HMRC rejected (4xx error) |
+
+Each event includes:
+- The user ID
+- The submission ID
+- A snapshot of the request and response (no tokens, no NINO)
+- Fraud prevention headers
+- The action timestamp
+
+Submissions that hit unknown outcome (`5xx` or network) are not recorded as an action; the `pending` status marks the incomplete transition.
+
+### Sandbox mode gating
+
+Every submission is marked as `sandbox: true` or `sandbox: false` in the `its_submissions` table. Sandbox mode is determined at confirmation time by:
+
+1. The server's `HMRC_SANDBOX_MODE` environment variable (default: sandbox)
+2. The user's opt-in in `users.hmrc_sandbox_mode`
+
+Both must agree; a mismatch returns `403 LIVE_MODE_REFUSED`. Live submissions (sandbox=false) require **both** the server environment flag AND the user's explicit opt-in in Settings. No automatic escalation to live is permitted.
+
+## Integration test
+
+The sandbox integration test in `src/lib/hmrc/sandbox.integration.test.ts` includes a live call to HMRC's sandbox API to verify the cumulative period submission endpoint. The test:
+
+- Runs only when `HMRC_CLIENT_ID`, `HMRC_SANDBOX_NINO` and `HMRC_SANDBOX_REFRESH_TOKEN` are set (CI secrets).
+- Verifies that the endpoint URL pattern, HTTP method (PUT), and API version (v5.0) match the HMRC Self Employment Business API.
+- Submits a sample cumulative period and expects no error.
+- Is skipped (not failed) when credentials are absent.
+- Never reaches production: the test is always run in sandbox mode, regardless of `HMRC_SANDBOX_MODE`.
+
+The test confirms that field names and structure match HMRC's live expectations before the first production filing.
 
 ## Test coverage
 
@@ -211,3 +399,5 @@ Tests are in:
 - `src/lib/itsCumulativeUpdate.test.ts` — pure mapping, conversion, quarter end dates, allowance method
 - `api/_lib/__tests__/itsCumulativePreview.test.ts` — preview logic, mode gating, prerequisites
 - `api/_lib/__tests__/itsCumulativePreviewRoute.test.ts` — route handler, HTTP layer, authentication
+- `api/_lib/__tests__/itsSubmit.test.ts` — confirm and submit logic, status transitions, idempotency lock, stale confirmation detection
+- `src/lib/hmrc/sandbox.integration.test.ts` — live sandbox call to the cumulative PUT endpoint

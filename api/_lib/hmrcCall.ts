@@ -25,6 +25,43 @@ export interface HmrcCallDeps {
 }
 
 /**
+ * Runs `operation` with the user's access token, refreshing it when due and saving the rotated pair.
+ * Shared by every HMRC caller that keeps the HMRC outcome itself instead of mapping it to a Response.
+ */
+export function withUserTokens<T>(
+  userId: string,
+  credentials: HmrcCredentials,
+  store: HmrcStore,
+  refresh: HmrcCallDeps['refresh'],
+  operation: (accessToken: string) => Promise<T>,
+): Promise<T> {
+  const { storedRefreshToken } = credentials;
+  return withHmrcToken(
+    {
+      accessToken: credentials.accessToken,
+      refreshToken: credentials.refreshToken,
+      expiresAt: credentials.expiresAt.getTime(),
+    },
+    operation,
+    // A lost compare-and-swap means a concurrent request already rotated the stored tokens; ours still serve this retry.
+    // A failed save must not fail the request: the rotated token is still valid for this call.
+    async (refreshed) => {
+      try {
+        await store.saveRefreshedTokens(userId, storedRefreshToken, {
+          accessToken: refreshed.accessToken,
+          refreshToken: refreshed.refreshToken,
+          expiresAt: new Date(refreshed.expiresAt),
+        });
+      } catch {
+        // The error text can echo tokens, so log a fixed message only. The user may need to reconnect HMRC.
+        console.error('HMRC refreshed tokens could not be saved');
+      }
+    },
+    refresh,
+  );
+}
+
+/**
  * Runs one HMRC call for the signed-in owner with fraud headers, token refresh and the saved rotated tokens.
  * An HMRC failure becomes a 502 carrying only HMRC's code and status; anything else is rethrown.
  */
@@ -40,33 +77,10 @@ export async function callHmrcAsUser(
   { refresh = refreshAccessToken, now = () => new Date() }: HmrcCallDeps = {},
 ): Promise<Response> {
   const { request, userId, credentials, store, label, call } = options;
-  const { storedRefreshToken } = credentials;
   const fraudHeaders = requestFraudHeaders(request, userId, now());
 
   try {
-    return await withHmrcToken(
-      {
-        accessToken: credentials.accessToken,
-        refreshToken: credentials.refreshToken,
-        expiresAt: credentials.expiresAt.getTime(),
-      },
-      (accessToken) => call(accessToken, fraudHeaders),
-      // A lost compare-and-swap means a concurrent request already rotated the stored tokens; ours still serve this retry.
-      // A failed save must not fail the request: the rotated token is still valid for this call.
-      async (refreshed) => {
-        try {
-          await store.saveRefreshedTokens(userId, storedRefreshToken, {
-            accessToken: refreshed.accessToken,
-            refreshToken: refreshed.refreshToken,
-            expiresAt: new Date(refreshed.expiresAt),
-          });
-        } catch {
-          // The error text can echo tokens, so log a fixed message only. The user may need to reconnect HMRC.
-          console.error('HMRC refreshed tokens could not be saved');
-        }
-      },
-      refresh,
-    );
+    return await withUserTokens(userId, credentials, store, refresh, (accessToken) => call(accessToken, fraudHeaders));
   } catch (error) {
     if (!(error instanceof HmrcError)) throw error;
     // Log the HMRC code and status only: its message can echo tokens or the VAT number.

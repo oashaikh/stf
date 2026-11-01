@@ -50,7 +50,7 @@ Also depends on:
   - Risk: Schema/migration work, and the journal file is shared with STF-85. Opus at high.
   - Commit: `fe74d26db675`
 
-- [ ] **Task 2: Receipts GET: paged list with extraction status and signed read URLs** (after 1)
+- [x] **Task 2: Receipts GET: paged list with extraction status and signed read URLs** (after 1)
   - Intent: Add a GET method to api/receipts.ts returning the signed-in owner's live receipts (deleted_at is null), newest first, with a limit and cursor/page parameter. Each item has id, fileName, mimeType, sizeBytes, uploadStatus, aiStatus (extraction status) and createdAt; ready uploads also get a short-lived signed read URL. Add presignRead to ReceiptStorage (GetObjectCommand via getSignedUrl) and a bounded list method to ReceiptStore scoped by session user id. Never expose fileKey. Validate query params. Presign outside any transaction. Register the query for the audit if the repo has an audit list. Update the input inventory. Tests: ordering, limit, user scoping, second user cannot see the first user's receipts, 503 when storage is unconfigured, presignRead.
   - Files: `api/receipts.ts`, `api/_lib/receipts.ts`, `api/_lib/receiptStorage.ts`, `api/_lib/__tests__/receiptsRoute.test.ts`, `api/_lib/__tests__/receiptStorage.test.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -61,6 +61,7 @@ Also depends on:
     - Tests cover cross-user refusal, ordering, paging and the storage-missing case
     - npm run lint, typecheck and test pass
   - Risk: Signed URLs and per-user data isolation. Opus at high.
+  - Commit: `29e9d32cd173`
 
 - [ ] **Task 3: Receipts API client module** (after 2)
   - Intent: Add src/lib/receiptsApi.ts following the mileageApi.ts pattern: fetchReceipts(page), startReceiptUpload (POST), uploadToSignedUrl with progress via XMLHttpRequest, confirmReceiptUpload (PATCH) and removeReceipt (DELETE). Include client-side type and size checks mirroring the server (JPEG, PNG, WEBP, PDF, max 10 MB). Unit-test validation and request shapes with faked fetch and XHR.

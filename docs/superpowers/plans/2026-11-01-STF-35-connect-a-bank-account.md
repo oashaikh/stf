@@ -118,3 +118,7 @@ Put expiry-state logic in a small pure function with a unit test. Add component 
     - PR-notes.md lists each file and what it shows
     - Lint, typecheck, test and build still pass
   - Commit: `4b82b2170c64`
+
+- [x] **Task 5: Fix: address 12 review findings (cycle 1)** (after 4)
+  - Intent: Review left 12 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. The callback checks the signed state before any provider call. Tokens are encrypted on save. Status and disconnect are scoped to The agent is fixing them; nothing is needed from you.
+  - Commit: `c920ce74bb8c`

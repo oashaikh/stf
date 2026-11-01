@@ -45,6 +45,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/hmrc/status.ts` | GET | HMRC (no input) |
 | `api/hmrc/its-businesses.ts` | GET, POST | HMRC |
 | `api/hmrc/its-obligations.ts` | GET | HMRC (no input beyond session and fraud headers) |
+| `api/hmrc/its-cumulative-preview.ts` | POST | HMRC |
 | `api/bank/connect.ts` | GET | Bank (no input beyond session) |
 | `api/bank/callback.ts` | GET | Bank |
 | `api/bank/status.ts` | GET | Bank (no input) |

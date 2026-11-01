@@ -109,7 +109,7 @@ Put expiry-state logic in a small pure function with a unit test. Add component 
     - Tests cover connected, expiring, expired, error and disconnect with no real network
     - npm run lint, typecheck, test and build pass
 
-- [ ] **Task 4: Screenshot evidence for the Bank section** (after 3)
+- [x] **Task 4: Screenshot evidence for the Bank section** (after 3)
   - Intent: Capture the Settings Bank section at 1440 px and 390 px using the e2e mock API, for these states: not connected, connected, expired. Use invented data only. Save in browser-evidence/STF-35/ with a short PR-notes.md in the style of browser-evidence/STF-100/PR-notes.md. Check there is no sideways scroll at either width.
   - Files: `browser-evidence/STF-35/PR-notes.md`, `browser-evidence/STF-35/settings-bank-not-connected-1440-light.png`, `browser-evidence/STF-35/settings-bank-not-connected-390-light.png`, `browser-evidence/STF-35/settings-bank-connected-1440-light.png`, `browser-evidence/STF-35/settings-bank-connected-390-light.png`, `browser-evidence/STF-35/settings-bank-expired-1440-light.png`, `browser-evidence/STF-35/settings-bank-expired-390-light.png`
   - Acceptance criteria the planner set:
@@ -117,3 +117,4 @@ Put expiry-state logic in a small pure function with a unit test. Add component 
     - They show only invented data
     - PR-notes.md lists each file and what it shows
     - Lint, typecheck, test and build still pass
+  - Commit: `4b82b2170c64`

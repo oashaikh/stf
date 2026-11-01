@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { confirmReceiptUpload, fetchReceipts, removeReceipt, startReceiptUpload, uploadToSignedUrl, validateReceiptFile } from '../receiptsApi';
+import { confirmReceiptDetails, confirmReceiptUpload, readReceiptDetails, fetchReceipts, removeReceipt, startReceiptUpload, uploadToSignedUrl, validateReceiptFile } from '../receiptsApi';
 
 const respond = (status: number, body: unknown) => vi.fn().mockImplementation(async () => new Response(JSON.stringify(body), { status }));
 const fileOf = (type: string, size: number, name = 'r.jpg') => ({ name, type, size }) as File;
@@ -122,5 +122,29 @@ describe('uploadToSignedUrl', () => {
     const failed = uploadToSignedUrl('https://s/u', fileOf('image/png', 1), () => {});
     FakeXhr.last.onerror?.();
     await expect(failed).rejects.toThrow(/upload/i);
+  });
+});
+
+describe('confirmReceiptDetails', () => {
+  it('sends PUT with the id', async () => {
+    const fetchMock = respond(200, { receipt: { id: 'r1' } });
+    vi.stubGlobal('fetch', fetchMock);
+    await confirmReceiptDetails('r1');
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: JSON.stringify({ id: 'r1' }) });
+  });
+});
+
+describe('readReceiptDetails', () => {
+  const base = { id: 'r1', fileName: 'a.jpg', mimeType: 'image/jpeg', sizeBytes: 1, uploadStatus: 'ready' as const, createdAt: '2026-10-30T10:00:00Z', aiStatus: 'extracted', readUrl: null };
+  it('turns the amount into integer pence and flags unconfirmed details for checking', () => {
+    const read = readReceiptDetails({
+      ...base,
+      details: { merchant: { value: 'Corner Cafe', confirmed: false }, totalAmount: { value: '12.50', confirmed: false }, date: { value: '2026-10-28', confirmed: false } },
+    });
+    expect(read).toMatchObject({ who: 'Corner Cafe', amountPence: 1250, date: '2026-10-28', needsCheck: true });
+  });
+  it('has nothing to check when no details were read, and none once confirmed', () => {
+    expect(readReceiptDetails({ ...base, details: {} })).toMatchObject({ who: null, amountPence: null, date: '2026-10-30T10:00:00Z', needsCheck: false });
+    expect(readReceiptDetails({ ...base, details: { merchant: { value: 'X', confirmed: true } } }).needsCheck).toBe(false);
   });
 });

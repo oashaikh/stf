@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
+  confirmReceiptDetails,
   confirmReceiptUpload,
   fetchReceipts,
   removeReceipt,
@@ -19,6 +20,7 @@ vi.mock('../lib/receiptsApi', async (importOriginal) => ({
   startReceiptUpload: vi.fn(),
   uploadToSignedUrl: vi.fn(),
   confirmReceiptUpload: vi.fn(),
+  confirmReceiptDetails: vi.fn(),
   removeReceipt: vi.fn(),
 }));
 
@@ -31,6 +33,13 @@ const photo: ListedReceipt = {
   createdAt: '2026-10-30T10:00:00Z',
   aiStatus: 'extracted',
   readUrl: 'https://files.test/cafe-lunch.jpg',
+  details: {
+    date: { value: '2026-10-28', confirmed: false },
+    merchant: { value: 'Corner Cafe', confirmed: false },
+    description: { value: 'Team lunch', confirmed: false },
+    totalAmount: { value: '12.50', confirmed: false },
+    category: { value: 'Meals', confirmed: false },
+  },
 };
 const pdf: ListedReceipt = {
   ...photo,
@@ -39,6 +48,7 @@ const pdf: ListedReceipt = {
   mimeType: 'application/pdf',
   aiStatus: 'pending',
   readUrl: null,
+  details: {},
 };
 
 beforeAll(() => {
@@ -65,11 +75,13 @@ function chooseFile(file: File) {
 }
 
 describe('receipts list', () => {
-  it('shows a loading message, then the empty message', async () => {
+  it('shows a loading message, then an empty page that explains itself and offers Add a receipt', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [], nextCursor: null });
     renderPage();
     expect(screen.getByRole('status').textContent).toMatch(/loading/i);
-    expect(await screen.findByText('No receipts yet.')).toBeTruthy();
+    expect(await screen.findByText('No receipts yet')).toBeTruthy();
+    expect(screen.getByText(/we read the date, who you paid and the amount/i)).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Add a receipt' })).toHaveLength(2);
   });
 
   it('shows an error with a retry', async () => {
@@ -80,13 +92,14 @@ describe('receipts list', () => {
     expect(await screen.findByText('train-ticket.pdf')).toBeTruthy();
   });
 
-  it('lists name, date, statuses and a thumbnail or file icon', async () => {
+  it('lists date, who, what for, amount in pounds and category, with a thumbnail or file icon', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo, pdf], nextCursor: null });
     renderPage();
-    const photoRow = (await screen.findByText('cafe-lunch.jpg')).closest('li')!;
-    expect(within(photoRow).getByText('30 Oct 2026')).toBeTruthy();
-    expect(within(photoRow).getByText('Uploaded')).toBeTruthy();
-    expect(within(photoRow).getByText('Read, awaiting your review')).toBeTruthy();
+    const photoRow = (await screen.findByText('Corner Cafe')).closest('li')!;
+    expect(within(photoRow).getByText('28 Oct 2026')).toBeTruthy();
+    expect(within(photoRow).getByText('Team lunch')).toBeTruthy();
+    expect(within(photoRow).getByText('£12.50')).toBeTruthy();
+    expect(within(photoRow).getByText('Meals')).toBeTruthy();
     expect(photoRow.querySelector('img')?.getAttribute('src')).toBe('https://files.test/cafe-lunch.jpg');
     const pdfRow = screen.getByText('train-ticket.pdf').closest('li')!;
     expect(within(pdfRow).getByText('Not read yet')).toBeTruthy();
@@ -94,12 +107,52 @@ describe('receipts list', () => {
     expect(pdfRow.querySelector('svg')).toBeTruthy();
   });
 
+  it('keeps read details as a draft until the person confirms them', async () => {
+    vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo], nextCursor: null });
+    vi.mocked(confirmReceiptDetails).mockResolvedValue(photo);
+    renderPage();
+    const row = (await screen.findByText('Corner Cafe')).closest('li')!;
+    expect(within(row).getByText(/draft/i)).toBeTruthy();
+    expect(confirmReceiptDetails).not.toHaveBeenCalled();
+    fireEvent.click(within(row).getByRole('button', { name: 'These are right' }));
+    await waitFor(() => expect(confirmReceiptDetails).toHaveBeenCalledWith(photo.id));
+    await waitFor(() => expect(fetchReceipts).toHaveBeenCalledTimes(2));
+  });
+
+  it('searches by who, what for and category', async () => {
+    vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo, pdf], nextCursor: null });
+    renderPage();
+    await screen.findByText('Corner Cafe');
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search receipts' }), { target: { value: 'lunch' } });
+    expect(screen.queryByText('train-ticket.pdf')).toBeNull();
+    expect(screen.getByText('Corner Cafe')).toBeTruthy();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search receipts' }), { target: { value: 'zzz' } });
+    expect(screen.getByText(/nothing matches/i)).toBeTruthy();
+  });
+
+  it('filters to this month and to receipts that need checking', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-31T12:00:00Z'));
+    const september = { ...pdf, id: '33333333-3333-4333-8333-333333333333', fileName: 'old.pdf', details: { date: { value: '2026-09-02', confirmed: true } } };
+    vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo, september], nextCursor: null });
+    renderPage();
+    await screen.findByText('Corner Cafe');
+    fireEvent.click(screen.getByRole('button', { name: 'This month' }));
+    expect(screen.queryByText('old.pdf')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    expect(screen.getByText('old.pdf')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Needs checking' }));
+    expect(screen.queryByText('old.pdf')).toBeNull();
+    expect(screen.getByText('Corner Cafe')).toBeTruthy();
+    vi.useRealTimers();
+  });
+
   it('loads the next page with the cursor', async () => {
     vi.mocked(fetchReceipts)
       .mockResolvedValueOnce({ receipts: [photo], nextCursor: 'c1' })
       .mockResolvedValueOnce({ receipts: [pdf], nextCursor: null });
     renderPage();
-    await screen.findByText('cafe-lunch.jpg');
+    await screen.findByText('Corner Cafe');
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
     expect(await screen.findByText('train-ticket.pdf')).toBeTruthy();
     expect(fetchReceipts).toHaveBeenLastCalledWith('c1');
@@ -108,16 +161,27 @@ describe('receipts list', () => {
 });
 
 describe('receipt upload', () => {
+  it('makes Add a receipt the main action, opening the phone camera', async () => {
+    vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo], nextCursor: null });
+    renderPage();
+    await screen.findByText('Corner Cafe');
+    const camera = screen.getByLabelText('Take a photo of a receipt') as HTMLInputElement;
+    expect(camera.getAttribute('capture')).toBe('environment');
+    const open = vi.spyOn(camera, 'click');
+    fireEvent.click(screen.getByRole('button', { name: 'Add a receipt' }));
+    expect(open).toHaveBeenCalled();
+  });
+
   it('uploads, shows progress, confirms and refreshes the list', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [], nextCursor: null });
     vi.mocked(startReceiptUpload).mockResolvedValue({ receipt: photo, uploadUrl: 'https://upload.test/u' });
     vi.mocked(uploadToSignedUrl).mockImplementation(async (_url, _file, onProgress) => onProgress(40));
     vi.mocked(confirmReceiptUpload).mockResolvedValue(photo);
     renderPage();
-    await screen.findByText('No receipts yet.');
+    await screen.findByText('No receipts yet');
     chooseFile(new File(['x'], 'lunch.jpg', { type: 'image/jpeg' }));
     await waitFor(() => expect(confirmReceiptUpload).toHaveBeenCalledWith(photo.id));
-    expect(await screen.findByText('lunch.jpg: uploaded')).toBeTruthy();
+    expect(await screen.findByText(/lunch\.jpg added/)).toBeTruthy();
     await waitFor(() => expect(fetchReceipts).toHaveBeenCalledTimes(2));
   });
 
@@ -129,7 +193,7 @@ describe('receipt upload', () => {
       return new Promise(() => {});
     });
     renderPage();
-    await screen.findByText('No receipts yet.');
+    await screen.findByText('No receipts yet');
     chooseFile(new File(['x'], 'lunch.jpg', { type: 'image/jpeg' }));
     const bar = await screen.findByRole('progressbar');
     expect(bar.getAttribute('aria-valuenow')).toBe('40');
@@ -138,7 +202,7 @@ describe('receipt upload', () => {
   it('refuses a wrong file type without sending anything', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [], nextCursor: null });
     renderPage();
-    await screen.findByText('No receipts yet.');
+    await screen.findByText('No receipts yet');
     chooseFile(new File(['x'], 'notes.txt', { type: 'text/plain' }));
     expect((await screen.findByRole('alert')).textContent).toMatch(/JPEG, PNG, WEBP or PDF/);
     expect(startReceiptUpload).not.toHaveBeenCalled();
@@ -147,7 +211,7 @@ describe('receipt upload', () => {
   it('refuses a file over 10 MB without sending anything', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [], nextCursor: null });
     renderPage();
-    await screen.findByText('No receipts yet.');
+    await screen.findByText('No receipts yet');
     const big = new File(['x'], 'big.pdf', { type: 'application/pdf' });
     Object.defineProperty(big, 'size', { value: 10 * 1024 * 1024 + 1 });
     chooseFile(big);
@@ -159,7 +223,7 @@ describe('receipt upload', () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [], nextCursor: null });
     vi.mocked(startReceiptUpload).mockRejectedValue(new Error('Too many uploads'));
     renderPage();
-    await screen.findByText('No receipts yet.');
+    await screen.findByText('No receipts yet');
     chooseFile(new File(['x'], 'lunch.jpg', { type: 'image/jpeg' }));
     expect((await screen.findByRole('alert')).textContent).toMatch(/lunch\.jpg.*Too many uploads/);
   });
@@ -170,9 +234,9 @@ describe('receipt removal', () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo], nextCursor: null });
     vi.mocked(removeReceipt).mockResolvedValue(photo);
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove cafe-lunch.jpg' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove Corner Cafe' }));
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText(/cafe-lunch\.jpg/)).toBeTruthy();
+    expect(within(dialog).getByText(/Corner Cafe/)).toBeTruthy();
     expect(removeReceipt).not.toHaveBeenCalled();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Remove receipt' }));
     await waitFor(() => expect(removeReceipt).toHaveBeenCalledWith(photo.id));
@@ -182,7 +246,7 @@ describe('receipt removal', () => {
   it('sends nothing when the confirmation is cancelled', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo], nextCursor: null });
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove cafe-lunch.jpg' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove Corner Cafe' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(removeReceipt).not.toHaveBeenCalled();

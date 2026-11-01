@@ -1,20 +1,62 @@
 {
   "empty-1440-light.png": {
-    "title": "The Receipts page before any receipt is added, with the upload area and a message saying there are none yet on a desktop screen"
+    "title": "The Receipts page for a first-time user: an Add a receipt button and a note saying what goes here, on a desktop screen"
+  },
+  "empty-1440-dark.png": {
+    "title": "The Receipts page for a first-time user: an Add a receipt button and a note saying what goes here, on a desktop screen (dark appearance; the app has one colour scheme today)"
   },
   "empty-390-light.png": {
-    "title": "The Receipts page before any receipt is added, with the upload area and a message saying there are none yet on a phone"
+    "title": "The Receipts page for a first-time user: an Add a receipt button and a note saying what goes here, on a phone"
   },
-  "list-1440-light.png": {
-    "title": "The Receipts page listing uploaded receipts with a preview, date added, upload result and whether the details were read on a desktop screen"
+  "empty-390-dark.png": {
+    "title": "The Receipts page for a first-time user: an Add a receipt button and a note saying what goes here, on a phone (dark appearance; the app has one colour scheme today)"
   },
-  "list-390-light.png": {
-    "title": "The Receipts page listing uploaded receipts with a preview, date added, upload result and whether the details were read on a phone"
+  "uploading-1440-light.png": {
+    "title": "A receipt being sent, with a progress bar, on a desktop screen"
+  },
+  "uploading-1440-dark.png": {
+    "title": "A receipt being sent, with a progress bar, on a desktop screen (dark appearance; the app has one colour scheme today)"
+  },
+  "uploading-390-light.png": {
+    "title": "A receipt being sent, with a progress bar, on a phone"
+  },
+  "uploading-390-dark.png": {
+    "title": "A receipt being sent, with a progress bar, on a phone (dark appearance; the app has one colour scheme today)"
+  },
+  "refused-1440-light.png": {
+    "title": "A wrong kind of file is turned down with a clear message and nothing is sent, on a desktop screen"
+  },
+  "refused-1440-dark.png": {
+    "title": "A wrong kind of file is turned down with a clear message and nothing is sent, on a desktop screen (dark appearance; the app has one colour scheme today)"
+  },
+  "refused-390-light.png": {
+    "title": "A wrong kind of file is turned down with a clear message and nothing is sent, on a phone"
+  },
+  "refused-390-dark.png": {
+    "title": "A wrong kind of file is turned down with a clear message and nothing is sent, on a phone (dark appearance; the app has one colour scheme today)"
+  },
+  "list-check-1440-light.png": {
+    "title": "Receipts listed with date, who, what for, amount and category; a new one is marked as a draft until the person says its details are right, on a desktop screen"
+  },
+  "list-check-1440-dark.png": {
+    "title": "Receipts listed with date, who, what for, amount and category; a new one is marked as a draft until the person says its details are right, on a desktop screen (dark appearance; the app has one colour scheme today)"
+  },
+  "list-check-390-light.png": {
+    "title": "Receipts listed with date, who, what for, amount and category; a new one is marked as a draft until the person says its details are right, on a phone"
+  },
+  "list-check-390-dark.png": {
+    "title": "Receipts listed with date, who, what for, amount and category; a new one is marked as a draft until the person says its details are right, on a phone (dark appearance; the app has one colour scheme today)"
   },
   "remove-1440-light.png": {
-    "title": "Asking for confirmation, naming the file, before a receipt is removed on a desktop screen"
+    "title": "Asking for confirmation before a receipt is removed, on a desktop screen"
+  },
+  "remove-1440-dark.png": {
+    "title": "Asking for confirmation before a receipt is removed, on a desktop screen (dark appearance; the app has one colour scheme today)"
   },
   "remove-390-light.png": {
-    "title": "Asking for confirmation, naming the file, before a receipt is removed on a phone"
+    "title": "Asking for confirmation before a receipt is removed, on a phone"
+  },
+  "remove-390-dark.png": {
+    "title": "Asking for confirmation before a receipt is removed, on a phone (dark appearance; the app has one colour scheme today)"
   }
 }

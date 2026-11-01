@@ -1,3 +1,5 @@
+import { parsePence } from './money';
+
 export type ReceiptUploadStatus = 'pending' | 'ready' | 'failed';
 
 export interface ApiReceipt {
@@ -9,14 +11,32 @@ export interface ApiReceipt {
   createdAt: string;
 }
 
+/** What was read from the receipt, by field. Drafts until `confirmed`. */
+export type ReceiptDetails = Record<string, { value: string; confirmed: boolean }>;
+
 export interface ListedReceipt extends ApiReceipt {
   aiStatus: string | null;
+  details: ReceiptDetails;
   readUrl: string | null;
 }
 
 // Mirrors the server schema in api/_lib/receipts.ts; the server stays the authority.
 export const RECEIPT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
+
+/** The few facts a person recognises a receipt by, in plain words. Amount is integer pence. */
+export function readReceiptDetails({ details, createdAt }: Pick<ListedReceipt, 'details' | 'createdAt'>) {
+  const read = (field: string) => details[field]?.value ?? null;
+  const amount = read('totalAmount');
+  return {
+    date: read('date') ?? createdAt,
+    who: read('merchant'),
+    whatFor: read('description'),
+    category: read('category'),
+    amountPence: amount === null ? null : parsePence(amount),
+    needsCheck: Object.values(details).some((detail) => !detail.confirmed),
+  };
+}
 
 export const receiptsQueryKey = ['receipts'];
 
@@ -33,7 +53,7 @@ async function refusalMessage(response: Response, fallback: string): Promise<str
   return typeof body.error === 'string' ? body.error : fallback;
 }
 
-async function sendReceiptId(method: 'PATCH' | 'DELETE', id: string, fallback: string): Promise<ApiReceipt> {
+async function sendReceiptId(method: 'PATCH' | 'PUT' | 'DELETE', id: string, fallback: string): Promise<ApiReceipt> {
   const response = await fetch('/api/receipts', {
     method,
     credentials: 'same-origin',
@@ -83,5 +103,7 @@ export function uploadToSignedUrl(uploadUrl: string, file: File, onProgress: (pe
 }
 
 export const confirmReceiptUpload = (id: string) => sendReceiptId('PATCH', id, 'Could not confirm the upload. Please try again.');
+
+export const confirmReceiptDetails = (id: string) => sendReceiptId('PUT', id, 'Could not save your check. Please try again.');
 
 export const removeReceipt = (id: string) => sendReceiptId('DELETE', id, 'Could not remove the receipt. Please try again.');

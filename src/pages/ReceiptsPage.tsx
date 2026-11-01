@@ -1,33 +1,30 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Camera, FileText } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { useDropzone } from 'react-dropzone';
 import StateMessage from '../components/StateMessage';
 import { formatDate } from '../lib/dates';
+import { formatPence } from '../lib/money';
 import {
+  confirmReceiptDetails,
   confirmReceiptUpload,
   fetchReceipts,
+  readReceiptDetails,
   receiptsQueryKey,
   removeReceipt,
   startReceiptUpload,
   uploadToSignedUrl,
   validateReceiptFile,
   type ListedReceipt,
-  type ReceiptUploadStatus,
 } from '../lib/receiptsApi';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf';
-const buttonClass =
-  'inline-flex min-h-11 items-center justify-center rounded-md border border-gray-400 bg-white px-4 text-gray-900 hover:bg-gray-100 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700';
+const focusClass = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700';
+const buttonClass = `inline-flex min-h-11 items-center justify-center rounded-md border border-gray-400 bg-white px-4 text-gray-900 hover:bg-gray-100 disabled:opacity-60 ${focusClass}`;
+const primaryButtonClass = `inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-blue-800 px-5 font-medium text-white hover:bg-blue-900 ${focusClass}`;
 
-const UPLOAD_LABEL: Record<ReceiptUploadStatus, string> = { pending: 'Uploading', ready: 'Uploaded', failed: 'Upload failed' };
-// Extraction is only ever a suggestion; no label here says the figures are confirmed.
-const EXTRACTION_LABEL: Record<string, string> = {
-  pending: 'Not read yet',
-  extracted: 'Read, awaiting your review',
-  failed: 'Could not read',
-  skipped: 'Not read',
-};
+const FILTERS = ['All', 'This month', 'Needs checking'] as const;
+type Filter = (typeof FILTERS)[number];
 
 interface UploadProgress {
   key: number;
@@ -37,7 +34,18 @@ interface UploadProgress {
   done: boolean;
 }
 
-function UploadArea() {
+/** What a person calls the receipt: who it was from, or the file name until it has been read. */
+const titleOf = (receipt: ListedReceipt) => readReceiptDetails(receipt).who ?? receipt.fileName;
+
+function matchesFilter(receipt: ListedReceipt, filter: Filter, search: string): boolean {
+  const read = readReceiptDetails(receipt);
+  if (filter === 'Needs checking' && !read.needsCheck) return false;
+  if (filter === 'This month' && read.date.slice(0, 7) !== new Date().toISOString().slice(0, 7)) return false;
+  const words = [receipt.fileName, read.who, read.whatFor, read.category].join(' ').toLowerCase();
+  return words.includes(search.trim().toLowerCase());
+}
+
+function AddReceipt({ cameraInput }: { cameraInput: RefObject<HTMLInputElement> }) {
   const queryClient = useQueryClient();
   const [uploads, setUploads] = useState<UploadProgress[]>([]);
   const nextKey = useRef(0);
@@ -64,22 +72,13 @@ function UploadArea() {
     [queryClient],
   );
 
-  // No `accept` here: the dropzone would drop a wrong type silently, and the owner needs to be told why.
+  // No `accept` here: the dropzone would drop a wrong type silently, and the person needs to be told why.
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (files) => files.forEach((file) => void uploadOne(file)),
   });
-  const cameraInput = useRef<HTMLInputElement>(null);
 
   return (
-    <section aria-label="Upload receipts" className="mt-4">
-      <div
-        {...getRootProps()}
-        className={`flex min-h-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-4 text-center text-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 ${isDragActive ? 'border-blue-700 bg-blue-50' : 'border-gray-400 bg-white'}`}
-      >
-        <input {...getInputProps({ accept: ACCEPT })} aria-label="Choose receipt files" />
-        <p className="text-gray-900">Drop receipts here, or tap to choose files</p>
-        <p className="text-sm text-gray-700">JPEG, PNG, WEBP or PDF, up to 10 MB each</p>
-      </div>
+    <section aria-label="Add a receipt" className="mt-4">
       <input
         ref={cameraInput}
         type="file"
@@ -92,16 +91,25 @@ function UploadArea() {
           event.target.value = '';
         }}
       />
-      <button type="button" className={`${buttonClass} mt-2`} onClick={() => cameraInput.current?.click()}>
-        Take a photo
+      <button type="button" className={`${primaryButtonClass} w-full md:w-auto`} onClick={() => cameraInput.current?.click()}>
+        <Camera aria-hidden="true" className="h-5 w-5" />
+        Add a receipt
       </button>
+      <div
+        {...getRootProps()}
+        className={`mt-3 hidden cursor-pointer rounded-lg border-2 border-dashed p-4 text-center text-gray-800 md:block ${focusClass} ${isDragActive ? 'border-blue-700 bg-blue-50' : 'border-gray-400 bg-white'}`}
+      >
+        <input {...getInputProps({ accept: ACCEPT })} aria-label="Choose receipt files" />
+        <p className="text-gray-900">Or drop a photo or PDF here</p>
+        <p className="text-sm text-gray-700">Up to 10 MB each</p>
+      </div>
       <ul className="mt-2 space-y-2" aria-live="polite">
         {uploads.map((upload) => (
           <li key={upload.key} className="text-sm">
             {upload.error ? (
               <p role="alert" className="text-red-800">{upload.fileName}: {upload.error}</p>
             ) : upload.done ? (
-              <p className="text-gray-800">{upload.fileName}: uploaded</p>
+              <p className="text-gray-800">{upload.fileName} added. Check the details below once we have read it.</p>
             ) : (
               <>
                 <p className="truncate text-gray-800" title={upload.fileName}>{upload.fileName}</p>
@@ -131,10 +139,10 @@ function RemoveDialog({ receipt, onCancel, onRemove }: { receipt: ListedReceipt;
     dialogRef.current?.showModal();
   }, []);
   return (
-    <dialog ref={dialogRef} aria-labelledby="remove-receipt-title" onClose={onCancel} className="w-full max-w-md flex-col rounded p-0 open:flex backdrop:bg-black/50">
+    <dialog ref={dialogRef} aria-labelledby="remove-receipt-title" onClose={onCancel} className="w-full max-w-[calc(100%-2rem)] sm:max-w-md flex-col rounded p-0 open:flex backdrop:bg-black/50">
       <div className="p-6">
         <h2 id="remove-receipt-title" className="text-lg font-semibold text-gray-900">Remove this receipt?</h2>
-        <p className="mt-3 break-words text-gray-900">{receipt.fileName}</p>
+        <p className="mt-3 break-words text-gray-900">{titleOf(receipt)}</p>
         <p className="mt-3 text-sm text-gray-700">It disappears from your list but is kept on record.</p>
       </div>
       <div className="flex justify-end gap-3 border-t border-gray-200 p-4">
@@ -152,29 +160,60 @@ function RemoveDialog({ receipt, onCancel, onRemove }: { receipt: ListedReceipt;
 }
 
 function ReceiptRow({ receipt, onRemove }: { receipt: ListedReceipt; onRemove: () => void }) {
+  const queryClient = useQueryClient();
+  const read = readReceiptDetails(receipt);
+  const title = titleOf(receipt);
+  const confirm = useMutation({
+    mutationFn: () => confirmReceiptDetails(receipt.id),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: receiptsQueryKey }),
+  });
+  const detail = [read.whatFor, read.category].filter(Boolean);
   return (
-    <li className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-x-3 gap-y-1 p-3 md:grid-cols-[2.5rem_1fr_8rem_9rem_14rem_auto]">
-      <span className="row-span-3 flex h-10 md:col-start-1 md:row-start-1 w-10 items-center justify-center overflow-hidden rounded bg-gray-100 md:row-span-1">
-        {receipt.readUrl && receipt.mimeType.startsWith('image/') ? (
-          <img src={receipt.readUrl} alt="" className="h-full w-full object-cover" />
+    <li className="p-3">
+      <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-x-3 gap-y-1">
+        <span className="row-span-3 flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-gray-100">
+          {receipt.readUrl && receipt.mimeType.startsWith('image/') ? (
+            <img src={receipt.readUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <FileText aria-hidden="true" className="h-5 w-5 text-gray-700" />
+          )}
+        </span>
+        <span className="truncate font-medium text-gray-900" title={title}>{title}</span>
+        <span className="text-right tabular-nums text-gray-900">{read.amountPence === null ? '' : formatPence(read.amountPence)}</span>
+        <span className="col-start-2 truncate text-sm text-gray-700">{formatDate(read.date)}</span>
+        {detail.length > 0 ? (
+          <span className="col-span-2 col-start-2 flex gap-2 text-sm text-gray-800">
+            {read.whatFor && <span className="truncate" title={read.whatFor}>{read.whatFor}</span>}
+            {read.category && <span className="shrink-0 rounded bg-gray-100 px-2 text-gray-800">{read.category}</span>}
+          </span>
         ) : (
-          <FileText aria-hidden="true" className="h-5 w-5 text-gray-700" />
+          <span className="col-span-2 col-start-2 text-sm text-gray-700">
+            {receipt.uploadStatus === 'failed' ? 'Upload failed. Remove it and add it again.' : 'Not read yet'}
+          </span>
         )}
-      </span>
-      <span className="truncate text-gray-900 md:col-start-2 md:row-start-1" title={receipt.fileName}>{receipt.fileName}</span>
-      <button type="button" aria-label={`Remove ${receipt.fileName}`} onClick={onRemove} className={`${buttonClass} row-span-3 md:row-span-1 md:col-start-6 md:row-start-1`}>
+      </div>
+      {read.needsCheck && (
+        <div className="mt-2 rounded-md bg-amber-50 p-3 text-sm text-gray-900">
+          <p className="font-medium">Draft: check these details</p>
+          <p className="mt-1 text-gray-800">We read them from your receipt. Nothing is saved until you say they are right.</p>
+          {confirm.isError && <p role="alert" className="mt-1 text-red-800">{confirm.error.message}</p>}
+          <button type="button" className={`${buttonClass} mt-2`} disabled={confirm.isPending} onClick={() => confirm.mutate()}>
+            These are right
+          </button>
+        </div>
+      )}
+      <button type="button" aria-label={`Remove ${title}`} onClick={onRemove} className={`${buttonClass} mt-2`}>
         Remove
       </button>
-      <span className="col-start-2 truncate text-sm text-gray-700 md:col-start-3 md:row-start-1"><span className="md:hidden">Added </span>{formatDate(receipt.createdAt)}</span>
-      <span className="col-start-2 truncate text-sm text-gray-800 md:col-start-4 md:row-start-1"><span className="md:hidden">Upload: </span>{UPLOAD_LABEL[receipt.uploadStatus]}</span>
-      <span className="col-start-2 text-sm text-gray-800 md:col-start-5 md:row-start-1 md:truncate"><span className="md:hidden">Details: </span>{EXTRACTION_LABEL[receipt.aiStatus ?? 'pending'] ?? EXTRACTION_LABEL.pending}</span>
     </li>
   );
 }
 
-function ReceiptList() {
+function ReceiptList({ onAdd }: { onAdd: () => void }) {
   const queryClient = useQueryClient();
   const [removing, setRemoving] = useState<ListedReceipt | null>(null);
+  const [filter, setFilter] = useState<Filter>('All');
+  const [search, setSearch] = useState('');
   const list = useInfiniteQuery({
     queryKey: receiptsQueryKey,
     queryFn: ({ pageParam }) => fetchReceipts(pageParam),
@@ -185,18 +224,53 @@ function ReceiptList() {
     mutationFn: (id: string) => removeReceipt(id),
     onSettled: () => queryClient.invalidateQueries({ queryKey: receiptsQueryKey }),
   });
-  const rows = list.data?.pages.flatMap((page) => page.receipts) ?? [];
+  const all = list.data?.pages.flatMap((page) => page.receipts) ?? [];
+  const rows = all.filter((receipt) => matchesFilter(receipt, filter, search));
 
   return (
     <>
       {list.isPending && <StateMessage kind="loading">Loading…</StateMessage>}
       {list.isError && <StateMessage kind="error" onRetry={() => void list.refetch()}>Could not load receipts.</StateMessage>}
       {remove.isError && <StateMessage kind="error">{remove.error.message}</StateMessage>}
-      {list.isSuccess && rows.length === 0 && <StateMessage kind="empty">No receipts yet.</StateMessage>}
+      {list.isSuccess && all.length === 0 && (
+        <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6 text-center">
+          <h2 className="text-lg font-semibold text-gray-900">No receipts yet</h2>
+          <p className="mx-auto mt-2 max-w-prose text-gray-800">
+            Keep a photo of every business receipt here. We read the date, who you paid and the amount, and you check them.
+          </p>
+          <button type="button" className={`${primaryButtonClass} mt-4`} onClick={onAdd}>Add a receipt</button>
+        </div>
+      )}
+      {all.length > 0 && (
+        <div className="mt-6">
+          <input
+            type="search"
+            aria-label="Search receipts"
+            placeholder="Search by who, what for or category"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className={`min-h-11 w-full rounded-md border border-gray-400 bg-white px-3 text-gray-900 md:max-w-sm ${focusClass}`}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            {FILTERS.map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                aria-pressed={filter === choice}
+                onClick={() => setFilter(choice)}
+                className={`${buttonClass} ${filter === choice ? 'border-blue-800 bg-blue-50 font-medium' : ''}`}
+              >
+                {choice}
+              </button>
+            ))}
+          </div>
+          {rows.length === 0 && <StateMessage kind="empty">Nothing matches. Try another word or choice.</StateMessage>}
+        </div>
+      )}
       {rows.length > 0 && (
         <ul className="mt-4 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
           {rows.map((receipt) => (
-            <ReceiptRow key={receipt.id} receipt={receipt} onRemove={() => setRemoving(receipt)} />
+            <ReceiptRow key={receipt.id} receipt={receipt} onRemove={() => { remove.reset(); setRemoving(receipt); }} />
           ))}
         </ul>
       )}
@@ -220,11 +294,12 @@ function ReceiptList() {
 }
 
 export default function ReceiptsPage() {
+  const cameraInput = useRef<HTMLInputElement>(null);
   return (
     <main className="p-4 md:p-8">
       <h1 className="text-2xl font-semibold text-gray-900">Receipts</h1>
-      <UploadArea />
-      <ReceiptList />
+      <AddReceipt cameraInput={cameraInput} />
+      <ReceiptList onAdd={() => cameraInput.current?.click()} />
     </main>
   );
 }

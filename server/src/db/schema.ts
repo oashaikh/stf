@@ -1,4 +1,4 @@
-import { index, boolean, check, date, inet, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
+import { index, boolean, check, date, inet, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const businessTypeEnum = pgEnum('business_type', ['sole_trader', 'partnership', 'limited_company']);
@@ -502,6 +502,36 @@ export const itsObligationsCache = pgTable(
   }),
 );
 
+// A business bank account linked through the provider's consent screen. Tokens are
+// ciphertext from encryptToken, never plaintext. Soft-deleted on disconnect; removed with the user.
+export const bankConnections = pgTable(
+  'bank_connections',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    providerAccountId: text('provider_account_id').notNull(),
+    displayName: text('display_name').notNull(),
+    // Last 4 digits only, so the Settings page can tell accounts apart.
+    maskedAccountNumber: text('masked_account_number'),
+    consentExpiresAt: timestamp('consent_expires_at', { withTimezone: true }).notNull(),
+    accessTokenEncrypted: text('access_token_encrypted').notNull(),
+    refreshTokenEncrypted: text('refresh_token_encrypted').notNull(),
+    tokenExpiresAt: timestamp('token_expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    userProviderAccountUidx: uniqueIndex('bank_connections_user_provider_account_uidx')
+      .on(table.userId, table.provider, table.providerAccountId)
+      .where(sql`${table.deletedAt} is null`),
+    userIdIdx: index('bank_connections_user_id_idx').on(table.userId),
+  }),
+);
+
 // ─── Inferred row types ────────────────────────────────────────────────────
 // Canonical DB row shapes, derived from the table definitions above so they
 // can never drift from the schema. Re-exported (type-only) from
@@ -544,3 +574,6 @@ export type TradingAllowanceChoiceRow = typeof tradingAllowanceChoices.$inferSel
 
 export type AuditEventRow = typeof auditEvents.$inferSelect;
 export type AuditEventInsert = typeof auditEvents.$inferInsert;
+
+export type BankConnectionRow = typeof bankConnections.$inferSelect;
+export type BankConnectionInsert = typeof bankConnections.$inferInsert;

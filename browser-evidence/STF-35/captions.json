@@ -1,0 +1,34 @@
+{
+  "settings-bank-not-connected-1440-light.png": {
+    "title": "Settings shows no bank linked yet, with a button to connect one",
+    "state": "after"
+  },
+  "settings-bank-not-connected-390-light.png": {
+    "title": "Settings shows no bank linked yet, with a button to connect one",
+    "state": "after"
+  },
+  "settings-bank-connected-1440-light.png": {
+    "title": "Settings shows the linked business bank account, its masked number and when consent runs out",
+    "state": "after"
+  },
+  "settings-bank-connected-390-light.png": {
+    "title": "Settings shows the linked business bank account, its masked number and when consent runs out",
+    "state": "after"
+  },
+  "settings-bank-expiring-1440-light.png": {
+    "title": "Settings warns that bank consent runs out soon and offers Reconnect",
+    "state": "after"
+  },
+  "settings-bank-expiring-390-light.png": {
+    "title": "Settings warns that bank consent runs out soon and offers Reconnect",
+    "state": "after"
+  },
+  "settings-bank-expired-1440-light.png": {
+    "title": "Settings says bank consent has run out and offers Reconnect so transactions keep flowing",
+    "state": "after"
+  },
+  "settings-bank-expired-390-light.png": {
+    "title": "Settings says bank consent has run out and offers Reconnect so transactions keep flowing",
+    "state": "after"
+  }
+}

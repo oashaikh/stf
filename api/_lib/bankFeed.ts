@@ -2,6 +2,8 @@
 export interface BankAccount {
   id: string;
   name: string;
+  /** Last 4 digits of the account number, when the provider reports one. */
+  maskedNumber?: string;
 }
 
 export interface BankTransaction {

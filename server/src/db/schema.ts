@@ -308,6 +308,38 @@ export const vatSubmissions = pgTable(
   }),
 );
 
+export const itsSubmissionStatusEnum = pgEnum('its_submission_status', ['confirmed', 'pending', 'submitted', 'rejected']);
+
+// One row per owner, tax year, quarter and HMRC environment. The unique key is
+// the idempotency lock: a second submit for the period cannot insert, and only a
+// definite HMRC rejection flips the row to 'rejected' to release it. Rows are
+// never deleted. Stores the confirmed cumulative body and the HMRC receipt only,
+// never tokens or request headers.
+export const itsSubmissions = pgTable(
+  'its_submissions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    taxYear: text('tax_year').notNull(),
+    quarter: integer('quarter').notNull(),
+    sandbox: boolean('sandbox').notNull(),
+    status: itsSubmissionStatusEnum('status').notNull().default('confirmed'),
+    confirmedPayload: jsonb('confirmed_payload').notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull(),
+    hmrcCorrelationId: text('hmrc_correlation_id'),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // Also the lookup index: every query filters on (user_id, tax_year, quarter, sandbox).
+    userPeriodSandboxUnique: unique().on(table.userId, table.taxYear, table.quarter, table.sandbox),
+    quarterRange: check('its_submissions_quarter_check', sql`${table.quarter} BETWEEN 1 AND 4`),
+  }),
+);
+
 export const tradingAllowanceMethodEnum = pgEnum('trading_allowance_method', ['actual', 'allowance']);
 
 // The owner's expense method for each tax year. No row means the default, actual expenses.
@@ -504,6 +536,9 @@ export type VatReturnDraftInsert = typeof vatReturnDrafts.$inferInsert;
 
 export type VatSubmissionRow = typeof vatSubmissions.$inferSelect;
 export type VatSubmissionInsert = typeof vatSubmissions.$inferInsert;
+
+export type ItsSubmissionRow = typeof itsSubmissions.$inferSelect;
+export type ItsSubmissionInsert = typeof itsSubmissions.$inferInsert;
 
 export type TradingAllowanceChoiceRow = typeof tradingAllowanceChoices.$inferSelect;
 

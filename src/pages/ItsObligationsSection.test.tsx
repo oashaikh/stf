@@ -84,7 +84,7 @@ describe('ItsObligationsSection', () => {
     const buttons = await screen.findAllByRole('button', { name: 'Review and submit' });
     expect(buttons).toHaveLength(1);
     fireEvent.click(buttons[0]);
-    expect(await screen.findByRole('heading', { name: 'Review quarterly update' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Send your Income Tax update' })).toBeTruthy();
   });
 
   it('marks an overdue obligation with the word Overdue', async () => {

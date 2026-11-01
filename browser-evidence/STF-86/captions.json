@@ -1,14 +1,32 @@
 {
-  "review-1440-light.png": {
-    "title": "Review screen for a quarterly Income Tax update: figures by HMRC category, a sandbox notice and a declaration box before you can submit"
+  "1-obligations-1440-light.png": {
+    "title": "The Tax page lists your Income Tax updates; the open one has a Review and submit link"
   },
-  "review-390-light.png": {
-    "title": "Review screen for a quarterly Income Tax update: figures by HMRC category, a sandbox notice and a declaration box before you can submit"
+  "1-obligations-390-light.png": {
+    "title": "The Tax page lists your Income Tax updates; the open one has a Review and submit link"
   },
-  "receipt-1440-light.png": {
-    "title": "After submitting, the screen confirms HMRC accepted the quarterly update and says whether it was a test or live"
+  "2-step1-income-1440-light.png": {
+    "title": "Step 1 of 3: check the money you made, with a Why link that explains each amount"
   },
-  "receipt-390-light.png": {
-    "title": "After submitting, the screen confirms HMRC accepted the quarterly update and says whether it was a test or live"
+  "2-step1-income-390-light.png": {
+    "title": "Step 1 of 3: check the money you made, with a Why link that explains each amount"
+  },
+  "3-step2-costs-1440-light.png": {
+    "title": "Step 2 of 3: check what you spent, grouped in plain words with the HMRC name in small text"
+  },
+  "3-step2-costs-390-light.png": {
+    "title": "Step 2 of 3: check what you spent, grouped in plain words with the HMRC name in small text"
+  },
+  "4-step3-send-1440-light.png": {
+    "title": "Step 3 of 3: one plain sentence about what you are telling HMRC, the declaration and Send to HMRC, in test mode"
+  },
+  "4-step3-send-390-light.png": {
+    "title": "Step 3 of 3: one plain sentence about what you are telling HMRC, the declaration and Send to HMRC, in test mode"
+  },
+  "5-sent-1440-light.png": {
+    "title": "After sending, the screen confirms HMRC has your update and says it was a test"
+  },
+  "5-sent-390-light.png": {
+    "title": "After sending, the screen confirms HMRC has your update and says it was a test"
   }
 }

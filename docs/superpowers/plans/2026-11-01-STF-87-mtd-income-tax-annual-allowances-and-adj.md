@@ -54,7 +54,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Pure builder for the annual allowances and adjustments body**
+- [x] **Task 1: Pure builder for the annual allowances and adjustments body**
   - Intent: Add src/lib/itsAnnualSubmission.ts exporting an AnnualSubmission type (HMRC pounds strings) and buildAnnualSubmission(summary), modelled on buildCumulativePeriodSummary. It takes the TaxYearSummary, whose expenseMethod is the STF-31 trading allowance choice and whose tradingAllowancePence comes from getTaxBands. 'allowance' emits allowances.tradingIncomeAllowance and no expense-type adjustments. 'actual' emits no trading allowance. Conversion uses the existing integer-pence to pounds helper; no floats, no hard-coded band values. Tests cover both choices, a zero amount, a loss year, and the rule that allowance and expenses are never both sent.
   - Files: `src/lib/itsAnnualSubmission.ts`, `src/lib/itsAnnualSubmission.test.ts`
   - Acceptance criteria the planner set:
@@ -63,6 +63,7 @@ Also depends on:
     - 'actual' choice yields no tradingIncomeAllowance
     - Output amounts are two-decimal strings derived from integer pence
     - npm test, lint and typecheck pass
+  - Commit: `da1c3381c94b`
 
 - [ ] **Task 2: HMRC client call for the annual submission, with sandbox test** (after 1)
   - Intent: Add submitAnnualSubmission to src/lib/hmrc/client.ts: PUT /individuals/business/self-employment/{nino}/{businessId}/annual/{taxYear} through hmrcFetch with fraud headers and the existing Accept version, next to submitCumulativePeriodSummary, with the same 'only call after confirmation' doc comment. Add a path helper and unit tests with a fake fetch. Add a describe.skipIf sandbox integration test, skipped when HMRC_CLIENT_ID, HMRC_SANDBOX_NINO or HMRC_SANDBOX_REFRESH_TOKEN are unset, always sandbox mode. Add a comment to recheck endpoint and field names against current HMRC docs.

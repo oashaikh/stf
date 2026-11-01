@@ -63,18 +63,18 @@ For AWS S3, this is set in the bucket's CORS settings (Permissions tab); for Clo
 
 To manually test receipt uploads against a local S3-compatible store:
 
-1. Start MinIO (`docker compose up -d`; the `minio-setup` service creates the `stf-receipts` bucket) and the API (`npm run dev:server`, port 8787). Run `npm run dev` as well if you want to use port 5173, which proxies `/api` to the API.
+1. Start MinIO (`docker compose up -d`; the `minio-setup` service creates the `stf-receipts` bucket), then serve the `api/` functions with the Vercel CLI (`npx vercel dev`, with the `STORAGE_*` variables and `DATABASE_URL` set in `.env.local` or the linked project). Use the host and port it prints in place of `localhost:3000` below. `npm run dev:server` is not the API: it only runs scheduled jobs and serves no `/api` routes.
 
 2. Sign in to get a session cookie. Either log in through the app and copy the `stf_session` cookie from your browser, or save it with curl:
    ```bash
-   curl -c cookies.txt -X POST http://localhost:8787/api/auth/login \
+   curl -c cookies.txt -X POST http://localhost:3000/api/auth/login \
      -H "Content-Type: application/json" -d '<login body>'
    ```
    The commands below use `-b cookies.txt`; `-H 'Cookie: stf_session=<token>'` works too. Without the cookie every call returns 401.
 
 3. Create a receipt (this returns a signed upload URL):
    ```bash
-   curl -b cookies.txt -X POST http://localhost:8787/api/receipts \
+   curl -b cookies.txt -X POST http://localhost:3000/api/receipts \
      -H "Content-Type: application/json" \
      -d '{"fileName": "receipt.jpg", "mimeType": "image/jpeg", "sizeBytes": 102400}'
    ```
@@ -87,7 +87,7 @@ To manually test receipt uploads against a local S3-compatible store:
 
 5. Confirm the upload:
    ```bash
-   curl -b cookies.txt -X PATCH http://localhost:8787/api/receipts \
+   curl -b cookies.txt -X PATCH http://localhost:3000/api/receipts \
      -H "Content-Type: application/json" \
      -d '{"id": "<receipt-id>"}'
    ```

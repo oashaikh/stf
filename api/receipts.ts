@@ -50,7 +50,7 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
       // The storage call runs outside any transaction (COD-4); each store call is its own statement.
       const stored = await receiptStorage.statObject(record.fileKey);
       const matches = stored !== null && stored.sizeBytes === record.sizeBytes && stored.mimeType === record.mimeType;
-      if (!matches) console.error('Receipt upload failed check:', stored === null ? 'missing' : stored.sizeBytes !== record.sizeBytes ? 'size' : 'type');
+      if (!matches) console.error('Receipt upload failed check:', record.id, stored === null ? 'missing' : stored.sizeBytes !== record.sizeBytes ? 'size' : 'type');
       const receipt = await store.setUploadStatus(auth.userId, id, matches ? 'ready' : 'failed');
       if (!receipt) return refuse(404, 'Receipt not found', 'NOT_FOUND');
       return Response.json({ ok: true, receipt: toResponse(receipt) });

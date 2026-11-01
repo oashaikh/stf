@@ -52,6 +52,19 @@ export const BOX_LABELS: Record<number, string> = {
   9: 'Total acquisitions from EU excluding VAT',
 };
 
+/** Plain-words names for the guided flow; the box number is shown separately in small muted text. */
+export const PLAIN_BOX_LABELS: Record<number, string> = {
+  1: 'VAT you charged on sales',
+  2: 'VAT on goods bought from the EU',
+  3: 'Total VAT you owe',
+  4: 'VAT you can claim back on purchases',
+  5: 'What you pay HMRC, or they pay you',
+  6: 'Your sales, before VAT',
+  7: 'Your purchases, before VAT',
+  8: 'Goods you sold to the EU, before VAT',
+  9: 'Goods you bought from the EU, before VAT',
+};
+
 /** Box 5 is signed on the server: negative means HMRC owes the user a refund. */
 export function boxLabel(box: number, pence: number): string {
   return box === 5 && pence < 0 ? `${BOX_LABELS[5]} (refund due to you)` : BOX_LABELS[box];

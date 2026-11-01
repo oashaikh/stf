@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { box5ReviewNote, box5SentNote, boxLabel, reviewState } from './vatReviewState';
+import { PLAIN_BOX_LABELS, box5ReviewNote, box5SentNote, boxLabel, reviewState } from './vatReviewState';
 
 const base = { status: 'draft' as const, declarationTicked: true, confirmPending: false };
 
@@ -99,5 +99,14 @@ describe('box 5 notes', () => {
     expect(box5SentNote(4500, true)).toBe('Sent to HMRC as £45.00 (refund)');
     expect(box5SentNote(4500, false)).toBe('Sent to HMRC as £45.00 (payment)');
     expect(box5SentNote(0, false)).toBeNull();
+  });
+});
+
+describe('plain box wording', () => {
+  it('has plain words for every box, with the number kept separate', () => {
+    for (let box = 1; box <= 9; box++) {
+      expect(PLAIN_BOX_LABELS[box]).toBeTruthy();
+      expect(PLAIN_BOX_LABELS[box]).not.toMatch(/box/i);
+    }
   });
 });

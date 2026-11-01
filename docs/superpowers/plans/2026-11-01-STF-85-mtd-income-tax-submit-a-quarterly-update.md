@@ -50,8 +50,9 @@
     - npm run typecheck and npm test pass
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 3: Confirm and submit logic for the Income Tax quarterly update** (after 1, 2)
+- [x] **Task 3: Confirm and submit logic for the Income Tax quarterly update** (after 1, 2)
   - Intent: Create api/_lib/itsSubmit.ts, modelled on vatSubmit.ts and vatReturns.ts, with an injectable store (database default). Every query filters by the session userId and has LIMIT 1. The pieces are:
+  - Commit: `afc2efee45ea`
 (a) `confirmItsUpdateForUser`. It requires the declaration flag and reuses the preview gates (ITSA enabled, sandbox/live agreement between env and user opt-in, connected, business id, NINO). It recomputes the body with getTaxYearSummary and buildCumulativePeriodSummary. It then upserts a `confirmed` row holding the payload and writes an audit event in the same transaction. It refuses if the row is already pending or submitted.
 (b) `submitItsUpdateForUser`. It requires a confirmed row (else NOT_CONFIRMED). It recomputes and deep-compares with the stored payload (else STALE_CONFIRMATION). It then claims the lock with an atomic conditional update from confirmed to pending (else ALREADY_SUBMITTED). It calls the client with fraud headers via requestFraudHeaders. No network call happens inside a DB transaction.
 (c) Outcome handling: success records the receipt and marks the row submitted. A definite 4xx rejection marks it rejected, which releases the lock and requires re-confirmation. A 5xx, network failure or failure to save the receipt leaves the row pending and returns OUTCOME_UNKNOWN.

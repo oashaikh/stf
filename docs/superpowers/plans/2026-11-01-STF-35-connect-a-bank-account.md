@@ -70,8 +70,9 @@ Re-check that there is a single migration head before finishing.
     - npm run typecheck and npm test pass
   - Risk: opus/high: schema and migration work that holds encrypted credentials.
 
-- [ ] **Task 2: Bank store and consent routes: start, callback, status, disconnect** (after 1)
+- [x] **Task 2: Bank store and consent routes: start, callback, status, disconnect** (after 1)
   - Intent: Add api/_lib/bankStore.ts, modelled on hmrcStore.ts: a BankStore interface plus a database implementation. Every query filters on the session user id and has `.limit()`. Tokens are written with encryptToken. Disconnect sets deleted_at and clears the token ciphertext; it never runs DELETE.
+  - Commit: `bc08f220ce8e`
 Add routes under api/bank/:
 1. connect.ts (GET, auth): returns { ok: true, url } from provider.startConsent(signState(auth.userId)), using createTrueLayerProvider(trueLayerConfigFromEnv()).
 2. callback.ts (GET, public like api/hmrc/callback.ts): verifiedStateUserId decides the user; invalid state returns 400 INVALID_STATE. Cap the code length, call finishConsent, list accounts, save the first GBP account with consent expiry = now + 90 days. No GBP account redirects to /settings?bank=error. The provider call finishes before the single-statement write (no transaction across the network call). Redirect to /settings?bank=connected or ?bank=error; log only the error class name.

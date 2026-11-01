@@ -40,6 +40,59 @@ Set these in your Vercel project settings. Never commit them to the repository.
 - `STORAGE_ACCESS_KEY` — read/write access key
 - `STORAGE_SECRET_KEY` — read/write secret key
 
+#### Bucket configuration
+
+The bucket must be **private** (no public read access). Browser uploads use signed PUT URLs valid for 5 minutes, scoped to a specific object key with signed content type and content length.
+
+**CORS rule:** Browsers uploading receipts directly to the bucket need the following CORS configuration. Replace `https://your-domain` with your `APP_ORIGIN`:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://your-domain"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "MaxAgeSeconds": 300
+  }
+]
+```
+
+For AWS S3, this is set in the bucket's CORS settings (Permissions tab); for Cloudflare R2, in the bucket's Settings under CORS; for Backblaze B2, in bucket settings under CORS Rules.
+
+#### Local testing with MinIO
+
+To manually test receipt uploads against a local S3-compatible store:
+
+1. Start MinIO (`docker compose up -d`; the `minio-setup` service creates the `stf-receipts` bucket), then serve the `api/` functions with the Vercel CLI (`npx vercel dev`, with the `STORAGE_*` variables and `DATABASE_URL` set in `.env.local` or the linked project). Use the host and port it prints in place of `localhost:3000` below. `npm run dev:server` is not the API: it only runs scheduled jobs and serves no `/api` routes.
+
+2. Sign in to get a session cookie. Either log in through the app and copy the `stf_session` cookie from your browser, or save it with curl:
+   ```bash
+   curl -c cookies.txt -X POST http://localhost:3000/api/auth/login \
+     -H "Content-Type: application/json" -d '<login body>'
+   ```
+   The commands below use `-b cookies.txt`; `-H 'Cookie: stf_session=<token>'` works too. Without the cookie every call returns 401.
+
+3. Create a receipt (this returns a signed upload URL):
+   ```bash
+   curl -b cookies.txt -X POST http://localhost:3000/api/receipts \
+     -H "Content-Type: application/json" \
+     -d '{"fileName": "receipt.jpg", "mimeType": "image/jpeg", "sizeBytes": 102400}'
+   ```
+   Note the `uploadUrl` and the receipt `id`. `sizeBytes` must equal the real file size.
+
+4. Upload the file. The signature binds the content type and length, so send the declared `Content-Type`:
+   ```bash
+   curl -X PUT -H "Content-Type: image/jpeg" -T /path/to/receipt.jpg '<upload-url>'
+   ```
+
+5. Confirm the upload:
+   ```bash
+   curl -b cookies.txt -X PATCH http://localhost:3000/api/receipts \
+     -H "Content-Type: application/json" \
+     -d '{"id": "<receipt-id>"}'
+   ```
+   The response shows `uploadStatus: "ready"`. A missing object, or a size or type that differs from what was declared, gives `failed`.
+
 ### Application
 
 - `APP_ORIGIN` — the deployed URL: `https://<your-domain>`

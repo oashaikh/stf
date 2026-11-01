@@ -73,3 +73,7 @@
 - [x] **Task 4: Fix: address 8 review findings (cycle 1)** (after 3)
   - Intent: Review left 8 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The route and storage logic are correct, but the runbook's MinIO check uses a wrong field name and omits the session cookie, so the steps as written fail. Fix `fileType` t The agent is fixing them; nothing is needed from you.
   - Commit: `8ad2967940c5`
+
+- [x] **Task 5: Fix: address 8 review findings (cycle 1)** (after 4)
+  - Intent: Review left 8 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The route and storage logic are correct, but the runbook's MinIO check uses a wrong field name and omits the session cookie, so the steps as written fail. Fix `fileType` t The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

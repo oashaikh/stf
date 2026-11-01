@@ -1,6 +1,6 @@
 import { formatDate } from "../lib/dates";
 import { useEffect, useRef, useState, type ComponentProps } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchHmrcMode, isEffectivelyLive } from "../lib/hmrc/settingsApi";
 import {
@@ -16,12 +16,10 @@ import type { VatReturnBoxes } from "../lib/vat";
 import type { ApiResponse } from "../model/types";
 import VatHistoryList from "./VatHistoryList";
 import VatObligationsList from "./VatObligationsList";
+import VatFigures, { type DrillLine } from "./VatFigures";
 import VatPreviewPanel from "./VatPreviewPanel";
 import { useVatObligations } from "./useVatObligations";
 import {
-  box5ReviewNote,
-  boxLabel,
-  DRILLABLE_BOXES,
   reviewState,
   type ReviewStatus,
   type SubmissionReceipt,
@@ -34,15 +32,6 @@ import {
   saveStep,
   type VatFlowStep,
 } from "./vatFlowState";
-
-interface DrillLine {
-  lineId: string;
-  transactionId: string;
-  date: string;
-  amountPence: number;
-  vatPence: number;
-  description: string | null;
-}
 
 interface ReturnReview {
   boxes: VatReturnBoxes;
@@ -60,15 +49,6 @@ interface VatPeriod {
   start: string;
   end: string;
 }
-
-// STF-10's list filters by from, to and search; the hash lets the Expenses list highlight the entry.
-function expensesLink(line: DrillLine): string {
-  const filters = new URLSearchParams({ from: line.date, to: line.date });
-  if (line.description) filters.set("search", line.description);
-  return `/expenses?${filters}#entry-${line.transactionId}`;
-}
-
-const boxNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 export default function VatPage() {
   const navigate = useNavigate();
@@ -219,7 +199,6 @@ function VatReturnReview({
   const queryClient = useQueryClient();
   const [declarationTicked, setDeclarationTicked] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
-  const [expandedBox, setExpandedBox] = useState<number | null>(null);
   // The obligation row also carries due date and status, which the server neither needs nor should be sent.
   const periodFields = {
     periodKey: period.periodKey,
@@ -339,55 +318,11 @@ function VatReturnReview({
 
           {step === "figures" && (
             <>
-              <table className="mt-6 w-full max-w-3xl border-collapse text-sm">
-                <caption className="sr-only">
-                  VAT return boxes for the period
-                </caption>
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-gray-700">
-                    <th scope="col" className="py-2 pr-4 font-medium">
-                      Box
-                    </th>
-                    <th scope="col" className="py-2 pr-4 font-medium">
-                      Description
-                    </th>
-                    <th scope="col" className="py-2 text-right font-medium">
-                      Amount
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {boxNumbers.map((box) => {
-                    const pence =
-                      review.data.boxes[`box${box}` as keyof VatReturnBoxes];
-                    const drillable = (
-                      DRILLABLE_BOXES as readonly number[]
-                    ).includes(box);
-                    const lines =
-                      review.data.drillDown[
-                        `box${box}` as keyof VatReturnBoxes
-                      ];
-                    const expanded = expandedBox === box;
-                    const label = boxLabel(box, pence);
-                    return (
-                      <BoxRows
-                        key={box}
-                        box={box}
-                        label={label}
-                        pence={pence}
-                        lines={drillable ? lines : undefined}
-                        totalLines={
-                          review.data.drillDownTotals[
-                            `box${box}` as keyof VatReturnBoxes
-                          ]
-                        }
-                        expanded={expanded}
-                        onToggle={() => setExpandedBox(expanded ? null : box)}
-                      />
-                    );
-                  })}
-                </tbody>
-              </table>
+              <VatFigures
+                boxes={review.data.boxes}
+                drillDown={review.data.drillDown}
+                drillDownTotals={review.data.drillDownTotals}
+              />
               <button
                 type="button"
                 onClick={onNext}
@@ -539,100 +474,6 @@ function PreviewResult({ mutation }: PreviewResultProps) {
     );
   }
   return mutation.data ? <VatPreviewPanel preview={mutation.data} /> : null;
-}
-
-interface BoxRowsProps {
-  box: number;
-  label: string;
-  pence: number;
-  lines?: DrillLine[];
-  totalLines: number;
-  expanded: boolean;
-  onToggle: () => void;
-}
-
-function BoxRows({
-  box,
-  label,
-  pence,
-  lines,
-  totalLines,
-  expanded,
-  onToggle,
-}: BoxRowsProps) {
-  const detailId = `vat-box-${box}-lines`;
-  return (
-    <>
-      <tr className="border-b border-gray-100">
-        <td className="py-1 pr-4 text-gray-900">{box}</td>
-        <td className="py-1 pr-4 text-gray-900">
-          {lines ? (
-            <button
-              type="button"
-              aria-expanded={expanded}
-              aria-controls={detailId}
-              onClick={onToggle}
-              className="min-h-[44px] text-left text-blue-700 underline"
-            >
-              {label}
-            </button>
-          ) : (
-            label
-          )}
-        </td>
-        <td className="py-1 text-right tabular-nums text-gray-900">
-          {formatPence(pence)}
-          {box === 5 && box5ReviewNote(pence) && (
-            <span className="block text-xs text-gray-700">
-              {box5ReviewNote(pence)}
-            </span>
-          )}
-        </td>
-      </tr>
-      {lines && expanded && (
-        <tr id={detailId}>
-          <td colSpan={3} className="bg-gray-50 px-4 py-2">
-            {lines.length === 0 ? (
-              <p className="text-gray-700">
-                No transactions contribute to this box.
-              </p>
-            ) : (
-              <ul className="divide-y divide-gray-200">
-                {lines.map((line) => (
-                  <li key={line.lineId}>
-                    <Link
-                      to={expensesLink(line)}
-                      className="flex min-h-[44px] flex-wrap items-center gap-x-4 py-1 text-blue-700 hover:underline sm:flex-nowrap"
-                    >
-                      <span className="shrink-0 tabular-nums">
-                        {formatDate(line.date)}
-                      </span>
-                      <span
-                        className="order-last min-w-0 basis-full truncate sm:order-none sm:basis-0 sm:flex-1"
-                        title={line.description ?? undefined}
-                      >
-                        {line.description ?? ""}
-                      </span>
-                      <span className="shrink-0 text-right tabular-nums">
-                        {formatPence(line.amountPence)} +{" "}
-                        {formatPence(line.vatPence)} VAT
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {lines.length < totalLines && (
-              <p className="mt-2 text-gray-700">
-                Showing the first {lines.length} of {totalLines} transactions,
-                so the list does not add up to the box.
-              </p>
-            )}
-          </td>
-        </tr>
-      )}
-    </>
-  );
 }
 
 interface SubmitDialogProps {

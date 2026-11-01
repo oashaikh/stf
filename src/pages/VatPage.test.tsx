@@ -287,7 +287,7 @@ describe('VatPage', () => {
 
     it('links each drill-down line to the Expenses list for that entry', async () => {
       showReview(withEntries);
-      fireEvent.click(await screen.findByRole('button', { name: /VAT due on sales/i }));
+      fireEvent.click((await screen.findAllByRole("button", { name: /Why is this amount/ }))[0]);
       const link = screen.getByRole('link', { name: /Consulting & design/ });
       expect(link).toHaveAttribute(
         'href',

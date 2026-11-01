@@ -2,7 +2,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { bankConnections, invoices, recurringEntryRuns } from "./schema";
+import { getTableConfig } from "drizzle-orm/pg-core";
+import { bankConnections, invoices, receipts, recurringEntryRuns } from "./schema";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, "migrations");
@@ -131,6 +132,14 @@ describe("schema migrations", () => {
     expect(sql).toMatch(
       /CREATE INDEX IF NOT EXISTS "invoice_lines_invoice_id_idx" ON "invoice_lines" \("invoice_id"\)/,
     );
+  });
+
+  it("indexes receipts by (user_id, created_at, id) for the newest-first list", () => {
+    const sql = readFileSync(new URL("./migrations/0022_receipts_user_created_idx.sql", import.meta.url), "utf8");
+    expect(sql).toMatch(
+      /CREATE INDEX IF NOT EXISTS "receipts_user_created_idx" ON "receipts" \("user_id","created_at","id"\)/,
+    );
+    expect(getTableConfig(receipts).indexes.map((index) => index.config.name)).toContain("receipts_user_created_idx");
   });
 
   it("adds a nullable payment_transaction_id FK on invoices beside transaction_id", () => {

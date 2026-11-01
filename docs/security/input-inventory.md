@@ -29,7 +29,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/invoice-pdf.ts` | GET | Invoices |
 | `api/accounts.ts` | GET, POST, PATCH | Accounts |
 | `api/mileage.ts` | GET, POST, PATCH, DELETE | Mileage |
-| `api/receipts.ts` | POST, PATCH, DELETE | Receipts |
+| `api/receipts.ts` | GET, POST, PATCH, DELETE | Receipts |
 | `api/recurring-entries.ts` | GET, POST, PATCH, DELETE | Recurring entries |
 | `api/dashboard.ts` | GET | Reports and export (no input) |
 | `api/profit-and-loss.ts` | GET | Reports and export |
@@ -158,6 +158,8 @@ Text fields have a length cap and reject control characters (`plainText`; notes 
 | `mimeType` | POST body | `image/jpeg`, `image/png`, `image/webp` or `application/pdf` | `validateNewReceipt` |
 | `sizeBytes` | POST body | integer 1 to 10 MB | `validateNewReceipt` |
 | `id` | PATCH/DELETE body | uuid regex | `validateReceiptId` |
+| `limit` | GET query | integer from 1, capped at 25; default 25 | `receiptListQuerySchema`, `api/_lib/receipts.ts` |
+| `cursor` | GET query | max 200 chars; must decode to an ISO `createdAt` and a uuid `id`, else 400; the list is always scoped to the session user | `decodeReceiptCursor` |
 | uploaded object | PUT to signed URL | signed for the declared type and length; PATCH compares stored size and type with the declaration and marks the row failed on a mismatch | `api/receipts.ts` |
 
 ## Recurring entries

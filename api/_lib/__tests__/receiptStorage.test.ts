@@ -34,4 +34,11 @@ describe('createReceiptStorage', () => {
     const url = await storage.presignUpload('owner/abc', 'image/png', 1024, 300)
     expect(url).toContain('/stf-receipts/owner/abc')
   })
+  it('presigns a short-lived read URL for the key', async () => {
+    const storage = createReceiptStorage(FULL_ENV)
+    const url = new URL(await storage.presignRead('owner/abc', 300))
+    expect(url.pathname).toBe('/stf-receipts/owner/abc')
+    expect(url.searchParams.get('X-Amz-Expires')).toBe('300')
+    expect(url.searchParams.get('X-Amz-Signature')).toBeTruthy()
+  })
 })

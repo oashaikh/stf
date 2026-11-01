@@ -1,6 +1,6 @@
 import { withAuth, type AuthDeps } from './_lib/auth.js';
 import { createReceiptStorage, type ReceiptStorage } from './_lib/receiptStorage.js';
-import { databaseReceiptStore, UPLOAD_URL_SECONDS, validateNewReceipt, validateReceiptId, type ReceiptStore, type StoredReceipt } from './_lib/receipts.js';
+import { databaseReceiptStore, decodeReceiptCursor, encodeReceiptCursor, READ_URL_SECONDS, receiptListQuerySchema, UPLOAD_URL_SECONDS, validateNewReceipt, validateReceiptId, type ReceiptStore, type StoredReceipt } from './_lib/receipts.js';
 
 const refuse = (status: number, error: string, code: string) => Response.json({ ok: false, error, code }, { status });
 
@@ -18,7 +18,7 @@ const toResponse = ({ id, fileName, mimeType, sizeBytes, uploadStatus, createdAt
 // Storage is built per request so a deployment without storage settings answers 503 instead of failing to load.
 export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore, storage?: ReceiptStorage, authDeps?: AuthDeps) {
   return withAuth(async (request, auth) => {
-    if (request.method !== 'POST' && request.method !== 'PATCH' && request.method !== 'DELETE') return refuse(405, 'Method not allowed', 'METHOD');
+    if (request.method !== 'GET' && request.method !== 'POST' && request.method !== 'PATCH' && request.method !== 'DELETE') return refuse(405, 'Method not allowed', 'METHOD');
 
     let receiptStorage: ReceiptStorage;
     try {
@@ -27,6 +27,31 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
       // The message names only the missing variable, never a value.
       console.error('Receipt storage config error:', error instanceof Error ? error.message : 'unknown');
       return refuse(503, 'Receipt storage is not configured', 'STORAGE_UNAVAILABLE');
+    }
+
+    if (request.method === 'GET') {
+      const query = receiptListQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
+      const after = query.success && query.data.cursor !== undefined ? decodeReceiptCursor(query.data.cursor) : undefined;
+      if (!query.success || (query.data.cursor !== undefined && !after)) return refuse(400, 'Limit must be a whole number from 1 and the cursor must come from a previous page', 'BAD_REQUEST');
+      const { limit } = query.data;
+      // One extra row tells us whether another page exists.
+      const rows = await store.list(auth.userId, after, limit + 1);
+      const page = rows.slice(0, limit);
+      const last = page[page.length - 1];
+      // Signing is local to the process and runs after the query has finished, outside any transaction (COD-4).
+      const receipts = await Promise.all(
+        page.map(async ({ id, fileName, mimeType, sizeBytes, uploadStatus, aiStatus, createdAt, fileKey }) => ({
+          id,
+          fileName,
+          mimeType,
+          sizeBytes,
+          uploadStatus,
+          aiStatus,
+          createdAt,
+          readUrl: uploadStatus === 'ready' ? await receiptStorage.presignRead(fileKey, READ_URL_SECONDS) : null,
+        })),
+      );
+      return Response.json({ ok: true, receipts, nextCursor: rows.length > limit && last ? encodeReceiptCursor({ createdAt: last.createdAt, id: last.id }) : null });
     }
 
     const body = await request.json().catch(() => null);

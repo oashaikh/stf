@@ -1,4 +1,4 @@
-import { HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 export interface ReceiptStorage {
@@ -6,6 +6,8 @@ export interface ReceiptStorage {
   presignUpload(key: string, mimeType: string, sizeBytes: number, expiresInSeconds: number): Promise<string>
   /** Size and content type of the stored object, or null if it does not exist. */
   statObject(key: string): Promise<{ sizeBytes: number; mimeType: string } | null>
+  /** Short-lived GET URL for the stored object. */
+  presignRead(key: string, expiresInSeconds: number): Promise<string>
 }
 
 const REQUIRED_VARIABLES = [
@@ -52,6 +54,9 @@ export function createReceiptStorage(env: Record<string, string | undefined> = p
         expiresIn: expiresInSeconds,
         signableHeaders: new Set(['content-type', 'content-length']),
       })
+    },
+    presignRead(key, expiresInSeconds) {
+      return getSignedUrl(client, new GetObjectCommand({ Bucket: config.bucket, Key: key }), { expiresIn: expiresInSeconds })
     },
     async statObject(key) {
       try {

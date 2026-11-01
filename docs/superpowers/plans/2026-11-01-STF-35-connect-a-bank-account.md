@@ -94,8 +94,9 @@ Tests with fakes: bad, forged and expired state refused on callback; stored toke
     - npm run lint, typecheck and test pass
   - Risk: opus/high: OAuth callback, signed state, token encryption and per-user isolation.
 
-- [ ] **Task 3: Bank section on the Settings page** (after 2)
+- [x] **Task 3: Bank section on the Settings page** (after 2)
   - Intent: Add src/lib/bankApi.ts (fetchBankStatus, fetchBankConnectUrl, disconnectBank) in the style of tradingAllowanceApi.ts. Add src/pages/BankSection.tsx and render it in SettingsPage.tsx.
+  - Commit: (none — no code change for this task)
 The section uses StateMessage for loading, empty and error states, and existing tokens and container. With no connection it shows a Connect button. With a connection it shows display name, masked number, consent expiry date, and a Disconnect button that confirms and names what it affects. An expired or expiring-soon (within 14 days) notice shows a Reconnect button; colour is never the only signal. It reads ?bank=connected|error on return. Tap targets are at least 44px with visible focus.
 
 Put expiry-state logic in a small pure function with a unit test. Add component tests with the API module mocked (connected, expiring, expired, error). Add the /api/bank/status case to e2e/mockApi.ts.

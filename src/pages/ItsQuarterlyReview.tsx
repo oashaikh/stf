@@ -9,17 +9,19 @@ import type { ItsObligationRow } from '../lib/hmrc/itsObligationsApi';
 import { confirmItsUpdate, ItsUpdateError, previewItsUpdate, quarterOf, submitItsUpdate } from '../lib/hmrc/itsUpdateApi';
 import { formatPence } from '../lib/money';
 
-// The plain label comes first; the HMRC field name goes under it in small text for checking against a letter.
-const INCOME_LABELS: Record<string, string> = { turnover: 'Sales and fees', other: 'Other business income' };
-const EXPENSE_LABELS: Record<string, string> = {
-  costOfGoods: 'Cost of goods',
-  carVanTravelExpenses: 'Car, van and travel',
-  premisesRunningCosts: 'Premises running costs',
-  adminCosts: 'Admin costs',
-  advertisingCosts: 'Advertising',
-  professionalFees: 'Professional fees',
-  financeCharges: 'Finance charges',
-  otherExpenses: 'Other expenses',
+// The plain label comes first; the form name goes under it in small text for checking against a letter. A key with no entry shows no small text.
+const FIGURE_NAMES: Record<string, { label: string; hmrcName?: string }> = {
+  turnover: { label: 'Sales and fees', hmrcName: 'Turnover' },
+  other: { label: 'Other business income', hmrcName: 'Any other business income' },
+  costOfGoods: { label: 'Cost of goods', hmrcName: 'Cost of goods bought for resale or goods used' },
+  carVanTravelExpenses: { label: 'Car, van and travel', hmrcName: 'Car, van and travel expenses' },
+  premisesRunningCosts: { label: 'Premises running costs', hmrcName: 'Rent, rates, power and insurance costs' },
+  adminCosts: { label: 'Admin costs', hmrcName: 'Phone, fax, stationery and other office costs' },
+  advertisingCosts: { label: 'Advertising', hmrcName: 'Advertising and business entertainment costs' },
+  professionalFees: { label: 'Professional fees', hmrcName: 'Accountancy, legal and other professional fees' },
+  financeCharges: { label: 'Finance charges', hmrcName: 'Interest and bank and credit card financial charges' },
+  otherExpenses: { label: 'Other expenses', hmrcName: 'Other business expenses' },
+  tradingIncomeAllowance: { label: 'Trading allowance' },
 };
 const UNKNOWN_LABEL = 'Other amount';
 
@@ -30,13 +32,15 @@ function poundsToPence(pounds: string): number {
   return pounds.startsWith('-') ? -pence : pence;
 }
 
-type Figure = { key: string; label: string; pence: number };
+type Figure = { key: string; label: string; hmrcName?: string; pence: number };
+
+const figureOf = (key: string, pounds: string): Figure => ({ key, label: FIGURE_NAMES[key]?.label ?? UNKNOWN_LABEL, hmrcName: FIGURE_NAMES[key]?.hmrcName, pence: poundsToPence(pounds) });
 
 function figuresOf(summary: CumulativePeriodSummary) {
-  const income: Figure[] = Object.entries(summary.periodIncome).map(([key, value]) => ({ key, label: INCOME_LABELS[key] ?? UNKNOWN_LABEL, pence: poundsToPence(value) }));
-  const costs: Figure[] = summary.periodAllowances
-    ? [{ key: 'tradingIncomeAllowance', label: 'Trading allowance', pence: poundsToPence(summary.periodAllowances.tradingIncomeAllowance) }]
-    : Object.entries(summary.periodExpenses ?? {}).map(([key, value]) => ({ key, label: EXPENSE_LABELS[key] ?? UNKNOWN_LABEL, pence: poundsToPence(value ?? '0') }));
+  const income = Object.entries(summary.periodIncome).map(([key, value]) => figureOf(key, value));
+  const costs = summary.periodAllowances
+    ? [figureOf('tradingIncomeAllowance', summary.periodAllowances.tradingIncomeAllowance)]
+    : Object.entries(summary.periodExpenses ?? {}).map(([key, value]) => figureOf(key, value ?? '0'));
   return { income, costs };
 }
 
@@ -63,12 +67,12 @@ function Figures({ figures, whyText, paymentsPath, paymentsLabel }: { figures: F
   const [open, setOpen] = useState<string | null>(null);
   return (
     <ul className="mt-4 divide-y divide-gray-100 text-sm">
-      {figures.map(({ key, label, pence }) => (
+      {figures.map(({ key, label, hmrcName, pence }) => (
         <li key={key} className="py-3">
           <div className="flex justify-between gap-4">
             <div>
               <p className="text-gray-900">{label}</p>
-              <p className="text-xs text-gray-600">{key}</p>
+              {hmrcName && <p className="text-xs text-gray-600">{hmrcName}</p>}
             </div>
             <p className="text-right tabular-nums text-gray-900">{formatPence(pence)}</p>
           </div>
@@ -170,8 +174,8 @@ export default function ItsQuarterlyReview({ obligation, onClose }: { obligation
 
   return (
     // The bottom padding keeps the buttons clear of the fixed phone menu.
-    <section aria-labelledby="its-review-heading" className="mt-6 rounded-md border border-gray-300 bg-white p-4 pb-24 md:p-6 md:pb-6">
-      <h3 id="its-review-heading" className="text-base font-semibold text-gray-900">Send your Income Tax update</h3>
+    <section aria-labelledby="its-review-heading" className="rounded-md border border-gray-300 bg-white p-4 pb-24 md:p-6 md:pb-6">
+      <h1 id="its-review-heading" className="text-2xl font-semibold text-gray-900">Send your Income Tax update</h1>
       <p className="mt-1 text-sm text-gray-700">{period}. Figures add up from the start of the tax year.</p>
       {data && !submit.isSuccess && <p className="mt-1 text-sm font-medium text-gray-900">Step {stepNumber} of {STEPS.length}</p>}
 

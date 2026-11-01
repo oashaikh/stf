@@ -1,12 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { formatDate } from '../lib/dates';
 import { fetchItsObligations, type ItsObligationRow, type ItsSetupGap } from '../lib/hmrc/itsObligationsApi';
 import StateMessage from '../components/StateMessage';
 import { quarterOf } from '../lib/hmrc/itsUpdateApi';
-import ItsQuarterlyReview from './ItsQuarterlyReview';
 
 const SETUP_STEPS: Record<ItsSetupGap, { text: string; link: string }> = {
   'not-connected': { text: 'Connect HMRC to see your Income Tax dates.', link: 'Connect HMRC in Settings' },
@@ -26,16 +24,17 @@ function groupByTaxYear(obligations: ItsObligationRow[]): [string, ItsObligation
   return [...groups].sort(([a], [b]) => b.localeCompare(a));
 }
 
-function Cell({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
+// A cell that carries a date range wraps rather than truncating, so the end date is never hidden.
+function Cell({ label, children, className = '', wrap = false }: { label: string; children: React.ReactNode; className?: string; wrap?: boolean }) {
   return (
     <td className={`flex min-h-11 items-center justify-between gap-4 py-1 sm:table-cell sm:py-2 sm:pr-4 ${className}`}>
       <span className="text-gray-700 sm:hidden">{label}</span>
-      <span className="block min-w-0 truncate text-right sm:text-left">{children}</span>
+      <span className={`block min-w-0 ${wrap ? '' : 'truncate'} text-right sm:text-left`}>{children}</span>
     </td>
   );
 }
 
-function ObligationsTable({ taxYear, obligations, onReview }: { taxYear: string; obligations: ItsObligationRow[]; onReview: (obligation: ItsObligationRow) => void }) {
+function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligations: ItsObligationRow[] }) {
   return (
     <div className="mt-4">
       <h3 className="text-base font-semibold text-gray-900">{taxYear}</h3>
@@ -61,7 +60,7 @@ function ObligationsTable({ taxYear, obligations, onReview }: { taxYear: string;
                 <Cell label="Update" className="text-gray-900">
                   {obligation.kind === 'finalDeclaration' ? 'Final declaration' : 'Quarterly update'}
                 </Cell>
-                <Cell label="Period" className="text-gray-700">
+                <Cell label="Period" className="text-gray-700" wrap>
                   <span title={period}>{period}</span>
                 </Cell>
                 <Cell label="Due date" className="text-gray-700">
@@ -73,9 +72,9 @@ function ObligationsTable({ taxYear, obligations, onReview }: { taxYear: string;
                 </Cell>
                 {obligation.status === 'open' && quarterOf(obligation) ? (
                   <Cell label="Action">
-                    <button type="button" onClick={() => onReview(obligation)} className="inline-flex min-h-11 items-center text-blue-800 underline">
-                      Review and submit
-                    </button>
+                    <Link to={`/tax/update/${obligation.taxYear}/${quarterOf(obligation)}`} className="inline-flex min-h-11 items-center text-blue-800 underline">
+                      Send your update
+                    </Link>
                   </Cell>
                 ) : (
                   <td className="hidden sm:table-cell" />
@@ -93,7 +92,6 @@ function ObligationsTable({ taxYear, obligations, onReview }: { taxYear: string;
 export default function ItsObligationsSection() {
   const obligations = useQuery({ queryKey: ['its-obligations'], queryFn: () => fetchItsObligations(), retry: false });
   const result = obligations.data;
-  const [reviewing, setReviewing] = useState<ItsObligationRow | null>(null);
   if (result === null || obligations.isPending) return null;
 
   return (
@@ -125,9 +123,8 @@ export default function ItsObligationsSection() {
           )}
           {result.obligations.length === 0 && <p className="mt-4 text-gray-700">No Income Tax obligations found.</p>}
           {groupByTaxYear(result.obligations).map(([taxYear, rows]) => (
-            <ObligationsTable key={taxYear} taxYear={taxYear} obligations={rows} onReview={setReviewing} />
+            <ObligationsTable key={taxYear} taxYear={taxYear} obligations={rows} />
           ))}
-          {reviewing && <ItsQuarterlyReview key={reviewing.periodStart} obligation={reviewing} onClose={() => setReviewing(null)} />}
         </>
       )}
     </section>

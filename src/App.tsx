@@ -9,6 +9,7 @@ import ReceiptsPage from './pages/ReceiptsPage.tsx';
 import VatPage from './pages/VatPage.tsx';
 import TaxPage from './pages/TaxPage.tsx';
 import ReportsPage from './pages/ReportsPage.tsx';
+import ItsUpdatePage from './pages/ItsUpdatePage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import AppShell from './components/AppShell.tsx';
 import StateMessage from './components/StateMessage.tsx';
@@ -41,6 +42,7 @@ function AuthGate() {
         <Route path="/receipts" element={<ReceiptsPage />} />
         <Route path="/vat" element={<VatPage />} />
         <Route path="/tax" element={<TaxPage />} />
+        <Route path="/tax/update/:taxYear/:quarter" element={<ItsUpdatePage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

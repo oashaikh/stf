@@ -70,12 +70,16 @@ describe('ItsQuarterlyReview', () => {
     renderReview(happyPath);
     expect(await screen.findByText('Step 1 of 3')).toBeTruthy();
     expect(screen.getByText('£12,000.50')).toBeTruthy();
-    expect(screen.getByText('turnover')).toBeTruthy();
+    expect(screen.getByText('Turnover')).toBeTruthy();
+    expect(screen.queryByText('turnover')).toBeNull();
     expect(screen.queryByText('Admin costs')).toBeNull();
     click('Next');
     expect(screen.getByText('Step 2 of 3')).toBeTruthy();
     expect(screen.getByText('Admin costs')).toBeTruthy();
+    expect(screen.getByText('Phone, fax, stationery and other office costs')).toBeTruthy();
     expect(screen.getByText('Other amount')).toBeTruthy();
+    expect(screen.queryByText('adminCosts')).toBeNull();
+    expect(screen.queryByText('travel')).toBeNull();
     click('Back');
     expect(screen.getByText('Step 1 of 3')).toBeTruthy();
   });

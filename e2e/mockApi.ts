@@ -249,6 +249,24 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         return json(route, { connected: true, needsItsReconnect: false, itsBusinessId: null });
       case 'GET /api/hmrc/its-obligations':
         return json(route, { ok: true, stale: false, obligations: mockItsObligations });
+      case 'GET /api/mileage':
+        return json(route, { trips: [], claim: { totalPence: 0, tripClaims: [] } });
+      case 'POST /api/hmrc/its-cumulative-preview':
+        return json(route, {
+          ok: true,
+          data: {
+            endpoint: { method: 'PUT', url: 'https://test-api.service.hmrc.gov.uk/individuals/business/self-employment/AB******C/XA******1/cumulative/2026-27', sandbox: true },
+            body: {
+              periodDates: { periodStartDate: '2026-04-06', periodEndDate: '2026-10-05' },
+              periodIncome: { turnover: '18250.00', other: '120.00' },
+              periodExpenses: { adminCosts: '410.00', carVanTravelExpenses: '865.50', professionalFees: '300.00' },
+            },
+            headers: { Accept: 'application/vnd.hmrc.5.0+json' },
+          },
+        });
+      case 'POST /api/hmrc/its-cumulative-confirm':
+      case 'POST /api/hmrc/its-cumulative-submit':
+        return json(route, { ok: true, data: { sandbox: true } });
       case 'GET /api/hmrc/mode':
         return json(route, { live: false, envLive: false });
       case 'GET /api/settings/vat-number':

@@ -148,6 +148,13 @@
       "when": 1792986660126,
       "tag": "0020_bank_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1792986661126,
+      "tag": "0021_bank_transactions",
+      "breakpoints": true
     }
   ]
 }

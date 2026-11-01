@@ -5,9 +5,8 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import DashboardPage from './pages/DashboardPage.tsx';
 import MoneyInPage from './pages/MoneyInPage.tsx';
 import MoneyOutPage from './pages/MoneyOutPage.tsx';
-import VatPage from './pages/VatPage.tsx';
-import TaxPage from './pages/TaxPage.tsx';
-import ReportsPage from './pages/ReportsPage.tsx';
+import BankPage from './pages/BankPage.tsx';
+import TaxHubPage from './pages/TaxHubPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import AppShell from './components/AppShell.tsx';
 import StateMessage from './components/StateMessage.tsx';
@@ -53,10 +52,8 @@ function AuthGate() {
         <Route path="/home" element={<DashboardPage />} />
         <Route path="/money-in/*" element={<MoneyInPage />} />
         <Route path="/money-out/*" element={<MoneyOutPage />} />
-        <Route path="/bank" element={<SettingsPage />} />
-        <Route path="/tax" element={<TaxPage />} />
-        <Route path="/tax/vat" element={<VatPage />} />
-        <Route path="/tax/reports" element={<ReportsPage />} />
+        <Route path="/bank" element={<BankPage />} />
+        <Route path="/tax/*" element={<TaxHubPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       {OLD_ADDRESSES.map(([from, to]) => (

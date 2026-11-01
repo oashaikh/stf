@@ -122,9 +122,9 @@ describe('VatPage', () => {
   it('offers no review or submit when no obligation is open', async () => {
     fetchVatObligations.mockResolvedValue([obligation('26C1', '2026-01-01', '2026-03-31', 'F')]);
     renderPage();
-    expect(await screen.findByText('No open VAT obligations to file.')).toBeInTheDocument();
+    expect(await screen.findByText('No VAT returns due right now.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm return' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Submit to HMRC/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Send to HMRC/ })).not.toBeInTheDocument();
     expect(returnRequests()).toHaveLength(0);
   });
 
@@ -188,9 +188,9 @@ describe('VatPage', () => {
 
     it('shows the same preview in the submit dialog and still submits from it', async () => {
       showReview(confirmed);
-      fireEvent.click(await screen.findByRole('button', { name: 'Submit to HMRC sandbox' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Send to HMRC sandbox' }));
       expect(await screen.findByText('Bearer (hidden)')).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Submit to sandbox' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Send to sandbox' }));
       await waitFor(() => expect(submitVatReturn).toHaveBeenCalled());
     });
 

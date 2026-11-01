@@ -94,9 +94,9 @@ export default function ReportsPage() {
   }
 
   return (
-    <main className="p-4 md:p-8">
-      <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
-      <h2 className="mt-1 text-lg text-gray-800">Profit and loss</h2>
+    <div className="mt-6">
+      <h2 className="text-xl font-semibold text-gray-900">Reports</h2>
+      <h3 className="mt-1 text-lg text-gray-800">Profit and loss</h3>
 
       <div className="mt-4 flex flex-wrap items-start gap-4">
         <label className="flex flex-col gap-1 text-sm text-gray-700">
@@ -168,6 +168,6 @@ export default function ReportsPage() {
           </p>
         )}
       </section>
-    </main>
+    </div>
   );
 }

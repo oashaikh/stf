@@ -96,6 +96,31 @@ async function hmrcFetch<T>(
   return response.json() as Promise<T>;
 }
 
+// ─── Income Tax: Self Employment Business API ────────────────────────────────
+
+// Cumulative period summary, from the 2025-26 tax year. Field names follow HMRC's Self Employment
+// Business API v5.0 (PUT .../cumulative/{taxYear}). They were written from the published spec
+// without live access to the docs page at build time: recheck against
+// https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/self-employment-business-api
+// before the first sandbox submission.
+export const SELF_EMPLOYMENT_API_ACCEPT = 'application/vnd.hmrc.5.0+json';
+
+export const selfEmploymentCumulativePath = (nino: string, businessId: string, taxYear: string) =>
+  `/individuals/business/self-employment/${nino}/${businessId}/cumulative/${taxYear}`;
+
+/** Every amount is a pounds string with two decimals. */
+export type CumulativePeriodSummary = {
+  periodDates: { periodStartDate: string; periodEndDate: string };
+  periodIncome: { turnover: string; other: string };
+  /** Omitted when the trading allowance is claimed: HMRC rejects both. */
+  periodExpenses?: Partial<Record<
+    | 'costOfGoods' | 'carVanTravelExpenses' | 'premisesRunningCosts' | 'adminCosts'
+    | 'advertisingCosts' | 'professionalFees' | 'financeCharges' | 'otherExpenses',
+    string
+  >>;
+  periodAllowances?: { tradingIncomeAllowance: string };
+};
+
 // ─── VAT ──────────────────────────────────────────────────────────────────────
 
 export type VatObligation = {

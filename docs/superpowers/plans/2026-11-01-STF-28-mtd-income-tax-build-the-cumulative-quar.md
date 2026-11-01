@@ -55,10 +55,11 @@
   - Risk: Authenticated route that handles a NINO, HMRC mode gating and an audit write. This is permission and identifier work, so opus at high.
   - Commit: `70f545c5c974`
 
-- [ ] **Task 3: Document the cumulative quarterly update workflow** (after 2)
+- [x] **Task 3: Document the cumulative quarterly update workflow** (after 2)
   - Intent: Add docs/workflows/its-quarterly-update.md describing the quarter-end dates, the field mapping table (STF category to HMRC field), the allowance versus actual expenses rule, the preview route's request and response and its audit event, and the HMRC doc version confirmed at build time. State plainly that submission is STF-85 and not done here.
   - Files: `docs/workflows/its-quarterly-update.md`
   - Acceptance criteria the planner set:
     - The doc names the real file paths and route, and the mapping table matches the code
     - The doc states that nothing is sent to HMRC by this ticket
     - No secrets, NINOs or real data appear in the doc
+  - Commit: `c6c3bf7e03a4`

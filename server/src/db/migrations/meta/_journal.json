@@ -154,13 +154,20 @@
       "version": "6",
       "when": 1792986661126,
       "tag": "0021_its_submissions",
-        "breakpoints": true
-      },
-      {
+    "breakpoints": true
+    },
+    {
       "idx": 22,
       "version": "6",
       "when": 1792986662126,
       "tag": "0022_receipts_user_created_idx",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1792986663126,
+      "tag": "0023_receipt_extractions_receipt_idx",
       "breakpoints": true
     }
   ]

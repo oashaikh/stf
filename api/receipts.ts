@@ -18,7 +18,7 @@ const toResponse = ({ id, fileName, mimeType, sizeBytes, uploadStatus, createdAt
 // Storage is built per request so a deployment without storage settings answers 503 instead of failing to load.
 export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore, storage?: ReceiptStorage, authDeps?: AuthDeps) {
   return withAuth(async (request, auth) => {
-    if (request.method !== 'GET' && request.method !== 'POST' && request.method !== 'PATCH' && request.method !== 'DELETE') return refuse(405, 'Method not allowed', 'METHOD');
+    if (request.method !== 'GET' && request.method !== 'POST' && request.method !== 'PATCH' && request.method !== 'PUT' && request.method !== 'DELETE') return refuse(405, 'Method not allowed', 'METHOD');
 
     let receiptStorage: ReceiptStorage;
     try {
@@ -40,13 +40,14 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
       const last = page[page.length - 1];
       // Signing is local to the process and runs after the query has finished, outside any transaction (COD-4).
       const receipts = await Promise.all(
-        page.map(async ({ id, fileName, mimeType, sizeBytes, uploadStatus, aiStatus, createdAt, fileKey }) => ({
+        page.map(async ({ id, fileName, mimeType, sizeBytes, uploadStatus, aiStatus, details, createdAt, fileKey }) => ({
           id,
           fileName,
           mimeType,
           sizeBytes,
           uploadStatus,
           aiStatus,
+          details,
           createdAt,
           readUrl: uploadStatus === 'ready' ? await receiptStorage.presignRead(fileKey, READ_URL_SECONDS) : null,
         })),
@@ -77,6 +78,12 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
       const matches = stored !== null && stored.sizeBytes === record.sizeBytes && stored.mimeType === record.mimeType;
       if (!matches) console.error('Receipt upload failed check:', record.id, stored === null ? 'missing' : stored.sizeBytes !== record.sizeBytes ? 'size' : 'type');
       const receipt = await store.setUploadStatus(auth.userId, id, matches ? 'ready' : 'failed');
+      if (!receipt) return refuse(404, 'Receipt not found', 'NOT_FOUND');
+      return Response.json({ ok: true, receipt: toResponse(receipt) });
+    }
+
+    if (request.method === 'PUT') {
+      const receipt = await store.confirmDetails(auth.userId, id);
       if (!receipt) return refuse(404, 'Receipt not found', 'NOT_FOUND');
       return Response.json({ ok: true, receipt: toResponse(receipt) });
     }

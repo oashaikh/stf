@@ -5,7 +5,7 @@ vi.mock('../db', () => ({ db: {} }));
 import { createReceiptsHandler } from '../../receipts';
 import type { AuthDeps } from '../auth';
 import type { ReceiptStorage } from '../receiptStorage';
-import { MAX_RECEIPT_BYTES, type ReceiptListRow, type ReceiptStore, type StoredReceipt } from '../receipts';
+import { MAX_RECEIPT_BYTES, type ReceiptDetails, type ReceiptListRow, type ReceiptStore, type StoredReceipt } from '../receipts';
 
 const authDeps: AuthDeps = {
   issuer: {
@@ -15,7 +15,7 @@ const authDeps: AuthDeps = {
   users: { findId: async (issuerId) => issuerId, createIfAbsent: async (issuerId) => issuerId },
 };
 
-type Row = StoredReceipt & { userId: string; fileKey: string };
+type Row = StoredReceipt & { userId: string; fileKey: string; details?: ReceiptDetails };
 
 function makeStore() {
   const rows: Row[] = [];
@@ -43,6 +43,12 @@ function makeStore() {
       if (row) row.deletedAt = '2026-10-02T09:00:00.000Z';
       return row;
     },
+    async confirmDetails(userId, id) {
+      calls.push('confirmDetails');
+      const row = rows.find((candidate) => candidate.userId === userId && candidate.id === id && !candidate.deletedAt);
+      if (row?.details) for (const detail of Object.values(row.details)) detail.confirmed = true;
+      return row;
+    },
     async list(userId, after, limit) {
       calls.push('list');
       return rows
@@ -50,7 +56,7 @@ function makeStore() {
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
         .filter((row) => !after || row.createdAt < after.createdAt || (row.createdAt === after.createdAt && row.id < after.id))
         .slice(0, limit)
-        .map((row): ReceiptListRow => ({ ...row, aiStatus: 'pending' }));
+        .map((row): ReceiptListRow => ({ ...row, aiStatus: 'pending', details: row.details ?? {} }));
     },
   };
   return { store, rows, calls };
@@ -111,7 +117,7 @@ describe('receipts route', () => {
   it('refuses every method when signed out', async () => {
     const { store, calls } = makeStore();
     const { storage } = makeStorage();
-    for (const method of ['POST', 'PATCH', 'DELETE']) expect((await call(store, storage, method, undefined, upload)).status).toBe(401);
+    for (const method of ['POST', 'PATCH', 'PUT', 'DELETE']) expect((await call(store, storage, method, undefined, upload)).status).toBe(401);
     expect(calls).toEqual([]);
   });
 
@@ -217,7 +223,7 @@ describe('receipts route', () => {
       expect(body.receipts.map((item: { fileName: string }) => item.fileName)).toEqual(['receipt-3.jpg', 'receipt-2.jpg', 'receipt-1.jpg']);
       expect(body.receipts[0]).toMatchObject({ uploadStatus: 'ready', aiStatus: 'pending', mimeType: 'image/jpeg' });
       expect(body.nextCursor).toBeNull();
-      expect(Object.keys(body.receipts[0]).sort()).toEqual(['aiStatus', 'createdAt', 'fileName', 'id', 'mimeType', 'readUrl', 'sizeBytes', 'uploadStatus']);
+      expect(Object.keys(body.receipts[0]).sort()).toEqual(['aiStatus', 'createdAt', 'details', 'fileName', 'id', 'mimeType', 'readUrl', 'sizeBytes', 'uploadStatus']);
     });
 
     it('never shows a second owner the first owner receipts, deleted ones included', async () => {
@@ -275,6 +281,36 @@ describe('receipts route', () => {
       const { store } = makeStore();
       const response = await createReceiptsHandler(store, undefined, authDeps)(new Request('https://app.test/api/receipts', { headers: { cookie: 'stf_session=tok-owner_a' } }));
       expect(response.status).toBe(503);
+    });
+  });
+
+  describe('read details', () => {
+    const draft = (): ReceiptDetails => ({ merchant: { value: 'Corner Cafe', confirmed: false }, totalAmount: { value: '12.50', confirmed: false } });
+
+    it('returns the read details as unconfirmed drafts in the list', async () => {
+      const { store, rows } = makeStore();
+      seed(rows, 'owner_a', 1);
+      rows[0].details = draft();
+      const body = await (await call(store, makeStorage().storage, 'GET', 'owner_a')).json();
+      expect(body.receipts[0].details).toEqual(draft());
+    });
+
+    it('confirms the details for their owner', async () => {
+      const { store, rows } = makeStore();
+      seed(rows, 'owner_a', 1);
+      rows[0].details = draft();
+      const response = await call(store, makeStorage().storage, 'PUT', 'owner_a', { id: rows[0].id });
+      expect(response.status).toBe(200);
+      expect(rows[0].details?.merchant.confirmed).toBe(true);
+    });
+
+    it("refuses another user's receipt id and confirms nothing", async () => {
+      const { store, rows } = makeStore();
+      seed(rows, 'owner_a', 1);
+      rows[0].details = draft();
+      const response = await call(store, makeStorage().storage, 'PUT', 'owner_b', { id: rows[0].id });
+      expect(response.status).toBe(404);
+      expect(rows[0].details?.merchant.confirmed).toBe(false);
     });
   });
 });

@@ -180,19 +180,25 @@ export const receipts = pgTable(
 
 // Individual AI suggestions remain drafts until a user confirms or corrects
 // them. Confidence is stored as integer thousandths (0-1000).
-export const receiptExtractions = pgTable('receipt_extractions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  receiptId: uuid('receipt_id')
-    .notNull()
-    .references(() => receipts.id),
-  field: text('field').notNull(),
-  suggestedValue: text('suggested_value').notNull(),
-  confidence: integer('confidence'),
-  confirmedValue: text('confirmed_value'),
-  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
-  confirmedByUserId: uuid('confirmed_by_user_id'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const receiptExtractions = pgTable(
+  'receipt_extractions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    receiptId: uuid('receipt_id')
+      .notNull()
+      .references(() => receipts.id),
+    field: text('field').notNull(),
+    suggestedValue: text('suggested_value').notNull(),
+    confidence: integer('confidence'),
+    confirmedValue: text('confirmed_value'),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    confirmedByUserId: uuid('confirmed_by_user_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    receiptIdx: index('receipt_extractions_receipt_idx').on(table.receiptId),
+  }),
+);
 
 // Invoice header. Soft-deletable financial record.
 export const invoices = pgTable(

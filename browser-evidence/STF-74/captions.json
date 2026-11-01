@@ -1,0 +1,20 @@
+{
+  "empty-1440-light.png": {
+    "title": "The Receipts page before any receipt is added, with the upload area and a message saying there are none yet on a desktop screen"
+  },
+  "empty-390-light.png": {
+    "title": "The Receipts page before any receipt is added, with the upload area and a message saying there are none yet on a phone"
+  },
+  "list-1440-light.png": {
+    "title": "The Receipts page listing uploaded receipts with a preview, date added, upload result and whether the details were read on a desktop screen"
+  },
+  "list-390-light.png": {
+    "title": "The Receipts page listing uploaded receipts with a preview, date added, upload result and whether the details were read on a phone"
+  },
+  "remove-1440-light.png": {
+    "title": "Asking for confirmation, naming the file, before a receipt is removed on a desktop screen"
+  },
+  "remove-390-light.png": {
+    "title": "Asking for confirmation, naming the file, before a receipt is removed on a phone"
+  }
+}

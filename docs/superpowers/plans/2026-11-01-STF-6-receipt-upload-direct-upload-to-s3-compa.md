@@ -60,7 +60,7 @@
   - Risk: Upload authorization, tenant isolation and signed-URL handling, so opus at high.
   - Commit: `67fc99b0dc3d`
 
-- [ ] **Task 3: Document bucket CORS rule and local MinIO check in the Vercel runbook** (after 2)
+- [x] **Task 3: Document bucket CORS rule and local MinIO check in the Vercel runbook** (after 2)
   - Intent: Update the Receipt storage section of docs/runbooks/vercel-deploy.md with the bucket CORS rule browsers need for direct upload: allowed origin is the APP_ORIGIN value, method PUT, headers including Content-Type, short max age. Note signed URLs last 5 minutes and the bucket stays private. Add short steps for the local MinIO manual check (docker compose up -d, create a receipt, PUT a file to the returned URL with curl, call the confirm action). The implementer has no Docker, so the PR must say the MinIO check was not run by the agent and is left to the orchestrator or owner.
   - Files: `docs/runbooks/vercel-deploy.md`
   - Acceptance criteria the planner set:
@@ -68,3 +68,4 @@
     - The runbook states the bucket stays private and signed URLs last a few minutes
     - The local MinIO check steps contain no real secrets, tokens or machine paths
     - npm run lint, typecheck, test and build still pass
+  - Commit: `433b615b558d`

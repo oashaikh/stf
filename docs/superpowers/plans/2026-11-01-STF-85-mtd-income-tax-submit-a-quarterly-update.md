@@ -77,7 +77,7 @@ Reuse hmrcCall.ts, hmrcStore.ts, withHmrcToken and the refresh pattern from vatS
     - npm run lint, npm run typecheck, npm test and npm run build pass
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 5: Sandbox integration test (skipped without credentials) and workflow docs** (after 3)
+- [x] **Task 5: Sandbox integration test (skipped without credentials) and workflow docs** (after 3)
   - Intent: Add a describe.skipIf block to src/lib/hmrc/sandbox.integration.test.ts for the cumulative PUT, running only when HMRC_CLIENT_ID, HMRC_SANDBOX_NINO and the refresh token are set (the existing hasCredentials pattern), sandbox only. Check the endpoint, version and field names against the HMRC docs where reachable. Update docs/workflows/its-quarterly-update.md with the confirm and submit flow, the status and lock lifecycle, the OUTCOME_UNKNOWN recovery, and the sandbox/live gating. Keep the NINO mask and business id examples in sync with the code.
   - Files: `src/lib/hmrc/sandbox.integration.test.ts`, `docs/workflows/its-quarterly-update.md`
   - Acceptance criteria the planner set:
@@ -85,3 +85,4 @@ Reuse hmrcCall.ts, hmrcStore.ts, withHmrcToken and the refresh pattern from vatS
     - The suite never reaches production when HMRC_SANDBOX_MODE is false
     - The workflow doc describes confirm, submit, lock release on rejection and the unknown-outcome rule
     - npm test and npm run lint pass
+  - Commit: `de70ddb43fbe`

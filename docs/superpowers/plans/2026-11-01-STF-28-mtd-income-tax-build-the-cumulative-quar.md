@@ -63,3 +63,7 @@
     - The doc states that nothing is sent to HMRC by this ticket
     - No secrets, NINOs or real data appear in the doc
   - Commit: `c6c3bf7e03a4`
+
+- [x] **Task 4: Fix: address 5 review findings (cycle 1)** (after 3)
+  - Intent: Review left 5 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found no code defects. Mapping, quarter dates, pence-to-pounds conversion, allowance-vs-expenses exclusivity and route gating all trace correctly. Only mino The agent is fixing them; nothing is needed from you.
+  - Commit: `f1bea1fa8c91`

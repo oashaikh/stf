@@ -90,7 +90,7 @@ Also depends on:
   - Risk: App.tsx is also edited by STF-87; keep the diff to one import and one route plus the return component. Settings and BankSection are owned by STF-120 and are not touched.
   - Commit: `4d07afed6b21`
 
-- [ ] **Task 4: Show setup after first sign-in and as to-dos on Home** (after 3)
+- [x] **Task 4: Show setup after first sign-in and as to-dos on Home** (after 3)
   - Intent: After sign-in, a user whose setup is not finished is sent once to /setup (redirect inside the signed-in routes driven by server setup state, so it holds across devices and does not loop once skipped or finished). On Home (DashboardPage, first menu item after STF-119) add a small SetupTodos component, rendered near the top, with one row per skipped or unfinished step in plain words and one button that reopens that step. Do not restructure the page; the full to-do-list Home is separate work.
   - Files: `src/pages/SetupTodos.tsx`, `src/pages/SetupTodos.test.tsx`, `src/pages/DashboardPage.tsx`, `src/pages/DashboardPage.test.tsx`, `src/App.tsx`, `src/App.test.tsx`
   - Acceptance criteria the planner set:
@@ -101,6 +101,7 @@ Also depends on:
     - DashboardPage test mocks give the new setup query defined data
     - npm run lint, typecheck, test and build pass
   - Risk: DashboardPage.tsx and its test are also edited by STF-120; keep the hunk to one import and one render line so it auto-merges.
+  - Commit: `eecb3df83d80`
 
 - [ ] **Task 5: Mock API, new-user walkthrough and evidence** (after 4)
   - Intent: Extend e2e/mockApi.ts with a setup-state endpoint (empty for a new user, remembers writes) and add a new-user walkthrough block to e2e/journey.spec.ts: sign in, land on /setup, go through all four steps once finished and once skipped, arrive at Home with to-dos. Capture screenshots at 1440 and 390, light and dark, of each changed screen walked from the start, invented figures, sandbox only, committed under browser-evidence/STF-123/ with captions.md giving every image a plain-English title. Add review-notes.md stating where screens differ from docs/design/ease-of-use.md and why. Add a short docs/workflows/first-time-setup.md.

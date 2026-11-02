@@ -42,4 +42,10 @@ describe('itsAnnualApi', () => {
     stubFetch({ ok: false, code: 'NOT_CONFIRMED', error: 'Confirm this submission before sending it' });
     await expect(submitItsAnnual('2026-27')).rejects.toThrow('Confirm this submission before sending it');
   });
+
+  it('sends the business and choice for a property year', async () => {
+    const fetchSpy = stubFetch({ ok: true, data: { sandbox: true, body: {} } });
+    await confirmItsAnnual({ taxYear: '2026-27', business: 'uk-property', choice: 'actual' });
+    expect(sentBody(fetchSpy)).toEqual({ taxYear: '2026-27', business: 'uk-property', choice: 'actual', declaration: true });
+  });
 });

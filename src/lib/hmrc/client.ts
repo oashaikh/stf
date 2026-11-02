@@ -543,6 +543,37 @@ export async function submitPropertyCumulativeSummary(
   );
 }
 
+export const propertyAnnualPath = (nino: string, businessId: string, taxYear: string) =>
+  `/individuals/business/property/uk/${nino}/${businessId}/annual/${taxYear}`;
+
+/** Amounts are JSON numbers in pounds. STF records no adjustments, so only the allowance is sent. */
+export type PropertyAnnualSubmission = {
+  ukProperty: { allowances?: { propertyIncomeAllowance: number } };
+};
+
+/** Submit the annual property allowances. MUST only be called after user explicitly confirms. */
+export async function submitPropertyAnnualSubmission(
+  nino: string,
+  businessId: string,
+  taxYear: string,
+  payload: PropertyAnnualSubmission,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<void> {
+  await hmrcFetch<void>(
+    propertyAnnualPath(nino, businessId, taxYear),
+    accessToken,
+    fraudHeaders,
+    {
+      method: 'PUT',
+      headers: { Accept: PROPERTY_BUSINESS_API_ACCEPT },
+      body: JSON.stringify(payload),
+    },
+    fetchFn,
+  );
+}
+
 export type ItsObligationStatus = 'Open' | 'Fulfilled';
 
 export type ItsObligationDetail = {

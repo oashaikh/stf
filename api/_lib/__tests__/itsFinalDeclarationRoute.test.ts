@@ -24,12 +24,13 @@ const authDeps: AuthDeps = {
   users: { findId: async (issuerId) => issuerId, createIfAbsent: async (issuerId) => issuerId },
 };
 
-function fakeDeps({ userSandbox = true }: { userSandbox?: boolean } = {}) {
+function fakeDeps({ userSandbox = true, annualSubmitted = true }: { userSandbox?: boolean; annualSubmitted?: boolean } = {}) {
   type Row = { id: string; userId: string; status: 'confirmed' | 'pending' | 'submitted' | 'rejected'; calculationId: string };
   const rows = new Map<string, Row>();
   const auditActions: string[] = [];
   const key = (userId: string, period: { taxYear: string; sandbox: boolean }) => `${userId}:${period.taxYear}:${period.sandbox}`;
   const submissions: ItsFinalStore = {
+    submittedAnnualBusinesses: async () => (annualSubmitted ? ['self-employment'] : []),
     find: async (userId, period) => {
       const row = rows.get(key(userId, period));
       return row && { id: row.id, status: row.status, calculationId: row.calculationId };
@@ -142,6 +143,18 @@ describe.each([
 });
 
 describe('final declaration gate over HTTP', () => {
+  it.each([
+    ['preview', createItsFinalPreviewHandler, target],
+    ['confirm', createItsFinalConfirmHandler, confirmBody],
+    ['submit', createItsFinalSubmitHandler, submitBody],
+  ] as const)('%s answers 409 and calls HMRC nothing while the yearly figures are not in', async (_name, create, body) => {
+    const { deps, fetchFn } = fakeDeps({ annualSubmitted: false });
+    const res = await post((r) => create(deps, authDeps)(r), body);
+    expect(res.status).toBe(409);
+    expect((await res.json()).code).toBe('ANNUAL_FIGURES_MISSING');
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
   it('preview returns HMRC figures beside the estimate and the wording', async () => {
     const { deps, auditActions } = fakeDeps();
     const res = await post((r) => createItsFinalPreviewHandler(deps, authDeps)(r), target);

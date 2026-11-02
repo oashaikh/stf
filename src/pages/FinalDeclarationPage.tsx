@@ -11,7 +11,7 @@ export default function FinalDeclarationPage() {
   if (!taxYear || !(taxYear in TAX_BANDS)) return <Navigate to="/tax/income-tax" replace />;
   return (
     <main className="max-w-4xl p-4 md:p-8">
-      <FinalDeclarationFlow taxYear={taxYear} onLeave={() => navigate('/tax/income-tax')} />
+      <FinalDeclarationFlow taxYear={taxYear} onLeave={() => navigate('/tax/income-tax')} onFixFigures={() => navigate(`/tax/year-end/${taxYear}`)} />
     </main>
   );
 }

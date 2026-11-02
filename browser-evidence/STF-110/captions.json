@@ -1,0 +1,26 @@
+{
+  "rental-figures-1440-light.png": {
+    "title": "What you earned and spent on your rental this tax year"
+  },
+  "rental-figures-390-light.png": {
+    "title": "What you earned and spent on your rental this tax year"
+  },
+  "rental-choice-1440-light.png": {
+    "title": "Choosing between the flat £1,000 rental allowance and your actual costs, with the better option picked for you"
+  },
+  "rental-choice-390-light.png": {
+    "title": "Choosing between the flat £1,000 rental allowance and your actual costs, with the better option picked for you"
+  },
+  "rental-send-1440-light.png": {
+    "title": "Checking what will be sent to HMRC and ticking the declaration before sending"
+  },
+  "rental-send-390-light.png": {
+    "title": "Checking what will be sent to HMRC and ticking the declaration before sending"
+  },
+  "final-declaration-missing-figures-1440-light.png": {
+    "title": "When yearly figures are missing, the final tax return stops before sending anything and points you to the step that fixes it"
+  },
+  "final-declaration-missing-figures-390-light.png": {
+    "title": "When yearly figures are missing, the final tax return stops before sending anything and points you to the step that fixes it"
+  }
+}

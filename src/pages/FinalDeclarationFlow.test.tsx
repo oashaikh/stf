@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { confirmItsFinal, previewItsFinal, submitItsFinal, type ItsFinalPreview } from '../lib/itsFinalApi';
+import { ItsUpdateError } from '../lib/hmrc/itsUpdateApi';
 import FinalDeclarationFlow from './FinalDeclarationFlow';
 
 vi.mock('../lib/itsFinalApi');
@@ -26,13 +27,13 @@ const differing = preview({
   comparison: { incomeTaxDifferencePence: 100000, nicDifferencePence: 0, totalDifferencePence: 100000, differs: true },
 });
 
-function renderFlow(onLeave = vi.fn()) {
+function renderFlow(onLeave = vi.fn(), onFixFigures = vi.fn()) {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <FinalDeclarationFlow taxYear="2026-27" onLeave={onLeave} />
+      <FinalDeclarationFlow taxYear="2026-27" onLeave={onLeave} onFixFigures={onFixFigures} />
     </QueryClientProvider>,
   );
-  return onLeave;
+  return { onLeave, onFixFigures };
 }
 
 beforeEach(() => {
@@ -115,5 +116,14 @@ describe('FinalDeclarationFlow', () => {
     renderFlow();
     expect(await screen.findByText(/could not get your figures from HMRC/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /try again|retry/i })).toBeInTheDocument();
+  });
+
+  it('sends the owner back to the year-end flow when yearly figures are missing', async () => {
+    vi.mocked(previewItsFinal).mockRejectedValue(new ItsUpdateError('ANNUAL_FIGURES_MISSING', 'Your UK property yearly figures are not sent yet. Nothing has been sent to HMRC.'));
+    const { onFixFigures } = renderFlow();
+    expect(await screen.findByText(/UK property yearly figures are not sent yet/)).toBeInTheDocument();
+    expect(screen.queryByText(/ANNUAL_FIGURES_MISSING/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Go to year end' }));
+    expect(onFixFigures).toHaveBeenCalledTimes(1);
   });
 });

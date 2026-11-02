@@ -84,7 +84,7 @@ Also depends on:
     - Tests for expand/collapse, empty, truncated, refund; typecheck, lint, test pass
   - Commit: `92f9522a10ca`
 
-- [ ] **Task 4: Final step: one-sentence summary, declaration and Send to HMRC** (after 3)
+- [x] **Task 4: Final step: one-sentence summary, declaration and Send to HMRC** (after 3)
   - Intent: Build the last step: plain sentence, key figures, declaration checkbox, 'Send to HMRC' button. Keep the gate exactly: declaration enables confirm (period lock), stale needs re-confirm, reviewState.canSubmit alone enables sending, confirm dialog with preview stays (reworded plain). Test mode labelled on step and dialog. Receipt, unknown-outcome warning and filed lock stay in plain words. Raw preview behind a small disclosure. Do not alter reviewState logic, only labels.
   - Files: `src/pages/VatFlow.tsx`, `src/pages/VatPage.tsx`, `src/pages/VatPreviewPanel.tsx`, `src/pages/VatPreviewPanel.test.tsx`, `src/pages/VatPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -95,6 +95,7 @@ Also depends on:
     - Receipt and warning render in plain words
     - No change under api/ or src/lib/hmrc; typecheck, lint, test pass
   - Risk: Touches the submission gate UI; Opus high because a mistake could weaken the confirm-before-send safeguard.
+  - Commit: `5ed12387d9b9`
 
 - [ ] **Task 5: Keep e2e journey green; update VAT workflow doc** (after 4)
   - Intent: Update e2e/journey.spec.ts VAT steps and e2e/mockApi.ts only as far as the new screens require. Ensure vat-obligations query mocks always return defined data. Update docs/workflows/vat-return.md. Do not edit jargonRender.test.tsx (STF-120).

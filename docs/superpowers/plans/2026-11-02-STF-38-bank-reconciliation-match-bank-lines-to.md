@@ -65,7 +65,7 @@ Also depends on:
     - npm test, typecheck and lint pass
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 2: Migration and schema: link bank lines to entries, dismiss reason**
+- [x] **Task 2: Migration and schema: link bank lines to entries, dismiss reason**
   - Intent: bank_transactions has status unmatched/matched/dismissed but no link to an entry. Add nullable matched_transaction_id (uuid FK to transactions.id) and dismissed_reason (text), plus an index on matched_transaction_id. Add migration 0025_bank_reconciliation.sql (re-check the next free number against base branch; single head), update meta/_journal.json and snapshot, schema.ts and schema.test.ts, and any column grants the repo uses. Nothing is deleted.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0025_bank_reconciliation.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0025_snapshot.json`
   - Acceptance criteria the planner set:
@@ -74,6 +74,7 @@ Also depends on:
     - schema.test.ts asserts the new columns and index
     - npm test, typecheck and build pass
   - Risk: Opus/high: schema change on financial data. STF-74 also adds a migration, so re-check the number against main.
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 3: Reconciliation API: proposals, match, unmatch, dismiss, create draft** (after 1, 2)
   - Intent: Add api/_lib/bankReconcile.ts (store, rules, database store, audit) and one route api/bank/reconcile.ts wrapped in withAuth. GET returns up to 100 unmatched lines for the session owner's connections plus the owner's confirmed entries in the same date window (LIMIT), runs the matcher and returns proposals. POST with zod-validated action: match {lineId, entryId} sets line matched and entry confirmed->reconciled in one transaction with no network call inside; unmatch {lineId} reverses to unmatched and confirmed; dismiss {lineId, reason 1-200 chars}; undismiss; createEntry {lineId, categoryAccountId, vatRatePercent} uses the existing createEntry to make a DRAFT only, linked to the line. Every query is scoped to auth.userId (line ownership via its connection, entry via transactions.user_id); another owner's id gets 404. Each action writes an audit_events row with before/after snapshots. Already-matched lines, entries matched elsewhere, voided or deleted entries are refused. Tests with fake stores for each action, audit, double-match, cross-user refusal, unauthenticated, bad bodies. Register the route in docs/security/input-inventory.md and route tests.

@@ -2,7 +2,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { bankConnections, bankTransactions, invoices, recurringEntryRuns } from "./schema";
+import { getTableConfig } from "drizzle-orm/pg-core";
+import { bankConnections, bankTransactions, invoices, receipts, recurringEntryRuns } from "./schema";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, "migrations");
@@ -228,6 +229,14 @@ describe("schema migrations", () => {
     );
   });
 
+  it("indexes receipts by (user_id, created_at, id) for the newest-first list", () => {
+    const sql = readFileSync(new URL("./migrations/0028_receipts_user_created_idx.sql", import.meta.url), "utf8");
+    expect(sql).toMatch(
+      /CREATE INDEX IF NOT EXISTS "receipts_user_created_idx" ON "receipts" \("user_id","created_at","id"\)/,
+    );
+    expect(getTableConfig(receipts).indexes.map((index) => index.config.name)).toContain("receipts_user_created_idx");
+  });
+
   it("adds a nullable payment_transaction_id FK on invoices beside transaction_id", () => {
     expect(invoices.transactionId.name).toBe("transaction_id");
     expect(invoices.paymentTransactionId.name).toBe("payment_transaction_id");
@@ -400,7 +409,7 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0029_its_submissions_business_kind");
+    expect(tags.at(-1)).toBe("0031_its_submissions_business_kind");
   });
 });
 
@@ -419,8 +428,8 @@ describe("bank reconciliation columns", () => {
   });
 });
 
-describe("0028_uk_property_business migration", () => {
-  const sql = readFileSync(join(MIGRATIONS_DIR, "0028_uk_property_business.sql"), "utf8");
+describe("0030_uk_property_business migration", () => {
+  const sql = readFileSync(join(MIGRATIONS_DIR, "0030_uk_property_business.sql"), "utf8");
   const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
 
   it("only adds the nullable property business id column", () => {
@@ -428,9 +437,9 @@ describe("0028_uk_property_business migration", () => {
   });
 
   it("is journalled once, as index 28", () => {
-    const entries = journal.entries.filter((entry: { tag: string }) => entry.tag === "0028_uk_property_business");
+    const entries = journal.entries.filter((entry: { tag: string }) => entry.tag === "0030_uk_property_business");
     expect(entries).toHaveLength(1);
-    expect(entries[0].idx).toBe(28);
+    expect(entries[0].idx).toBe(30);
   });
 });
 

@@ -6,6 +6,8 @@ export interface ReceiptStorage {
   presignUpload(key: string, mimeType: string, sizeBytes: number, expiresInSeconds: number): Promise<string>
   /** Size and content type of the stored object, or null if it does not exist. */
   statObject(key: string): Promise<{ sizeBytes: number; mimeType: string } | null>
+  /** Short-lived GET URL for the stored object. */
+  presignRead(key: string, expiresInSeconds: number): Promise<string>
   /** The stored bytes. The 10 MB upload cap bounds the size, so the whole object is held in memory. */
   getObject(key: string): Promise<Uint8Array>
 }
@@ -54,6 +56,9 @@ export function createReceiptStorage(env: Record<string, string | undefined> = p
         expiresIn: expiresInSeconds,
         signableHeaders: new Set(['content-type', 'content-length']),
       })
+    },
+    presignRead(key, expiresInSeconds) {
+      return getSignedUrl(client, new GetObjectCommand({ Bucket: config.bucket, Key: key }), { expiresIn: expiresInSeconds })
     },
     async getObject(key) {
       const object = await client.send(new GetObjectCommand({ Bucket: config.bucket, Key: key }))

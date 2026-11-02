@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 
-import { accounts, bankConnections, bankTransactions, receipts, transactionLines, transactions } from '../../server/src/db/schema.js';
+import { accounts, bankConnections, bankTransactions, receiptExtractions, receipts, transactionLines, transactions } from '../../server/src/db/schema.js';
 import { dashboardPeriods, summariseLedger, type DatePeriod, type LedgerTotals } from '../../src/lib/dashboardSummary.js';
 import type { LedgerLine } from '../../src/lib/vat.js';
 import { db } from './db.js';
@@ -71,7 +71,7 @@ export async function getDashboardSummary(store: DashboardStore, userId: string,
 // reads the same index and returns one row; recent lines come in by the transaction_id foreign key with a
 // LIMIT, and accounts by primary key. The unsorted bank count filters bank_connections.user_id
 // (bank_connections_user_id_idx), joins bank_transactions by connection_id (bank_transactions_connection_date_idx)
-// and returns one row. The receipts count filters receipts.user_id and returns one row.
+// and returns one row. The receipts count filters receipts.user_id (receipts_user_created_idx), probes receipt_extractions by receipt_id, and returns one row.
 export const databaseDashboardStore: DashboardStore = {
   async loadDailyTotals(userId, period) {
     const rows = await db
@@ -128,11 +128,19 @@ export const databaseDashboardStore: DashboardStore = {
   },
 
   async countReceiptsToCheck(userId) {
-    // ponytail: no index on receipts.user_id yet; fine at sole-trader volumes. Upgrade: STF-74's receipts_user_created_idx.
     const [row] = await db
       .select({ toCheck: count() })
       .from(receipts)
-      .where(and(eq(receipts.userId, userId), eq(receipts.aiStatus, 'extracted'), isNull(receipts.transactionId), isNull(receipts.deletedAt)))
+      .where(
+        and(
+          eq(receipts.userId, userId),
+          eq(receipts.aiStatus, 'extracted'),
+          isNull(receipts.transactionId),
+          isNull(receipts.deletedAt),
+          // Confirming the read details clears the to-do, so a receipt counts only while a draft field is unconfirmed.
+          sql`exists (select 1 from ${receiptExtractions} where ${receiptExtractions.receiptId} = ${receipts.id} and ${receiptExtractions.confirmedAt} is null)`,
+        ),
+      )
       .limit(1);
     return row?.toCheck ?? 0;
   },

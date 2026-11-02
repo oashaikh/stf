@@ -108,6 +108,7 @@ describe('first sign-in redirect', () => {
         if (url === '/api/me') return Response.json({});
         if (url === '/api/settings/setup') return setup === 'broken' ? new Response('', { status: 500 }) : Response.json(stateFor(setup));
         if (url === '/api/settings/vat-number') return Response.json({ masked: null });
+        if (url === '/api/hmrc/its-obligations') return Response.json({ obligations: [] });
         if (url.includes('hmrc')) return Response.json({ connected: false });
         if (url.includes('bank')) return Response.json({ connected: false });
         return new Response('', { status: 500 });

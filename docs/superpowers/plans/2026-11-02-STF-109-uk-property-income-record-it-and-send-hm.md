@@ -110,7 +110,7 @@ Also depends on:
     - Lint, typecheck, test and build pass
   - Commit: `3ced49b9b327`
 
-- [ ] **Task 6: Let owners switch on UK property and record rental money in plain words** (after 2)
+- [x] **Task 6: Let owners switch on UK property and record rental money in plain words** (after 2)
   - Intent: Done means an owner who lets a UK property can turn on property categories (calls ensurePropertyAccounts) from a plain-worded prompt on the Tax page, then pick 'Rent received', 'Repairs' and the like when adding money in or out. The UK-property group is labelled and separated from business categories in the picker. Plain words per docs/design/ease-of-use.md, official names only in small muted text. Follow UI rules (tokens, 44px targets, focus, shared loading/empty/error). Screenshots at 1440 and 390 px in browser-evidence/STF-109. VAT screens untouched.
   - Files: `src/pages/MoneyInPage.tsx`, `src/pages/MoneyInPage.test.tsx`, `src/pages/MoneyOutPage.tsx`, `src/pages/MoneyOutPage.test.tsx`, `src/pages/ChartOfAccountsSection.tsx`, `src/pages/ChartOfAccountsSection.test.tsx`, `src/pages/TaxPage.tsx`, `src/pages/TaxPage.test.tsx`, `src/lib/accountsApi.ts`, `e2e/mockApi.ts`, `browser-evidence/STF-109/`
   - Acceptance criteria the planner set:
@@ -120,6 +120,7 @@ Also depends on:
     - Component tests mock the API client; screenshots at 1440 and 390 px are in the diff
     - Lint, typecheck, test and build pass
   - Risk: Design doc does not say where the property switch lives; assumed the Tax page. If unclear, ask in the ticket rather than guess.
+  - Commit: `f23bc40628d6`
 
 - [ ] **Task 7: Guided property update flow and property rows on the Tax page** (after 3, 4, 5)
   - Intent: Done means the Tax page lists property updates due beside self-employment ones (labelled 'Rental property'), and each opens a guided step-by-step flow at /tax/update/property/:taxYear/:quarter reusing ItsUpdatePage and ItsQuarterlyReview: show figures with explanations, preview the exact request, then a final step with one plain sentence ('You're telling HMRC you received £X in rent for ...'), a declaration, and a 'Send to HMRC' button. Test (sandbox) mode labelled each time; errors say what happened, whether a filing is affected and what to do. Parameterise the existing review component by business kind rather than copying. Screenshots at 1440 and 390 px. VAT screens untouched.

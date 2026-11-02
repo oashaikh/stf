@@ -74,3 +74,7 @@
     - npm run lint, typecheck, test and build all pass
   - Risk: Opus at high: authenticated route taking a record id and making a paid third-party call. Edits docs/security/input-inventory.md, which STF-74 also edits (different rows).
   - Commit: `58ce49466237`
+
+- [x] **Task 5: Fix: address 11 review findings (cycle 1)** (after 4)
+  - Intent: Review left 11 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens: the extraction route can be called repeatedly on one receipt, and each call inserts a new set of draft rows. The procedure doc also contradicts the code  The agent is fixing them; nothing is needed from you.
+  - Commit: `2afe9e2354e0`

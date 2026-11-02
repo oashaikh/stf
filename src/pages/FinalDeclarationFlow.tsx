@@ -64,13 +64,25 @@ function Figures({ preview }: { preview: ItsFinalPreview }) {
   );
 }
 
-/** The final declaration as three steps: HMRC's figures, the owner's tick, then done. */
+/** The final declaration as two steps, HMRC's figures then the owner's tick, followed by a done screen. */
 export default function FinalDeclarationFlow({ taxYear, onLeave }: { taxYear: string; onLeave: () => void }) {
   const [step, setStep] = useState(0);
   const [declared, setDeclared] = useState(false);
-  const preview = useQuery({ queryKey: ['its-final-preview', taxYear], queryFn: () => previewItsFinal(taxYear), retry: false });
+  const preview = useQuery({ queryKey: ['its-final-preview', taxYear], queryFn: () => previewItsFinal(taxYear),
+    retry: false,
+    // Each fetch asks HMRC for a new calculation, so a refetch would swap the id under figures the owner already read.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
   const confirm = useMutation({ mutationFn: (calculationId: string) => confirmItsFinal(taxYear, calculationId) });
-  const submit = useMutation({ mutationFn: () => submitItsFinal(taxYear) });
+  const submit = useMutation({
+    mutationFn: () => submitItsFinal(taxYear),
+    // The server clears the confirmation after a refusal, so the owner has to tick again to retry.
+    onError: () => {
+      setDeclared(false);
+      confirm.reset();
+    },
+  });
 
   if (preview.isPending) return <StateMessage kind="loading">Asking HMRC to work out your tax…</StateMessage>;
   if (preview.isError) return <StateMessage kind="error" onRetry={() => preview.refetch()}>We could not get your figures from HMRC. Check you are connected to HMRC, then try again.</StateMessage>;

@@ -231,15 +231,24 @@ export async function submitItsFinalForUser(
   const confirmation = await submissions.find(userId, { taxYear, sandbox });
   if (!confirmation || confirmation.status === 'rejected') throw new VatReturnError(409, 'NOT_CONFIRMED', 'Confirm your figures before declaring');
   if (confirmation.status !== 'confirmed') throw alreadySubmitted();
+  // Built before the claim so a failure here cannot leave the year pending.
+  const fraudHeaders = requestFraudHeaders(request, userId, now());
   if (!(await submissions.claim(userId, confirmation.id))) throw alreadySubmitted();
 
-  const fraudHeaders = requestFraudHeaders(request, userId, now());
   const audit = { periodKey: taxYear, sandbox, request: { calculationId: confirmation.calculationId }, fraudHeaders };
+  let requestStarted = false;
   try {
-    await withUserTokens(userId, credentials, hmrcStore, refresh, (accessToken) =>
-      submitFinalDeclaration(nino, taxYear, confirmation.calculationId, accessToken, fraudHeaders, fetchFn),
-    );
+    await withUserTokens(userId, credentials, hmrcStore, refresh, (accessToken) => {
+      requestStarted = true;
+      return submitFinalDeclaration(nino, taxYear, confirmation.calculationId, accessToken, fraudHeaders, fetchFn);
+    });
   } catch (error) {
+    if (!requestStarted) {
+      // The token refresh failed before anything reached HMRC, so release the claim and let the owner retry.
+      await submissions.markRejected(userId, confirmation.id, { ...audit, response: { code: 'NOT_SENT', statusCode: 0 } });
+      console.error('HMRC final declaration not sent: token refresh failed');
+      throw new VatReturnError(502, 'HMRC_UNAVAILABLE', 'We could not reach HMRC, so nothing was sent. Tick the declaration again to retry');
+    }
     if (error instanceof HmrcError && error.apiError.statusCode >= 400 && error.apiError.statusCode < 500) {
       const { code, statusCode } = error.apiError;
       await submissions.markRejected(userId, confirmation.id, { ...audit, response: { code, statusCode } });

@@ -171,8 +171,7 @@ Returns the HMRC figures that were re-read and stored.
 
 | Status | Code | Condition |
 |--------|------|-----------|
-| `400` | `BAD_REQUEST` | Invalid taxYear or calculationId format |
-| `400` | `DECLARATION_REQUIRED` | declaration is not `true` |
+| `400` | `BAD_REQUEST` | Invalid taxYear or calculationId format, or declaration is not `true` |
 | `401` | `UNAUTHORIZED` | Not signed in |
 | `403` | `LIVE_MODE_REFUSED` | Sandbox mode mismatch |
 | `404` | `ITSA_DISABLED` | Income Tax API not enabled |
@@ -217,8 +216,7 @@ The submission is accepted by HMRC and cannot be reversed.
 
 | Status | Code | Condition |
 |--------|------|-----------|
-| `400` | `BAD_REQUEST` | Invalid taxYear |
-| `400` | `DECLARATION_REQUIRED` | confirm is not `true` |
+| `400` | `BAD_REQUEST` | Invalid taxYear, or confirm is not `true` |
 | `401` | `UNAUTHORIZED` | Not signed in |
 | `403` | `LIVE_MODE_REFUSED` | Sandbox mode mismatch |
 | `404` | `ITSA_DISABLED` | Income Tax API not enabled |
@@ -228,7 +226,8 @@ The submission is accepted by HMRC and cannot be reversed.
 | `409` | `NO_NINO` | NINO not recorded |
 | `409` | `NOT_CONFIRMED` | No confirmed declaration exists (must confirm before submit) |
 | `409` | `ALREADY_SUBMITTED` | Already submitted (claim failed) |
-| `502` | `HMRC_REJECTED` | HMRC rejected (4xx error with code) |
+| `502` | HMRC's own code | HMRC rejected the declaration (4xx). The owner has to tick again |
+| `502` | `HMRC_UNAVAILABLE` | The token refresh failed before anything was sent. The lock is released and the owner can retry |
 | `502` | `OUTCOME_UNKNOWN` | HMRC returned 5xx or network failure; outcome is ambiguous |
 
 **Outcome unknown recovery:** If the response is `OUTCOME_UNKNOWN`, HMRC may have processed the submission despite the failed response. The record stays in `pending` status to prevent double-submission. The owner must:
@@ -252,7 +251,7 @@ All events include: user ID, timestamp, resource ID, actor type (user), and meta
 
 Filing goes to the sandbox by default and requires both of:
 1. Server config: `HMRC_SANDBOX_MODE=false` in the environment
-2. User opt-in: Settings → HMRC → "Allow live filing with HMRC" plus typing DECLARE LIVE to confirm (stored as `users.hmrc_sandbox_mode = false`)
+2. User opt-in: Settings → HMRC → "Allow live filing with HMRC" and confirming in the Settings dialog (stored as `users.hmrc_sandbox_mode = false`)
 
 If only one switch is set, the request fails with `LIVE_MODE_REFUSED`. Both must match exactly.
 
@@ -271,24 +270,17 @@ The difference is HMRC minus STF. A positive income tax difference means HMRC ca
 
 ## Guided final declaration flow
 
-The flow (`src/pages/FinalDeclarationFlow.tsx`) shows one screen per step, with "Step N of M", Back and Save and leave:
+`src/pages/FinalDeclarationFlow.tsx` has two steps and a done screen, with Back and Leave buttons:
 
-1. **Check and review:** The owner is asked "Do you want to file your final tax return with HMRC?" and sees a summary: their self-employment profit, STF's estimated tax and NI, and a link to check their other income.
-2. **Your calculation:** Shows HMRC's calculated figures side-by-side with STF's estimate. Any difference is highlighted with a link explaining that other income (employment, savings, property, pensions) may be the reason.
-3. **Check and declare:** One sentence on what will be sent ("You're telling HMRC your final tax position for [year]"), a link to preview the technical details (endpoint, payload, headers), the declaration wording as a checkbox, and the "Declare to HMRC" button.
+1. **Your tax for the year:** HMRC's income tax, National Insurance and total, each beside STF's own estimate in plain words with the official name in small text. When the totals differ, an amber call-out says by how much and that other income (a job, rental income, savings interest, pension payments) is the usual reason.
+2. **Check and send:** one line on what will be sent, HMRC's declaration wording as a checkbox, and the "Send to HMRC" button. Ticking the box calls the confirm route; the button stays disabled until that succeeds. If the send is refused, the tick is cleared and the owner ticks again.
+3. **Done:** "Your tax return for the year is sent", with an "HMRC test mode" badge in sandbox.
 
-The step number is kept in the browser per tax year (`src/pages/finalDeclarationFlowState.ts`), so Save and leave and coming back resumes at the same step. On return, the figures are rebuilt from HMRC (the preview step is re-run), and the declaration must be ticked again.
-
-The flow reuses the same preview, confirm, and submit routes. All gating, locking, and audit rules are identical.
+The preview runs once per visit. It is not refetched on window focus, because every fetch asks HMRC for a new calculation and the id under the figures must not change. The step is not saved between visits: leaving and returning starts again at step 1 with a fresh calculation.
 
 ## Guided flow entry point
 
-The final declaration is accessed from the Tax page (`src/pages/TaxPage.tsx`):
-- A card under "Year-end filings" offers "Check and send your final tax bill"
-- Clicking it navigates to `/tax/final-declaration/{taxYear}`
-- Selecting a different tax year changes the URL
-
-The page (`src/pages/FinalDeclarationPage.tsx`) is a wrapper that loads the chosen year, detects the user's current tax year, and starts the flow.
+The Tax page (`src/pages/TaxPage.tsx`) has a "Check and send your final tax bill" button next to "Do your Income Tax year end". It goes to `/tax/final-declaration/{taxYear}`, where `src/pages/FinalDeclarationPage.tsx` starts the flow. HMRC's figures are shown in the flow, not on the Tax page itself.
 
 ## Units and precision
 
@@ -300,7 +292,7 @@ Tests are in:
 - `src/lib/finalDeclaration.test.ts` — pure comparison function, difference calculation
 - `api/_lib/__tests__/itsFinalDeclaration.test.ts` — preview, confirm, submit logic; idempotency lock; status transitions
 - `api/_lib/__tests__/itsFinalDeclarationRoute.test.ts` — route handlers, HTTP layer, authentication
-- `src/pages/FinalDeclarationFlow.test.tsx` — UI flow, step navigation, state persistence
+- `src/pages/FinalDeclarationFlow.test.tsx` — UI flow, step navigation, the tick gate
 
 The integration test `src/lib/hmrc/sandbox.integration.test.ts` includes a live call to HMRC's sandbox Individual Calculations API to verify the trigger and fetch endpoints.
 

@@ -1,26 +1,42 @@
 {
-  "1440-light-tax-page-final-declaration.png": {
-    "title": "Tax page showing the final declaration option under Year-end filings, with a link to check and send the final tax bill"
+  "1440-light-tax-page.png": {
+    "title": "The Tax page now has a button to check and send your final tax bill",
+    "state": "after"
   },
-  "390-light-tax-page-final-declaration.png": {
-    "title": "Tax page on a phone, showing the final declaration card stacked with other tax options"
+  "1440-light-final-declaration-figures.png": {
+    "title": "HMRC's own tax figures sit next to our estimate, with any gap explained",
+    "state": "after"
   },
-  "1440-light-final-declaration-step1-check.png": {
-    "title": "Final declaration flow step 1: Ask if the owner wants to file their final tax return, with a summary of self-employment profit and estimated tax"
+  "1440-light-final-declaration-check-and-send.png": {
+    "title": "You read HMRC's declaration and tick it before anything can be sent",
+    "state": "after"
   },
-  "390-light-final-declaration-step1-check.png": {
-    "title": "Same first step of the final declaration flow on a phone"
+  "1440-light-final-declaration-ticked.png": {
+    "title": "Once you tick the declaration, the Send to HMRC button turns on",
+    "state": "after"
   },
-  "1440-light-final-declaration-step2-calculation.png": {
-    "title": "Final declaration flow step 2: Shows HMRC's calculated tax figures side-by-side with STF's estimate, highlighting any difference and explaining possible reasons"
+  "1440-light-final-declaration-done.png": {
+    "title": "Confirmation that your tax return was sent (to HMRC test mode here)",
+    "state": "after"
   },
-  "390-light-final-declaration-step2-calculation.png": {
-    "title": "Calculation comparison on a phone, with HMRC and STF figures stacked vertically"
+  "390-light-tax-page.png": {
+    "title": "The Tax page now has a button to check and send your final tax bill",
+    "state": "after"
   },
-  "1440-light-final-declaration-step3-declare.png": {
-    "title": "Final declaration flow step 3: Check and declare, showing the declaration wording as a checkbox, a link to preview technical details, and the Declare to HMRC button"
+  "390-light-final-declaration-figures.png": {
+    "title": "HMRC's own tax figures sit next to our estimate, with any gap explained",
+    "state": "after"
   },
-  "390-light-final-declaration-step3-declare.png": {
-    "title": "Final declare step on a phone, with all elements responsive and touch-friendly"
+  "390-light-final-declaration-check-and-send.png": {
+    "title": "You read HMRC's declaration and tick it before anything can be sent",
+    "state": "after"
+  },
+  "390-light-final-declaration-ticked.png": {
+    "title": "Once you tick the declaration, the Send to HMRC button turns on",
+    "state": "after"
+  },
+  "390-light-final-declaration-done.png": {
+    "title": "Confirmation that your tax return was sent (to HMRC test mode here)",
+    "state": "after"
   }
 }

@@ -108,3 +108,7 @@ Also depends on:
     - Screenshots at 390 and 1440 px of proposals and all-sorted state exist and are listed in captions.md
     - lint, typecheck, test and build pass
   - Commit: `d70bb5fd3ba3`
+
+- [x] **Task 6: Fix: address 7 review findings (cycle 1)** (after 5)
+  - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found nothing blocking. Matching is deterministic integer-pence, actions are transactional with race guards, scoped to the session owner, audited and bounde The agent is fixing them; nothing is needed from you.
+  - Commit: `cc0e21416317`

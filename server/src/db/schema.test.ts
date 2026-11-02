@@ -396,7 +396,22 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0027_bank_suggestions");
+    expect(tags.at(-1)).toBe("0028_bank_suggestions");
+  });
+});
+
+describe("bank reconciliation columns", () => {
+  const sql = readMigrationSql();
+
+  it("adds the link and dismiss reason idempotently, with an index and a foreign key", () => {
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "matched_transaction_id" uuid;/);
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "dismissed_reason" text;/);
+    expect(sql).toMatch(/FOREIGN KEY \("matched_transaction_id"\) REFERENCES "public"\."transactions"\("id"\)/);
+    expect(sql).toMatch(/CREATE INDEX IF NOT EXISTS "bank_transactions_matched_transaction_id_idx" ON "bank_transactions" \("matched_transaction_id"\)/);
+  });
+
+  it("exposes both columns on the schema", () => {
+    expect(Object.keys(bankTransactions)).toEqual(expect.arrayContaining(["matchedTransactionId", "dismissedReason"]));
   });
 });
 

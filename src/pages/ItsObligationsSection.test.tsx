@@ -9,6 +9,7 @@ import ItsObligationsSection from './ItsObligationsSection';
 import { findJargon } from '../lib/jargon';
 
 const row = (overrides: Partial<ItsObligationRow>): ItsObligationRow => ({
+  business: 'self-employment',
   kind: 'quarterly',
   taxYear: '2026-27',
   periodStart: '2026-04-06',
@@ -133,5 +134,12 @@ describe('ItsObligationsSection', () => {
     renderSection(async () => Response.json({ ok: false, code }, { status: 409 }));
     const link = await screen.findByRole('link', { name: text });
     expect(link.getAttribute('href')).toBe('/settings');
+  });
+
+  it('labels rental property rows and links them to the property flow', async () => {
+    renderSection(async () => ok({ obligations: [row({}), row({ business: 'uk-property' })] }));
+    expect(await screen.findByText('Rental property')).toBeTruthy();
+    const links = screen.getAllByRole('link', { name: 'Send your update' }).map((link) => link.getAttribute('href'));
+    expect(links).toEqual(['/tax/update/2026-27/1', '/tax/update/property/2026-27/1']);
   });
 });

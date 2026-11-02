@@ -34,7 +34,7 @@ export function createItsBusinessesHandler(
 
     const credentials = await store.credentials(auth.userId);
     if (!credentials) return fail(409, 'HMRC_NOT_CONNECTED', 'HMRC is not connected');
-    const { itsBusinessId, needsItsReconnect } = await store.status(auth.userId);
+    const { itsBusinessId, itsPropertyBusinessId, needsItsReconnect } = await store.status(auth.userId);
     if (needsItsReconnect) return fail(409, 'ITS_SCOPE_MISSING', 'Reconnect HMRC to grant Income Tax access');
 
     const stored = await identifiers.get(auth.userId);
@@ -71,7 +71,14 @@ export function createItsBusinessesHandler(
     }
     if (selectedBusinessId !== itsBusinessId && selectedBusinessId !== null) await store.setItsBusinessId(auth.userId, selectedBusinessId);
 
-    return Response.json({ ok: true, businesses, selectedBusinessId });
+
+    // HMRC allows one UK property business, so there is nothing for the owner to choose.
+    const propertyBusinessId = businessDetails.find((business) => business.typeOfBusiness === 'uk-property')?.businessId ?? null;
+    if (propertyBusinessId !== null && propertyBusinessId !== itsPropertyBusinessId) {
+      await store.setItsPropertyBusinessId(auth.userId, propertyBusinessId);
+    }
+
+    return Response.json({ ok: true, businesses, selectedBusinessId, propertyBusinessId });
   }, authDeps);
 }
 

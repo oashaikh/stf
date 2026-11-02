@@ -9,7 +9,7 @@ import { MemoryRouter } from 'react-router-dom';
 import ExpensesPage from './ExpensesPage';
 import { findJargon } from '../lib/jargon';
 
-const account = (id: string, name: string, accountType: string) => ({ id, code: id, name, accountType, taxCategory: null, isSystem: false });
+const account = (id: string, name: string, accountType: string, taxCategory: string | null = null) => ({ id, code: id, name, accountType, taxCategory, isSystem: false });
 const accounts = [account('a1', 'Sales', 'income'), account('a2', 'Travel', 'expense'), account('a3', 'Bank', 'asset')];
 const reply = (body: unknown, status = 200) => ({ ok: status < 400, json: async () => body }) as Response;
 
@@ -86,6 +86,20 @@ describe('ExpensesPage add entry form', () => {
     expect(options).toEqual(['Choose a category', 'Travel']);
     fireEvent.click(screen.getByRole('button', { name: 'Money in' }));
     expect(within(screen.getByLabelText('Category')).getAllByRole('option').map((option) => option.textContent)).toEqual(['Choose a category', 'Sales']);
+  });
+
+  it('groups rental categories apart from business ones once they exist', async () => {
+    const rental = account('p1', 'Rent received', 'income', 'property-rent-received');
+    accounts.push(rental);
+    try {
+      await openForm();
+      fireEvent.click(screen.getByRole('button', { name: 'Money in' }));
+      const picker = screen.getByLabelText('Category');
+      expect(within(picker).getByRole('group', { name: 'Rental property' })).toContainElement(within(picker).getByRole('option', { name: 'Rent received' }));
+      expect(within(within(picker).getByRole('group', { name: 'Your business' })).getAllByRole('option').map((option) => option.textContent)).toEqual(['Sales']);
+    } finally {
+      accounts.pop();
+    }
   });
 
   it('shows net, VAT and gross for a gross amount and for a net amount', async () => {

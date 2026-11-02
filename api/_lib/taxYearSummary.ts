@@ -5,6 +5,7 @@ import type { DatePeriod } from '../../src/lib/dashboardSummary.js';
 import { calculateMileageClaim } from '../../src/lib/mileage.js';
 import { TAX_BANDS } from '../../src/lib/taxBands.js';
 import { compareExpenseMethods } from '../../src/lib/tradingAllowance.js';
+import { buildPropertySummary, type PropertySummary } from '../../src/lib/itsPropertyUpdate.js';
 import { buildTaxYearSummary, taxYearLabel, taxYearPeriod, type ExpenseMethod, type TaxYearLine, type TaxYearSummary } from '../../src/lib/taxYearSummary.js';
 import { db } from './db.js';
 import { databaseMileageStore, listTrips, type StoredTrip } from './mileage.js';
@@ -46,6 +47,11 @@ export async function getTaxYearSummary(store: TaxYearSummaryStore, userId: stri
     profitWithAllowancePence: comparison.allowanceProfitPence,
     lowerProfitMethod: comparison.lowerProfitMethod,
   };
+}
+
+/** UK property totals from 6 April to the period end, from the same ledger lines as the self-employment summary. */
+export async function getPropertySummary(store: TaxYearSummaryStore, userId: string, period: DatePeriod): Promise<PropertySummary> {
+  return buildPropertySummary(await store.loadLines(userId, period), period);
 }
 
 // Query audit: filters on transactions.user_id and date, served by transactions_user_date_idx

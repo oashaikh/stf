@@ -17,6 +17,7 @@ export interface HmrcStatus {
   connected: boolean;
   expiresAt: string | null;
   itsBusinessId: string | null;
+  itsPropertyBusinessId: string | null;
   /** Connected, but the granted scope predates the Income Tax scopes. */
   needsItsReconnect: boolean;
 }
@@ -37,12 +38,13 @@ export interface HmrcStore {
   sandboxMode(userId: string): Promise<boolean | undefined>;
   /** Writes only the caller's row; the flag is true for sandbox (opt-in off). */
   setSandboxMode(userId: string, sandbox: boolean): Promise<void>;
-  /** A scope that differs from the stored one also clears the stored business id, which may belong to another HMRC grant. */
+  /** A scope that differs from the stored one also clears the stored business ids, which may belong to another HMRC grant. */
   saveTokens(
     userId: string,
     tokens: { accessToken: string; refreshToken: string; expiresAt: Date; scope?: string },
   ): Promise<void>;
   setItsBusinessId(userId: string, businessId: string): Promise<void>;
+  setItsPropertyBusinessId(userId: string, businessId: string): Promise<void>;
   itsBusinessId(userId: string): Promise<string | null>;
   /** Replaces the caller's last known obligations for that tax year; kept until the next fetch or the user is deleted. */
   saveItsObligations(userId: string, taxYear: string, payload: unknown, fetchedAt: Date): Promise<void>;
@@ -76,7 +78,10 @@ export const databaseHmrcStore: HmrcStore = {
     const businessIdUpdate =
       tokens.scope === undefined
         ? {}
-        : { hmrcItsBusinessId: sql`CASE WHEN ${users.hmrcScope} IS NOT DISTINCT FROM ${tokens.scope} THEN ${users.hmrcItsBusinessId} ELSE NULL END` };
+        : {
+            hmrcItsBusinessId: sql`CASE WHEN ${users.hmrcScope} IS NOT DISTINCT FROM ${tokens.scope} THEN ${users.hmrcItsBusinessId} ELSE NULL END`,
+            hmrcItsPropertyBusinessId: sql`CASE WHEN ${users.hmrcScope} IS NOT DISTINCT FROM ${tokens.scope} THEN ${users.hmrcItsPropertyBusinessId} ELSE NULL END`,
+          };
     await db
       .update(users)
       .set({
@@ -92,6 +97,10 @@ export const databaseHmrcStore: HmrcStore = {
 
   async setItsBusinessId(userId, businessId) {
     await db.update(users).set({ hmrcItsBusinessId: businessId, updatedAt: new Date() }).where(eq(users.id, userId));
+  },
+
+  async setItsPropertyBusinessId(userId, businessId) {
+    await db.update(users).set({ hmrcItsPropertyBusinessId: businessId, updatedAt: new Date() }).where(eq(users.id, userId));
   },
 
   async itsBusinessId(userId) {
@@ -157,6 +166,7 @@ export const databaseHmrcStore: HmrcStore = {
         refreshToken: users.hmrcRefreshToken,
         expiresAt: users.hmrcTokenExpiresAt,
         itsBusinessId: users.hmrcItsBusinessId,
+        itsPropertyBusinessId: users.hmrcItsPropertyBusinessId,
         scope: users.hmrcScope,
       })
       .from(users)
@@ -167,6 +177,7 @@ export const databaseHmrcStore: HmrcStore = {
       connected,
       expiresAt: row?.expiresAt?.toISOString() ?? null,
       itsBusinessId: row?.itsBusinessId ?? null,
+      itsPropertyBusinessId: row?.itsPropertyBusinessId ?? null,
       needsItsReconnect: connected && lacksItsScope(row?.scope ?? null),
     };
   },

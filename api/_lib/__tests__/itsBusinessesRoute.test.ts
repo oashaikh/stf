@@ -44,6 +44,7 @@ type FetchArgs = [url: string, init: { headers: Record<string, string> }];
 let hmrcFetch: Mock<FetchArgs, Promise<Response>>;
 let refresh: Mock<unknown[], Promise<HmrcTokenSet>>;
 let setItsBusinessId: Mock<unknown[], Promise<void>>;
+let setItsPropertyBusinessId: Mock<unknown[], Promise<void>>;
 let saveRefreshedTokens: Mock<unknown[], Promise<boolean>>;
 let status: HmrcStatus;
 let sandboxMode: boolean | undefined;
@@ -61,6 +62,7 @@ const handler = () =>
       credentials: async (userId: string) => (userId === 'u1' ? credentials() : undefined),
       status: async () => status,
       setItsBusinessId,
+      setItsPropertyBusinessId,
       saveRefreshedTokens,
     } as unknown as HmrcStore,
     {
@@ -75,8 +77,9 @@ beforeEach(() => {
   vi.stubEnv('HMRC_SANDBOX_MODE', 'true');
   sandboxMode = true;
   storedNino = NINO;
-  status = { connected: true, expiresAt: null, itsBusinessId: null, needsItsReconnect: false };
+  status = { connected: true, expiresAt: null, itsBusinessId: null, itsPropertyBusinessId: null, needsItsReconnect: false };
   setItsBusinessId = vi.fn(async () => {});
+  setItsPropertyBusinessId = vi.fn(async () => {});
   saveRefreshedTokens = vi.fn(async (): Promise<boolean> => true);
   respondWith([SE_ONE, PROPERTY]);
   refresh = vi.fn(async () => ({ accessToken: NEW_ACCESS, refreshToken: 'refresh-NEW', expiresAt: TODAY.getTime() + 3_600_000 }));
@@ -110,9 +113,31 @@ describe('GET /api/hmrc/its-businesses', () => {
       ok: true,
       businesses: [{ businessId: SE_ONE.businessId, tradingName: 'Test Trading' }],
       selectedBusinessId: SE_ONE.businessId,
+      propertyBusinessId: PROPERTY.businessId,
     });
     expect(text).not.toContain(NINO);
     expect(setItsBusinessId).toHaveBeenCalledWith('u1', SE_ONE.businessId);
+  });
+
+  it('stores and returns the UK property business id next to the self-employment one', async () => {
+    const body = await (await handler()(asUser('u1'))).json();
+    expect(body.propertyBusinessId).toBe(PROPERTY.businessId);
+    expect(setItsPropertyBusinessId).toHaveBeenCalledWith('u1', PROPERTY.businessId);
+  });
+
+  it('returns a null property id, not an error, when the user has no property business', async () => {
+    respondWith([SE_ONE]);
+    const response = await handler()(asUser('u1'));
+    expect(response.status).toBe(200);
+    expect((await response.json()).propertyBusinessId).toBeNull();
+    expect(setItsPropertyBusinessId).not.toHaveBeenCalled();
+  });
+
+  it('does not rewrite a property id that is already stored', async () => {
+    status = { ...status, itsPropertyBusinessId: PROPERTY.businessId };
+    const body = await (await handler()(asUser('u1'))).json();
+    expect(body.propertyBusinessId).toBe(PROPERTY.businessId);
+    expect(setItsPropertyBusinessId).not.toHaveBeenCalled();
   });
 
   it('sends the NINO in the path and fraud headers on the HMRC call', async () => {

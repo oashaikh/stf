@@ -1,18 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { buildFraudHeaders } from './fraudHeaders';
 import {
+  getItsIncomeAndExpenditureObligations,
   getTaxCalculation,
   getVatObligations,
   HmrcError,
+  listItsPropertyBusinesses,
   listItsSelfEmploymentBusinesses,
   refreshAccessToken,
   submitAnnualSubmission,
   triggerTaxCalculation,
   submitCumulativePeriodSummary,
+  submitPropertyCumulativeSummary,
   submitVatReturn,
   withHmrcToken,
   type CumulativePeriodSummary,
   type HmrcTokenSet,
+  type PropertyCumulativeSummary,
   type VatReturnPayload,
 } from './client';
 
@@ -141,5 +145,40 @@ describe.skipIf(!hasCredentials || !sandboxOnly)('HMRC sandbox integration', () 
     expect(calculationId).toBeTruthy();
     const calculation = await getTaxCalculation(nino!, '2024-25', calculationId, tokens.accessToken, fraudHeaders());
     for (const pence of Object.values(calculation)) expect(Number.isInteger(pence)).toBe(true);
+  });
+
+  it('lists the UK property business, if the test user has one', async () => {
+    const tokens = await refreshAccessToken(refreshToken!);
+    const businesses = await listItsPropertyBusinesses(nino!, tokens.accessToken, fraudHeaders());
+    expect(businesses.length).toBeLessThanOrEqual(1);
+    for (const business of businesses) expect(business.typeOfBusiness).toBe('uk-property');
+  });
+
+  it('fetches UK property quarterly obligations', async () => {
+    const tokens = await refreshAccessToken(refreshToken!);
+    const [property] = await listItsPropertyBusinesses(nino!, tokens.accessToken, fraudHeaders());
+    expect(property).toBeDefined();
+    const { obligations } = await getItsIncomeAndExpenditureObligations(
+      nino!, property!.businessId, '2024-04-06', '2025-04-05', tokens.accessToken, fraudHeaders(),
+      undefined, undefined, 'uk-property',
+    );
+    expect(Array.isArray(obligations)).toBe(true);
+  });
+
+  it('submits a cumulative UK property summary', async () => {
+    const tokens = await refreshAccessToken(refreshToken!);
+    const [property] = await listItsPropertyBusinesses(nino!, tokens.accessToken, fraudHeaders());
+    expect(property).toBeDefined();
+    const payload: PropertyCumulativeSummary = {
+      fromDate: '2024-04-06',
+      toDate: '2024-07-05',
+      ukProperty: {
+        income: { periodAmount: 2400.5 },
+        expenses: { repairsAndMaintenance: 120.25, premisesRunningCosts: 80 },
+      },
+    };
+    await expect(submitPropertyCumulativeSummary(
+      nino!, property!.businessId, '2024-25', payload, tokens.accessToken, fraudHeaders(),
+    )).resolves.toBeUndefined();
   });
 });

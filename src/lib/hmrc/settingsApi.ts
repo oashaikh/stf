@@ -40,13 +40,14 @@ export interface ItsBusinessOption {
 export interface ItsBusinessesState {
   businesses: ItsBusinessOption[];
   selectedBusinessId: string | null;
+  propertyBusinessId: string | null;
 }
 
 async function itsBusinessesRequest(fetchFn: FetchFn, init: RequestInit = {}): Promise<ItsBusinessesState> {
   const response = await fetchFn('/api/hmrc/its-businesses', { ...init, credentials: 'same-origin' });
   if (!response.ok) throw new Error('Request to /api/hmrc/its-businesses failed');
-  const { businesses, selectedBusinessId } = await response.json();
-  return { businesses, selectedBusinessId: selectedBusinessId ?? null };
+  const { businesses, selectedBusinessId, propertyBusinessId } = await response.json();
+  return { businesses, selectedBusinessId: selectedBusinessId ?? null, propertyBusinessId: propertyBusinessId ?? null };
 }
 
 export const fetchItsBusinesses = (fetchFn: FetchFn = fetch) => itsBusinessesRequest(fetchFn);

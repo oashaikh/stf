@@ -1,5 +1,5 @@
 import { quarterEndDate } from '../itsCumulativeUpdate';
-import type { CumulativePeriodSummary } from './client';
+import type { CumulativePeriodSummary, PropertyCumulativeSummary } from './client';
 import type { ItsObligationRow } from './itsObligationsApi';
 import { browserFraudHeaders } from './vatApi';
 
@@ -11,9 +11,9 @@ export function quarterOf(obligation: ItsObligationRow): Quarter | null {
   return ([1, 2, 3, 4] as const).find((quarter) => quarterEndDate(obligation.taxYear, quarter) === obligation.periodEnd) ?? null;
 }
 
-export interface ItsUpdatePreview {
+export interface ItsUpdatePreview<Body = CumulativePeriodSummary> {
   endpoint: { method: string; url: string; sandbox: boolean };
-  body: CumulativePeriodSummary;
+  body: Body;
   headers: Record<string, string>;
 }
 
@@ -40,11 +40,20 @@ export async function previewItsUpdate(taxYear: string, quarter: Quarter): Promi
   return (await post('its-cumulative-preview', { taxYear, quarter })).data as ItsUpdatePreview;
 }
 
-/** Records the declaration on the server; submit then sends exactly what was confirmed. */
-export async function confirmItsUpdate(taxYear: string, quarter: Quarter): Promise<void> {
-  await post('its-cumulative-confirm', { taxYear, quarter, declaration: true });
+export async function previewItsPropertyUpdate(taxYear: string, quarter: Quarter): Promise<ItsUpdatePreview<PropertyCumulativeSummary>> {
+  return (await post('its-property-preview', { taxYear, quarter })).data as ItsUpdatePreview<PropertyCumulativeSummary>;
 }
 
-export async function submitItsUpdate(taxYear: string, quarter: Quarter): Promise<{ sandbox: boolean }> {
-  return (await post('its-cumulative-submit', { taxYear, quarter, confirm: true })).data as { sandbox: boolean };
+type Business = ItsObligationRow['business'];
+
+// The property routes run the same gate against the rental property business.
+const routeStem = (business: Business) => (business === 'uk-property' ? 'its-property' : 'its-cumulative');
+
+/** Records the declaration on the server; submit then sends exactly what was confirmed. */
+export async function confirmItsUpdate(taxYear: string, quarter: Quarter, business: Business = 'self-employment'): Promise<void> {
+  await post(`${routeStem(business)}-confirm`, { taxYear, quarter, declaration: true });
+}
+
+export async function submitItsUpdate(taxYear: string, quarter: Quarter, business: Business = 'self-employment'): Promise<{ sandbox: boolean }> {
+  return (await post(`${routeStem(business)}-submit`, { taxYear, quarter, confirm: true })).data as { sandbox: boolean };
 }

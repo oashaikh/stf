@@ -68,6 +68,8 @@ export const users = pgTable('users', {
   hmrcSandboxMode: boolean('hmrc_sandbox_mode').notNull().default(true),
   // Needed for Income Tax calls (STF-83); cleared when a reconnect changes the granted scope.
   hmrcItsBusinessId: text('hmrc_its_business_id'),
+  // UK property business id from HMRC business details (STF-109); cleared with the above on a scope change.
+  hmrcItsPropertyBusinessId: text('hmrc_its_property_business_id'),
   // Granted OAuth scope, used to show the one-time reconnect notice only when self-assessment is missing.
   hmrcScope: text('hmrc_scope'),
   // Authenticator-app second factor: secret is encryptToken output; last_step blocks code reuse.
@@ -341,6 +343,8 @@ export const itsSubmissions = pgTable(
     taxYear: text('tax_year').notNull(),
     quarter: integer('quarter').notNull(),
     sandbox: boolean('sandbox').notNull(),
+    // 'self-employment' or 'uk-property': the two updates for a quarter are filed separately.
+    businessKind: text('business_kind').notNull().default('self-employment'),
     status: itsSubmissionStatusEnum('status').notNull().default('confirmed'),
     confirmedPayload: jsonb('confirmed_payload').notNull(),
     confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull(),
@@ -350,8 +354,15 @@ export const itsSubmissions = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    // Also the lookup index: every query filters on (user_id, tax_year, quarter, sandbox).
-    userPeriodSandboxUnique: unique().on(table.userId, table.taxYear, table.quarter, table.sandbox),
+    // Also the lookup index: every query filters on (user_id, tax_year, quarter, sandbox, business_kind).
+    userPeriodSandboxKindUnique: unique('its_submissions_user_period_sandbox_kind_unique').on(
+      table.userId,
+      table.taxYear,
+      table.quarter,
+      table.sandbox,
+      table.businessKind,
+    ),
+    businessKindValues: check('its_submissions_business_kind_check', sql`${table.businessKind} IN ('self-employment', 'uk-property')`),
     quarterRange: check('its_submissions_quarter_check', sql`${table.quarter} BETWEEN 1 AND 4`),
   }),
 );

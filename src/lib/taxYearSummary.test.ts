@@ -33,6 +33,17 @@ describe('taxYearPeriod', () => {
 });
 
 describe('buildTaxYearSummary', () => {
+  it('gives the same figures with property income and expenses as without', () => {
+    const selfEmployment = [line({}), expense('travel', 20000), expense(null, 700, { accountId: 'misc', accountName: 'Misc' })];
+    const property = [
+      line({ accountId: 'rent', accountName: 'Rent received', taxCategory: 'property-rent-received', amountPence: -90000 }),
+      expense('property-repairs-maintenance', 12000),
+      expense('property-travel-costs', 3000),
+    ];
+    expect(buildTaxYearSummary([...selfEmployment, ...property], period, 0)).toEqual(buildTaxYearSummary(selfEmployment, period, 0));
+  });
+
+
   it('splits income, groups allowable expenses by HMRC category and keeps disallowable out', () => {
     const summary = buildTaxYearSummary(
       [

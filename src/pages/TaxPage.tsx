@@ -6,6 +6,7 @@ import { formatPence } from '../lib/money';
 import { currentTaxYear, TAX_BANDS } from '../lib/taxBands';
 import { fetchTaxEstimate, taxEstimateQueryKey } from '../lib/taxEstimateApi';
 import ItsObligationsSection from './ItsObligationsSection';
+import UkPropertyPrompt from './UkPropertyPrompt';
 import type { ExpenseMethod } from '../lib/taxYearSummary';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 import OfficialName from '../components/OfficialName';
@@ -125,6 +126,8 @@ export default function TaxPage() {
           Check and send your final tax bill
         </Link>
       </div>
+
+      <UkPropertyPrompt />
 
       <ItsObligationsSection />
     </div>

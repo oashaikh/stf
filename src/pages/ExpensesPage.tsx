@@ -7,7 +7,8 @@ import {
   type ReactNode,
 } from "react";
 import { DASHBOARD_QUERY_KEY } from "../lib/dashboardApi";
-import { fetchAccounts } from "../lib/accountsApi";
+import { fetchAccounts, type ApiAccount } from "../lib/accountsApi";
+import { isPropertyCategory } from "../lib/chartOfAccounts";
 import { formatDate } from "../lib/dates";
 import {
   createEntry,
@@ -102,6 +103,12 @@ const describedBy = (id: string, error?: string, hint?: string) =>
   undefined;
 
 // With `entry` the form edits that entry (PUT) instead of adding a new one; `onDone` closes it after a save or Cancel.
+const categoryOption = (account: ApiAccount) => (
+  <option key={account.id} value={account.id}>
+    {account.name}
+  </option>
+);
+
 function AddEntryForm({
   hasVatNumber,
   entry,
@@ -141,6 +148,8 @@ function AddEntryForm({
   const categories = (accounts.data ?? []).filter(
     (account) => account.accountType === kind,
   );
+  const rentalCategories = categories.filter((account) => isPropertyCategory(account.taxCategory));
+  const businessCategories = categories.filter((account) => !isPropertyCategory(account.taxCategory));
 
   const parsedAmount = parseEntryAmount(amount);
   const figures =
@@ -338,11 +347,14 @@ function AddEntryForm({
           aria-invalid={Boolean(errors.category)}
         >
           <option value="">Choose a category</option>
-          {categories.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.name}
-            </option>
-          ))}
+          {rentalCategories.length === 0 ? (
+            categories.map(categoryOption)
+          ) : (
+            <>
+              <optgroup label="Your business">{businessCategories.map(categoryOption)}</optgroup>
+              <optgroup label="Rental property">{rentalCategories.map(categoryOption)}</optgroup>
+            </>
+          )}
         </select>
       </Field>
 

@@ -28,6 +28,17 @@ HMRC_CLIENT_ID=... HMRC_CLIENT_SECRET=... HMRC_SANDBOX_REFRESH_TOKEN=... \
 HMRC_SANDBOX_VRN=... HMRC_SANDBOX_NINO=... npx vitest run src/lib/hmrc/sandbox.integration.test.ts
 ```
 
+## UK property integration
+
+Three more tests cover the Property Business and Obligations endpoints the app uses for rental income:
+listing businesses filtered to `uk-property` (`listItsPropertyBusinesses`), property quarterly obligations
+(`getItsIncomeAndExpenditureObligations` with `typeOfBusiness=uk-property`) and the cumulative property
+`PUT` (`submitPropertyCumulativeSummary`, Property Business API 6.0). The app does not call a retrieve
+endpoint, so none is tested. They need a sandbox test user that has a UK property business; without
+one the obligations and submit tests fail on purpose rather than skip. Each sends the fraud prevention
+headers. Same credentials and same sandbox-only guard as the rest of the suite. See
+`docs/workflows/its-property-update.md`.
+
 ## Income Tax integration
 
 The suite now includes a test for listing self-employment businesses from the HMRC

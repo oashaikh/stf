@@ -2,21 +2,21 @@ import { z } from 'zod';
 import { HmrcError } from '../../src/lib/hmrc/client.js';
 import { withAuth, type AuthDeps } from '../_lib/auth.js';
 import { itsCumulativePreviewSchema } from '../_lib/itsCumulativePreview.js';
-import { submitItsUpdateForUser, type ItsSubmitDeps } from '../_lib/itsSubmit.js';
+import { submitItsUpdateForUser, type ItsBusinessKind, type ItsSubmitDeps } from '../_lib/itsSubmit.js';
 import { VatReturnError, vatErrorResponse } from '../_lib/vatReturns.js';
 
 // Filing is irreversible, so the caller must say so explicitly; the payload comes from the stored confirmation, never the body.
 const submitBodySchema = itsCumulativePreviewSchema.extend({ confirm: z.literal(true) }).strict();
 
 // Rate limiting: see the ponytail note in api/vat/submit.ts (SEC-14).
-export function createItsCumulativeSubmitHandler(deps: ItsSubmitDeps = {}, authDeps?: AuthDeps) {
+export function createItsCumulativeSubmitHandler(deps: ItsSubmitDeps = {}, authDeps?: AuthDeps, kind: ItsBusinessKind = 'self-employment') {
   return withAuth(async (request, auth) => {
     if (request.method !== 'POST') return vatErrorResponse(405, 'METHOD_NOT_ALLOWED', 'Method not allowed');
     const input = submitBodySchema.safeParse(await request.json().catch(() => null));
     if (!input.success) return vatErrorResponse(400, 'BAD_REQUEST', 'Invalid request');
     try {
       const { sandbox } = await submitItsUpdateForUser(
-        { userId: auth.userId, taxYear: input.data.taxYear, quarter: input.data.quarter, request },
+        { userId: auth.userId, taxYear: input.data.taxYear, quarter: input.data.quarter, kind, request },
         deps,
       );
       return Response.json({ ok: true, data: { sandbox } });

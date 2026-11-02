@@ -59,7 +59,7 @@
   - Risk: Screen files are unknown until task 1; the implementer must add them here and stay clear of YearEndFlow.tsx and FinalDeclarationFlow.tsx (STF-110).
   - Commit: `a862819b09cd`
 
-- [ ] **Task 4: Scripted, repeatable end-to-end HMRC sandbox evidence run** (after 2)
+- [x] **Task 4: Scripted, repeatable end-to-end HMRC sandbox evidence run** (after 2)
   - Intent: Add scripts/hmrcSandboxEvidence.ts run via a new npm script hmrc:evidence. It (1) refuses to run unless HMRC_SANDBOX_MODE is not 'false' and the base is test-api; (2) creates HMRC test users via the Create Test User API: an organisation with VAT (MTD) and an individual with MTD Income Tax, self-employment and UK property; (3) calls every endpoint STF uses through client.ts: VAT obligations, return submission and retrieval, ITS business details, obligations, self-employment and property cumulative updates, annual submissions, tax calculation trigger and get, final declaration; (4) validates fraud prevention headers against HMRC's test validator; (5) writes docs/hmrc/evidence/hmrc-sandbox-run-<date>.md with run date, test user ids (no passwords, tokens or full NINO), endpoints and results. Put pure step list and note rendering in src/lib/hmrc/evidenceRun.ts with unit tests on a faked fetch. The OAuth grant is a browser step, so with no refresh token the script prints instructions and exits non-zero. VAT functions are called read-only/as-is, not changed.
   - Files: `scripts/hmrcSandboxEvidence.ts`, `src/lib/hmrc/evidenceRun.ts`, `src/lib/hmrc/evidenceRun.test.ts`, `package.json`, `package-lock.json`, `.env.example`, `src/lib/__tests__/envExample.test.ts`
   - Acceptance criteria the planner set:
@@ -71,6 +71,7 @@
     - No new dependency
     - npm run lint, typecheck, test and build pass
   - Risk: Handles HMRC credentials and tokens, so opus at high. Network calls must be faked in tests. package.json is a hot file: keep the edit to one script line.
+  - Commit: `622f30957fc6`
 
 - [ ] **Task 5: Runbook for the evidence run and the owner's approval email** (after 4)
   - Intent: Write docs/runbooks/hmrc-evidence-run.md: prerequisites, exact order (rerun inside the 2-week window HMRC checks logs after the approval email), how to authorise the test individual and organisation, how to read the evidence note, and a template of what the owner quotes in the email. Link it from the audit doc. Do not edit hmrc-sandbox-integration.md (STF-110). State plainly that the agent run has not produced a real evidence note, unless it has.

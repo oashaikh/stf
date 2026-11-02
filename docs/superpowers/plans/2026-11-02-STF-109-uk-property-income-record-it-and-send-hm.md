@@ -150,3 +150,7 @@ Also depends on:
 - [x] **Task 10: Fix: address 15 review findings (cycle 1)** (after 9)
   - Intent: Review left 15 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The property update path works end to end. I traced the property business id, obligations, preview, confirm and submit gate with its business_kind lock, and the migrations The agent is fixing them; nothing is needed from you.
   - Commit: (none — no code change for this task)
+
+- [x] **Task 11: Fix: address 17 review findings (cycle 2)** (after 10)
+  - Intent: Review left 17 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The cycle-1 code defects are fixed: rental code clashes are now refused, Home to-dos are tagged by business, and other tickets' evidence is restored. Two 390 px captures w The agent is fixing them; nothing is needed from you.
+  - Commit: `337914572e3f`

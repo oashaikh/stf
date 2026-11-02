@@ -128,15 +128,19 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await expect(page.getByText('No recurring entries yet.')).toBeVisible();
     });
   }
-  // Mocked only: the mock's open obligation is past due, so the reminder card shows; a deployed run depends on the owner's real obligations.
+  // Mocked only: the mock's open VAT return is past due and the quarterly update is close, so Home lists both; a deployed run depends on the owner's real obligations.
   if (mocked && mockVatState !== 'none') {
-    await step('dashboard-vat-reminder', async () => {
+    await step('home-todo-list', async () => {
       await page.goto('/home');
-      const card = page.getByRole('heading', { name: 'Upcoming VAT return' }).locator('xpath=ancestor::section[1]');
-      await expect(card.getByText('7 Aug 2026')).toBeVisible();
-      await expect(card.getByText('VAT you owe HMRC')).toBeVisible();
-      await captureEvidence(page, 'dashboard-vat-reminder');
-      await card.getByRole('link', { name: 'Review VAT return' }).click();
+      const list = page.getByRole('list', { name: 'To-do list' });
+      await expect(list.getByRole('listitem').first()).toContainText('Overdue');
+      await expect(list.getByText(/File your VAT return, \d+ days late/)).toBeVisible();
+      await expect(list.getByText(/Send your Income Tax update/)).toBeVisible();
+      await expect(list.getByText('Sort 4 bank payments')).toBeVisible();
+      await expect(list.getByText('Check 2 receipts')).toBeVisible();
+      await expect(page.getByRole('link', { name: /Money in £/ })).toBeVisible();
+      await captureEvidence(page, 'home-todo-list');
+      await list.getByRole('link', { name: 'File return' }).click();
       await expect(page).toHaveURL(/\/tax\/vat$/);
     });
   }

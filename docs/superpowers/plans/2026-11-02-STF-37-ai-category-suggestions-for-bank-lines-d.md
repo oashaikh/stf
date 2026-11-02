@@ -57,7 +57,7 @@ Also depends on:
   - Risk: STF-7 is unmerged in this worktree, so the env var names are not visible here. The implementer must check the base branch for them and reuse them rather than invent new ones.
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 2: Store category suggestions on bank lines (schema and migration)** (after 1)
+- [x] **Task 2: Store category suggestions on bank lines (schema and migration)** (after 1)
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0026_bank_suggestions.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0026_snapshot.json`
   - Acceptance criteria the planner set:
     - Both new columns are nullable, with no default that looks like a decision
@@ -67,6 +67,7 @@ Also depends on:
     - Schema test covers the new columns
     - npm run typecheck and npm test pass
   - Risk: Schema and migration work, so opus at high. Merge conflict risk with STF-38 and STF-74 on schema.ts and the journal.
+  - Commit: `909a56ab84a3`
 
 - [ ] **Task 3: Suggestion service and route with a fake-client test** (after 1, 2)
   - Intent: Add api/_lib/bankCategorise.ts and api/bank/categorise.ts, behind withAuth. The route takes a bounded batch of the owner's unmatched bank line ids. The server loads descriptions and the owner's account list scoped to the session user, never trusting the client for descriptions. It checks the STF-7 kill switch first; when off it makes no call and returns a clear 'suggestions are off' result. It calls the Anthropic client STF-7 added (reuse it, add no dependency) with the model id from STF-7's env variable. It validates the model reply with zod, accepts only account ids that belong to the owner, clamps confidence to an integer, writes only the two suggestion columns, and does not touch status or the ledger. No network call while a transaction is open (). It logs an internal id and an audit event with no description text. It has a rate limit and a batch cap. Tests use a fake client: suggestions stored as drafts only, kill switch off means zero calls, an unknown account id is dropped, another user's line id is refused, and a failed call leaves lines unchanged and visible as an error.

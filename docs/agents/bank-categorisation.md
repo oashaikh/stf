@@ -27,14 +27,14 @@ The owner taps "Suggest" in Sort bank payments. Nothing runs on a schedule, on i
 
 - The route is `POST api/bank/categorise.ts`, behind the signed session cookie.
 - The body lists the line ids the owner wants sorted. Each id must belong to the owner and be unmatched, else 404 and no model call.
-- Each owner can make at most 20 requests per hour; more get a 429 and no model call.
+- Each owner can make at most 20 requests per hour (requests skipped by the kill switch do not count); more get a 429 and no model call.
 
 ## What the owner sees
 
 A plain-words suggestion beside each payment, for example "This looks like Travel (about 80% sure)". The confidence is shown as a percentage.
 
 - One tap on "Yes, that is right" creates a draft entry through the STF-38 flow. The owner can still edit it before it is confirmed.
-- "No, I'll pick one" opens the normal account picker and clears the suggestion.
+- "No, I'll pick one" opens the normal account picker and hides the suggestion on screen. The stored suggestion columns are written but not yet read back, so a reload asks again.
 - Official account names appear in small muted text only, following `docs/design/ease-of-use.md`.
 - Accepting never happens automatically, in bulk by default, or without the owner's tap.
 

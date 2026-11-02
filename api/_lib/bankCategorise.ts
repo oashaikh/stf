@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { accounts, auditEvents, bankConnections, bankTransactions } from '../../server/src/db/schema.js';
@@ -180,7 +180,7 @@ export const databaseCategoriseStore: CategoriseStore = {
     const rows = await db
       .select({ id: auditEvents.id })
       .from(auditEvents)
-      .where(and(eq(auditEvents.userId, userId), eq(auditEvents.action, CATEGORISE_ACTION), gt(auditEvents.occurredAt, since)))
+      .where(and(eq(auditEvents.userId, userId), eq(auditEvents.action, CATEGORISE_ACTION), sql`${auditEvents.metadata}->>'status' <> 'skipped'`, gt(auditEvents.occurredAt, since)))
       .limit(limit);
     return rows.length;
   },

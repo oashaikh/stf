@@ -77,7 +77,7 @@ describe('ChartOfAccountsSection', () => {
     fireEvent.change(screen.getByLabelText('Category number'), { target: { value: '6700' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Parking' } });
     fireEvent.change(screen.getByLabelText('Tax category'), { target: { value: 'travel' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add account' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add category' }));
     expect(await screen.findByText('Parking')).toBeInTheDocument();
     expect(requests[0].body).toEqual({ code: '6700', name: 'Parking', accountType: 'expense', taxCategory: 'travel' });
   });
@@ -95,7 +95,7 @@ describe('ChartOfAccountsSection', () => {
     await screen.findByText('Travel');
     fireEvent.change(screen.getByLabelText('Category number'), { target: { value: '6000' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Trips' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add account' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add category' }));
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('That code is already used');
     expect(screen.getByLabelText('Category number')).toHaveAccessibleDescription(alert.textContent!);
@@ -131,12 +131,12 @@ describe('ChartOfAccountsSection', () => {
   it('says so when there are no accounts to show', async () => {
     active = [];
     render(<ChartOfAccountsSection />);
-    expect(await screen.findByText('No accounts to show.')).toBeInTheDocument();
+    expect(await screen.findByText('No categories to show.')).toBeInTheDocument();
   });
 
   it('does not claim there are no accounts while they are loading', () => {
     render(<ChartOfAccountsSection />);
-    expect(screen.queryByText('No accounts to show.')).toBeNull();
+    expect(screen.queryByText('No categories to show.')).toBeNull();
   });
 
   it('uses no accounting jargon on screen', async () => {

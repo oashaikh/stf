@@ -226,6 +226,9 @@ export default function SettingsPage() {
                   itsState.selectedBusinessId}
               </p>
             )}
+            {itsState && itsState.businesses.length === 0 && (
+              <p className="mt-2 text-gray-800">HMRC has no self-employment business on record for you yet.</p>
+            )}
             {itsState && !itsState.selectedBusinessId && itsState.businesses.length > 1 && (
               <form onSubmit={submitItsBusiness} className="mt-2">
                 <label htmlFor="its-business-select" className="block text-gray-900">Choose your self-employment business</label>

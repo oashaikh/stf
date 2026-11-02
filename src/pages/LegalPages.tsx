@@ -52,11 +52,11 @@ export function PrivacyPage() {
       </Section>
       <Section heading="What is sent to HMRC, and why">
         <p>
-          When you connect HMRC, file a VAT return or view one, STF sends HMRC your VAT number and the nine box figures
+          When you connect HMRC, file a VAT return or view one, STF sends HMRC your VAT number and your VAT return figures
           so the return can be filed or shown. Nothing is filed until you confirm it.
         </p>
         <p>
-          HMRC also requires fraud prevention headers with each request. These describe the device and connection you
+          HMRC also asks for some safety details with each request. These describe the device and connection you
           are using: a device ID kept in your browser, your time zone, screen and window size, browser name and the IP
           address you connect from. HMRC uses them to spot fraud.
         </p>

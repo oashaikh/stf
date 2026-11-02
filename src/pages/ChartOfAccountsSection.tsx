@@ -94,7 +94,7 @@ export default function ChartOfAccountsSection() {
         Show archived categories
       </label>
 
-      {loaded && accounts.length === 0 && <p className="mt-4 text-gray-700">No accounts to show.</p>}
+      {loaded && accounts.length === 0 && <p className="mt-4 text-gray-700">No categories to show.</p>}
 
       {ACCOUNT_TYPE_GROUPS.map(({ type, label }) => {
         const group = accounts.filter((account) => account.accountType === type);
@@ -204,7 +204,7 @@ export default function ChartOfAccountsSection() {
             <option key={slug} value={slug}>{label}</option>
           ))}
         </select>
-        <button type="submit" className={`mt-4 ${primaryButton}`}>Add account</button>
+        <button type="submit" className={`mt-4 ${primaryButton}`}>Add category</button>
       </form>
     </section>
   );

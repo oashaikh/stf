@@ -2,10 +2,21 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { formatDate } from '../lib/dates';
+import type { SetupFacts } from '../lib/setupFlow';
 import DashboardPage from './DashboardPage';
+
+const setupApi = vi.hoisted(() => ({ fetchSetupFacts: vi.fn(), SETUP_FACTS_QUERY_KEY: ['setup-facts'] }));
+vi.mock('../lib/setupApi', () => setupApi);
+
+const finishedSetup: SetupFacts = {
+  setup: { businessType: 'sole_trader', vatRegistered: false, skippedSteps: [], finishedAt: '2026-11-01T09:00:00Z' },
+  hmrcConnected: true,
+  bankConnected: true,
+  hasVatNumber: false,
+};
 
 const totals = { incomePence: 150000, expensesPence: 40000, profitPence: 110000, vatCollectedPence: 30000, vatPaidPence: 8000 };
 const summary = {
@@ -54,6 +65,10 @@ function renderPage(response: Response, vat: { obligations?: Response; review?: 
     </QueryClientProvider>,
   );
 }
+
+beforeEach(() => {
+  setupApi.fetchSetupFacts.mockResolvedValue(finishedSetup);
+});
 
 afterEach(() => {
   cleanup();
@@ -129,5 +144,18 @@ describe('DashboardPage', () => {
       await screen.findByText('£1,500.00');
       expect(screen.queryByText(/upcoming vat return/i)).toBeNull();
     });
+  });
+
+  it('lists skipped setup steps near the top', async () => {
+    setupApi.fetchSetupFacts.mockResolvedValue({ ...finishedSetup, hmrcConnected: false, setup: { ...finishedSetup.setup, skippedSteps: ['hmrc'] } });
+    renderPage(Response.json({ ok: true, data: summary }));
+    expect((await screen.findByRole('link', { name: 'Do this now' })).getAttribute('href')).toBe('/setup?step=hmrc');
+  });
+
+  it('keeps the rest of Home in place when the setup state cannot be loaded', async () => {
+    setupApi.fetchSetupFacts.mockRejectedValue(new Error('down'));
+    renderPage(Response.json({ ok: true, data: summary }));
+    expect(await screen.findByText('We could not load your setup to-dos.')).toBeTruthy();
+    expect(await screen.findByText('£1,500.00')).toBeTruthy();
   });
 });

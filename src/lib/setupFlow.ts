@@ -53,6 +53,21 @@ export function nextStep(facts: SetupFacts): SetupStepId | null {
 export const todoSteps = (facts: SetupFacts): SetupStepId[] =>
   facts.setup.skippedSteps.filter((id) => !isDone(id, facts));
 
+export interface SetupTodo {
+  id: SetupStepId;
+  title: string;
+  /** One plain sentence on what the step is for. */
+  sentence: string;
+  link: string;
+}
+
+/** The unfinished setup steps as to-do items, so Home can list them with any other to-dos. */
+export const setupTodos = (facts: SetupFacts): SetupTodo[] =>
+  todoSteps(facts).map((id) => {
+    const step = SETUP_STEPS.find((candidate) => candidate.id === id)!;
+    return { id, title: step.title, sentence: step.purpose, link: `/setup?step=${id}` };
+  });
+
 export const shouldShowSetup = (facts: SetupFacts): boolean => facts.setup.finishedAt === null && nextStep(facts) !== null;
 
 export const stepLabel = (id: SetupStepId): string =>

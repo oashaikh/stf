@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { SETUP_STEPS, nextStep, shouldShowSetup, stepLabel, stepsDone, todoSteps, type SetupFacts } from './setupFlow';
+import { SETUP_STEPS, nextStep, shouldShowSetup, stepLabel, setupTodos, stepsDone, todoSteps, type SetupFacts } from './setupFlow';
 
 const brandNew: SetupFacts = {
   setup: { businessType: 'sole_trader', vatRegistered: null, skippedSteps: [], finishedAt: null },
@@ -62,5 +62,16 @@ describe('setup flow', () => {
       expect(step.purpose).toMatch(/^[^.!?]+\.$/);
       expect(`${step.title} ${step.purpose}`).not.toMatch(banned);
     }
+  });
+
+  it('turns each skipped step that is still not done into a to-do with a link back to it', () => {
+    const facts = withFacts({ setup: { skippedSteps: ['business_type', 'vat', 'hmrc', 'bank'] } });
+    expect(setupTodos(facts).map((todo) => todo.link)).toEqual([
+      '/setup?step=business_type',
+      '/setup?step=vat',
+      '/setup?step=hmrc',
+      '/setup?step=bank',
+    ]);
+    expect(setupTodos(withFacts({ bankConnected: true, setup: { skippedSteps: ['bank'] } }))).toEqual([]);
   });
 });

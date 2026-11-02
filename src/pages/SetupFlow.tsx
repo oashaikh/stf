@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import StateMessage from '../components/StateMessage';
 import { fetchBankConnectUrl } from '../lib/bankApi';
 import { VatNumberRefusedError, fetchHmrcConnectUrl, saveVatNumber } from '../lib/hmrc/settingsApi';
@@ -40,6 +40,7 @@ function Choice({ name, checked, onChange, children }: { name: string; checked: 
 
 export default function SetupFlow() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [facts, setFacts] = useState<SetupFacts | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [current, setCurrent] = useState<SetupStepId | 'finished'>('business_type');
@@ -61,11 +62,15 @@ export default function SetupFlow() {
         const resumeAt = SETUP_STEPS.find(
           (step) => !stepsDone(loaded).includes(step.id) && !loaded.setup.skippedSteps.includes(step.id),
         );
-        setCurrent(resumeAt?.id ?? 'finished');
+        // A to-do on Home reopens its own step with ?step=.
+        const requested = SETUP_STEPS.find((step) => step.id === searchParams.get('step'));
+        setCurrent(requested?.id ?? resumeAt?.id ?? 'finished');
       },
       () => setLoadFailed(true),
     );
   }
+  // Runs once on arrival; the ?step= it reads is only the way in, not something to reload on.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(load, []);
 
   if (loadFailed) return <StateMessage kind="error" className="p-6" onRetry={load}>We could not load your setup. Please try again.</StateMessage>;

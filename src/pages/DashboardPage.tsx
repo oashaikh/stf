@@ -12,6 +12,7 @@ import { getObligationDueWithin, REMINDER_WINDOW_DAYS } from "../lib/vatReminder
 import type { ApiResponse } from "../model/types";
 import { useVatObligations } from "./useVatObligations";
 import StateMessage from '../components/StateMessage';
+import SetupTodos from './SetupTodos';
 
 const linkClass = "inline-flex min-h-11 items-center text-blue-800 underline";
 
@@ -88,6 +89,8 @@ export default function DashboardPage() {
           Add entry
         </Link>
       </div>
+
+      <SetupTodos />
 
       {summary.isPending && <StateMessage kind="loading" className="mt-6">Loading…</StateMessage>}
       {summary.isError && (

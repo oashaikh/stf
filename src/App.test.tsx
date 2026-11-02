@@ -90,3 +90,46 @@ describe('guided setup', () => {
     expect(window.location.pathname).toBe('/settings');
   });
 });
+
+describe('first sign-in redirect', () => {
+  const stateFor = (setup: object) => ({ ok: true, businessType: 'sole_trader', vatRegistered: null, skippedSteps: [], finishedAt: null, ...setup });
+
+  async function openHomeWith(setup: object | 'broken') {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url === '/api/me') return Response.json({});
+        if (url === '/api/settings/setup') return setup === 'broken' ? new Response('', { status: 500 }) : Response.json(stateFor(setup));
+        if (url === '/api/settings/vat-number') return Response.json({ masked: null });
+        if (url.includes('hmrc')) return Response.json({ connected: false });
+        if (url.includes('bank')) return Response.json({ connected: false });
+        return new Response('', { status: 500 });
+      }),
+    );
+    window.history.pushState({}, '', '/home');
+    vi.resetModules();
+    const { default: FreshApp } = await import('./App');
+    render(<FreshApp />);
+    await screen.findByRole('navigation', { name: 'Main' });
+  }
+
+  it('sends a user with nothing finished or skipped to /setup', async () => {
+    await openHomeWith({});
+    await vi.waitFor(() => expect(window.location.pathname).toBe('/setup'));
+  });
+
+  it.each([
+    ['finished', { finishedAt: '2026-11-01T09:00:00Z' }],
+    ['skipped everything', { skippedSteps: ['business_type', 'vat', 'hmrc', 'bank'] }],
+  ])('leaves a user who %s on Home', async (_name, setup) => {
+    await openHomeWith(setup);
+    await screen.findByRole('heading', { name: 'Home' });
+    expect(window.location.pathname).toBe('/home');
+  });
+
+  it('keeps Home when the setup state cannot be loaded', async () => {
+    await openHomeWith('broken');
+    expect(await screen.findByText('We could not load your setup to-dos.')).toBeTruthy();
+    expect(window.location.pathname).toBe('/home');
+  });
+});

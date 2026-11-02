@@ -32,3 +32,5 @@ export async function fetchSetupFacts(): Promise<SetupFacts> {
   const [setup, hmrc, bank, vatMask] = await Promise.all([fetchSetupState(), fetchHmrcStatus(), fetchBankStatus(), fetchVatNumberMask()]);
   return { setup, hmrcConnected: hmrc.connected, bankConnected: bank.connected, hasVatNumber: vatMask !== null };
 }
+
+export const SETUP_FACTS_QUERY_KEY = ['setup-facts'] as const;

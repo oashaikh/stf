@@ -277,6 +277,70 @@ export async function listItsSelfEmploymentBusinesses(
   );
 }
 
+/** Businesses of type uk-property only; HMRC allows one, so the list is empty or has a single entry. */
+export async function listItsPropertyBusinesses(
+  nino: string,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<ItsBusiness[]> {
+  const { businessDetails } = await listItsSelfEmploymentBusinesses(nino, accessToken, fraudHeaders, fetchFn);
+  return businessDetails.filter((business) => business.typeOfBusiness === 'uk-property');
+}
+
+// ─── Income Tax: Property Business API ───────────────────────────────────────
+
+// Cumulative UK property summary, Property Business API v6.0
+// (PUT /individuals/business/property/uk/{nino}/{businessId}/cumulative/{taxYear}). Written from the
+// published spec without live access to the docs page at build time: recheck the path, accept header
+// and field names against
+// https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/property-business-api
+// before the first sandbox submission.
+export const PROPERTY_BUSINESS_API_ACCEPT = 'application/vnd.hmrc.6.0+json';
+
+export const propertyCumulativePath = (nino: string, businessId: string, taxYear: string) =>
+  `/individuals/business/property/uk/${nino}/${businessId}/cumulative/${taxYear}`;
+
+/** Amounts are JSON numbers in pounds, as the Property Business API expects (unlike the self-employment strings). */
+export type PropertyCumulativeSummary = {
+  fromDate: string;
+  toDate: string;
+  ukProperty: {
+    income?: Partial<Record<
+      'premiumsOfLeaseGrant' | 'reversePremiums' | 'periodAmount' | 'taxDeducted' | 'otherIncome',
+      number
+    >>;
+    expenses?: Partial<Record<
+      | 'premisesRunningCosts' | 'repairsAndMaintenance' | 'financialCosts' | 'professionalFees'
+      | 'costOfServices' | 'other' | 'travelCosts',
+      number
+    >>;
+  };
+};
+
+/** Submit a cumulative property update. MUST only be called after user explicitly confirms. HMRC may reply with no body. */
+export async function submitPropertyCumulativeSummary(
+  nino: string,
+  businessId: string,
+  taxYear: string,
+  payload: PropertyCumulativeSummary,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<void> {
+  await hmrcFetch<void>(
+    propertyCumulativePath(nino, businessId, taxYear),
+    accessToken,
+    fraudHeaders,
+    {
+      method: 'PUT',
+      headers: { Accept: PROPERTY_BUSINESS_API_ACCEPT },
+      body: JSON.stringify(payload),
+    },
+    fetchFn,
+  );
+}
+
 export type ItsObligationStatus = 'Open' | 'Fulfilled';
 
 export type ItsObligationDetail = {

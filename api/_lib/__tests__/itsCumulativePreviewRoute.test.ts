@@ -81,7 +81,7 @@ beforeEach(() => {
   sandboxMode = true;
   connected = true;
   storedNino = NINO;
-  status = { connected: true, expiresAt: null, itsBusinessId: BUSINESS_ID, needsItsReconnect: false };
+  status = { connected: true, expiresAt: null, itsBusinessId: BUSINESS_ID, itsPropertyBusinessId: null, needsItsReconnect: false };
   loadedFor = [];
   recordPreview = vi.fn(async (..._args: [string, object]) => undefined);
   hmrcFetch = vi.fn();

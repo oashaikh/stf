@@ -88,7 +88,7 @@ beforeEach(() => {
   vi.stubEnv('HMRC_ITSA_ENABLED', 'true');
   sandboxMode = true;
   storedNino = NINO;
-  status = { connected: true, expiresAt: null, itsBusinessId: 'XAIS12345678901', needsItsReconnect: false };
+  status = { connected: true, expiresAt: null, itsBusinessId: 'XAIS12345678901', itsPropertyBusinessId: null, needsItsReconnect: false };
   saved = [];
   cacheByUser = {};
   respondFromFixtures();

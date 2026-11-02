@@ -68,6 +68,8 @@ export const users = pgTable('users', {
   hmrcSandboxMode: boolean('hmrc_sandbox_mode').notNull().default(true),
   // Needed for Income Tax calls (STF-83); cleared when a reconnect changes the granted scope.
   hmrcItsBusinessId: text('hmrc_its_business_id'),
+  // UK property business id from HMRC business details (STF-109); cleared with the above on a scope change.
+  hmrcItsPropertyBusinessId: text('hmrc_its_property_business_id'),
   // Granted OAuth scope, used to show the one-time reconnect notice only when self-assessment is missing.
   hmrcScope: text('hmrc_scope'),
   // Authenticator-app second factor: secret is encryptToken output; last_step blocks code reuse.

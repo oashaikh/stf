@@ -62,7 +62,7 @@ Also depends on:
   - Risk: Endpoint and field names must be checked against HMRC's live docs; repo memory says earlier client paths were never verified.
   - Commit: `89a85479c44e`
 
-- [ ] **Task 2: Pure comparison of HMRC's figures with STF's estimate, plus the declaration wording**
+- [x] **Task 2: Pure comparison of HMRC's figures with STF's estimate, plus the declaration wording**
   - Intent: Add a pure module in src/lib that takes STF's estimate (TaxEstimateResult figures) and HMRC's calculated figures (pence) and returns the per-line difference (income tax, NIC, total) and a flag for whether they differ. Put HMRC's declaration wording in this module as one exported constant, copied from HMRC's docs, so the UI and the server check the same text. Add unit tests for equal, higher and lower cases. Do not hard-code any tax band values.
   - Files: `src/lib/finalDeclaration.ts`, `src/lib/finalDeclaration.test.ts`
   - Acceptance criteria the planner set:
@@ -70,6 +70,7 @@ Also depends on:
     - The module has no I/O and no floating point.
     - The declaration wording is a single exported constant.
     - npm test passes.
+  - Commit: `d2b2da5641ec`
 
 - [ ] **Task 3: Database table that locks one final declaration per tax year and environment**
   - Intent: Add its_final_declarations modelled on its_annual_submissions: user_id, tax_year, sandbox, status (reuse the its_submission_status enum), HMRC calculation id, stored HMRC figures in pence, declaration_confirmed_at, hmrc_correlation_id, submitted_at, timestamps, with UNIQUE(user_id, tax_year, sandbox) as the idempotency lock. The user_id foreign key is covered by the unique index. No deletes; rows only change status. Use migration 0026, since 0022 and 0025 are claimed by other live plans, and parent it on the current journal head. Re-check the journal against main before finishing. Update schema.test.ts.

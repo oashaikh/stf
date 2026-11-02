@@ -96,3 +96,7 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
   - Risk: Hard dependency: STF-38 must be merged so BankSortSection and its confirm path exist; this worktree does not have them. Heavy file overlap with STF-38, so rebase on its merge before starting.
   - Commit: `ad96bdddbbbe`
+
+- [x] **Task 5: Fix: address 10 review findings (cycle 1)** (after 4)
+  - Intent: Review left 10 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The correctness lens found no logic defects, but the required 1440 px and 390 px light screenshots are missing, which forces NEEDS_WORK. Nothing exists under browser-evide The agent is fixing them; nothing is needed from you.
+  - Commit: `7c9d392ff8d4`

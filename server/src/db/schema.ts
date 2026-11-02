@@ -157,40 +157,52 @@ export const transactionLines = pgTable(
 
 // Receipt file metadata and its AI draft. Confidence uses integer thousandths
 // (0-1000) so no floating-point or numeric database type is persisted.
-export const receipts = pgTable('receipts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  transactionId: uuid('transaction_id').references(() => transactions.id),
-  fileKey: text('file_key').notNull(),
-  fileName: text('file_name').notNull(),
-  mimeType: text('mime_type').notNull(),
-  sizeBytes: integer('size_bytes').notNull(),
-  uploadStatus: receiptUploadStatusEnum('upload_status').notNull().default('pending'),
-  aiStatus: receiptAiStatusEnum('ai_status').notNull().default('pending'),
-  aiModel: text('ai_model'),
-  aiConfidence: integer('ai_confidence'),
-  aiRawOutput: jsonb('ai_raw_output'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at', { withTimezone: true }),
-});
+export const receipts = pgTable(
+  'receipts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    transactionId: uuid('transaction_id').references(() => transactions.id),
+    fileKey: text('file_key').notNull(),
+    fileName: text('file_name').notNull(),
+    mimeType: text('mime_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    uploadStatus: receiptUploadStatusEnum('upload_status').notNull().default('pending'),
+    aiStatus: receiptAiStatusEnum('ai_status').notNull().default('pending'),
+    aiModel: text('ai_model'),
+    aiConfidence: integer('ai_confidence'),
+    aiRawOutput: jsonb('ai_raw_output'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => ({
+    userCreatedIdx: index('receipts_user_created_idx').on(table.userId, table.createdAt, table.id),
+  }),
+);
 
 // Individual AI suggestions remain drafts until a user confirms or corrects
 // them. Confidence is stored as integer thousandths (0-1000).
-export const receiptExtractions = pgTable('receipt_extractions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  receiptId: uuid('receipt_id')
-    .notNull()
-    .references(() => receipts.id),
-  field: text('field').notNull(),
-  suggestedValue: text('suggested_value').notNull(),
-  confidence: integer('confidence'),
-  confirmedValue: text('confirmed_value'),
-  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
-  confirmedByUserId: uuid('confirmed_by_user_id'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const receiptExtractions = pgTable(
+  'receipt_extractions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    receiptId: uuid('receipt_id')
+      .notNull()
+      .references(() => receipts.id),
+    field: text('field').notNull(),
+    suggestedValue: text('suggested_value').notNull(),
+    confidence: integer('confidence'),
+    confirmedValue: text('confirmed_value'),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+    confirmedByUserId: uuid('confirmed_by_user_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    receiptIdx: index('receipt_extractions_receipt_idx').on(table.receiptId),
+  }),
+);
 
 // Invoice header. Soft-deletable financial record.
 export const invoices = pgTable(

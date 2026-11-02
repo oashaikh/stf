@@ -58,7 +58,7 @@ Also depends on:
   - Commit: (none — no code change for this task)
 
 - [x] **Task 2: Store category suggestions on bank lines (schema and migration)** (after 1)
-  - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0026_bank_suggestions.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0026_snapshot.json`
+  - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0030_bank_suggestions.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0026_snapshot.json`
   - Acceptance criteria the planner set:
     - Both new columns are nullable, with no default that looks like a decision
     - Confidence is an integer with a 0-100 check

@@ -55,7 +55,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Find the UK property business id and add the HMRC Property Business client calls**
+- [x] **Task 1: Find the UK property business id and add the HMRC Property Business client calls**
   - Intent: Done means STF finds the owner's UK property business id from HMRC business details next to the self-employment one, and stores it. src/lib/hmrc/client.ts gets the Property Business API calls: the cumulative path for property, a submit function, and a lister for uk-property businesses. Every call takes the fraud headers and uses the existing hmrcFetch. Add a nullable users.hmrc_its_property_business_id column with migration 0025_uk_property_business (parent: current head 0024, single head, snapshot and journal updated, column granted per). Extend the HmrcStore status and credentials, and api/hmrc/its-businesses.ts, to return and store the property id. Self-employment choice behaviour must not change. A reconnect that changes scope clears the property id the same way it clears the self-employment id. Field names must be checked against HMRC's current Property Business API docs (repo memory says the existing client was never verified), with a comment naming the doc URL. VAT code paths are untouched.
   - Files: `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`, `server/src/db/schema.ts`, `server/src/db/migrations/0025_uk_property_business.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0025_snapshot.json`, `server/src/db/schema.test.ts`, `api/_lib/hmrcStore.ts`, `api/hmrc/its-businesses.ts`, `api/_lib/__tests__/itsBusinessesRoute.test.ts`, `src/lib/hmrc/settingsApi.ts`
   - Acceptance criteria the planner set:
@@ -65,6 +65,7 @@ Also depends on:
     - Existing self-employment tests still pass unchanged; no VAT file is modified
     - npm run lint, typecheck, test and build pass
   - Risk: Opus/high: schema migration and a change to the route that handles HMRC credentials.
+  - Commit: `836ec603689a`
 
 - [ ] **Task 2: Property income and cost categories, kept apart from self-employment figures**
   - Intent: Done means an owner can record income and expenses against HMRC's UK property categories (rent received, repairs and maintenance, finance costs, premises running costs, professional fees, cost of services, travel, other). Use dedicated accounts with a property- prefixed taxCategory, defined in src/lib/chartOfAccounts.ts as a separate PROPERTY_ACCOUNTS list (not in DEFAULT_ACCOUNTS, so people without a rental see no extra categories). Add an idempotent ensurePropertyAccounts in api/_lib/accounts.ts, exposed through the existing accounts route. Category names are plain words. Update buildTaxYearSummary and getTaxYearSummary so property categories never appear in self-employment income, expenses, profit or the uncategorised list. No new column on entries.

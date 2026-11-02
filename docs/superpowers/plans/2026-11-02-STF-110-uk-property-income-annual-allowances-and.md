@@ -91,6 +91,7 @@ Also depends on:
     - Nothing is sent before the declaration is ticked and send is pressed
     - A missing-figures refusal on the final declaration page links to the year-end flow
     - No 'Never on screen' jargon outside OfficialName text
+  - Commit: `157e38b51a63`
 
 - [ ] **Task 5: Sandbox tests for each endpoint and workflow docs** (after 3)
   - Intent: Add gated sandbox integration tests in src/lib/hmrc/sandbox.integration.test.ts, in the style of the existing ones, for the property annual PUT and the self-employment annual PUT. They skip without sandbox credentials and use invented data. Add docs/workflows/its-property-annual.md, add the final declaration annual gate to its-final-declaration.md, check doc examples match the code (NINO mask, business id), and note in the sandbox runbook how to run the new tests.

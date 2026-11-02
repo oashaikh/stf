@@ -106,9 +106,9 @@ export default function InvoicesPage() {
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-900">Invoices</h2>
+        <h2 className="sr-only">Invoices</h2>
         {view.kind === 'list' && (
-          <button type="button" onClick={() => setView({ kind: 'new' })} className="min-h-11 rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800">
+          <button type="button" onClick={() => setView({ kind: 'new' })} className="ml-auto min-h-11 rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800">
             New invoice
           </button>
         )}

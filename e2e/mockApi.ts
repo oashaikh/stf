@@ -249,6 +249,10 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         return json(route, { connected: true, needsItsReconnect: false, itsBusinessId: null });
       case 'GET /api/hmrc/its-obligations':
         return json(route, { ok: true, stale: false, obligations: mockItsObligations });
+      case 'GET /api/hmrc/its-businesses':
+        return json(route, { ok: true, businesses: [], selectedBusinessId: null });
+      case 'GET /api/mileage':
+        return json(route, { trips: [], claim: { totalPence: 0, tripClaims: [] } });
       case 'GET /api/hmrc/mode':
         return json(route, { live: false, envLive: false });
       case 'GET /api/settings/vat-number':

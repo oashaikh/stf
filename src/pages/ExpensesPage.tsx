@@ -429,12 +429,12 @@ export default function ExpensesPage({ heading = "Expenses" }: { heading?: strin
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-900">{heading}</h2>
+        <h2 className="sr-only">{heading}</h2>
         <button
           type="button"
           aria-expanded={adding}
           onClick={() => setAdding(!adding)}
-          className="min-h-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800"
+          className="ml-auto min-h-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800"
         >
           Add entry
         </button>

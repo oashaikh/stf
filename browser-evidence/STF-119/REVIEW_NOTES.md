@@ -13,6 +13,7 @@ STF ships no dark theme (no dark mode in the Tailwind config), so there are no d
 - Other income reuses the entries list filtered to income, not a new design.
 - Receipts is still a "Coming soon" page.
 - The VAT tab still uses HMRC wording (Box, Period key, VAT obligations) in places. The spec asks for plain words with official names in small text; that rewrite is not in this ticket.
-- A tab name and the heading under it repeat each other (for example Expenses / Expenses).
+- Each tab's own heading is now visible to screen readers only, so a name is shown once on screen. VAT keeps its "VAT Returns" title under the VAT tab.
 - A bare /tax now opens the Income Tax tab, as the old /tax page did. The other old addresses redirect as the ticket lists.
-- In the 390 px full-page captures the fixed bottom menu appears part-way down the page, a screenshot effect of stitching a full page.
+- Full-page captures draw the menu in normal flow so the fixed bottom bar never covers content. On a real phone the bar stays fixed and the page has room below it.
+- Other income, Mileage and Settings are captured after their data loaded; the mock now answers the mileage and HMRC business calls.

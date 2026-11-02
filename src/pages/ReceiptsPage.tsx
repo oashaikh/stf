@@ -4,7 +4,7 @@ import StateMessage from '../components/StateMessage';
 export default function ReceiptsPage() {
   return (
     <div className="mt-6">
-      <h2 className="text-xl font-semibold text-gray-900">Receipts</h2>
+      <h2 className="sr-only">Receipts</h2>
       <StateMessage kind="empty" className="mt-2">Coming soon.</StateMessage>
     </div>
   );

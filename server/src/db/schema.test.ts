@@ -369,22 +369,22 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0026_its_submissions_business_kind");
+    expect(tags.at(-1)).toBe("0027_its_submissions_business_kind");
   });
 });
 
-describe("0025_uk_property_business migration", () => {
-  const sql = readFileSync(join(MIGRATIONS_DIR, "0025_uk_property_business.sql"), "utf8");
+describe("0026_uk_property_business migration", () => {
+  const sql = readFileSync(join(MIGRATIONS_DIR, "0026_uk_property_business.sql"), "utf8");
   const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
 
   it("only adds the nullable property business id column", () => {
     expect(sql.trim()).toBe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "hmrc_its_property_business_id" text;');
   });
 
-  it("is journalled once, as index 25", () => {
-    const entries = journal.entries.filter((entry: { tag: string }) => entry.tag === "0025_uk_property_business");
+  it("is journalled once, as index 26", () => {
+    const entries = journal.entries.filter((entry: { tag: string }) => entry.tag === "0026_uk_property_business");
     expect(entries).toHaveLength(1);
-    expect(entries[0].idx).toBe(25);
+    expect(entries[0].idx).toBe(26);
   });
 });
 

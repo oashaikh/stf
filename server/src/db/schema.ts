@@ -403,19 +403,26 @@ export const tradingAllowanceChoices = pgTable(
 );
 
 // Append-only audit trail. Never updated or deleted.
-export const auditEvents = pgTable('audit_events', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
-  userId: uuid('user_id'),
-  actorType: auditActorTypeEnum('actor_type').notNull(),
-  action: text('action').notNull(),
-  resourceType: text('resource_type').notNull(),
-  resourceId: uuid('resource_id'),
-  ipAddress: inet('ip_address'),
-  beforeSnapshot: jsonb('before_snapshot'),
-  afterSnapshot: jsonb('after_snapshot'),
-  metadata: jsonb('metadata').notNull().default({}),
-});
+export const auditEvents = pgTable(
+  'audit_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+    userId: uuid('user_id'),
+    actorType: auditActorTypeEnum('actor_type').notNull(),
+    action: text('action').notNull(),
+    resourceType: text('resource_type').notNull(),
+    resourceId: uuid('resource_id'),
+    ipAddress: inet('ip_address'),
+    beforeSnapshot: jsonb('before_snapshot'),
+    afterSnapshot: jsonb('after_snapshot'),
+    metadata: jsonb('metadata').notNull().default({}),
+  },
+  // Serves the per-owner extraction rate limit.
+  (table) => ({
+    userActionOccurredIdx: index('audit_events_user_action_occurred_idx').on(table.userId, table.action, table.occurredAt),
+  }),
+);
 
 // Failed owner-login attempts, for the brute-force lockout. Holds a timestamp and a hash of the client
 // address (never the address or any password data); rows older than the lockout window are pruned on

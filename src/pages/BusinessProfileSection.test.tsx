@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BusinessProfileSection from './BusinessProfileSection';
+import { findJargon } from '../lib/jargon';
 
 const stored = {
   businessName: 'Test Plumbing',
@@ -72,5 +73,11 @@ describe('BusinessProfileSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save business profile' }));
     expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled();
     expect(await screen.findByRole('button', { name: 'Edit business profile' })).toBeInTheDocument();
+  });
+
+  it('uses no accounting jargon on screen', async () => {
+    render(<BusinessProfileSection />);
+    await screen.findByText('Test Plumbing');
+    expect(findJargon(document.body)).toEqual([]);
   });
 });

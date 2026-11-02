@@ -14,8 +14,8 @@ const SETUP_STEPS: Record<ItsSetupGap, { text: string; link: string }> = {
 };
 
 function statusLabel(obligation: ItsObligationRow): string {
-  if (obligation.status === 'fulfilled') return 'Fulfilled';
-  return obligation.overdue ? 'Overdue' : 'Open';
+  if (obligation.status === 'fulfilled') return 'Sent';
+  return obligation.overdue ? 'Overdue' : 'Due';
 }
 
 function groupByTaxYear(obligations: ItsObligationRow[]): [string, ItsObligationRow[]][] {

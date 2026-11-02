@@ -7,6 +7,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { DASHBOARD_QUERY_KEY } from '../lib/dashboardApi';
 import type { ApiEntry } from '../lib/entriesApi';
 import EntriesList from './EntriesList';
+import { findJargon } from '../lib/jargon';
 
 function LocationProbe() {
   return <p data-testid="location">{useLocation().search}</p>;
@@ -72,6 +73,12 @@ describe('EntriesList', () => {
     expect(screen.getAllByText('Travel').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Draft')).toHaveLength(2); // the badge and the status option
     expect(screen.getAllByRole('img', { name: 'Receipt attached' })).toHaveLength(1);
+  });
+
+  it('uses no accounting jargon on the list or its filters', async () => {
+    pages[''] = { entries: [entry('e1', { hasReceipt: true, status: 'draft' }), entry('e2')], nextCursor: null };
+    await renderList();
+    expect(findJargon(document.body)).toEqual([]);
   });
 
   it('labels the amount on a phone row and leaves out the category label when there is no category', async () => {

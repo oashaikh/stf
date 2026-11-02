@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TaxIdentifiersSection from './TaxIdentifiersSection';
+import { findJargon } from '../lib/jargon';
 
 describe('TaxIdentifiersSection', () => {
   let puts: unknown[];
@@ -63,5 +64,11 @@ describe('TaxIdentifiersSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save tax identifiers' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('UTR must be 10 digits');
     expect(screen.getByLabelText('UTR (10 digits)')).toBeInTheDocument();
+  });
+
+  it('uses no accounting jargon on screen', async () => {
+    render(<TaxIdentifiersSection />);
+    await screen.findByText(/National Insurance/i);
+    expect(findJargon(document.body)).toEqual([]);
   });
 });

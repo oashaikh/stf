@@ -106,6 +106,8 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await page.evaluate(() => fetch('/api/entries?id=entry-1', { method: 'PATCH', body: JSON.stringify({ status: 'confirmed' }) }));
     });
     await step('recurring-entries', async () => {
+      // Reload so the add-entry form above is closed; its Money in toggle and fields share names with this form's.
+      await page.goto('/expenses');
       await page.getByRole('button', { name: 'Add recurring entry' }).click();
       await page.getByRole('button', { name: 'Money in' }).click();
       await page.getByLabel('Description').fill('Retainer from Acme');
@@ -144,13 +146,13 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   await step('vat-review', async () => {
     await openVatReview(page);
     if (!checkFigures) return;
-    await expect(boxRow(page, 1)).toContainText('£100.00');
-    await expect(boxRow(page, 6)).toContainText('£500.00');
+    await expect(boxGroup(page, 'VAT you charged on sales')).toContainText('£100.00');
+    await expect(boxGroup(page, 'Your sales, before VAT')).toContainText('£500.00');
     await captureEvidence(page, 'vat-boxes');
   });
   if (checkFigures) {
     await step('vat-drill-down', async () => {
-      await page.getByRole('button', { name: /^Box 1\b|VAT due on sales/ }).first().click();
+      await boxGroup(page, 'VAT you charged on sales').getByRole('button', { name: 'Why is this amount?' }).click();
       const line = page.getByRole('link', { name: /Invoice 1001 website build/ });
       await expect(line).toContainText('£500.00 + £100.00 VAT');
       await expect(line).toHaveAttribute('href', /^\/expenses\?.*#entry-entry-1$/);
@@ -158,29 +160,36 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     });
   }
   await step('vat-state', async () => {
-    const preview = page.getByRole('button', { name: 'Preview what will be sent' });
+    if (await page.getByText('You have no VAT return to file right now.').isVisible()) {
+      console.log('JOURNEY_VAT_BRANCH: nothing-due');
+      return;
+    }
+    // The last step of the guided flow: one sentence, the declaration and the send button.
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(page.getByText(/^You're telling HMRC you/)).toBeVisible();
     const branch = await vatBranch(page);
     console.log(`JOURNEY_VAT_BRANCH: ${branch}`);
-    if (branch === 'nothing-due') {
-      await expect(page.getByText('No open VAT obligations to file.')).toBeVisible();
-    } else if (branch === 'unconfirmed') {
+    if (branch === 'unconfirmed') {
       // Confirming is a write, so an unconfirmed return is only checked for what it shows.
-      await expect(page.getByRole('table', { name: 'VAT return boxes for the period' }).getByRole('row')).toHaveCount(10);
       await expect(page.getByRole('group', { name: 'Declaration' })).toBeVisible();
     } else if (branch === 'filed') {
       await expect(page.getByText(/^Form bundle number:/)).toBeVisible();
     } else {
-      // The preview is a POST, so a live run only checks the button is there.
-      if (!mocked) return await expect(preview).toBeVisible();
-      await preview.click();
-      await expect(page.getByRole('table', { name: 'Boxes exactly as they will be sent' })).toBeVisible();
-      if (!checkFigures) return;
-      // The body fields only appear by name in the raw JSON, so open it and read the two figures the entry must reach.
-      await page.getByText('Raw JSON').click();
-      const rawBody = page.locator('pre');
-      await expect(rawBody).toContainText('"vatDueSales": 100,');
-      await expect(rawBody).toContainText('"totalValueSalesExVAT": 500,');
-      await captureEvidence(page, 'vat-preview');
+      const send = page.getByRole('button', { name: /^Send to HMRC/ });
+      // The send dialog fetches a preview (a POST), so a live run only checks the button is there.
+      if (!mocked) return await expect(send).toBeVisible();
+      await send.click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByRole('button', { name: 'Show all nine boxes' }).click();
+      await expect(dialog.getByRole('table', { name: 'Boxes exactly as they will be sent' })).toBeVisible();
+      if (checkFigures) {
+        // The body fields only appear by name in the raw JSON, so open it and read the two figures the entry must reach.
+        await dialog.getByText('Raw JSON').click();
+        await expect(dialog.locator('pre')).toContainText('"vatDueSales": 100,');
+        await expect(dialog.locator('pre')).toContainText('"totalValueSalesExVAT": 500,');
+        await captureEvidence(page, 'vat-send');
+      }
+      await dialog.getByRole('button', { name: 'Cancel' }).click();
     }
   });
   await step('reports', async () => {
@@ -264,7 +273,7 @@ test('owner sees Income Tax obligations with the next due one marked, and last k
   await expect(page.getByRole('status').filter({ hasText: 'Showing last known dates' })).toBeVisible();
 });
 
-const boxRow = (page: Page, box: number) => page.getByRole('row').filter({ has: page.getByRole('cell', { name: String(box), exact: true }) });
+const boxGroup = (page: Page, label: string) => page.getByRole('group', { name: label, exact: true });
 
 async function captureEvidence(page: Page, name: string) {
   if (!evidenceDir) return;
@@ -287,20 +296,22 @@ async function openVatReview(page: Page) {
   // With several open obligations the page waits for a choice; the first listed is taken.
   const choices = page.getByRole('radio');
   const status = page.getByText(/^Status:/);
-  const nothingDue = page.getByText('No open VAT obligations to file.');
+  const nothingDue = page.getByText('You have no VAT return to file right now.');
   await expect(status.or(choices.first()).or(nothingDue)).toBeVisible();
-  if (await choices.count()) await choices.first().check();
+  if (await choices.count()) {
+    await choices.first().check();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+  }
   await expect(status.or(nothingDue)).toBeVisible();
 }
 
-type VatBranch = 'nothing-due' | 'unconfirmed' | 'confirmed' | 'filed';
+type VatBranch = 'unconfirmed' | 'confirmed' | 'filed';
 
 async function vatBranch(page: Page): Promise<VatBranch> {
-  if (await page.getByText('No open VAT obligations to file.').isVisible()) return 'nothing-due';
-  if (await page.getByRole('button', { name: 'Preview what will be sent' }).isVisible()) return 'confirmed';
-  // Confirmed but no preview button means HMRC already holds a receipt for the period.
+  if (await page.getByRole('group', { name: 'Declaration' }).isVisible()) return 'unconfirmed';
+  // Confirmed but no send button means HMRC already holds a receipt for the period.
   if (await page.getByText(/^Form bundle number:/).isVisible()) return 'filed';
-  return 'unconfirmed';
+  return 'confirmed';
 }
 
 // Mock mode only: it turns the second factor on and signs out, which the read-only deployed journey must never do.

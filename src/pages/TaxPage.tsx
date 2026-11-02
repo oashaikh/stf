@@ -5,7 +5,6 @@ import { formatPence } from '../lib/money';
 import { currentTaxYear, TAX_BANDS } from '../lib/taxBands';
 import { fetchTaxEstimate, taxEstimateQueryKey } from '../lib/taxEstimateApi';
 import ItsObligationsSection from './ItsObligationsSection';
-import MileageSection from './MileageSection';
 import type { ExpenseMethod } from '../lib/taxYearSummary';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 import StateMessage from '../components/StateMessage';
@@ -34,8 +33,8 @@ export default function TaxPage() {
   });
 
   return (
-    <main className="max-w-4xl p-4 md:p-8">
-      <h1 className="text-2xl font-semibold text-gray-900">Tax Estimate</h1>
+    <div className="mt-6 max-w-4xl">
+      <h2 className="text-xl font-semibold text-gray-900">Income Tax estimate</h2>
 
       <label className="mt-4 flex flex-col gap-1 text-sm text-gray-700">
         Tax year
@@ -111,7 +110,6 @@ export default function TaxPage() {
       )}
 
       <ItsObligationsSection />
-      <MileageSection />
-    </main>
+    </div>
   );
 }

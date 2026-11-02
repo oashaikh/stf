@@ -51,7 +51,7 @@ describe('ExpensesPage add entry form', () => {
   });
 
   let client: QueryClient;
-  async function openForm(url = '/expenses') {
+  async function openForm(url = '/money-out') {
     client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
@@ -144,7 +144,7 @@ describe('ExpensesPage add entry form', () => {
   it('lists only drafts when the URL says status=draft', async () => {
     const entry = (id: string, description: string, status: 'draft' | 'confirmed'): ApiEntry => ({ id, date: '2026-10-01', description, reference: null, status, kind: 'expense', grossPence: 100, categoryAccountId: 'a2', categoryName: 'Travel', netPence: 100, vatPence: 0, hasReceipt: false });
     entries = [entry('d1', 'Draft taxi', 'draft'), entry('c1', 'Confirmed rent', 'confirmed')];
-    await openForm('/expenses?status=draft');
+    await openForm('/money-out?status=draft');
     expect(await screen.findByText('Draft taxi', { selector: 'li *' })).toBeInTheDocument();
     expect(screen.queryByText('Confirmed rent', { selector: 'li *' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Status')).toHaveValue('draft');
@@ -233,7 +233,7 @@ describe('ExpensesPage edit entry', () => {
     await openEdit();
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(await screen.findByText(/VAT period that has been confirmed or filed/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Go to VAT' })).toHaveAttribute('href', '/vat');
+    expect(screen.getByRole('link', { name: 'Go to VAT' })).toHaveAttribute('href', '/tax/vat');
     expect(screen.queryByText(/Please try again/)).not.toBeInTheDocument();
   });
 });

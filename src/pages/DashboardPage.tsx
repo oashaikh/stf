@@ -67,7 +67,7 @@ function UpcomingVatReturnCard() {
         <dd className="text-right text-gray-900">{review.data.status === null ? "Not yet drafted" : "Draft saved"}</dd>
       </div>
       <Row label="Box 5: net VAT to pay" pence={review.data.boxes.box5} />
-      <Link to="/vat" className={linkClass}>
+      <Link to="/tax/vat" className={linkClass}>
         Review VAT return
       </Link>
     </Card>
@@ -83,8 +83,8 @@ export default function DashboardPage() {
   return (
     <main className="p-4 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-        <Link to="/expenses" className="inline-flex min-h-11 items-center rounded bg-blue-800 px-4 text-white">
+        <h1 className="text-2xl font-semibold text-gray-900">Home</h1>
+        <Link to="/money-out" className="inline-flex min-h-11 items-center rounded bg-blue-800 px-4 text-white">
           Add entry
         </Link>
       </div>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
               <Row label="Income" pence={data.taxYear.incomePence} />
               <Row label="Expenses" pence={data.taxYear.expensesPence} />
               <Row label="Profit" pence={data.taxYear.profitPence} />
-              <Link to="/expenses" className={linkClass}>
+              <Link to="/money-out" className={linkClass}>
                 View entries
               </Link>
             </Card>
@@ -113,14 +113,14 @@ export default function DashboardPage() {
               <Row label="Income" pence={data.month.incomePence} />
               <Row label="Expenses" pence={data.month.expensesPence} />
               <Row label="Profit" pence={data.month.profitPence} />
-              <Link to="/expenses" className={linkClass}>
+              <Link to="/money-out" className={linkClass}>
                 View entries
               </Link>
             </Card>
             <Card title="VAT this quarter (estimate)" period={`${formatDate(data.vatQuarter.start)} to ${formatDate(data.vatQuarter.end)}`}>
               <Row label="VAT collected" pence={data.vatQuarter.vatCollectedPence} />
               <Row label="VAT paid" pence={data.vatQuarter.vatPaidPence} />
-              <Link to="/vat" className={linkClass}>
+              <Link to="/tax/vat" className={linkClass}>
                 Go to the VAT page
               </Link>
             </Card>
@@ -128,7 +128,7 @@ export default function DashboardPage() {
             {taxEstimate.data && (
               <Card title="Tax set-aside (estimate)" period={`Tax year ${taxEstimate.data.taxYear}`}>
                 <Row label="Income tax and NIC" pence={taxEstimate.data.totalTaxPence} />
-                <Link to="/tax" className={linkClass}>
+                <Link to="/tax/income-tax" className={linkClass}>
                   Go to the Tax page
                 </Link>
               </Card>
@@ -137,7 +137,7 @@ export default function DashboardPage() {
 
           {data.draftCount > 0 && (
             <p className="mt-6">
-              <Link to="/expenses?status=draft" className={linkClass}>
+              <Link to="/money-out?status=draft" className={linkClass}>
                 {data.draftCount} {data.draftCount === 1 ? "draft" : "drafts"} to confirm
               </Link>
             </p>

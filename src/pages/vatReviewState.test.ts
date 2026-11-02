@@ -45,7 +45,7 @@ describe('reviewState submit', () => {
   it('disables submit and relabels while submitting', () => {
     const state = reviewState({ ...confirmed, submitPending: true });
     expect(state.canSubmit).toBe(false);
-    expect(state.submitLabel).toBe('Submitting…');
+    expect(state.submitLabel).toBe('Sending…');
   });
   it('shows the receipt and disables submit after a live filing', () => {
     const state = reviewState({ ...confirmed, submission: receipt, live: true });
@@ -61,8 +61,8 @@ describe('reviewState submit', () => {
     expect(reviewState({ ...confirmed, submission: { ...receipt, sandbox: true }, live: true }).canSubmit).toBe(true);
   });
   it('names the target in the button label', () => {
-    expect(reviewState(confirmed).submitLabel).toBe('Submit to HMRC sandbox');
-    expect(reviewState({ ...confirmed, live: true }).submitLabel).toBe('Submit to HMRC');
+    expect(reviewState(confirmed).submitLabel).toBe('Send to HMRC sandbox');
+    expect(reviewState({ ...confirmed, live: true }).submitLabel).toBe('Send to HMRC');
   });
   it('tells the user not to retry when the outcome is unknown', () => {
     const state = reviewState({ ...confirmed, outcomeUnknown: true });

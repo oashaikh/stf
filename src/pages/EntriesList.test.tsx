@@ -53,7 +53,7 @@ describe('EntriesList', () => {
   let writes: { method: string; url: string }[];
   let writeReply: Response | null;
   const lastParams = () => new URL(entryUrls[entryUrls.length - 1], 'http://x').searchParams;
-  async function renderList(url = '/expenses') {
+  async function renderList(url = '/money-out') {
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <MemoryRouter initialEntries={[url]}>
@@ -102,7 +102,7 @@ describe('EntriesList', () => {
   });
 
   it('reads the filters from the URL and writes changes back to it', async () => {
-    await renderList('/expenses?from=2026-08-15&to=2026-08-15&search=Consulting+%26+design');
+    await renderList('/money-out?from=2026-08-15&to=2026-08-15&search=Consulting+%26+design');
     expect(lastParams().get('from')).toBe('2026-08-15');
     expect(lastParams().get('search')).toBe('Consulting & design');
     expect(screen.getByLabelText('Search')).toHaveValue('Consulting & design');
@@ -134,7 +134,7 @@ describe('EntriesList', () => {
     });
 
     it('Clear in the sheet removes the sheet filters but keeps the search', async () => {
-      await renderList('/expenses?status=draft&search=train');
+      await renderList('/money-out?status=draft&search=train');
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
       fireEvent.click(await screen.findByRole('button', { name: 'Clear' }));
       fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
@@ -269,7 +269,7 @@ describe('EntriesList', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Void entry' }));
       const alert = await screen.findByRole('alert');
       expect(alert).toHaveTextContent('in a VAT period that has been confirmed or filed');
-      expect(screen.getByRole('link', { name: 'Go to VAT' })).toHaveAttribute('href', '/vat');
+      expect(screen.getByRole('link', { name: 'Go to VAT' })).toHaveAttribute('href', '/tax/vat');
       expect(screen.queryByText('Voided')).toBeNull();
     });
 

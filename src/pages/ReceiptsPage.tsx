@@ -296,10 +296,10 @@ function ReceiptList({ onAdd }: { onAdd: () => void }) {
 export default function ReceiptsPage() {
   const cameraInput = useRef<HTMLInputElement>(null);
   return (
-    <main className="p-4 md:p-8">
-      <h1 className="text-2xl font-semibold text-gray-900">Receipts</h1>
+    <div className="mt-6">
+      <h2 className="sr-only">Receipts</h2>
       <AddReceipt cameraInput={cameraInput} />
       <ReceiptList onAdd={() => cameraInput.current?.click()} />
-    </main>
+    </div>
   );
 }

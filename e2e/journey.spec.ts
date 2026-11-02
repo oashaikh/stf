@@ -74,7 +74,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     await page.getByLabel('Password').fill(ownerPassword!);
     await page.getByRole('button', { name: 'Sign in' }).click();
     const codeField = page.getByLabel('Authenticator code');
-    const dashboard = page.getByRole('heading', { level: 1, name: 'Dashboard' });
+    const dashboard = page.getByRole('heading', { level: 1, name: 'Home' });
     await expect(dashboard.or(codeField)).toBeVisible();
     if (await codeField.isVisible()) {
       missingTotpSecret = !journeyTotpSecret;
@@ -87,8 +87,8 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   // Not a failure: the owner's account is protected and this run was given no way past it. It sits outside the step because a skip thrown inside one is reported as a failure.
   if (missingTotpSecret) console.log('JOURNEY_SKIPPED: 2FA on, no journey secret (set JOURNEY_TOTP_SECRET to the authenticator secret)');
   test.skip(missingTotpSecret, '2FA on, no journey secret');
-  await step('dashboard', openPage('/dashboard', 'Dashboard'));
-  await step('expenses', openPage('/expenses', 'Expenses'));
+  await step('dashboard', openPage('/home', 'Home'));
+  await step('expenses', openPage('/money-out', 'Money out'));
   // Mocked only: a deployed run must not write a test entry into the owner's books.
   if (mocked) {
     await step('add-income-entry', async () => {
@@ -129,16 +129,16 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   // Mocked only: the mock's open obligation is past due, so the reminder card shows; a deployed run depends on the owner's real obligations.
   if (mocked && mockVatState !== 'none') {
     await step('dashboard-vat-reminder', async () => {
-      await page.goto('/dashboard');
+      await page.goto('/home');
       const card = page.getByRole('heading', { name: 'Upcoming VAT return' }).locator('xpath=ancestor::section[1]');
       await expect(card.getByText('7 Aug 2026')).toBeVisible();
       await expect(card.getByText('Box 5: net VAT to pay')).toBeVisible();
       await captureEvidence(page, 'dashboard-vat-reminder');
       await card.getByRole('link', { name: 'Review VAT return' }).click();
-      await expect(page).toHaveURL(/\/vat$/);
+      await expect(page).toHaveURL(/\/tax\/vat$/);
     });
   }
-  await step('vat-obligations', openPage('/vat', 'VAT Returns'));
+  await step('vat-obligations', openPage('/tax/vat', 'VAT Returns'));
   // The entry's figures are only checked where the mocked return is confirmed and still open, so the preview is reachable.
   const checkFigures = mockVatState === 'confirmed';
   await step('vat-review', async () => {
@@ -153,7 +153,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await page.getByRole('button', { name: /^Box 1\b|VAT due on sales/ }).first().click();
       const line = page.getByRole('link', { name: /Invoice 1001 website build/ });
       await expect(line).toContainText('£500.00 + £100.00 VAT');
-      await expect(line).toHaveAttribute('href', /^\/expenses\?.*#entry-entry-1$/);
+      await expect(line).toHaveAttribute('href', /^\/money-out\?.*#entry-entry-1$/);
       await captureEvidence(page, 'vat-drill-down');
     });
   }
@@ -184,7 +184,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     }
   });
   await step('reports', async () => {
-    await openPage('/reports', 'Reports')();
+    await openPage('/tax/reports', 'Tax')();
     if (evidenceDir) {
       await captureEvidence(page, 'reports');
       // Test error state: set a date range that exceeds the limit (400 days)
@@ -205,6 +205,35 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     }
   });
   await step('settings', openPage('/settings', 'Settings'));
+
+  // The menu has six items at both widths, and each one opens its page.
+  await step('six-menu-items', async () => {
+    const menuItems: Array<[string, string]> = [
+      ['Home', 'Home'], ['Money in', 'Money in'], ['Money out', 'Money out'],
+      ['Bank', 'Bank'], ['Tax', 'Tax'], ['Settings', 'Settings'],
+    ];
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/home');
+      const links = page.getByRole('navigation', { name: 'Main' }).getByRole('link');
+      await expect(links).toHaveCount(6);
+      for (const [label, heading] of menuItems) {
+        await links.filter({ hasText: label }).first().click();
+        await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+      }
+    }
+  });
+
+  await step('old-addresses-redirect', async () => {
+    const oldAddresses = [
+      ['/dashboard', /\/home$/], ['/invoices', /\/money-in$/], ['/expenses', /\/money-out$/],
+      ['/receipts', /\/money-out\/receipts$/], ['/vat', /\/tax\/vat$/], ['/reports', /\/tax\/reports$/], ['/tax', /\/tax\/income-tax$/],
+    ] as const;
+    for (const [from, to] of oldAddresses) {
+      await page.goto(from);
+      await expect(page).toHaveURL(to);
+    }
+  });
 });
 }
 
@@ -217,9 +246,9 @@ test('owner opens an invoice and sees the Download PDF button', async ({ page })
   await page.goto('/');
   await page.getByLabel('Password').fill(ownerPassword!);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
-  await page.goto('/invoices');
+  await page.goto('/money-in');
   await page.getByRole('button', { name: /INV-0042/ }).click();
   const download = page.getByRole('button', { name: 'Download PDF' });
   await expect(download).toBeVisible();
@@ -241,10 +270,10 @@ test('owner sees Income Tax obligations with the next due one marked, and last k
   await page.goto('/');
   await page.getByLabel('Password').fill(ownerPassword!);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
-  await page.goto('/tax');
-  await expect(page.getByRole('heading', { name: 'Income Tax obligations' })).toBeVisible();
+  await page.goto('/tax/income-tax');
+  await expect(page.getByRole('heading', { name: 'Income Tax updates due' })).toBeVisible();
   await expect(page.getByText('Next due')).toHaveCount(1);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -262,6 +291,47 @@ test('owner sees Income Tax obligations with the next due one marked, and last k
   );
   await page.reload();
   await expect(page.getByRole('status').filter({ hasText: 'Showing last known dates' })).toBeVisible();
+});
+
+// Mock mode only: the guided quarterly update on its own screen, walked from the Tax page, as review evidence for STF-86.
+test('owner walks the guided quarterly update from the Tax page to the confirmation', async ({ page }) => {
+  test.skip(!mocked, 'Uses the mocked Income Tax update API (JOURNEY_MOCK=1)');
+  const evidenceDir = path.join('browser-evidence', 'STF-86');
+  mkdirSync(evidenceDir, { recursive: true });
+  await mockApi(page, ownerPassword!);
+  await page.goto('/');
+  await page.getByLabel('Password').fill(ownerPassword!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+
+  const capture = async (name: string) => {
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const hideFixedBars = await page.addStyleTag({ content: '.sticky, .fixed { display: none !important; }' });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await page.screenshot({ path: path.join(evidenceDir, `${name}-${width}-light.png`), fullPage: true });
+      await hideFixedBars.evaluate((node) => node.remove());
+    }
+  };
+
+  await page.goto('/tax/income-tax');
+  await expect(page.getByText('Loading mileage')).toHaveCount(0);
+  await capture('1-obligations');
+  await page.getByRole('link', { name: 'Send your update' }).click();
+  await expect(page).toHaveURL(/\/tax\/update\/2026-27\/2$/);
+  await expect(page.getByText('Step 1 of 3')).toBeVisible();
+  await capture('2-step1-income');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByText('Step 2 of 3')).toBeVisible();
+  await capture('3-step2-costs');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('checkbox').check();
+  await capture('4-step3-send');
+  await page.getByRole('button', { name: 'Send to HMRC' }).click();
+  await expect(page.getByText('HMRC has your update')).toBeVisible();
+  await capture('5-sent');
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page).toHaveURL(/\/tax\/income-tax$/);
 });
 
 const boxRow = (page: Page, box: number) => page.getByRole('row').filter({ has: page.getByRole('cell', { name: String(box), exact: true }) });
@@ -328,7 +398,7 @@ test('owner sets up the authenticator, signs out, and signs back in with passwor
   await page.goto('/');
   await page.getByLabel('Password').fill(ownerPassword!);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
   await page.goto('/settings');
   await expect(page.getByText('Authenticator is off')).toBeVisible();
@@ -361,6 +431,6 @@ test('owner sets up the authenticator, signs out, and signs back in with passwor
 
   await page.getByLabel('Authenticator code').fill(mockMfaCode);
   await page.getByRole('button', { name: 'Verify' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
   await capture('dashboard-after-code');
 });

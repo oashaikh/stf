@@ -93,7 +93,7 @@ Also depends on:
     - No 'Never on screen' jargon outside OfficialName text
   - Commit: `157e38b51a63`
 
-- [ ] **Task 5: Sandbox tests for each endpoint and workflow docs** (after 3)
+- [x] **Task 5: Sandbox tests for each endpoint and workflow docs** (after 3)
   - Intent: Add gated sandbox integration tests in src/lib/hmrc/sandbox.integration.test.ts, in the style of the existing ones, for the property annual PUT and the self-employment annual PUT. They skip without sandbox credentials and use invented data. Add docs/workflows/its-property-annual.md, add the final declaration annual gate to its-final-declaration.md, check doc examples match the code (NINO mask, business id), and note in the sandbox runbook how to run the new tests.
   - Files: `src/lib/hmrc/sandbox.integration.test.ts`, `docs/workflows/its-property-annual.md`, `docs/workflows/its-final-declaration.md`, `docs/runbooks/hmrc-sandbox-integration.md`
   - Acceptance criteria the planner set:
@@ -101,3 +101,4 @@ Also depends on:
     - No real data or secrets appear in fixtures or docs
     - Docs describe the property annual flow and the final declaration gate accurately against the code
     - npm test passes without network access
+  - Commit: `e7c4b0fba6e2`

@@ -82,7 +82,7 @@ Also depends on:
   - Risk: DashboardPage.tsx is also edited by STF-123 and STF-120; keep the rewrite compact and expect a merge conflict at PR time. Do not touch SetupTodos.tsx (STF-123).
   - Commit: `fff59e9b463b`
 
-- [ ] **Task 4: Update the end-to-end walk-through and capture the Home evidence** (after 3)
+- [x] **Task 4: Update the end-to-end walk-through and capture the Home evidence** (after 3)
   - Files: `e2e/mockApi.ts`, `e2e/journey.spec.ts`, `browser-evidence/STF-122/captions.md`, `browser-evidence/STF-122/review-notes.md`, `browser-evidence/STF-122/`
   - Acceptance criteria the planner set:
     - The journey spec's Home step passes against the updated mock
@@ -91,3 +91,4 @@ Also depends on:
     - review-notes.md lists deviations from the spec and why
     - No real data in the images or mock
   - Risk: e2e/mockApi.ts is also edited by STF-123 and STF-74; keep hunks small. Dark capture only applies if the app ships a dark theme; if not, say so in the notes.
+  - Commit: `0a6905884572`

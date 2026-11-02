@@ -31,6 +31,8 @@ const BANNED_WORDS = new RegExp(`\\b(?:${BANNED_PHRASES.join('|').replace(/ /g, 
 function visibleText(root: Element): string {
   const copy = root.cloneNode(true) as Element;
   copy.querySelectorAll('[data-official-name]').forEach((element) => element.remove());
+  // A trailing space keeps a heading's last word from fusing with the next element's first word.
+  copy.querySelectorAll('*').forEach((element) => element.append(' '));
   return copy.textContent ?? '';
 }
 

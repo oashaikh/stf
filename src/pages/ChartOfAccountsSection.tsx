@@ -79,7 +79,7 @@ export default function ChartOfAccountsSection() {
 
   return (
     <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-4 sm:p-6" aria-labelledby="accounts-heading">
-      <h2 id="accounts-heading" className="text-lg font-semibold text-gray-900">Chart of accounts</h2>
+      <h2 id="accounts-heading" className="text-lg font-semibold text-gray-900">Categories</h2>
       <p className="mt-2 text-gray-700">The income and expense categories you file under.</p>
       {loadError && <StateMessage kind="error" className="mt-2">{loadError}</StateMessage>}
 

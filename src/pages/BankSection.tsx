@@ -88,7 +88,7 @@ export default function BankSection() {
           {confirming ? (
             <div className="mt-4">
               <p className="text-gray-900">
-                Disconnecting {status.displayName} stops syncing transactions. Entries already imported stay as they are.
+                Disconnecting {status.displayName} stops updating transactions. Entries already imported stay as they are.
               </p>
               <div className="mt-3 flex flex-wrap gap-3">
                 <button type="button" className={dangerButton} disabled={busy} onClick={confirmDisconnect}>Yes, disconnect</button>

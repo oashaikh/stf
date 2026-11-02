@@ -55,4 +55,8 @@ describe('findJargon', () => {
       'submit',
     ]);
   });
+
+  it('flags jargon in an element that sits directly against the next one', () => {
+    expect(findJargon(html('<h2>Chart of accounts</h2><p>Your categories</p>'))).toEqual(['chart of accounts']);
+  });
 });

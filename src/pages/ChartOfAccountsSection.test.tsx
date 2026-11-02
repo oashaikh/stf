@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiAccount } from '../lib/accountsApi';
 import ChartOfAccountsSection from './ChartOfAccountsSection';
+import { findJargon } from '../lib/jargon';
 
 const account = (id: string, code: string, name: string, accountType: ApiAccount['accountType'], isSystem = false): ApiAccount => ({
   id,
@@ -136,5 +137,11 @@ describe('ChartOfAccountsSection', () => {
   it('does not claim there are no accounts while they are loading', () => {
     render(<ChartOfAccountsSection />);
     expect(screen.queryByText('No accounts to show.')).toBeNull();
+  });
+
+  it('uses no accounting jargon on screen', async () => {
+    render(<ChartOfAccountsSection />);
+    await screen.findByText('Travel');
+    expect(findJargon(document.body)).toEqual([]);
   });
 });

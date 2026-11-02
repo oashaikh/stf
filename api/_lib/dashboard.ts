@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 
-import { accounts, transactionLines, transactions } from '../../server/src/db/schema.js';
+import { accounts, bankConnections, bankTransactions, receipts, transactionLines, transactions } from '../../server/src/db/schema.js';
 import { dashboardPeriods, summariseLedger, type DatePeriod, type LedgerTotals } from '../../src/lib/dashboardSummary.js';
 import type { LedgerLine } from '../../src/lib/vat.js';
 import { db } from './db.js';
@@ -23,6 +23,8 @@ export interface DashboardSummary {
   month: LedgerTotals & DatePeriod;
   vatQuarter: DatePeriod & { vatCollectedPence: number; vatPaidPence: number };
   draftCount: number;
+  unsortedBankCount: number;
+  receiptsToCheckCount: number;
   recentEntries: RecentEntry[];
 }
 
@@ -31,6 +33,10 @@ export interface DashboardStore {
   /** Confirmed or reconciled income and expense totals per day and account type, one grouped query. Throws if over LEDGER_LINE_LIMIT. */
   loadDailyTotals(userId: string, period: DatePeriod): Promise<LedgerLine[]>;
   countDrafts(userId: string): Promise<number>;
+  /** Bank payments still waiting to be matched, on the user's live bank connections. */
+  countUnsortedBankPayments(userId: string): Promise<number>;
+  /** Receipts the AI has read that the user has not yet turned into an entry. */
+  countReceiptsToCheck(userId: string): Promise<number>;
   /** The newest RECENT_ENTRY_LIMIT live entries, two queries in all. */
   listRecentEntries(userId: string): Promise<RecentEntry[]>;
 }
@@ -41,9 +47,11 @@ export async function getDashboardSummary(store: DashboardStore, userId: string,
     start: [taxYear.start, quarter.start].sort()[0],
     end: [taxYear.end, quarter.end].sort().reverse()[0],
   };
-  const [days, draftCount, recentEntries] = await Promise.all([
+  const [days, draftCount, unsortedBankCount, receiptsToCheckCount, recentEntries] = await Promise.all([
     store.loadDailyTotals(userId, widest),
     store.countDrafts(userId),
+    store.countUnsortedBankPayments(userId),
+    store.countReceiptsToCheck(userId),
     store.listRecentEntries(userId),
   ]);
   const { vatCollectedPence, vatPaidPence } = summariseLedger(days, quarter);
@@ -52,6 +60,8 @@ export async function getDashboardSummary(store: DashboardStore, userId: string,
     month: { ...month, ...summariseLedger(days, month) },
     vatQuarter: { ...quarter, vatCollectedPence, vatPaidPence },
     draftCount,
+    unsortedBankCount,
+    receiptsToCheckCount,
     recentEntries,
   };
 }
@@ -59,7 +69,9 @@ export async function getDashboardSummary(store: DashboardStore, userId: string,
 // Query audit: every query filters on transactions.user_id from the session. The daily totals and the
 // recent list are served by transactions_user_date_idx (user_id, date) and carry a LIMIT; the draft count
 // reads the same index and returns one row; recent lines come in by the transaction_id foreign key with a
-// LIMIT, and accounts by primary key.
+// LIMIT, and accounts by primary key. The unsorted bank count filters bank_connections.user_id
+// (bank_connections_user_id_idx), joins bank_transactions by connection_id (bank_transactions_connection_date_idx)
+// and returns one row. The receipts count filters receipts.user_id and returns one row.
 export const databaseDashboardStore: DashboardStore = {
   async loadDailyTotals(userId, period) {
     const rows = await db
@@ -103,6 +115,26 @@ export const databaseDashboardStore: DashboardStore = {
       .where(and(eq(transactions.userId, userId), eq(transactions.status, 'draft'), isNull(transactions.deletedAt)))
       .limit(1);
     return row?.drafts ?? 0;
+  },
+
+  async countUnsortedBankPayments(userId) {
+    const [row] = await db
+      .select({ unsorted: count() })
+      .from(bankTransactions)
+      .innerJoin(bankConnections, eq(bankTransactions.connectionId, bankConnections.id))
+      .where(and(eq(bankConnections.userId, userId), isNull(bankConnections.deletedAt), eq(bankTransactions.status, 'unmatched')))
+      .limit(1);
+    return row?.unsorted ?? 0;
+  },
+
+  async countReceiptsToCheck(userId) {
+    // ponytail: no index on receipts.user_id yet; fine at sole-trader volumes. Upgrade: STF-74's receipts_user_created_idx.
+    const [row] = await db
+      .select({ toCheck: count() })
+      .from(receipts)
+      .where(and(eq(receipts.userId, userId), eq(receipts.aiStatus, 'extracted'), isNull(receipts.transactionId), isNull(receipts.deletedAt)))
+      .limit(1);
+    return row?.toCheck ?? 0;
   },
 
   async listRecentEntries(userId) {

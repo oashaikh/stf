@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { formatPence } from '../lib/money';
 import { currentTaxYear, TAX_BANDS } from '../lib/taxBands';
@@ -7,12 +7,13 @@ import { fetchTaxEstimate, taxEstimateQueryKey } from '../lib/taxEstimateApi';
 import ItsObligationsSection from './ItsObligationsSection';
 import type { ExpenseMethod } from '../lib/taxYearSummary';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
+import OfficialName from '../components/OfficialName';
 import StateMessage from '../components/StateMessage';
 
 // Newest first, only years that have bands to calculate with.
 const TAX_YEARS = Object.keys(TAX_BANDS).sort().reverse();
 
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Row({ label, value, strong }: { label: ReactNode; value: string; strong?: boolean }) {
   return (
     <div className={`flex justify-between gap-4 ${strong ? 'border-t border-gray-200 pt-2 font-medium' : ''}`}>
       <dt className="text-gray-700">{label}</dt>
@@ -60,9 +61,9 @@ export default function TaxPage() {
         <section className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
           <dl className="space-y-1">
             <Row label="Profit to date" value={formatPence(data.profitPence)} />
-            <Row label="Income tax" value={formatPence(data.incomeTaxPence)} />
-            <Row label="Class 4 NIC" value={formatPence(data.class4NicPence)} />
-            <Row label="Class 2 NIC" value={data.class2NicPence === 0 ? 'Nothing to pay' : formatPence(data.class2NicPence)} />
+            <Row label="Income Tax" value={formatPence(data.incomeTaxPence)} />
+            <Row label={<>National Insurance on profits<OfficialName>Class 4 NIC</OfficialName></>} value={formatPence(data.class4NicPence)} />
+            <Row label={<>Flat-rate National Insurance<OfficialName>Class 2 NIC</OfficialName></>} value={data.class2NicPence === 0 ? 'Nothing to pay' : formatPence(data.class2NicPence)} />
             <Row label="Total" value={formatPence(data.totalTaxPence)} strong />
             <Row label="Suggested to set aside" value={formatPence(data.setAsidePence)} strong />
           </dl>

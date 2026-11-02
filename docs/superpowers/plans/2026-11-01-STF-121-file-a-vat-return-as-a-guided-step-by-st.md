@@ -120,3 +120,7 @@ Also depends on:
 - [x] **Task 7: Fix: address 14 review findings (cycle 1)** (after 6)
   - Intent: Review left 14 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. I traced the step state (saved step, override, single versus multiple returns, Back, Save and leave) and the submission gate. Th The agent is fixing them; nothing is needed from you.
   - Commit: `278a2deb6edf`
+
+- [x] **Task 8: Fix: address 25 review findings (cycle 2)** (after 7)
+  - Intent: Review left 25 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The flow logic is correct, but the three 390px step-1 captures hide the Box 7 row behind the fixed bottom nav. I traced step selection, resume, Back and Save and leave, th The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

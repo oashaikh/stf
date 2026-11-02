@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TAX_BANDS } from '../lib/taxBands';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 import TaxPage from './TaxPage';
+import { findJargon } from '../lib/jargon';
 
 // This file's fetch mock only knows the tax estimate.
 vi.mock('./ItsObligationsSection', () => ({ default: () => <h2>Income Tax updates due</h2> }));
@@ -65,6 +66,12 @@ describe('TaxPage', () => {
   it('renders the Income Tax updates due section', async () => {
     renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
     expect(await screen.findByRole('heading', { name: 'Income Tax updates due' })).toBeTruthy();
+  });
+
+  it('uses no accounting jargon on screen', async () => {
+    renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
+    await screen.findByRole('heading', { name: 'Income Tax updates due' });
+    expect(findJargon(document.body)).toEqual([]);
   });
 
   it('no longer shows mileage, which lives under Money out', async () => {

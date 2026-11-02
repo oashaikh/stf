@@ -7,6 +7,7 @@ import { DASHBOARD_QUERY_KEY } from '../lib/dashboardApi';
 import type { ApiEntry } from '../lib/entriesApi';
 import { MemoryRouter } from 'react-router-dom';
 import ExpensesPage from './ExpensesPage';
+import { findJargon } from '../lib/jargon';
 
 const account = (id: string, name: string, accountType: string) => ({ id, code: id, name, accountType, taxCategory: null, isSystem: false });
 const accounts = [account('a1', 'Sales', 'income'), account('a2', 'Travel', 'expense'), account('a3', 'Bank', 'asset')];
@@ -130,6 +131,15 @@ describe('ExpensesPage add entry form', () => {
     const message = await screen.findByText('Date cannot be more than 7 days ahead');
     expect(screen.getByLabelText('Date')).toHaveAccessibleDescription(expect.stringContaining(message.textContent!));
     expect(screen.getByLabelText('Description')).toHaveValue('Train to client');
+  });
+
+  it('uses no accounting jargon on the form, its list or a refusal', async () => {
+    refusal = { error: 'Date cannot be more than 7 days ahead', fields: ['date'] };
+    await openForm();
+    fillValid();
+    fireEvent.click(screen.getByRole('button', { name: 'Save as draft' }));
+    await screen.findByText('Date cannot be more than 7 days ahead');
+    expect(findJargon(document.body)).toEqual([]);
   });
 
   it('marks the dashboard summary stale after saving an entry', async () => {

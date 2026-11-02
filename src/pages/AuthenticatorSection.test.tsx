@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AuthenticatorSection, { TURN_OFF_WARNING } from './AuthenticatorSection';
+import { findJargon } from '../lib/jargon';
 
 const reply = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body }) as Response;
 const RECOVERY = ['aaaa-1111', 'bbbb-2222'];
@@ -93,5 +94,12 @@ describe('AuthenticatorSection', () => {
     fireEvent.click(confirmButton);
     expect(await screen.findByText('Authenticator is off')).toBeInTheDocument();
     expect(calls.filter((call) => call.endsWith('action=disable'))).toHaveLength(2);
+  });
+
+  it('uses no accounting jargon on screen', async () => {
+    mockServer(true);
+    render(<AuthenticatorSection />);
+    await screen.findByRole('button', { name: /turn off/i });
+    expect(findJargon(document.body)).toEqual([]);
   });
 });

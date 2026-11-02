@@ -180,7 +180,7 @@ function ActionDialogs({ summary, isDraft, state, onIssue }: { summary: string; 
     return (
       <ConfirmDialog title="Void this invoice?" confirmLabel="Void invoice" danger busy={mutation.isPending} error={error} onCancel={close} onConfirm={state.confirmVoid}>
         <p className="mt-3 text-sm text-gray-700">
-          The invoice stays on record, marked voided{isDraft ? '' : ', and its income and any payment postings are voided too'}. This cannot be undone.
+          The invoice stays on record, marked voided{isDraft ? '' : ', and its income and any payments recorded against it are cancelled too'}. This cannot be undone.
         </p>
         <div className="mt-3">
           <Field label="Reason" error={state.reasonError ? 'Enter a reason' : undefined}>

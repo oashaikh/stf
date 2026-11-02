@@ -1,6 +1,6 @@
 # HMRC sandbox evidence run
 
-The script `npm run hmrc:evidence` (in `scripts/hmrcSandboxEvidence.ts`) creates test users in the HMRC sandbox, signs in as each of them, and calls every API endpoint STF uses. HMRC checks their logs for these API calls in the **2 weeks following your approval email** to `SDSTeam@hmrc.gov.uk`. Run this script no more than **2 weeks before** sending that email. See `docs/hmrc/mtd-itsa-minimum-functionality.md` for why HMRC requires this evidence.
+The script `npm run hmrc:evidence` (in `scripts/hmrcSandboxEvidence.ts`) creates test users in the HMRC sandbox and calls every API endpoint STF uses. HMRC checks their logs for these API calls in the **2 weeks following your approval email** to `SDSTeam@hmrc.gov.uk`. Run this script no more than **2 weeks before** sending that email. See `docs/hmrc/mtd-itsa-minimum-functionality.md` for why HMRC requires this evidence.
 
 **Status:** The script was built during development. The evidence run has not yet been executed with real sandbox credentials, so no evidence note yet exists. After all code merges, the owner will run this script and produce the actual evidence that HMRC will review.
 
@@ -22,21 +22,17 @@ The script makes a HTTP request to HMRC each time. Run it only in a fresh termin
 2. Run `npm ci` to install dependencies.
 3. Run `npm run hmrc:evidence`.
 
-The script will create test users and save their sign-in details in `.hmrc-sandbox-users.json` (not committed, local only). Then it tells you what to do next.
+The script will create test users and save their sign-in details in `.hmrc-sandbox-users.json` (not committed, local only). Then it stops and asks for a refresh token for each user (next section).
 
-## Signing in via browser
+## Getting a refresh token for each test user
 
-The script needs a refresh token from each test user. HMRC only issues refresh tokens after the user signs in through their own browser. The script prints step-by-step instructions when it is ready; follow them exactly.
+HMRC never displays a refresh token. You get one by signing in as the test user through the OAuth authorisation-code flow for your sandbox application, then exchanging the code. Do this once for the organisation and once for the individual.
 
-1. Open the message the script printed. It shows two user IDs and their passwords.
-2. In your browser, go to `https://sandbox.tax.service.gov.uk/` and sign in as the organisation user first, then approve the OAuth flow.
-3. When redirected back, copy the organisation refresh token that HMRC shows in the browser (shown once).
-4. Set the token and sign in again as the individual:
-   ```bash
-   export HMRC_SANDBOX_VAT_REFRESH_TOKEN=...
-   export HMRC_SANDBOX_REFRESH_TOKEN=...
-   ```
-5. Back in the terminal, run `npm run hmrc:evidence` again. The script now runs all 21 API calls and writes the results.
+1. Add `https://localhost/callback` as a redirect URI on the sandbox application in the Developer Hub (any URI you control works; it only has to match in steps 2 and 3).
+2. Open `https://test-www.tax.service.gov.uk/oauth/authorize?response_type=code&client_id=<HMRC_CLIENT_ID>&scope=read:vat%20write:vat%20read:self-assessment%20write:self-assessment&redirect_uri=https%3A%2F%2Flocalhost%2Fcallback`, sign in as the test user (password in `.hmrc-sandbox-users.json`) and grant access.
+3. The browser lands on a page that fails to load. Copy the `code` value from its address bar. It is single use and short lived.
+4. Exchange it: `curl -s https://test-api.service.hmrc.gov.uk/oauth/token -d grant_type=authorization_code -d client_id=$HMRC_CLIENT_ID -d client_secret=$HMRC_CLIENT_SECRET -d code=<code> -d redirect_uri=https://localhost/callback`
+5. Export `refresh_token` from the reply: `HMRC_SANDBOX_VAT_REFRESH_TOKEN` for the organisation, `HMRC_SANDBOX_REFRESH_TOKEN` for the individual. Then run `npm run hmrc:evidence` again.
 
 ## Reading the evidence note
 
@@ -52,10 +48,10 @@ All rows should show PASS. If any shows FAIL, the detail column gives the HMRC e
 
 To run the evidence again later:
 
-1. Set the client credentials and refresh tokens again (they do not expire during a single calendar day, but rotate monthly).
+1. Set the client credentials and refresh tokens again (a refresh token that HMRC has invalidated needs the steps above again).
 2. Run `npm run hmrc:evidence`.
 
-The script reuses the test users from `.hmrc-sandbox-users.json` rather than creating new ones. If the file is lost or a refresh token becomes invalid, delete the file and start from "Signing in via browser" above; the script will create new test users.
+The script reuses the test users from `.hmrc-sandbox-users.json` rather than creating new ones. If the file is lost or a refresh token becomes invalid, delete the file and start from "Getting a refresh token" above; the script will create new test users.
 
 ## Template: what the owner quotes to HMRC
 
@@ -65,6 +61,6 @@ Send the evidence note to HMRC in the approval email to `SDSTeam@hmrc.gov.uk`. Q
 > - Organisation (VAT): user 12345, VRN 345678901234567
 > - Individual (Income Tax): user 67890, NINO (masked)
 >
-> All 21 calls to your APIs passed, covering fraud prevention headers, VAT obligations and returns, Income Tax quarterly and annual submissions, adjustable summary, tax calculation and final declaration. See the attached evidence run.
+> All <N> steps in the attached note passed (<N> is the step count the script printed), covering fraud prevention headers, VAT obligations and returns, Income Tax quarterly and annual submissions, adjustable summary, tax calculation and final declaration. See the attached evidence run.
 
 Keep the NINO masked (do not quote it in full). Keep the attachment as a markdown file, not a screenshot or PDF.

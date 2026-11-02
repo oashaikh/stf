@@ -6,7 +6,7 @@ sections "Minimum functionality standards", "Production approvals checklist" and
 
 Date read: 2026-11-02, via a summary the operator pasted into the ticket (this environment cannot reach HMRC sites).
 Operator check: on 2 Nov 2026 the operator compared this document with the live HMRC page and accepted it.
-The rows below follow that summary, not HMRC's exact wording. Before the owner quotes any standard to HMRC, check it against the live page.
+The rows below follow that summary, not HMRC's exact wording.
 
 Scope: sole trader with self-employment and UK property income. Limited companies are out of scope.
 

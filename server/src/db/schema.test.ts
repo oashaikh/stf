@@ -119,8 +119,12 @@ describe("schema migrations", () => {
       return match![1];
     };
 
-    it("locks one submission per user, tax year, quarter and HMRC environment", () => {
-      expect(tableBody()).toContain('UNIQUE("user_id","tax_year","quarter","sandbox")');
+    it("locks one submission per user, tax year, quarter, HMRC environment and business kind", () => {
+      expect(sql).toContain('UNIQUE("user_id","tax_year","quarter","sandbox","business_kind")');
+    });
+
+    it("gives existing rows the self-employment kind", () => {
+      expect(sql).toContain(`"business_kind" text DEFAULT 'self-employment' NOT NULL`);
     });
 
     it("defines the status enum values", () => {
@@ -405,7 +409,7 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0030_bank_suggestions");
+    expect(tags.at(-1)).toBe("0032_bank_suggestions");
   });
 });
 
@@ -438,3 +442,19 @@ describe("bank line suggestions", () => {
     expect(Object.keys(bankTransactions)).toEqual(expect.arrayContaining(["suggestedAccountId", "suggestedConfidence"]));
   });
 });
+
+describe("0030_uk_property_business migration", () => {
+  const sql = readFileSync(join(MIGRATIONS_DIR, "0030_uk_property_business.sql"), "utf8");
+  const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
+
+  it("only adds the nullable property business id column", () => {
+    expect(sql.trim()).toBe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "hmrc_its_property_business_id" text;');
+  });
+
+  it("is journalled once, as index 28", () => {
+    const entries = journal.entries.filter((entry: { tag: string }) => entry.tag === "0030_uk_property_business");
+    expect(entries).toHaveLength(1);
+    expect(entries[0].idx).toBe(30);
+  });
+});
+

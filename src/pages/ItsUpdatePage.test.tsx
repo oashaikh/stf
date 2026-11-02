@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ItsUpdatePage from './ItsUpdatePage';
 
-const open = { kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-04-06', periodEnd: '2026-07-05', dueDate: '2026-08-05', status: 'open', receivedDate: null, overdue: false, nextDue: true };
+const open = { business: 'self-employment', kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-04-06', periodEnd: '2026-07-05', dueDate: '2026-08-05', status: 'open', receivedDate: null, overdue: false, nextDue: true };
 
 function renderAt(path: string, obligation: object = open) {
   vi.stubGlobal('fetch', vi.fn(async (url: string) =>
@@ -16,6 +16,7 @@ function renderAt(path: string, obligation: object = open) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/tax/update/:taxYear/:quarter" element={<ItsUpdatePage />} />
+          <Route path="/tax/update/property/:taxYear/:quarter" element={<ItsUpdatePage business="uk-property" />} />
           <Route path="/tax/income-tax" element={<p>Tax page</p>} />
         </Routes>
       </MemoryRouter>
@@ -43,6 +44,14 @@ describe('ItsUpdatePage', () => {
 
   it('does not open the update for a quarter that is already sent', async () => {
     renderAt('/tax/update/2026-27/1', { ...open, status: 'fulfilled', receivedDate: '2026-07-20' });
+    expect((await screen.findByRole('alert')).textContent).toContain('could not find that update');
+  });
+
+  it('opens the rental property update only from the property address', async () => {
+    renderAt('/tax/update/property/2026-27/1', { ...open, business: 'uk-property' });
+    expect(await screen.findByText('Rental property')).toBeTruthy();
+    cleanup();
+    renderAt('/tax/update/2026-27/1', { ...open, business: 'uk-property' });
     expect((await screen.findByRole('alert')).textContent).toContain('could not find that update');
   });
 

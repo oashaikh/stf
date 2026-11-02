@@ -11,10 +11,14 @@ import {
   triggerTaxCalculation,
   getVatObligations,
   HmrcError,
+  listItsPropertyBusinesses,
+  PROPERTY_BUSINESS_API_ACCEPT,
+  propertyCumulativePath,
   refreshAccessToken,
   SELF_EMPLOYMENT_API_ACCEPT,
   submitAnnualSubmission,
   submitCumulativePeriodSummary,
+  submitPropertyCumulativeSummary,
   validateFraudHeaders,
   withHmrcToken,
   type HmrcTokenSet,
@@ -164,6 +168,14 @@ describe('ITSA obligations', () => {
     expect(init.headers.Authorization).toBe('Bearer tok');
     expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
     expect(result.obligations[0].obligationDetails[1].status).toBe('Open');
+  });
+
+  it('asks for the property business when told to', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { obligations: [] }));
+    await getItsIncomeAndExpenditureObligations(nino, 'XAPP1', '2026-04-06', '2027-04-05', 'tok', fraud, fetchFn, undefined, 'uk-property');
+    const params = new URL(fetchFn.mock.calls[0][0]).searchParams;
+    expect(params.get('typeOfBusiness')).toBe('uk-property');
+    expect(params.get('businessId')).toBe('XAPP1');
   });
 
   it('passes the status filter on quarterly updates', async () => {
@@ -392,6 +404,62 @@ describe('submitAnnualSubmission', () => {
     await expect(
       submitAnnualSubmission('AA123456A', 'biz1', '2026-27', payload, 'tok', fraudHeaders, fetchFn),
     ).rejects.toMatchObject({ apiError: { code: 'RULE_X', statusCode: 422 } });
+  });
+});
+
+describe('UK property business calls', () => {
+  const payload = {
+    fromDate: '2026-04-06',
+    toDate: '2026-07-05',
+    ukProperty: { income: { periodAmount: 1200 }, expenses: { repairsAndMaintenance: 100.5 } },
+  };
+  const fraudHeaders = { 'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER' };
+
+  it('builds the UK property cumulative path', () => {
+    expect(propertyCumulativePath('AA123456A', 'XPIS1', '2026-27')).toBe(
+      '/individuals/business/property/uk/AA123456A/XPIS1/cumulative/2026-27',
+    );
+  });
+
+  it('PUTs the property payload with the property accept header and fraud headers', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    await submitPropertyCumulativeSummary('AA123456A', 'XPIS1', '2026-27', payload, 'tok', fraudHeaders, fetchFn);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe(
+      'https://test-api.service.hmrc.gov.uk/individuals/business/property/uk/AA123456A/XPIS1/cumulative/2026-27',
+    );
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBe(JSON.stringify(payload));
+    expect(init.headers.Accept).toBe(PROPERTY_BUSINESS_API_ACCEPT);
+    expect(init.headers.Authorization).toBe('Bearer tok');
+    expect(init.headers['Gov-Client-Connection-Method']).toBe('WEB_APP_VIA_SERVER');
+  });
+
+  it('maps a 4xx on submit to HmrcError', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(422, { code: 'RULE_X', message: 'nope' }));
+    await expect(
+      submitPropertyCumulativeSummary('AA123456A', 'XPIS1', '2026-27', payload, 'tok', fraudHeaders, fetchFn),
+    ).rejects.toMatchObject({ apiError: { code: 'RULE_X', statusCode: 422 } });
+  });
+
+  it('lists only uk-property businesses, sending fraud headers', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        businessDetails: [
+          { businessId: 'XAIS1', typeOfBusiness: 'self-employment' },
+          { businessId: 'XPIS1', typeOfBusiness: 'uk-property' },
+          { businessId: 'XFIS1', typeOfBusiness: 'foreign-property' },
+        ],
+      }),
+    );
+    const found = await listItsPropertyBusinesses('AA123456A', 'tok', fraudHeaders, fetchFn);
+    expect(found).toEqual([{ businessId: 'XPIS1', typeOfBusiness: 'uk-property' }]);
+    expect(fetchFn.mock.calls[0][1].headers['Gov-Client-Connection-Method']).toBe('WEB_APP_VIA_SERVER');
+  });
+
+  it('returns an empty list when HMRC has no property business', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { businessDetails: [] }));
+    await expect(listItsPropertyBusinesses('AA123456A', 'tok', fraudHeaders, fetchFn)).resolves.toEqual([]);
   });
 });
 

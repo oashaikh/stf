@@ -1,6 +1,6 @@
 import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm';
 
-import { DEFAULT_ACCOUNTS } from '../../src/lib/chartOfAccounts.js';
+import { DEFAULT_ACCOUNTS, PROPERTY_ACCOUNTS, isPropertyCategory } from '../../src/lib/chartOfAccounts.js';
 import { accounts, auditEvents, type AccountRow } from '../../server/src/db/schema.js';
 import { db } from './db.js';
 import { hasControlCharacters } from './inputRules.js';
@@ -21,6 +21,7 @@ export type AccountChange = { name: string } | { archivedAt: Date | null };
 
 export interface AccountStore {
   seedDefaults(userId: string): Promise<void>;
+  seedPropertyAccounts(userId: string): Promise<void>;
   list(userId: string, archived: boolean): Promise<Account[]>;
   get(userId: string, id: string): Promise<Account | undefined>;
   /** Throws DuplicateAccountCodeError when the code is taken. Writes the audit event atomically. */
@@ -73,6 +74,19 @@ export async function listAccounts(store: AccountStore, userId: string, archived
   return store.list(userId, archived);
 }
 
+/** Adds the UK property categories on request, so owners without a rental never see them. Safe to repeat. */
+export async function ensurePropertyAccounts(store: AccountStore, userId: string): Promise<Account[]> {
+  await store.seedDefaults(userId);
+  await store.seedPropertyAccounts(userId);
+  const present = (await store.list(userId, false)).filter((account) => isPropertyCategory(account.taxCategory));
+  // Seeding skips a code the owner already uses; refuse loudly rather than leave a category missing.
+  const missing = PROPERTY_ACCOUNTS.filter((wanted) => !present.some((account) => account.taxCategory === wanted.taxCategory));
+  if (missing.length > 0) {
+    throw new AccountRuleError(`Account codes ${missing.map((account) => account.code).join(', ')} are already in use, so rental categories cannot be added`);
+  }
+  return present;
+}
+
 /** is_system is never client-supplied: accounts created here are always user accounts. */
 export const createAccount = (store: AccountStore, userId: string, account: NewAccount) => store.insert(userId, account);
 
@@ -114,6 +128,13 @@ export const databaseAccountStore: AccountStore = {
     await db
       .insert(accounts)
       .values(DEFAULT_ACCOUNTS.map((account) => ({ ...account, userId })))
+      .onConflictDoNothing({ target: [accounts.userId, accounts.code] });
+  },
+
+  async seedPropertyAccounts(userId) {
+    await db
+      .insert(accounts)
+      .values(PROPERTY_ACCOUNTS.map((account) => ({ ...account, userId })))
       .onConflictDoNothing({ target: [accounts.userId, accounts.code] });
   },
 

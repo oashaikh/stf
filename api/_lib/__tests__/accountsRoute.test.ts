@@ -5,6 +5,7 @@ vi.mock('../db', () => ({ db: {} }));
 import { createAccountsHandler } from '../../accounts';
 import { DuplicateAccountCodeError, type Account, type AccountStore } from '../accounts';
 import type { AuthDeps } from '../auth';
+import { PROPERTY_ACCOUNTS } from '../../../src/lib/chartOfAccounts';
 
 const authDeps: AuthDeps = {
   issuer: {
@@ -24,6 +25,11 @@ describe('accounts route', () => {
       seedCalls.push(userId);
       if (!rows.some((r) => r.userId === userId && r.code === '1000')) {
         rows.push({ id: uuid(rows.length + 1), userId, code: '1000', name: 'Bank', accountType: 'asset', taxCategory: null, isSystem: true, archivedAt: null });
+      }
+    },
+    async seedPropertyAccounts(userId) {
+      for (const p of PROPERTY_ACCOUNTS) {
+        if (!rows.some((r) => r.userId === userId && r.code === p.code)) rows.push({ ...p, id: uuid(rows.length + 1), userId, archivedAt: null });
       }
     },
     async list(userId, archived) {
@@ -62,6 +68,18 @@ describe('accounts route', () => {
 
   it.each(['GET', 'POST', 'PATCH'])('refuses %s without a token', async (method) => {
     expect((await call(method, method === 'GET' ? undefined : {})).status).toBe(401);
+  });
+
+  it('creates the property accounts once for the caller only', async () => {
+    const first = await call('POST', { propertyAccounts: true }, 'u1');
+    expect(first.status).toBe(200);
+    const body = await first.json();
+    expect(body.accounts.map((a: Account) => a.taxCategory)).toEqual(PROPERTY_ACCOUNTS.map((a) => a.taxCategory));
+    await call('POST', { propertyAccounts: true }, 'u1');
+    expect(rows.filter((r) => r.userId === 'u1' && r.taxCategory?.startsWith('property-'))).toHaveLength(PROPERTY_ACCOUNTS.length);
+    expect(rows.some((r) => r.userId === 'u2')).toBe(false);
+    const other = await (await call('GET', undefined, 'u2')).json();
+    expect(other.accounts.some((a: Account) => a.taxCategory?.startsWith('property-'))).toBe(false);
   });
 
   it('refuses other methods', async () => {

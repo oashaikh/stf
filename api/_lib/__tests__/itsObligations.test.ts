@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { markItsObligations, normaliseItsObligations, previousTaxYear, type ItsObligation } from '../itsObligations';
+import { markItsObligations, normaliseItsObligations, normalisePropertyObligations, previousTaxYear, type ItsObligation } from '../itsObligations';
 import type { ItsFinalDeclarationObligations, ItsIncomeAndExpenditureObligations } from '../../../src/lib/hmrc/client';
 import fixtures from '../../../src/lib/hmrc/fixtures/itsObligations.json';
 
 const item = (overrides: Partial<ItsObligation>): ItsObligation => ({
+  business: 'self-employment',
   kind: 'quarterly',
   taxYear: '2026-27',
   periodStart: '2026-07-06',
@@ -31,6 +32,7 @@ describe('normaliseItsObligations', () => {
     );
     expect(result).toHaveLength(3);
     expect(result[0]).toEqual({
+      business: 'self-employment',
       kind: 'quarterly',
       taxYear: '2026-27',
       periodStart: '2026-04-06',
@@ -40,6 +42,14 @@ describe('normaliseItsObligations', () => {
       receivedDate: '2026-08-01',
     });
     expect(result[2]).toMatchObject({ kind: 'finalDeclaration', status: 'open', dueDate: '2028-01-31', receivedDate: null });
+  });
+});
+
+describe('normalisePropertyObligations', () => {
+  it('tags quarterly rows as property and never adds a final declaration', () => {
+    const result = normalisePropertyObligations('2026-27', fixtures.incomeAndExpenditure as ItsIncomeAndExpenditureObligations);
+    expect(result).toHaveLength(2);
+    expect(result.every((row) => row.business === 'uk-property' && row.kind === 'quarterly')).toBe(true);
   });
 });
 

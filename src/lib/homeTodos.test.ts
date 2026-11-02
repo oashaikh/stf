@@ -9,7 +9,7 @@ const vat = (due: string): VatObligationRow => ({
   periodKey: 'A', start: '2026-08-01', end: '2026-10-31', due, status: 'O', overdue: false,
 });
 const its = (dueDate: string): ItsObligationRow => ({
-  kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-04-06', periodEnd: '2026-07-05',
+  business: 'self-employment', kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-04-06', periodEnd: '2026-07-05',
   dueDate, status: 'open', receivedDate: null, overdue: false, nextDue: false,
 });
 const input = (overrides: Partial<HomeTodoInput> = {}): HomeTodoInput => ({
@@ -30,6 +30,15 @@ describe('buildHomeTodos', () => {
     expect(items.map((item) => item.dueDate ?? item.id)).toEqual([
       '2026-10-01', '2026-10-30', '2026-11-10', '2026-11-20', 'unsorted-payments', 'receipts-to-check',
     ]);
+  });
+
+  it('gives a rental property update its own id, wording and link', () => {
+    const rental = { ...its('2026-11-05'), business: 'uk-property' as const };
+    const { items } = buildHomeTodos(input({ itsObligations: [its('2026-11-05'), rental] }), today);
+    expect(new Set(items.map((item) => item.id)).size).toBe(2);
+    const rentalItem = items.find((item) => item.id.includes('uk-property'));
+    expect(rentalItem?.route).toBe('/tax/update/property/2026-27/1');
+    expect(rentalItem?.title).toMatch(/^Send your rental property update/);
   });
 
   it('says how late an overdue item is, singular and plural', () => {

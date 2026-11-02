@@ -28,6 +28,7 @@ function fakeStore(rows: Record<string, Row>): HmrcStore {
     setSandboxMode: async (userId, sandbox) => {
       if (rows[userId]) rows[userId].sandbox = sandbox;
     },
+    setItsPropertyBusinessId: async () => undefined,
     saveTokens: vi.fn(async (userId, tokens) => {
       if (tokens.scope !== undefined && tokens.scope !== rows[userId].scope) delete rows[userId].itsBusinessId;
       Object.assign(rows[userId], tokens);
@@ -47,6 +48,7 @@ function fakeStore(rows: Record<string, Row>): HmrcStore {
       connected: Boolean(rows[userId]?.refreshToken),
       expiresAt: rows[userId]?.expiresAt?.toISOString() ?? null,
       itsBusinessId: rows[userId]?.itsBusinessId ?? null,
+      itsPropertyBusinessId: null,
       needsItsReconnect: Boolean(rows[userId]?.refreshToken) && lacksItsScope(rows[userId]?.scope ?? null),
     }),
   };

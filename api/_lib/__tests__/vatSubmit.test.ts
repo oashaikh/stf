@@ -75,6 +75,7 @@ function makeHmrcStore(sandbox: boolean | undefined, overrides: Partial<HmrcCred
     sandboxMode: async () => sandbox,
     setSandboxMode: vi.fn(),
     setItsBusinessId: async () => undefined,
+    setItsPropertyBusinessId: async () => undefined,
     itsBusinessId: async () => null,
     saveItsObligations: async () => undefined,
     lastItsObligations: async () => [],
@@ -91,7 +92,7 @@ function makeHmrcStore(sandbox: boolean | undefined, overrides: Partial<HmrcCred
       saved.push(tokens.accessToken);
       return true;
     },
-    status: async () => ({ connected: true, expiresAt: null, itsBusinessId: null, needsItsReconnect: false }),
+    status: async () => ({ connected: true, expiresAt: null, itsBusinessId: null, itsPropertyBusinessId: null, needsItsReconnect: false }),
   };
   return { store, saved };
 }

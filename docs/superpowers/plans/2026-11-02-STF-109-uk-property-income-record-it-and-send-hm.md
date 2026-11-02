@@ -100,7 +100,7 @@ Also depends on:
   - Risk: Opus/high: schema change to the submission lock and a filing path where a mistake could file twice or lose a receipt.
   - Commit: `f6b0fd790ac3`
 
-- [ ] **Task 5: Fetch and cache property obligations next to the self-employment ones** (after 1)
+- [x] **Task 5: Fetch and cache property obligations next to the self-employment ones** (after 1)
   - Intent: Done means the quarterly updates due for the UK property business come from HMRC's obligations endpoint (using the property business id), are cached and returned tagged by business kind so the Tax page can tell them apart. Extend api/hmrc/its-obligations.ts, api/_lib/itsObligations.ts and getItsIncomeAndExpenditureObligations to take a business id and tag rows. Property rows must not overwrite self-employment rows in its_obligations_cache (store both inside the existing jsonb payload, no migration unless unavoidable). Owners with no property business see no change.
   - Files: `api/hmrc/its-obligations.ts`, `api/_lib/itsObligations.ts`, `api/_lib/__tests__/itsObligations.test.ts`, `api/_lib/__tests__/itsObligationsRoute.test.ts`, `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`, `src/lib/hmrc/itsObligationsApi.ts`
   - Acceptance criteria the planner set:
@@ -108,6 +108,7 @@ Also depends on:
     - A failed property fetch does not hide self-employment obligations and gives a plain-words error for property
     - Cache holds both without one overwriting the other
     - Lint, typecheck, test and build pass
+  - Commit: `3ced49b9b327`
 
 - [ ] **Task 6: Let owners switch on UK property and record rental money in plain words** (after 2)
   - Intent: Done means an owner who lets a UK property can turn on property categories (calls ensurePropertyAccounts) from a plain-worded prompt on the Tax page, then pick 'Rent received', 'Repairs' and the like when adding money in or out. The UK-property group is labelled and separated from business categories in the picker. Plain words per docs/design/ease-of-use.md, official names only in small muted text. Follow UI rules (tokens, 44px targets, focus, shared loading/empty/error). Screenshots at 1440 and 390 px in browser-evidence/STF-109. VAT screens untouched.

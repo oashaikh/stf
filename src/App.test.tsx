@@ -29,6 +29,13 @@ describe('public legal pages', () => {
     render(<App />);
     expect(await screen.findByLabelText('Password')).toBeInTheDocument();
   });
+
+  it('keeps the Income Tax year end flow behind sign-in', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 } as Response));
+    window.history.pushState({}, '', '/tax/year-end/2026-27');
+    render(<App />);
+    expect(await screen.findByLabelText('Password')).toBeInTheDocument();
+  });
 });
 
 describe('old addresses', () => {

@@ -2,6 +2,8 @@
 
 The script `npm run hmrc:evidence` creates test users in the HMRC sandbox, signs in as each of them, and calls every API endpoint STF uses. HMRC watches the logs for these calls in the 2 weeks after you email your approval request. See `docs/hmrc/mtd-itsa-minimum-functionality.md` for why HMRC requires this evidence.
 
+**Note:** This runbook was written during development. The evidence run has not yet been executed, so no real evidence note exists yet. The owner will run this script after merging all code and produce the actual evidence that HMRC will review.
+
 ## Prerequisites
 
 1. Create a sandbox application in the HMRC Developer Hub, subscribed to both VAT (MTD) and Income Tax (ITSA).

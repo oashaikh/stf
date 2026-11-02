@@ -107,3 +107,36 @@ export const confirmReceiptUpload = (id: string) => sendReceiptId('PATCH', id, '
 export const confirmReceiptDetails = (id: string) => sendReceiptId('PUT', id, 'Could not save your check. Please try again.');
 
 export const removeReceipt = (id: string) => sendReceiptId('DELETE', id, 'Could not remove the receipt. Please try again.');
+
+/** The owner's checked values. `grossPence` is integer pence; the server re-validates all of it and takes the owner from the session. */
+export interface ConfirmedReceiptFields {
+  id: string;
+  date: string;
+  supplier: string;
+  grossPence: number;
+  vatRatePercent: 0 | 5 | 20;
+  categoryAccountId: string;
+  description: string;
+}
+
+async function sendReceiptConfirm(method: 'POST' | 'DELETE', body: unknown, fallback: string): Promise<Response> {
+  const response = await fetch('/api/receipt-confirm', {
+    method,
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(await refusalMessage(response, fallback));
+  return response;
+}
+
+/** Turns a draft into an expense using the owner's edited values; resolves to the new entry id. */
+export async function confirmReceiptDraft(fields: ConfirmedReceiptFields): Promise<string> {
+  const response = await sendReceiptConfirm('POST', fields, 'Could not save the expense. Please try again.');
+  return (await response.json()).entry.id;
+}
+
+/** Throws the draft away; the receipt stays so the expense can be typed in by hand. */
+export const discardReceiptDraft = async (id: string): Promise<void> => {
+  await sendReceiptConfirm('DELETE', { id }, 'Could not discard the draft. Please try again.');
+};

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { confirmReceiptDetails, confirmReceiptUpload, readReceiptDetails, fetchReceipts, LOW_CONFIDENCE_THOUSANDTHS, removeReceipt, startReceiptUpload, uploadToSignedUrl, validateReceiptFile } from '../receiptsApi';
+import { confirmReceiptDraft, discardReceiptDraft, confirmReceiptDetails, confirmReceiptUpload, readReceiptDetails, fetchReceipts, LOW_CONFIDENCE_THOUSANDTHS, removeReceipt, startReceiptUpload, uploadToSignedUrl, validateReceiptFile } from '../receiptsApi';
 
 const respond = (status: number, body: unknown) => vi.fn().mockImplementation(async () => new Response(JSON.stringify(body), { status }));
 const fileOf = (type: string, size: number, name = 'r.jpg') => ({ name, type, size }) as File;
@@ -152,5 +152,42 @@ describe('readReceiptDetails', () => {
   it('has nothing to check when no details were read, and none once confirmed', () => {
     expect(readReceiptDetails({ ...base, details: {} })).toMatchObject({ who: null, amountPence: null, date: '2026-10-30T10:00:00Z', needsCheck: false });
     expect(readReceiptDetails({ ...base, details: { vendor: { value: 'X', confirmed: true, confidence: null } } }).needsCheck).toBe(false);
+  });
+});
+
+describe('confirmReceiptDraft', () => {
+  const edited = { id: 'r1', date: '2026-10-30', supplier: 'Cafe', grossPence: 1250, vatRatePercent: 20 as const, categoryAccountId: 'a1', description: 'Lunch' };
+  it('POSTs the edited values as they are and returns the new entry id', async () => {
+    const fetchMock = respond(200, { ok: true, entry: { id: 'e1' } });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(confirmReceiptDraft(edited)).resolves.toBe('e1');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/receipt-confirm');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body)).toEqual(edited);
+  });
+  it('surfaces the server refusal as a plain message', async () => {
+    vi.stubGlobal('fetch', respond(409, { ok: false, error: 'This receipt is already an expense', code: 'ALREADY_CONFIRMED' }));
+    await expect(confirmReceiptDraft(edited)).rejects.toThrow('This receipt is already an expense');
+  });
+  it('falls back to a plain message when the refusal has no body', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('oops', { status: 500 })));
+    await expect(confirmReceiptDraft(edited)).rejects.toThrow(/Could not save the expense/);
+  });
+});
+
+describe('discardReceiptDraft', () => {
+  it('DELETEs the draft by id', async () => {
+    const fetchMock = respond(200, { ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+    await discardReceiptDraft('r1');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/receipt-confirm');
+    expect(init.method).toBe('DELETE');
+    expect(JSON.parse(init.body)).toEqual({ id: 'r1' });
+  });
+  it('surfaces a refusal as a plain message', async () => {
+    vi.stubGlobal('fetch', respond(404, { ok: false, error: 'Receipt not found', code: 'NOT_FOUND' }));
+    await expect(discardReceiptDraft('r1')).rejects.toThrow('Receipt not found');
   });
 });

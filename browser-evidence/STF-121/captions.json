@@ -60,9 +60,9 @@
     "title": "The flow stops early and asks for your VAT number, with a link to add it in Settings (390px wide, light)"
   },
   "vat-stop-payments-changed-1440-light.png": {
-    "title": "The send step warns that payments changed since you confirmed, with a link to check them (1440px wide, light)"
+    "title": "Step 1 warns that payments changed since you confirmed, with a link to check them (1440px wide, light)"
   },
   "vat-stop-payments-changed-390-light.png": {
-    "title": "The send step warns that payments changed since you confirmed, with a link to check them (390px wide, light)"
+    "title": "Step 1 warns that payments changed since you confirmed, with a link to check them (390px wide, light)"
   }
 }

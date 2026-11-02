@@ -77,7 +77,7 @@ Also depends on:
   - Risk: Opus high: schema migration plus an owner-scoped query where a cross-user leak would be a tenant-isolation bug.
   - Commit: `bf68680d00ff`
 
-- [ ] **Task 3: Show duplicate warnings on the entry form and the Expenses list** (after 1)
+- [x] **Task 3: Show duplicate warnings on the entry form and the Expenses list** (after 1)
   - Intent: In AddEntryForm (ExpensesPage.tsx), once date, amount and supplier are filled, fetch the owner's expense entries within date ±3 days (one bounded fetchEntries call) and run the Task 1 rule. Show a dismissible DuplicateNotice naming the other entry. Saving is never blocked or altered. On the Expenses list (EntriesList.tsx) run the rule once over loaded rows and show a small notice on flagged rows; rows stay one line and collapse at 390px. Plain wording; dismissed stays dismissed after reload.
   - Files: `src/pages/ExpensesPage.tsx`, `src/pages/ExpensesPage.test.tsx`, `src/pages/EntriesList.tsx`, `src/pages/EntriesList.test.tsx`, `src/lib/entriesApi.ts`
   - Acceptance criteria the planner set:
@@ -88,6 +88,7 @@ Also depends on:
     - vat-obligations mocks return defined data
     - Screenshots at 390 and 1440 px of the form and list with a warning
     - npm run lint, typecheck, test and build pass
+  - Commit: `c8606ec353ef`
 
 - [ ] **Task 4: Show duplicate warnings on the receipt review and Receipts list, with screenshots** (after 1, 2, 3)
   - Intent: In ReceiptReview.tsx show a DuplicateNotice if the receipt has duplicateOfId, and run the Task 1 rule against existing expenses using the supplier, total and date as edited. Both dismissible; confirm and discard unchanged. In ReceiptsPage.tsx show the file-level notice on the row after upload. Add a Playwright spec and mock data to capture 390 and 1440 px screenshots of each changed screen.

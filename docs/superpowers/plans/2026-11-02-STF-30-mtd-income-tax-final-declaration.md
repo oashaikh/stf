@@ -122,7 +122,7 @@ Also depends on:
     - npm run lint, typecheck and test pass.
   - Commit: `6d8f77bd926e`
 
-- [ ] **Task 7: Workflow doc and screenshots** (after 5, 6)
+- [x] **Task 7: Workflow doc and screenshots** (after 5, 6)
   - Intent: Write docs/workflows/its-final-declaration.md covering the calculation flow, the tick gate, the audit event, the idempotency lock, the sandbox/live double switch and the open question about non-self-employment income (STF holds only self-employment figures). Capture review-evidence screenshots of each new or changed screen at 390 and 1440 px, using invented data only, in browser-evidence/STF-30/ with a captions file like STF-87's. Run npm run lint, typecheck, test and build.
   - Files: `docs/workflows/its-final-declaration.md`, `browser-evidence/STF-30/captions.json`, `browser-evidence/STF-30/*.png`
   - Acceptance criteria the planner set:
@@ -130,3 +130,4 @@ Also depends on:
     - Screenshots exist at 390 and 1440 px for the flow steps and the Tax page.
     - Screenshots show only invented records.
     - Lint, typecheck, test and build all pass.
+  - Commit: `90fabe0a940e`

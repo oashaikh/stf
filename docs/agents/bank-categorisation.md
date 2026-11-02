@@ -16,10 +16,10 @@ Unmatched bank lines of the signed-in owner, plus the names of their accounts.
 
 Suggestions on the bank line only. **Nothing is written to transactions or transaction_lines.**
 
-- `bank_transactions.suggested_account_id` and `bank_transactions.suggestion_confidence` (integer 0 to 1000, thousandths).
+- `bank_transactions.suggested_account_id` and `bank_transactions.suggestion_confidence` (integer 0 to 100, percent).
 - The suggested account must be one of the owner's own accounts from the list sent; any other id in the reply is dropped.
 - One audit event per request (below).
-- A line that already has a posted entry, or already has a suggestion, is not sent again.
+- Only unmatched lines are sent. Asking again for a line replaces its earlier suggestion.
 
 ## What triggers it
 

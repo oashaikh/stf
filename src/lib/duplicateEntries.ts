@@ -33,7 +33,10 @@ export function findDuplicateEntries(entries: DuplicateCandidate[]): DuplicateFl
         daysApart(a.date, b.date) <= DUPLICATE_WINDOW_DAYS
       ) {
         const entryIds = (a.id < b.id ? [a.id, b.id] : [b.id, a.id]) as [string, string];
-        flags.push({ key: entryIds.join('|'), entryIds });
+        // Date, amount and supplier are in the key so a dismissal of one unsaved entry (id 'new')
+        // does not silence a different new entry matching the same saved one.
+        const key = [...entryIds, ...[a.date, b.date].sort(), a.grossPence, supplierName(a)].join('|');
+        flags.push({ key, entryIds });
       }
     }
   }

@@ -307,7 +307,7 @@ export default function EntriesList({
   const [voidedIds, setVoidedIds] = useState<string[]>([]);
   const rows = useMemo(() => entries.data?.pages.flatMap((page) => page.entries) ?? [], [entries.data]);
   const candidates = useMemo(
-    () => rows.map((row) => ({ ...row, reference: row.reference ?? "" })),
+    () => rows.filter((row) => row.kind === "expense").map((row) => ({ ...row, reference: row.reference ?? "" })),
     [rows],
   );
   const duplicates = useDuplicateFlags(candidates);

@@ -42,4 +42,11 @@ describe('findDuplicateEntries', () => {
     expect(forward.key).toBe(backward.key);
     expect(forward.entryIds).toEqual(['a', 'b']);
   });
+
+  it('gives a new entry with a different date or amount a different key against the same saved entry', () => {
+    const first = findDuplicateEntries([base, entry('new', '2026-10-11', 1250)])[0];
+    const otherDate = findDuplicateEntries([base, entry('new', '2026-10-12', 1250)])[0];
+    expect(otherDate.key).not.toBe(first.key);
+    expect(findDuplicateEntries([base, entry('new', '2026-10-11', 1250)])[0].key).toBe(first.key);
+  });
 });

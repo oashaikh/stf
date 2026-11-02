@@ -1,0 +1,6 @@
+{
+  "receipts-list-1440-light.png": { "title": "Each receipt we have read now has a Check these details button that opens it beside its photo" },
+  "receipts-list-390-light.png": { "title": "On a phone, the Check these details button sits under each receipt we have read" },
+  "receipt-review-1440-light.png": { "title": "Check a receipt: the photo on the left, what we read on the right, with the uncertain fields highlighted" },
+  "receipt-review-390-light.png": { "title": "On a phone, the receipt photo sits above the fields to check, with Confirm and Discard below" }
+}

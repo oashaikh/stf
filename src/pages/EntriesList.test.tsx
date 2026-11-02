@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { DASHBOARD_QUERY_KEY } from '../lib/dashboardApi';
@@ -73,6 +73,15 @@ describe('EntriesList', () => {
     expect(screen.getAllByText('Travel').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Draft')).toHaveLength(2); // the badge and the status option
     expect(screen.getAllByRole('img', { name: 'Receipt attached' })).toHaveLength(1);
+  });
+
+  it('highlights the entry named in the link and leaves the others plain', async () => {
+    pages[''] = { entries: [entry('e1'), entry('e2')], nextCursor: null };
+    await renderList('/money-out?entry=e2');
+    const row = screen.getByText('Entry e2').closest('li') as HTMLElement;
+    expect(row.getAttribute('aria-current')).toBe('true');
+    expect(within(row).getByText('Just added')).toBeTruthy();
+    expect(screen.getByText('Entry e1').closest('li')?.getAttribute('aria-current')).toBeNull();
   });
 
   it('uses no accounting jargon on the list or its filters', async () => {

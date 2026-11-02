@@ -227,6 +227,8 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         if (action === 'match' || action === 'dismiss' || action === 'createEntry') unsortedBankLines = unsortedBankLines.filter((line) => line.id !== lineId);
         return json(route, { ok: true, entryId: action === 'createEntry' ? 'entry-new' : undefined });
       }
+      case 'POST /api/bank/categorise':
+        return json(route, { ok: true, status: 'suggested', suggestions: [{ lineId: 'line-2', accountId: 'acc-expense-1', confidence: 85 }] });
       case 'GET /api/bank/status':
         return json(route, homeState === 'items-due'
           ? { ok: true, connected: true, displayName: 'Example Bank', maskedAccountNumber: '****1234', consentExpiresAt: new Date(Date.now() + 10 * DAY_MS).toISOString(), expired: false }

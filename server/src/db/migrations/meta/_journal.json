@@ -225,6 +225,13 @@
       "when": 1792986671126,
       "tag": "0031_its_submissions_business_kind",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1792986672126,
+      "tag": "0032_bank_suggestions",
+      "breakpoints": true
     }
   ]
 }

@@ -409,7 +409,7 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0031_its_submissions_business_kind");
+    expect(tags.at(-1)).toBe("0032_bank_suggestions");
   });
 });
 
@@ -425,6 +425,21 @@ describe("bank reconciliation columns", () => {
 
   it("exposes both columns on the schema", () => {
     expect(Object.keys(bankTransactions)).toEqual(expect.arrayContaining(["matchedTransactionId", "dismissedReason"]));
+  });
+});
+
+describe("bank line suggestions", () => {
+  const sql = readMigrationSql();
+
+  it("adds nullable suggestion columns with a 0-100 integer confidence check", () => {
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "suggested_account_id" uuid;/);
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "suggested_confidence" integer;/);
+    expect(sql).toMatch(/CONSTRAINT "bank_transactions_suggested_confidence_check" CHECK \("suggested_confidence" IS NULL OR "suggested_confidence" BETWEEN 0 AND 100\)/);
+    expect(sql).toMatch(/"bank_transactions_suggested_account_id_accounts_id_fk" FOREIGN KEY \("suggested_account_id"\) REFERENCES "public"\."accounts"\("id"\)/);
+  });
+
+  it("exposes both columns on the table definition", () => {
+    expect(Object.keys(bankTransactions)).toEqual(expect.arrayContaining(["suggestedAccountId", "suggestedConfidence"]));
   });
 });
 

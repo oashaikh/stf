@@ -64,6 +64,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/bank/callback.ts` | GET | Bank |
 | `api/bank/status.ts` | GET | Bank (no input) |
 | `api/bank/disconnect.ts` | POST | Bank (no input beyond session) |
+| `api/bank/categorise.ts` | POST | Bank |
 | `api/bank/reconcile.ts` | GET, POST | Bank |
 | `api/vat/preview.ts` | POST | VAT |
 | `api/vat/return.ts` | GET, POST | VAT |
@@ -243,6 +244,7 @@ Public route: `api/hmrc/callback.ts` and `api/bank/callback.ts` are the only rou
 | `lineId`, `entryId`, `categoryAccountId` | reconcile POST body | uuid, else 400. A line or entry that is not the session owner's gets 404; the owner id is never read from the request | `bodySchema`, `databaseReconcileStore` |
 | `reason` | reconcile POST body (`dismiss`) | trimmed, 1 to 200 chars, no control characters | `bodySchema`, `api/_lib/bankReconcile.ts` |
 | `vatRatePercent` | reconcile POST body (`createEntry`) | 0, 5 or 20, default 0 | `bodySchema`, `api/_lib/bankReconcile.ts` |
+| `lineIds` | `api/bank/categorise.ts` POST body | array of 1 to 25 uuids; every line must be the session user's, unmatched and not deleted, else 404 and no model call | `api/bank/categorise.ts` |
 
 ## VAT
 

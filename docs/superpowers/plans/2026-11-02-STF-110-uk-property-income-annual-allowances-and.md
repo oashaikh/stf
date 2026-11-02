@@ -83,7 +83,7 @@ Also depends on:
     - npm run typecheck, lint and test pass
   - Commit: `f8b0d55f6a91`
 
-- [ ] **Task 4: Year-end flow: guided property steps and final declaration pointer** (after 2, 3)
+- [x] **Task 4: Year-end flow: guided property steps and final declaration pointer** (after 2, 3)
   - Intent: Extend src/pages/YearEndFlow.tsx following docs/design/ease-of-use.md. When the user has a UK property business, add guided steps with 'Step N of M': what you earned and spent on your rental, then a plain-English choice between a flat £1,000 rental allowance and claiming actual costs, showing which leaves more tax-free, with each figure explaining itself. Official names sit in small muted text via OfficialName. Then a preview of what will be sent, an explicit declaration, and send, with plain error messages. Money uses formatPence and shared StateMessage components. The final declaration page shows ANNUAL_FIGURES_MISSING as a plain message with a button back to the year-end flow. Tap targets at least 44px, works at 390px. Component tests mock the API client and cover choice, resume, error and success. The ease-of-use jargon test must pass. VAT pages are untouched.
   - Files: `src/pages/YearEndFlow.tsx`, `src/pages/YearEndFlow.test.tsx`, `src/pages/FinalDeclarationFlow.tsx`, `src/pages/FinalDeclarationFlow.test.tsx`, `e2e/mockApi.ts`
   - Acceptance criteria the planner set:

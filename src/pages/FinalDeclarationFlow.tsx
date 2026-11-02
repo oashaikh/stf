@@ -4,6 +4,7 @@ import { useState } from 'react';
 import OfficialName from '../components/OfficialName';
 import StateMessage from '../components/StateMessage';
 import { confirmItsFinal, previewItsFinal, submitItsFinal, type ItsFinalPreview } from '../lib/itsFinalApi';
+import { ItsUpdateError } from '../lib/hmrc/itsUpdateApi';
 import { formatPence } from '../lib/money';
 
 const buttonBase = 'inline-flex min-h-11 items-center rounded-md px-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-800';
@@ -64,8 +65,19 @@ function Figures({ preview }: { preview: ItsFinalPreview }) {
   );
 }
 
+/** A refusal for missing yearly figures says what to do and carries the way there; any other error shows its own message. */
+function FlowError({ error, onFixFigures, className }: { error: Error; onFixFigures: () => void; className?: string }) {
+  const figuresMissing = error instanceof ItsUpdateError && error.code === 'ANNUAL_FIGURES_MISSING';
+  return (
+    <>
+      <StateMessage kind="error" className={className}>{error.message}</StateMessage>
+      {figuresMissing && <button type="button" onClick={onFixFigures} className={`mt-2 ${primaryButton}`}>Go to year end</button>}
+    </>
+  );
+}
+
 /** The final declaration as two steps, HMRC's figures then the owner's tick, followed by a done screen. */
-export default function FinalDeclarationFlow({ taxYear, onLeave }: { taxYear: string; onLeave: () => void }) {
+export default function FinalDeclarationFlow({ taxYear, onLeave, onFixFigures }: { taxYear: string; onLeave: () => void; onFixFigures: () => void }) {
   const [step, setStep] = useState(0);
   const [declared, setDeclared] = useState(false);
   const preview = useQuery({ queryKey: ['its-final-preview', taxYear], queryFn: () => previewItsFinal(taxYear),
@@ -85,6 +97,9 @@ export default function FinalDeclarationFlow({ taxYear, onLeave }: { taxYear: st
   });
 
   if (preview.isPending) return <StateMessage kind="loading">Asking HMRC to work out your tax…</StateMessage>;
+  if (preview.isError && preview.error instanceof ItsUpdateError && preview.error.code === 'ANNUAL_FIGURES_MISSING') {
+    return <FlowError error={preview.error} onFixFigures={onFixFigures} />;
+  }
   if (preview.isError) return <StateMessage kind="error" onRetry={() => preview.refetch()}>We could not get your figures from HMRC. Check you are connected to HMRC, then try again.</StateMessage>;
   const { data } = preview;
 
@@ -121,8 +136,8 @@ export default function FinalDeclarationFlow({ taxYear, onLeave }: { taxYear: st
             <input type="checkbox" checked={declared} onChange={(event) => tickDeclaration(event.target.checked)} className="mt-1 h-5 w-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-800" />
             <span>{data.declarationWording}</span>
           </label>
-          {confirm.isError && <StateMessage kind="error" className="mt-2">{confirm.error.message}</StateMessage>}
-          {submit.isError && <StateMessage kind="error" className="mt-2">{submit.error.message}</StateMessage>}
+          {confirm.isError && <FlowError error={confirm.error} onFixFigures={onFixFigures} className="mt-2" />}
+          {submit.isError && <FlowError error={submit.error} onFixFigures={onFixFigures} className="mt-2" />}
         </>
       )}
       <div className="mt-6 flex flex-wrap gap-3">

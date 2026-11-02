@@ -27,7 +27,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Write the receipt extraction agent procedure**
+- [x] **Task 1: Write the receipt extraction agent procedure**
   - Intent: Add docs/agents/receipt-extraction.md (docs/agents does not exist yet; CLAUDE.md says to create it with the first SOP). Cover six points: what the model may read (the owner's own ready receipt file only); what it may write (receipt_extractions draft rows, receipts.ai_status/ai_model/ai_confidence/ai_raw_output, one audit event, never transactions); what triggers it (an owner-session request for one ready receipt); what the owner sees before anything is saved (every field a draft, in plain words per docs/design/ease-of-use.md, nothing becomes a record until they confirm); the audit event (actor_type ai_agent, action name, resource receipts, metadata with model and status only, no receipt content); and the kill switch (env var, plus no-key behaviour: extraction skipped, ai_status 'skipped', owner enters by hand). Pin the env var names here (ANTHROPIC_API_KEY, RECEIPT_AI_MODEL with a documented default, RECEIPT_AI_ENABLED) so later tasks match.
   - Files: `docs/agents/receipt-extraction.md`
   - Acceptance criteria the planner set:
@@ -36,6 +36,7 @@
     - Names the audit actor type ai_agent and the kill-switch variable
     - Written in plain words with no filler
   - Risk: Docs only.
+  - Commit: `06da5deced0c`
 
 - [ ] **Task 2: Align receiptPrompt.ts with the data rules and add a zod reply schema**
   - Intent: Change src/lib/receiptPrompt.ts so the system prompt asks for: amounts as integer pence (not decimal strings), today's date passed in (buildReceiptSystemPrompt takes a today ISO date), JSON only, one overall confidence, and a not_a_receipt error reply. Replace the hand-rolled parseReceiptDraft and extractionAmountToPence (parseFloat*100, float money maths) with a zod schema (zod ^3 is installed): non-negative integer pence fields, ISO date, confidences 0-1 converted to integer thousandths (0-1000), category from the fixed list, currency GBP. The result type distinguishes ok / not_a_receipt / invalid (malformed JSON, decimals where pence were required). Update src/lib/__tests__/receiptPrompt.test.ts to cover good reply, malformed JSON, decimal amounts rejected, not-a-receipt and out-of-range confidence, and keep the existing injection-delimiter tests. The only importer found is that test.

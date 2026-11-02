@@ -57,7 +57,7 @@ const databaseAnnualStore: ItsAnnualStore = {
     const [row] = await db
       .select({ id: itsAnnualSubmissions.id, status: itsAnnualSubmissions.status, confirmedPayload: itsAnnualSubmissions.confirmedPayload })
       .from(itsAnnualSubmissions)
-      .where(and(eq(itsAnnualSubmissions.userId, userId), eq(itsAnnualSubmissions.taxYear, taxYear), eq(itsAnnualSubmissions.sandbox, sandbox)))
+      .where(and(eq(itsAnnualSubmissions.userId, userId), eq(itsAnnualSubmissions.taxYear, taxYear), eq(itsAnnualSubmissions.sandbox, sandbox), eq(itsAnnualSubmissions.businessKind, 'self-employment')))
       .limit(1);
     return row;
   },
@@ -68,7 +68,7 @@ const databaseAnnualStore: ItsAnnualStore = {
         .insert(itsAnnualSubmissions)
         .values({ userId, taxYear, sandbox, status: 'confirmed', confirmedPayload: payload, confirmedAt: now })
         .onConflictDoUpdate({
-          target: [itsAnnualSubmissions.userId, itsAnnualSubmissions.taxYear, itsAnnualSubmissions.sandbox],
+          target: [itsAnnualSubmissions.userId, itsAnnualSubmissions.taxYear, itsAnnualSubmissions.sandbox, itsAnnualSubmissions.businessKind],
           set: { status: 'confirmed', confirmedPayload: payload, confirmedAt: now, updatedAt: now },
           setWhere: inArray(itsAnnualSubmissions.status, ['confirmed', 'rejected']),
         })

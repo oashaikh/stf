@@ -1,0 +1,32 @@
+{
+  "tax-page-link-1440-light.png": {
+    "title": "The Tax page with the new Do your Income Tax year end button below the costs card"
+  },
+  "tax-page-link-390-light.png": {
+    "title": "The Tax page with the new Do your Income Tax year end button below the costs card"
+  },
+  "step-1-costs-1440-light.png": {
+    "title": "Year end step 1: how you are counting your costs, with the trading allowance shown"
+  },
+  "step-1-costs-390-light.png": {
+    "title": "Year end step 1: how you are counting your costs, with the trading allowance shown"
+  },
+  "step-2-adjustment-1440-light.png": {
+    "title": "Year end step 2: an adjustment already on your tax record, with a link explaining the amount"
+  },
+  "step-2-adjustment-390-light.png": {
+    "title": "Year end step 2: an adjustment already on your tax record, with a link explaining the amount"
+  },
+  "step-3-check-and-send-1440-light.png": {
+    "title": "Final step: one sentence on what will be sent, your declaration, and the Send to HMRC button"
+  },
+  "step-3-check-and-send-390-light.png": {
+    "title": "Final step: one sentence on what will be sent, your declaration, and the Send to HMRC button"
+  },
+  "sent-1440-light.png": {
+    "title": "After sending: a confirmation that the figures went to HMRC test mode"
+  },
+  "sent-390-light.png": {
+    "title": "After sending: a confirmation that the figures went to HMRC test mode"
+  }
+}

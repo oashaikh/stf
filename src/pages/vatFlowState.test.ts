@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
-import { VAT_FLOW_STEPS, finalSentence, monthRange, readSavedStep, saveStep } from './vatFlowState';
+import { VAT_FLOW_STEPS, clearSavedStep, finalSentence, monthRange, readSavedStep, saveStep } from './vatFlowState';
 
 describe('monthRange', () => {
   it('words a quarter as month to month with the year once', () => {
@@ -46,5 +46,15 @@ describe('saved step', () => {
   it('lists the steps in order', () => {
     expect(VAT_FLOW_STEPS[0]).toBe('period');
     expect(VAT_FLOW_STEPS[VAT_FLOW_STEPS.length - 1]).toBe('send');
+  });
+  it('forgets the saved step once cleared', () => {
+    saveStep('26A1', 'send');
+    clearSavedStep('26A1');
+    expect(readSavedStep('26A1')).toBeNull();
+  });
+  it('only knows steps that a screen renders', () => {
+    expect(VAT_FLOW_STEPS).toEqual(['period', 'figures', 'send']);
+    localStorage.setItem('stf-vat-step:26A1', 'problems');
+    expect(readSavedStep('26A1')).toBeNull();
   });
 });

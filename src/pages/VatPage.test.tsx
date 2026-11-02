@@ -160,6 +160,52 @@ describe('VatPage', () => {
       }
     });
 
+    it('puts Back, Save and leave and Next in one footer, Next last', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      const next = await screen.findByRole('button', { name: 'Next' });
+      const footer = next.parentElement!;
+      expect(within(footer).getAllByRole('button').map((button) => button.textContent)).toEqual(['Back', 'Save and leave', 'Next']);
+    });
+
+    it('shows only the current step, not the history or obligations lists', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      await screen.findByText('Step 1 of 2');
+      expect(screen.queryByRole('heading', { name: 'VAT obligations' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'VAT return history' })).not.toBeInTheDocument();
+    });
+
+    it('announces the step change in a polite status region', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      expect(await screen.findByText('Step 1 of 2')).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('keeps the nil note off the send step', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      await goToNextStep();
+      await screen.findByText('Step 2 of 2');
+      expect(screen.queryByText(/No VAT-relevant transactions/)).not.toBeInTheDocument();
+    });
+
+    it('says on the figures step when the return was already sent', async () => {
+      fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data: { ...review, status: 'confirmed', submission: { formBundleNumber: '123', processingDate: '2026-10-20T10:00:00Z' } } })));
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      expect(await screen.findByText('This return has already been sent to HMRC.')).toBeInTheDocument();
+    });
+
+    it('forgets the saved step once the return is sent', async () => {
+      localStorage.setItem('stf-vat-step:26C3', 'send');
+      fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data: { ...review, status: 'confirmed', submission: { formBundleNumber: '123', processingDate: '2026-10-20T10:00:00Z' } } })));
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      await screen.findByText(/Status:/);
+      await waitFor(() => expect(localStorage.getItem('stf-vat-step:26C3')).toBeNull());
+    });
+
     it('resumes the saved step after Save and leave', async () => {
       fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
       renderPage();

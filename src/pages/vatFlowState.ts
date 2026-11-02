@@ -1,6 +1,6 @@
 import { formatPence } from '../lib/money';
 
-export const VAT_FLOW_STEPS = ['period', 'problems', 'figures', 'send'] as const;
+export const VAT_FLOW_STEPS = ['period', 'figures', 'send'] as const;
 export type VatFlowStep = (typeof VAT_FLOW_STEPS)[number];
 
 const MONTH_NAMES = [
@@ -40,4 +40,8 @@ export function saveStep(periodKey: string, step: VatFlowStep): void {
 export function readSavedStep(periodKey: string): VatFlowStep | null {
   const stored = localStorage.getItem(stepStorageKey(periodKey));
   return VAT_FLOW_STEPS.find((step) => step === stored) ?? null;
+}
+
+export function clearSavedStep(periodKey: string): void {
+  localStorage.removeItem(stepStorageKey(periodKey));
 }

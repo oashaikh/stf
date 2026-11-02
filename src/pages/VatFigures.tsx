@@ -1,13 +1,9 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { formatDate } from "../lib/dates";
-import { formatPence } from "../lib/money";
-import type { VatReturnBoxes } from "../lib/vat";
-import {
-  box5ReviewNote,
-  DRILLABLE_BOXES,
-  PLAIN_BOX_LABELS,
-} from "./vatReviewState";
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { formatDate } from '../lib/dates';
+import { formatPence } from '../lib/money';
+import type { VatReturnBoxes } from '../lib/vat';
+import { box5ReviewNote, DRILLABLE_BOXES, PLAIN_BOX_LABELS } from './vatReviewState';
 
 export interface DrillLine {
   lineId: string;
@@ -21,7 +17,7 @@ export interface DrillLine {
 // STF-10's list filters by from, to and search; the hash lets the Expenses list highlight the entry.
 function expensesLink(line: DrillLine): string {
   const filters = new URLSearchParams({ from: line.date, to: line.date });
-  if (line.description) filters.set("search", line.description);
+  if (line.description) filters.set('search', line.description);
   return `/expenses?${filters}#entry-${line.transactionId}`;
 }
 
@@ -34,11 +30,7 @@ interface VatFiguresProps {
   drillDownTotals: Record<keyof VatReturnBoxes, number>;
 }
 
-export default function VatFigures({
-  boxes,
-  drillDown,
-  drillDownTotals,
-}: VatFiguresProps) {
+export default function VatFigures({ boxes, drillDown, drillDownTotals }: VatFiguresProps) {
   const [expandedBox, setExpandedBox] = useState<number | null>(null);
   return (
     <div className="mt-6 max-w-3xl">
@@ -57,15 +49,9 @@ export default function VatFigures({
                   {label}
                   <span className="ml-2 text-xs text-gray-700">{`Box ${box}`}</span>
                 </p>
-                <p className="shrink-0 text-right text-sm tabular-nums text-gray-900">
-                  {formatPence(pence)}
-                </p>
+                <p className="shrink-0 text-right text-sm tabular-nums text-gray-900">{formatPence(pence)}</p>
               </div>
-              {box === 5 && box5ReviewNote(pence) && (
-                <p className="text-right text-xs text-gray-700">
-                  {box5ReviewNote(pence)}
-                </p>
-              )}
+              {box === 5 && box5ReviewNote(pence) && <p className="text-right text-xs text-gray-700">{box5ReviewNote(pence)}</p>}
               <button
                 type="button"
                 aria-expanded={expanded}
@@ -78,29 +64,18 @@ export default function VatFigures({
               {expanded && (
                 <div id={detailId} className="bg-gray-50 px-4 py-2 text-sm">
                   {lines.length === 0 ? (
-                    <p className="text-gray-700">
-                      No payments add up to this amount.
-                    </p>
+                    <p className="text-gray-700">No payments add up to this amount.</p>
                   ) : (
                     <ul className="divide-y divide-gray-200">
                       {lines.map((line) => (
                         <li key={line.lineId}>
-                          <Link
-                            to={expensesLink(line)}
-                            className="flex min-h-[44px] flex-wrap items-center gap-x-4 py-1 text-blue-700 hover:underline sm:flex-nowrap"
-                          >
-                            <span className="shrink-0 tabular-nums">
-                              {formatDate(line.date)}
-                            </span>
-                            <span
-                              className="order-last min-w-0 basis-full truncate sm:order-none sm:basis-0 sm:flex-1"
-                              title={line.description ?? undefined}
-                            >
-                              {line.description ?? ""}
+                          <Link to={expensesLink(line)} className="flex min-h-[44px] flex-wrap items-center gap-x-4 py-1 text-blue-700 hover:underline sm:flex-nowrap">
+                            <span className="shrink-0 tabular-nums">{formatDate(line.date)}</span>
+                            <span className="order-last min-w-0 basis-full truncate sm:order-none sm:basis-0 sm:flex-1" title={line.description ?? undefined}>
+                              {line.description ?? ''}
                             </span>
                             <span className="shrink-0 text-right tabular-nums">
-                              {formatPence(line.amountPence)} +{" "}
-                              {formatPence(line.vatPence)} VAT
+                              {formatPence(line.amountPence)} + {formatPence(line.vatPence)} VAT
                             </span>
                           </Link>
                         </li>
@@ -109,8 +84,7 @@ export default function VatFigures({
                   )}
                   {lines.length < drillDownTotals[key] && (
                     <p className="mt-2 text-gray-700">
-                      Showing the first {lines.length} of {drillDownTotals[key]}{" "}
-                      payments, so the list does not add up to the amount.
+                      Showing the first {lines.length} of {drillDownTotals[key]} payments, so the list does not add up to the amount.
                     </p>
                   )}
                 </div>
@@ -120,12 +94,7 @@ export default function VatFigures({
         })}
       </ul>
       <p className="mt-4 text-xs text-gray-700">
-        Also on the return:{" "}
-        {ALWAYS_ZERO_BOXES.map(
-          (box) =>
-            `${PLAIN_BOX_LABELS[box]} ${formatPence(boxes[`box${box}` as keyof VatReturnBoxes])} (Box ${box})`,
-        ).join(", ")}
-        .
+        Also on the return: {ALWAYS_ZERO_BOXES.map((box) => `${PLAIN_BOX_LABELS[box]} ${formatPence(boxes[`box${box}` as keyof VatReturnBoxes])} (Box ${box})`).join(', ')}.
       </p>
     </div>
   );

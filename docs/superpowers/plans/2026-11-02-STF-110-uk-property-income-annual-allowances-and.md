@@ -59,7 +59,7 @@ Also depends on:
   - Risk: Opus at high: schema and migration work, plus an HMRC money payload whose field names are unverified against live docs.
   - Commit: `5555add6e4c8`
 
-- [ ] **Task 2: Property annual submission API: preview, confirm, submit** (after 1)
+- [x] **Task 2: Property annual submission API: preview, confirm, submit** (after 1)
   - Intent: Extend the existing annual flow in api/_lib/itsAnnualSubmit.ts with a business parameter ('self-employment' by default, or 'uk-property') rather than copying the file. The input schema stays strict. For property, add a choice field ('allowance' or 'actual') on preview and confirm. The server recomputes the body from the ledger; client figures are never trusted. checkItsReadiness is called with 'property', and the store find/saveConfirmed/claim methods filter on business_kind and user_id. Preview is a dry run: no HMRC call, only an audit event, with NINO and business id masked. Confirm requires the declaration. Submit requires confirm:true, takes its body from the stored confirmation, locks the row atomically, and treats an unknown outcome as 'do not resend'. Existing self-employment behaviour must not change. The api/hmrc/its-annual-*.ts routes accept the new fields. Route and unit tests cover: a second user's year is refused, the live-mode gate, double submit, HMRC 4xx releasing the lock, a 5xx leaving it pending, and the choice being validated.
   - Files: `api/_lib/itsAnnualSubmit.ts`, `api/hmrc/its-annual-preview.ts`, `api/hmrc/its-annual-confirm.ts`, `api/hmrc/its-annual-submit.ts`, `api/_lib/__tests__/itsAnnualSubmit.test.ts`, `api/_lib/__tests__/itsAnnualSubmitRoute.test.ts`, `src/lib/itsAnnualApi.ts`, `src/lib/itsAnnualApi.test.ts`
   - Acceptance criteria the planner set:
@@ -70,6 +70,7 @@ Also depends on:
     - Existing self-employment annual tests pass unchanged
     - npm run typecheck, lint and test pass
   - Risk: Opus at high: it sends money to HMRC and enforces the confirmation gate, the idempotency lock and per-user isolation.
+  - Commit: `3f5833f95f71`
 
 - [ ] **Task 3: Final declaration checks every business has its yearly figures in** (after 2)
   - Intent: Before HMRC's calculation is requested, previewItsFinalForUser in api/_lib/itsFinalDeclaration.ts must check that each business the user has (self-employment and UK property, from the stored business ids) has an annual row with status 'submitted' for that year and sandbox mode. The check is one bounded query on the unique key, with no per-row loop. If any is missing, refuse early with a distinct code (ANNUAL_FIGURES_MISSING) whose message names the business, says nothing has been sent, and says what to do next. Confirm and submit repeat the check so it cannot be skipped. Only final-declaration files change; VAT code is untouched. Tests cover: both submitted passes, property missing, self-employment missing, a user with one business, and a pending or rejected row blocking.

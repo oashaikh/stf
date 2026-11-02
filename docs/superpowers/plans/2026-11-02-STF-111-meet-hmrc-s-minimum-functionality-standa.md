@@ -90,3 +90,7 @@
 - [x] **Task 7: Fix: address 6 review findings (cycle 2)** (after 6)
   - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Runbook token steps and call count are fixed; code paths trace correctly. One unverifiable claim remains: the audit doc says the operator compared it with the live HMRC pa The agent is fixing them; nothing is needed from you.
   - Commit: `b218d61c7ebd`
+
+- [x] **Task 8: Fix: address 6 review findings (cycle 2)** (after 7)
+  - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Runbook token steps and call count are fixed; code paths trace correctly. One unverifiable claim remains: the audit doc says the operator compared it with the live HMRC pa The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

@@ -298,6 +298,22 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         return json(route, { ok: true, businesses: [], selectedBusinessId: null });
       case 'GET /api/mileage':
         return json(route, { trips: [], claim: { totalPence: 0, tripClaims: [] } });
+      case 'POST /api/hmrc/its-final-preview':
+        return json(route, {
+          ok: true,
+          data: {
+            sandbox: true,
+            calculationId: 'calc-e2e',
+            hmrc: { incomeTaxPence: 250000, class2NicPence: 0, class4NicPence: 50000, totalPence: 300000 },
+            stfEstimate: { incomeTaxPence: 150000, class2NicPence: 0, class4NicPence: 50000, totalPence: 200000 },
+            comparison: { incomeTaxDifferencePence: 100000, nicDifferencePence: 0, totalDifferencePence: 100000, differs: true },
+            declarationWording: 'I declare that the information I have given on this return is correct and complete to the best of my knowledge.',
+          },
+        });
+      case 'POST /api/hmrc/its-final-confirm':
+        return json(route, { ok: true, data: { sandbox: true } });
+      case 'POST /api/hmrc/its-final-submit':
+        return json(route, { ok: true, data: { sandbox: true } });
       case 'POST /api/hmrc/its-cumulative-preview':
         return json(route, {
           ok: true,

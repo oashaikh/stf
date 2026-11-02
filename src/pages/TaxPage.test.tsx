@@ -56,6 +56,15 @@ describe('TaxPage', () => {
     expect(screen.getByRole('link', { name: 'Do your Income Tax year end' }).getAttribute('href')).toBe(`/tax/year-end/${year}`);
   });
 
+  it('links to the final declaration for the chosen tax year', async () => {
+    renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
+    await screen.findAllByText('£60,000.00');
+    const year = (screen.getByLabelText('Tax year') as HTMLSelectElement).value;
+    const link = screen.getByRole('link', { name: 'Check and send your final tax bill' });
+    expect(link.getAttribute('href')).toBe(`/tax/final-declaration/${year}`);
+    expect(link.className).toContain('min-h-11');
+  });
+
   it('uses one content width: the page sets it and no section narrows itself', async () => {
     renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
     await screen.findAllByText('£60,000.00');

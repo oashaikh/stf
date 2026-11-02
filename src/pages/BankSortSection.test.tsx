@@ -5,9 +5,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchAccounts } from '../lib/accountsApi';
 import { createDraftFromLine, dismissLine, fetchReconcile, matchLine, undismissLine, unmatchLine } from '../lib/bankReconcileApi';
+import { suggestCategories } from '../lib/bankCategoriseApi';
 import BankSortSection from './BankSortSection';
 
 vi.mock('../lib/bankReconcileApi');
+vi.mock('../lib/bankCategoriseApi');
 vi.mock('../lib/accountsApi', async (importOriginal) => ({ ...(await importOriginal<typeof import('../lib/accountsApi')>()), fetchAccounts: vi.fn() }));
 
 const line = { id: 'l1', date: '2026-10-03', amountPence: -1250, description: 'COFFEE SUPPLIES' };
@@ -113,5 +115,54 @@ describe('BankSortSection', () => {
     vi.mocked(fetchReconcile).mockReturnValue(new Promise(() => {}));
     renderSection();
     expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  describe('category suggestions', () => {
+    beforeEach(() => vi.mocked(fetchReconcile).mockResolvedValue(withLine(null)));
+
+    it('asks for suggestions only for payments without a match, and shows them in plain words', async () => {
+      vi.mocked(suggestCategories).mockResolvedValue({ status: 'suggested', suggestions: [{ lineId: 'l1', accountId: 'a-exp', confidence: 80 }] });
+      renderSection();
+      fireEvent.click(await screen.findByRole('button', { name: 'Suggest categories' }));
+      expect(await screen.findByText(/Looks like Travel/)).toBeInTheDocument();
+      expect(screen.getByText(/About 80% sure/)).toBeInTheDocument();
+      expect(suggestCategories).toHaveBeenCalledWith(['l1']);
+      expect(createDraftFromLine).not.toHaveBeenCalled();
+    });
+
+    it('creates a draft only when the owner taps, using the suggested category', async () => {
+      vi.mocked(suggestCategories).mockResolvedValue({ status: 'suggested', suggestions: [{ lineId: 'l1', accountId: 'a-exp', confidence: 80 }] });
+      renderSection();
+      fireEvent.click(await screen.findByRole('button', { name: 'Suggest categories' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Yes, add it as a draft' }));
+      await waitFor(() => expect(createDraftFromLine).toHaveBeenCalledWith('l1', 'a-exp'));
+    });
+
+    it('lets the owner pick a different category after a suggestion', async () => {
+      vi.mocked(suggestCategories).mockResolvedValue({ status: 'suggested', suggestions: [{ lineId: 'l1', accountId: 'a-exp', confidence: 40 }] });
+      renderSection();
+      fireEvent.click(await screen.findByRole('button', { name: 'Suggest categories' }));
+      await screen.findByText(/Looks like Travel/);
+      fireEvent.click(screen.getByRole('button', { name: "No, I'll pick one" }));
+      expect(screen.queryByText(/Looks like/)).toBeNull();
+      expect(screen.getByRole('button', { name: 'Add as new payment' })).toBeInTheDocument();
+    });
+
+    it('says what to do when suggestions are switched off, and manual sorting still works', async () => {
+      vi.mocked(suggestCategories).mockResolvedValue({ status: 'skipped', suggestions: [] });
+      renderSection();
+      fireEvent.click(await screen.findByRole('button', { name: 'Suggest categories' }));
+      expect(await screen.findByText(/switched off/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Add as new payment' }));
+      await waitFor(() => expect(createDraftFromLine).toHaveBeenCalledWith('l1', 'a-exp'));
+    });
+
+    it('shows the failure beside the fix when the request fails', async () => {
+      vi.mocked(suggestCategories).mockRejectedValue(new Error('We could not get suggestions just now. You can sort these payments by hand.'));
+      renderSection();
+      fireEvent.click(await screen.findByRole('button', { name: 'Suggest categories' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('sort these payments by hand');
+      expect(screen.getByRole('button', { name: 'Add as new payment' })).toBeInTheDocument();
+    });
   });
 });

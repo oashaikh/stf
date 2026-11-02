@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { fetchAccounts } from '../lib/accountsApi';
 import type { BankLine } from '../lib/bankMatching';
+import { MAX_SUGGEST_LINES, suggestCategories, type CategorySuggestion } from '../lib/bankCategoriseApi';
 import { createDraftFromLine, dismissLine, fetchReconcile, matchLine, undismissLine, unmatchLine, type ProposalView } from '../lib/bankReconcileApi';
 import { formatPence } from '../lib/money';
 import StateMessage from '../components/StateMessage';
@@ -31,6 +32,8 @@ export default function BankSortSection() {
   const [asideFor, setAsideFor] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [categoryFor, setCategoryFor] = useState<Record<string, string>>({});
+  const [suggestions, setSuggestions] = useState<Record<string, CategorySuggestion>>({});
+  const [switchedOff, setSwitchedOff] = useState(false);
   const [last, setLast] = useState<Undoable | null>(null);
 
   const run = useMutation({
@@ -48,9 +51,22 @@ export default function BankSortSection() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: QUERY_KEY }),
   });
 
+  const suggest = useMutation({
+    mutationFn: (lineIds: string[]) => suggestCategories(lineIds),
+    onSuccess: (outcome) => {
+      setSwitchedOff(outcome.status === 'skipped');
+      setSuggestions((current) => ({ ...current, ...Object.fromEntries(outcome.suggestions.map((item) => [item.lineId, item])) }));
+    },
+  });
+
   const proposalFor = (lineId: string) => sort.data?.proposals.find((proposal) => proposal.lineId === lineId && !passed.includes(lineId));
   const categoriesFor = (line: BankLine) => (accounts.data ?? []).filter((account) => account.accountType === (line.amountPence < 0 ? 'expense' : 'income'));
-  const chosenCategory = (line: BankLine) => categoryFor[line.id] ?? categoriesFor(line)[0]?.id ?? '';
+  const suggestionFor = (line: BankLine) => {
+    const suggestion = suggestions[line.id];
+    return suggestion && categoriesFor(line).some((account) => account.id === suggestion.accountId) ? suggestion : undefined;
+  };
+  const chosenCategory = (line: BankLine) => categoryFor[line.id] ?? suggestionFor(line)?.accountId ?? categoriesFor(line)[0]?.id ?? '';
+  const unmatchedIds = (sort.data?.lines ?? []).filter((line) => !proposalFor(line.id)).map((line) => line.id).slice(0, MAX_SUGGEST_LINES);
 
   const accept = (line: BankLine, proposal: ProposalView) =>
     run.mutate({
@@ -95,11 +111,22 @@ export default function BankSortSection() {
         <StateMessage kind="error">{(run.error ?? undo.error)?.message}</StateMessage>
       )}
 
+      {unmatchedIds.length > 0 && accounts.data && (
+        <div className="mt-4">
+          <button type="button" className={buttonClass} disabled={suggest.isPending} onClick={() => suggest.mutate(unmatchedIds)}>Suggest categories</button>
+        </div>
+      )}
+      {suggest.isPending && <StateMessage kind="loading">Looking for categories…</StateMessage>}
+      {suggest.isError && <StateMessage kind="error">{suggest.error.message}</StateMessage>}
+      {switchedOff && <StateMessage kind="error">Suggestions are switched off, so pick a category yourself below.</StateMessage>}
+
       {sort.data && sort.data.lines.length > 0 && (
         <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200">
           {sort.data.lines.map((line) => {
             const proposal = proposalFor(line.id);
             const categories = categoriesFor(line);
+            const suggestion = suggestionFor(line);
+            const suggestedAccount = categories.find((account) => account.id === suggestion?.accountId);
             return (
               <li key={line.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 sm:flex-1">
@@ -108,6 +135,12 @@ export default function BankSortSection() {
                   {proposal && (
                     <p className="mt-1 text-sm text-gray-900">
                       Looks like <span className="font-medium">{proposal.entryDescription}</span> on {proposal.entryDate}. {REASONS[proposal.kind]}.
+                    </p>
+                  )}
+                  {!proposal && suggestion && suggestedAccount && (
+                    <p className="mt-1 text-sm text-gray-900">
+                      <span className="font-medium">Looks like {suggestedAccount.name}</span>
+                      <span className="text-xs text-gray-700"> · About {suggestion.confidence}% sure</span>
                     </p>
                   )}
                 </div>
@@ -119,7 +152,13 @@ export default function BankSortSection() {
                       <button type="button" className={buttonClass} onClick={() => setPassed([...passed, line.id])}>No</button>
                     </>
                   )}
-                  {!proposal && (<>
+                  {!proposal && suggestion && (
+                    <>
+                      <button type="button" className={primaryClass} disabled={run.isPending} onClick={() => addNew(line)}>Yes, add it as a draft</button>
+                      <button type="button" className={buttonClass} onClick={() => setSuggestions(({ [line.id]: _dropped, ...rest }) => rest)}>No, I'll pick one</button>
+                    </>
+                  )}
+                  {!proposal && !suggestion && (<>
                   <label className="flex w-full flex-col text-sm text-gray-700">
                     Category
                     <select className={fieldClass} value={chosenCategory(line)} onChange={(event) => setCategoryFor({ ...categoryFor, [line.id]: event.target.value })}>

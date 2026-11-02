@@ -116,3 +116,7 @@ Also depends on:
     - Deviations from the spec listed with reasons
     - No real data or paths
   - Commit: `ea63865a70f6`
+
+- [x] **Task 7: Fix: address 14 review findings (cycle 1)** (after 6)
+  - Intent: Review left 14 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. I traced the step state (saved step, override, single versus multiple returns, Back, Save and leave) and the submission gate. Th The agent is fixing them; nothing is needed from you.
+  - Commit: `278a2deb6edf`

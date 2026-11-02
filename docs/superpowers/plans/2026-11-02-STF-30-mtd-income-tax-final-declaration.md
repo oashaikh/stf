@@ -112,7 +112,7 @@ Also depends on:
   - Risk: e2e/mockApi.ts and jargonRender.test.tsx are also edited by STF-38 and STF-74; keep the hunks small. Hunks in different places auto-merge.
   - Commit: `3ea04b5ed3bc`
 
-- [ ] **Task 6: Tax page entry point for the final declaration** (after 5)
+- [x] **Task 6: Tax page entry point for the final declaration** (after 5)
   - Intent: In src/pages/TaxPage.tsx add a link to the final declaration flow for the selected year next to the existing year-end link, with a plain-words label. Leave homeTodos.ts alone, since STF-38 is editing it. Update TaxPage.test.tsx.
   - Files: `src/pages/TaxPage.tsx`, `src/pages/TaxPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -120,6 +120,7 @@ Also depends on:
     - The link is at least 44px high and uses plain words.
     - TaxPage tests cover the link.
     - npm run lint, typecheck and test pass.
+  - Commit: `6d8f77bd926e`
 
 - [ ] **Task 7: Workflow doc and screenshots** (after 5, 6)
   - Intent: Write docs/workflows/its-final-declaration.md covering the calculation flow, the tick gate, the audit event, the idempotency lock, the sandbox/live double switch and the open question about non-self-employment income (STF holds only self-employment figures). Capture review-evidence screenshots of each new or changed screen at 390 and 1440 px, using invented data only, in browser-evidence/STF-30/ with a captions file like STF-87's. Run npm run lint, typecheck, test and build.

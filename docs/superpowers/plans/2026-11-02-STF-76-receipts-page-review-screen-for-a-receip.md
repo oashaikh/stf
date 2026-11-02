@@ -86,7 +86,7 @@ Also depends on:
   - Risk: Money handling: parsing the edited amount must stay integer pence with no float maths.
   - Commit: `c47c80f957cf`
 
-- [ ] **Task 4: Open the review from the Receipts page and capture screenshots** (after 3)
+- [x] **Task 4: Open the review from the Receipts page and capture screenshots** (after 3)
   - Intent: Wire the review in: the 'needs checking' action on each ReceiptRow in src/pages/ReceiptsPage.tsx opens ReceiptReview (route /money-out/receipts/:receiptId, added under MoneyOutPage or App routes, with the existing redirects left intact). The current row 'confirm' mutation, which confirms unedited values, is replaced by this review path so nothing is confirmed without a look. After discard or confirm the owner returns to the list, and the list refreshes via receiptsQueryKey (and ENTRIES_QUERY_KEY after confirm). Add the screen to the jargon render test. Update ReceiptsPage.test.tsx and make mocks return defined data for every query key (vat-obligations flake noted in repo memory). Capture screenshots at 390 and 1440 px, light and dark, with a captions file (plain-English title per image) under browser-evidence/STF-76/, using invented receipts only. In the PR note where the screen differs from docs/design/ease-of-use.md (one review page rather than one field per screen, as the ticket specifies).
   - Files: `src/pages/ReceiptsPage.tsx`, `src/pages/ReceiptsPage.test.tsx`, `src/pages/MoneyOutPage.tsx`, `src/pages/MoneyOutPage.test.tsx`, `src/App.tsx`, `src/pages/__tests__/jargonRender.test.tsx`, `docs/agents/receipt-extraction.md`, `browser-evidence/STF-76/captions.md`
   - Acceptance criteria the planner set:
@@ -97,3 +97,4 @@ Also depends on:
     - docs/agents/receipt-extraction.md describes the review screen accurately
     - npm run lint, typecheck, test and build all pass
   - Risk: Edits the existing Receipts page and routing, which the other receipt tickets also touch; keep hunks small so they merge cleanly.
+  - Commit: `df80181bf5a9`

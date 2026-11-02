@@ -26,7 +26,7 @@ export const RECEIPT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'app
 export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
 
 /** The few facts a person recognises a receipt by, in plain words. Amount is integer pence. */
-export function readReceiptDetails({ details, createdAt }: Pick<ListedReceipt, 'details' | 'createdAt'>) {
+export function readReceiptDetails({ details, createdAt, aiStatus }: Pick<ListedReceipt, 'details' | 'createdAt' | 'aiStatus'>) {
   const read = (field: string) => details[field]?.value ?? null;
   const amount = read('totalPence') === null ? NaN : Number(read('totalPence'));
   return {
@@ -34,7 +34,8 @@ export function readReceiptDetails({ details, createdAt }: Pick<ListedReceipt, '
     who: read('vendor'),
     category: read('category'),
     amountPence: Number.isInteger(amount) ? amount : null,
-    needsCheck: Object.values(details).some((detail) => !detail.confirmed),
+    // A discarded draft keeps its unconfirmed rows on the server, so its status is what says it is no longer a draft.
+    needsCheck: aiStatus !== 'skipped' && Object.values(details).some((detail) => !detail.confirmed),
   };
 }
 

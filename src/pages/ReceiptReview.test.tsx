@@ -120,7 +120,28 @@ describe('ReceiptReview', () => {
     await waitFor(() => expect((screen.getByLabelText(/category/i) as HTMLSelectElement).value).toBe('acc-meals'));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
     const link = await screen.findByRole('link', { name: /see.*expense/i });
-    expect(link.getAttribute('href')).toContain('entry-9');
+    // Filtered to the receipt's day so the new entry is on the first page; the list highlights it.
+    expect(link.getAttribute('href')).toBe('/money-out?entry=entry-9&from=2026-10-28&to=2026-10-28');
+  });
+
+  it('refuses a tax amount that is not 0, 5 or 20 percent of the net, and names the nearest one', async () => {
+    renderReview();
+    fireEvent.change(await screen.findByLabelText(/total/i), { target: { value: '12.00' } });
+    fireEvent.change(screen.getByLabelText(/tax paid/i), { target: { value: '1.00' } });
+    await waitFor(() => expect((screen.getByLabelText(/category/i) as HTMLSelectElement).value).toBe('acc-meals'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('0.57');
+    expect(confirmReceiptDraft).not.toHaveBeenCalled();
+  });
+
+  it('ties each confidence marker to its input and shows Saving while confirming', async () => {
+    vi.mocked(confirmReceiptDraft).mockReturnValue(new Promise(() => {}));
+    renderReview();
+    const who = await screen.findByLabelText(/who it was from/i);
+    expect(document.getElementById(who.getAttribute('aria-describedby') ?? '')?.textContent).toBe('Check this one');
+    await waitFor(() => expect((screen.getByLabelText(/category/i) as HTMLSelectElement).value).toBe('acc-meals'));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeTruthy();
   });
 
   it('shows a refusal with its fix and keeps the form', async () => {
@@ -139,6 +160,7 @@ describe('ReceiptReview', () => {
     expect(discardReceiptDraft).not.toHaveBeenCalled();
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText(/cafe-lunch\.jpg/)).toBeTruthy();
+    expect(within(dialog).getByText(/receipt stays in your list/i)).toBeTruthy();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Discard receipt' }));
     await waitFor(() => expect(discardReceiptDraft).toHaveBeenCalledWith(draft.id));
     await waitFor(() => expect(onDone).toHaveBeenCalled());

@@ -141,6 +141,7 @@ describe('readReceiptDetails', () => {
     expect(read).toMatchObject({ who: 'Corner Cafe', amountPence: 1250, date: '2026-10-28', needsCheck: true });
   });
   it('has nothing to check when no details were read, and none once confirmed', () => {
+    expect(readReceiptDetails({ ...base, aiStatus: 'skipped', details: { vendor: { value: 'X', confirmed: false, confidence: 400 } } }).needsCheck).toBe(false);
     expect(readReceiptDetails({ ...base, details: {} })).toMatchObject({ who: null, amountPence: null, date: '2026-10-30T10:00:00Z', needsCheck: false });
     expect(readReceiptDetails({ ...base, details: { vendor: { value: 'X', confirmed: true, confidence: null } } }).needsCheck).toBe(false);
   });

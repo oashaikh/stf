@@ -6,6 +6,7 @@ import StateMessage from '../components/StateMessage';
 import { fetchAccounts, type ApiAccount } from '../lib/accountsApi';
 import { ENTRIES_QUERY_KEY } from '../lib/entriesApi';
 import { vatRateOf } from '../lib/entryForm';
+import { vatOnGross } from '../lib/vat';
 import { formatPenceRaw, parsePence } from '../lib/money';
 import {
   confirmReceiptDraft,
@@ -30,10 +31,10 @@ function suggestedAccountId(accounts: ApiAccount[], suggestion: string | undefin
   return accounts.find((account) => account.taxCategory === wanted || account.name.toLowerCase() === wanted)?.id ?? '';
 }
 
-function ConfidenceMarker({ confidence }: { confidence: number | null }) {
+function ConfidenceMarker({ confidence, id }: { confidence: number | null; id: string }) {
   const sure = confidence !== null && confidence >= LOW_CONFIDENCE_THOUSANDTHS;
   return (
-    <span className={`text-sm font-medium ${sure ? 'text-green-800' : 'text-amber-900'}`}>
+    <span id={id} className={`text-sm font-medium ${sure ? 'text-green-800' : 'text-amber-900'}`}>
       {sure ? 'Sure' : 'Check this one'}
     </span>
   );
@@ -55,7 +56,7 @@ function Field({ label, officialName, confidence, htmlFor, children }: {
     >
       <div className="flex items-baseline justify-between gap-2">
         <label htmlFor={htmlFor} className="font-medium text-gray-900">{label}</label>
-        <ConfidenceMarker confidence={confidence} />
+        <ConfidenceMarker confidence={confidence} id={`${htmlFor}-confidence`} />
       </div>
       {officialName && <OfficialName>{officialName}</OfficialName>}
       {children}
@@ -87,7 +88,7 @@ function DiscardDialog({ receipt, onKeep, onDiscard }: { receipt: ListedReceipt;
       <div className="p-6">
         <h2 id="discard-receipt-title" className="text-lg font-semibold text-gray-900">Throw this receipt away?</h2>
         <p className="mt-3 break-words text-gray-900">{receipt.fileName}</p>
-        <p className="mt-2 text-gray-800">The picture and the details we read from it will be removed. No expense is added.</p>
+        <p className="mt-2 text-gray-800">We will drop the details we read. The receipt stays in your list so you can add the expense by hand. No expense is added now.</p>
       </div>
       <div className="flex justify-end gap-3 border-t border-gray-200 p-4">
         <button type="button" className={buttonClass} onClick={onKeep}>Keep it</button>
@@ -141,12 +142,18 @@ export default function ReceiptReview({ receipt, onDone }: { receipt: ListedRece
     if (grossPence === null || grossPence === 0) return setFormError('Enter the total on the receipt, for example 12.50.');
     if (taxPence === null || taxPence >= grossPence) return setFormError('Enter the tax paid as an amount smaller than the total, or leave it empty.');
     if (!accountId) return setFormError('Choose a category.');
+    // The server works the tax out from the rate, so a figure that is not one of the three rates would be saved as something else.
+    const vatRatePercent = vatRateOf(grossPence - taxPence, taxPence);
+    const expectedTaxPence = vatOnGross(grossPence, vatRatePercent);
+    if (taxPence !== expectedTaxPence) {
+      return setFormError(`Tax on a receipt is 0%, 5% or 20% of the amount before tax. For this total the closest is ${formatPenceRaw(expectedTaxPence)}. Change the tax paid or the total.`);
+    }
     confirm.mutate({
       id: receipt.id,
       date,
       supplier: supplier.trim(),
       grossPence,
-      vatRatePercent: vatRateOf(grossPence - taxPence, taxPence),
+      vatRatePercent,
       categoryAccountId: accountId,
       description: supplier.trim(),
     });
@@ -157,7 +164,7 @@ export default function ReceiptReview({ receipt, onDone }: { receipt: ListedRece
       <div className="mt-6" role="status">
         <p className="text-gray-900">Saved. This receipt is now one of your expenses.</p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link to={`/money-out?entry=${confirm.data}`} className={primaryButtonClass}>See it in your expenses</Link>
+          <Link to={`/money-out?${new URLSearchParams({ entry: confirm.data, from: date, to: date })}`} className={primaryButtonClass}>See it in your expenses</Link>
           <Link to="/money-out/receipts" className={buttonClass}>Back to receipts</Link>
         </div>
       </div>
@@ -182,22 +189,22 @@ export default function ReceiptReview({ receipt, onDone }: { receipt: ListedRece
           }}
         >
           <Field label="Date" htmlFor="review-date" confidence={confidenceOf('date')}>
-            <input id="review-date" type="date" value={date} onChange={(event) => setDate(event.target.value)} className={inputClass} />
+            <input id="review-date" aria-describedby="review-date-confidence" type="date" value={date} onChange={(event) => setDate(event.target.value)} className={inputClass} />
           </Field>
           <Field label="Who it was from" htmlFor="review-supplier" confidence={confidenceOf('vendor')}>
-            <input id="review-supplier" type="text" value={supplier} onChange={(event) => setSupplier(event.target.value)} className={inputClass} />
+            <input id="review-supplier" aria-describedby="review-supplier-confidence" type="text" value={supplier} onChange={(event) => setSupplier(event.target.value)} className={inputClass} />
           </Field>
           <Field label="Total including tax" htmlFor="review-total" confidence={confidenceOf('totalPence')}>
-            <input id="review-total" type="text" inputMode="decimal" value={total} onChange={(event) => setTotal(event.target.value)} className={`${inputClass} text-right tabular-nums`} />
+            <input id="review-total" aria-describedby="review-total-confidence" type="text" inputMode="decimal" value={total} onChange={(event) => setTotal(event.target.value)} className={`${inputClass} text-right tabular-nums`} />
           </Field>
           <Field label="Tax paid" officialName="VAT" htmlFor="review-tax" confidence={confidenceOf('vatPence')}>
-            <input id="review-tax" type="text" inputMode="decimal" value={tax} onChange={(event) => setTax(event.target.value)} className={`${inputClass} text-right tabular-nums`} />
+            <input id="review-tax" aria-describedby="review-tax-confidence" type="text" inputMode="decimal" value={tax} onChange={(event) => setTax(event.target.value)} className={`${inputClass} text-right tabular-nums`} />
           </Field>
           <Field label="Category" htmlFor="review-category" confidence={confidenceOf('category')}>
             {accountsQuery.isPending && <StateMessage kind="loading" className="mt-1">Loading your categories…</StateMessage>}
             {accountsQuery.isError && <StateMessage kind="error" className="mt-1" onRetry={() => void accountsQuery.refetch()}>We could not load your categories. Your receipt is safe.</StateMessage>}
             {accountsQuery.isSuccess && (
-              <select id="review-category" value={accountId} onChange={(event) => setChosenAccountId(event.target.value)} className={inputClass}>
+              <select id="review-category" aria-describedby="review-category-confidence" value={accountId} onChange={(event) => setChosenAccountId(event.target.value)} className={inputClass}>
                 <option value="">Choose a category</option>
                 {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
               </select>
@@ -205,7 +212,7 @@ export default function ReceiptReview({ receipt, onDone }: { receipt: ListedRece
           </Field>
           {errorMessage && <p role="alert" className="text-red-800">{errorMessage}</p>}
           <div className="flex flex-wrap gap-3">
-            <button type="submit" className={primaryButtonClass} disabled={confirm.isPending}>Confirm</button>
+            <button type="submit" className={primaryButtonClass} disabled={confirm.isPending}>{confirm.isPending ? 'Saving…' : 'Confirm'}</button>
             <button type="button" className={buttonClass} disabled={discard.isPending} onClick={() => setDiscarding(true)}>Discard</button>
           </div>
         </form>

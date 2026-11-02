@@ -7,9 +7,8 @@ import { TAX_BANDS } from '../lib/taxBands';
 import { saveExpenseMethod } from '../lib/tradingAllowanceApi';
 import TaxPage from './TaxPage';
 
-// The mileage section has its own tests and its own API; this file's fetch mock only knows the tax estimate.
-vi.mock('./ItsObligationsSection', () => ({ default: () => <h2>Income Tax obligations</h2> }));
-vi.mock('./MileageSection', () => ({ default: () => <h2>Mileage</h2> }));
+// This file's fetch mock only knows the tax estimate.
+vi.mock('./ItsObligationsSection', () => ({ default: () => <h2>Income Tax updates due</h2> }));
 vi.mock('../lib/tradingAllowanceApi', () => ({ saveExpenseMethod: vi.fn() }));
 
 const estimateFor = (taxYear: string) => ({
@@ -48,14 +47,20 @@ describe('TaxPage', () => {
   it('uses one content width: the page sets it and no section narrows itself', async () => {
     renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
     await screen.findAllByText('£60,000.00');
-    const main = screen.getByRole('main');
-    expect(main.className).toContain('max-w-4xl');
-    expect(main.querySelectorAll('section[class*="max-w-"]')).toHaveLength(0);
+    const page = screen.getByRole('heading', { name: 'Income Tax estimate' }).parentElement!;
+    expect(page.className).toContain('max-w-4xl');
+    expect(page.querySelectorAll('section[class*="max-w-"]')).toHaveLength(0);
   });
 
-  it('renders the Income Tax obligations section', async () => {
+  it('renders the Income Tax updates due section', async () => {
     renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
-    expect(await screen.findByRole('heading', { name: 'Income Tax obligations' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Income Tax updates due' })).toBeTruthy();
+  });
+
+  it('no longer shows mileage, which lives under Money out', async () => {
+    renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
+    await screen.findByRole('heading', { name: 'Income Tax updates due' });
+    expect(screen.queryByText(/mileage/i)).toBeNull();
   });
 
   it('shows the figures the route returns, the set-aside amount and an estimate note', async () => {

@@ -18,7 +18,7 @@ export interface DrillLine {
 function expensesLink(line: DrillLine): string {
   const filters = new URLSearchParams({ from: line.date, to: line.date });
   if (line.description) filters.set('search', line.description);
-  return `/expenses?${filters}#entry-${line.transactionId}`;
+  return `/money-out?${filters}#entry-${line.transactionId}`;
 }
 
 // Boxes 2, 8 and 9 are always zero, so they are a line of small text rather than rows.

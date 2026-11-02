@@ -51,7 +51,7 @@ describe('VatFigures', () => {
     expect(within(sales).queryByRole('link')).not.toBeInTheDocument();
     fireEvent.click(why);
     expect(why).toHaveAttribute('aria-expanded', 'true');
-    expect(within(sales).getByRole('link')).toHaveAttribute('href', '/expenses?from=2026-09-04&to=2026-09-04&search=Invoice+7#entry-t1');
+    expect(within(sales).getByRole('link')).toHaveAttribute('href', '/money-out?from=2026-09-04&to=2026-09-04&search=Invoice+7#entry-t1');
     fireEvent.click(why);
     expect(within(sales).queryByRole('link')).not.toBeInTheDocument();
   });

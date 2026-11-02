@@ -7,7 +7,6 @@ import { NotConnectedError, previewVatReturn, SubmitVatError, submitVatReturn, V
 import { formatPence } from '../lib/money';
 import type { VatReturnBoxes } from '../lib/vat';
 import type { ApiResponse } from '../model/types';
-import VatHistoryList from './VatHistoryList';
 import VatObligationsList from './VatObligationsList';
 import VatFigures, { type DrillLine } from './VatFigures';
 import VatPreviewPanel from './VatPreviewPanel';
@@ -76,8 +75,8 @@ export default function VatPage() {
   };
 
   return (
-    <main className="p-4 md:p-8">
-      <h1 className="text-2xl font-semibold text-gray-900">VAT Returns</h1>
+    <div className="mt-6">
+      <h2 className="text-xl font-semibold text-gray-900">VAT Returns</h2>
 
       {obligations.isPending && <StateMessage kind="loading">Loading your VAT returns…</StateMessage>}
       {notConnected && <VatStop fix={{ to: '/settings', label: 'Connect HMRC in Settings' }}>HMRC is not connected yet.</VatStop>}
@@ -109,11 +108,9 @@ export default function VatPage() {
       {/* Keyed by period so switching returns drops the ticked declaration, mutation state and open dialog. */}
       {selected && step !== 'period' && <VatReturnReview key={selected.periodKey} period={selected} step={step} live={live} frame={frame} onNext={() => setStepOverride('send')} />}
 
-      {/* An empty history above the connect prompt only adds noise; the connect prompt should be the one thing shown. */}
-      {/* Past returns and obligations would put a second page under the step, so they show only when no step does. */}
-      {!inFlow && !notConnected && <VatHistoryList />}
+      {/* Obligations would put a second page under the step, so they show only when no step does. */}
       {!inFlow && <VatObligationsList />}
-    </main>
+    </div>
   );
 }
 
@@ -231,7 +228,7 @@ function VatReturnReview({ period, step, live, frame, onNext }: VatReturnReviewP
           <p role="status" className="mt-4 text-sm font-medium text-gray-900">
             Status: {state.statusLabel}
           </p>
-          {review.data.stale && <VatStop fix={{ to: '/expenses', label: 'Check your payments' }}>Some payments changed after you confirmed this return. Check them, then confirm again.</VatStop>}
+          {review.data.stale && <VatStop fix={{ to: '/money-out', label: 'Check your payments' }}>Some payments changed after you confirmed this return. Check them, then confirm again.</VatStop>}
           {filedReceipt && step === 'figures' && <p className="mt-2 text-sm font-medium text-gray-900">This return has already been sent to HMRC.</p>}
           {review.data.entryCount === 0 && step === 'figures' && (
             <p className="mt-2 text-sm text-gray-700">

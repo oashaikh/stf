@@ -230,7 +230,7 @@ describe('VatPage', () => {
       renderPage();
       expect(await screen.findByRole('link', { name: 'Add your VAT number in Settings' })).toHaveAttribute('href', '/settings');
       expect(screen.queryByText('Step 1 of 2')).not.toBeInTheDocument();
-      expect(screen.getByRole('main').textContent).not.toMatch(/ledger/i);
+      expect(document.body.textContent).not.toMatch(/ledger/i);
       expect(screen.getByText(/We need your VAT number/).textContent).not.toMatch(/obligation/i);
     });
 
@@ -239,8 +239,8 @@ describe('VatPage', () => {
       fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
       renderPage();
       expect(await screen.findByText(/Some payments changed after you confirmed/)).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'Check your payments' })).toHaveAttribute('href', '/expenses');
-      expect(screen.getByRole('main').textContent).not.toMatch(/ledger/i);
+      expect(screen.getByRole('link', { name: 'Check your payments' })).toHaveAttribute('href', '/money-out');
+      expect(document.body.textContent).not.toMatch(/ledger/i);
     });
   });
 
@@ -388,7 +388,7 @@ describe('VatPage', () => {
       const link = screen.getByRole('link', { name: /Consulting & design/ });
       expect(link).toHaveAttribute(
         'href',
-        '/expenses?from=2026-08-15&to=2026-08-15&search=Consulting+%26+design#entry-entry-42',
+        '/money-out?from=2026-08-15&to=2026-08-15&search=Consulting+%26+design#entry-entry-42',
       );
       expect(link).toHaveTextContent('15 Aug 2026');
       expect(link).toHaveTextContent('£100.00');

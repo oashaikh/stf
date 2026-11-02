@@ -118,8 +118,12 @@ describe("schema migrations", () => {
       return match![1];
     };
 
-    it("locks one submission per user, tax year, quarter and HMRC environment", () => {
-      expect(tableBody()).toContain('UNIQUE("user_id","tax_year","quarter","sandbox")');
+    it("locks one submission per user, tax year, quarter, HMRC environment and business kind", () => {
+      expect(sql).toContain('UNIQUE("user_id","tax_year","quarter","sandbox","business_kind")');
+    });
+
+    it("gives existing rows the self-employment kind", () => {
+      expect(sql).toContain(`"business_kind" text DEFAULT 'self-employment' NOT NULL`);
     });
 
     it("defines the status enum values", () => {
@@ -365,7 +369,7 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0025_uk_property_business");
+    expect(tags.at(-1)).toBe("0026_its_submissions_business_kind");
   });
 });
 

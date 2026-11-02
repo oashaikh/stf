@@ -12,6 +12,7 @@ import { VatReturnError } from '../vatReturns';
 
 const NINO = 'QQ123456C';
 const BUSINESS_ID = 'XAIS12345678901';
+const PROPERTY_BUSINESS_ID = 'XPIS12345678901';
 const ACCESS = 'access-secret-token';
 const NOW = new Date('2026-10-26T10:00:00Z');
 const target = { taxYear: '2026-27', quarter: 2 as const };
@@ -28,6 +29,13 @@ const incomeLine = (amountPence: number): TaxYearLine => ({
   deletedAt: null,
 });
 
+const rentLine = (amountPence: number): TaxYearLine => ({
+  ...incomeLine(amountPence),
+  accountId: 'rent',
+  accountName: 'Rent received',
+  taxCategory: 'property-rent-received',
+});
+
 interface Row {
   id: string;
   userId: string;
@@ -36,18 +44,19 @@ interface Row {
 }
 
 function setup(over: { sandboxOptIn?: boolean } = {}) {
-  const ledger: Record<string, TaxYearLine[]> = { user_a: [incomeLine(-100000)], user_b: [incomeLine(-5000)] };
+  const ledger: Record<string, TaxYearLine[]> = { user_a: [incomeLine(-100000), rentLine(-80000)], user_b: [incomeLine(-5000)] };
   const rows = new Map<string, Row>();
   const audits: Array<{ action: string; snapshot: unknown }> = [];
-  const key = (userId: string, taxYear: string, quarter: number, sandbox: boolean) => `${userId}:${taxYear}:${quarter}:${sandbox}`;
+  const key = (userId: string, taxYear: string, quarter: number, sandbox: boolean, kind = 'self-employment') =>
+    `${userId}:${taxYear}:${quarter}:${sandbox}:${kind}`;
 
   const submissions: ItsSubmissionStore = {
     find: async (userId, period) => {
-      const row = rows.get(key(userId, period.taxYear, period.quarter, period.sandbox));
+      const row = rows.get(key(userId, period.taxYear, period.quarter, period.sandbox, period.kind));
       return row && { id: row.id, status: row.status, confirmedPayload: row.payload };
     },
     saveConfirmed: async (userId, period, payload, _now, audit) => {
-      const k = key(userId, period.taxYear, period.quarter, period.sandbox);
+      const k = key(userId, period.taxYear, period.quarter, period.sandbox, period.kind);
       const existing = rows.get(k);
       if (existing && (existing.status === 'pending' || existing.status === 'submitted')) return false;
       rows.set(k, { id: k, userId, status: 'confirmed', payload });
@@ -84,7 +93,7 @@ function setup(over: { sandboxOptIn?: boolean } = {}) {
   const hmrcStore = {
     sandboxMode: async () => over.sandboxOptIn ?? true,
     credentials: async () => credentials,
-    status: async () => ({ connected: true, expiresAt: null, itsBusinessId: BUSINESS_ID, needsItsReconnect: false }),
+    status: async () => ({ connected: true, expiresAt: null, itsBusinessId: BUSINESS_ID, itsPropertyBusinessId: PROPERTY_BUSINESS_ID, needsItsReconnect: false }),
     saveRefreshedTokens: async () => true,
   } as unknown as HmrcStore;
   const identifiers = { get: async () => ({ ninoEncrypted: encryptToken(NINO) }) } as unknown as TaxIdentifiersStore;
@@ -98,7 +107,10 @@ function setup(over: { sandboxOptIn?: boolean } = {}) {
   const request = new Request('https://app.example/api/hmrc/its-submit', { method: 'POST' });
   const confirm = (userId = 'user_a', declaration = true) => confirmItsUpdateForUser({ userId, ...target, declaration, request }, deps);
   const submit = (userId = 'user_a') => submitItsUpdateForUser({ userId, ...target, request }, deps);
-  return { submissions, ledger, rows, audits, fetchFn, confirm, submit };
+  const confirmProperty = (userId = 'user_a') =>
+    confirmItsUpdateForUser({ userId, ...target, declaration: true, request, kind: 'uk-property' }, deps);
+  const submitProperty = (userId = 'user_a') => submitItsUpdateForUser({ userId, ...target, request, kind: 'uk-property' }, deps);
+  return { submissions, ledger, rows, audits, fetchFn, confirm, submit, confirmProperty, submitProperty };
 }
 
 const refusalCode = async (promise: Promise<unknown>) => {
@@ -241,5 +253,49 @@ describe('Income Tax quarterly update submission', () => {
     await t.confirm('user_a');
     expect(await refusalCode(t.submit('user_b'))).toBe('NOT_CONFIRMED');
     expect(t.fetchFn).not.toHaveBeenCalled();
+  });
+
+  describe('UK property', () => {
+    it('does not call HMRC without a property confirmation', async () => {
+      const t = setup();
+      await t.confirm();
+      expect(await refusalCode(t.submitProperty())).toBe('NOT_CONFIRMED');
+      expect(t.fetchFn).not.toHaveBeenCalled();
+    });
+
+    it('sends only the rental figures to the property endpoint', async () => {
+      const t = setup();
+      await t.confirmProperty();
+      await t.submitProperty();
+      const [url, init] = t.fetchFn.mock.calls[0];
+      expect(String(url)).toContain(`/individuals/business/property/uk/${NINO}/${PROPERTY_BUSINESS_ID}/cumulative/2026-27`);
+      expect(JSON.parse(String(init?.body)).ukProperty.income).toEqual({ periodAmount: 800 });
+    });
+
+    it('lets a self-employment and a property update for one quarter both be filed', async () => {
+      const t = setup();
+      await t.confirm();
+      await t.confirmProperty();
+      await t.submit();
+      await t.submitProperty();
+      expect([...t.rows.values()].map((row) => row.status)).toEqual(['submitted', 'submitted']);
+    });
+
+    it('refuses a stale property confirmation and a second property submit', async () => {
+      const t = setup();
+      await t.confirmProperty();
+      t.ledger.user_a.push(rentLine(-1));
+      expect(await refusalCode(t.submitProperty())).toBe('STALE_CONFIRMATION');
+      await t.confirmProperty();
+      await t.submitProperty();
+      expect(await refusalCode(t.submitProperty())).toBe('ALREADY_SUBMITTED');
+    });
+
+    it('refuses another user the first user\'s property confirmation', async () => {
+      const t = setup();
+      await t.confirmProperty('user_a');
+      expect(await refusalCode(t.submitProperty('user_b'))).toBe('NOT_CONFIRMED');
+      expect(t.fetchFn).not.toHaveBeenCalled();
+    });
   });
 });

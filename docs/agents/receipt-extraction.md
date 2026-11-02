@@ -17,7 +17,7 @@ Draft suggestions only. No ledger transactions are ever created.
 
 - One `receipt_extractions` row per field, with `suggested_value` and `confidence`. Four fields are extracted: date, vendor, total (in integer pence), and VAT (in integer pence). A fifth field, category, may be added later; the procedure already reserves it.
 - Five columns on the `receipts` row: `ai_status` (set to `extracted` on success, `failed` on error, or `skipped` if extraction is disabled), `ai_model` (the Claude model ID used), `ai_confidence` (the overall confidence as an integer from 0 to 1000, where 1000 = 100%), and `ai_raw_output` (the full JSON response from Claude, for audit and replay). `ai_status` is set to `skipped` if the kill switch is off or no API key is configured.
-- One audit event recording the extraction, with actor type `ai_agent`, never `user`. The action name is `receipt.extracted` or `receipt.extraction_failed`. The resource type is `receipts` and the resource_id is the receipt `id`. The metadata holds only the model name and status, never the receipt content, file path, or extracted values.
+- One audit event recording the extraction, with actor type `ai_agent`, never `user`. The action name is `receipt.extracted`, `receipt.extraction_failed`, or `receipt.extraction_skipped`. The resource type is `receipt` and the resource_id is the receipt `id`. The metadata holds only the model name and status, never the receipt content, file path, or extracted values.
 - Nothing is written to `transactions` or `transaction_lines`.
 
 ## What triggers it
@@ -42,15 +42,15 @@ Every field is a draft in plain words. Nothing becomes a record until they confi
 
 ## The audit event
 
-One record per extraction attempt, capturing outcome and metadata only.
+One record per extraction attempt, capturing only outcome and model details.
 
 - **Actor type:** `ai_agent` — this is an AI operation, not a user action.
-- **Action:** `receipt.extracted` on success, `receipt.extraction_failed` on failure.
-- **Resource type:** `receipts`
+- **Action:** `receipt.extracted` on success, `receipt.extraction_failed` on failure, `receipt.extraction_skipped` if disabled.
+- **Resource type:** `receipt`
 - **Resource ID:** the receipt `id`
-- **Metadata:** `{ "model": "claude-haiku-...", "status": "extracted" | "failed", "error_code": null | "not_a_receipt" | "malformed_json" | "missing_required_fields" | ... }`
-- **Never in metadata:** the receipt file path, the extracted values, the owner's email, or any request body.
-- **On failure:** `ai_status` on the receipt row is set to `failed` and the error code is stored in metadata. The extracted rows are not created. No transaction is created.
+- **Metadata:** `{ "model": "claude-haiku-...", "status": "extracted" | "failed" | "skipped" }` — model name and outcome only.
+- **Never in metadata:** the receipt file path, extracted values, owner's email, error codes, or request body.
+- **On failure:** `ai_status` on the receipt row is set to `failed` and no extraction rows are created.
 
 ## The kill switch
 
@@ -65,15 +65,5 @@ Extraction is controlled by two mechanisms: the API key and the enabled flag.
   - The `receipts` row has `ai_status = skipped`.
   - No extraction rows are created.
   - The owner is prompted to enter the receipt details by hand (the same form they would use if extraction failed).
-  - An audit event `receipt.extraction_skipped` is logged with `{ "reason": "no_api_key" | "extraction_disabled" }`.
+  - An audit event `receipt.extraction_skipped` is logged with `{ "model": "claude-haiku-...", "status": "skipped" }`.
 
----
-
-## Implementation notes
-
-- The extraction route is `POST /api/receipts/:id/extract` and lives in `api/receipts/extract.ts`.
-- The prompt that builds the JSON request is in `src/lib/receiptPrompt.ts`.
-- All amounts returned by the model are validated as integer pence (never decimals or strings). If the model returns `1299` for £12.99, it is accepted; if it returns `12.99` or `"1299"`, the extraction fails with `malformed_json` and the owner enters by hand.
-- Confidence is returned as a decimal (0.0 to 1.0) and converted to integer thousandths (0 to 1000) before storing on the `receipts` row and `receipt_extractions` rows.
-- If the model returns `{ "error": "not_a_receipt" }`, `ai_status` is set to `failed` and the error is `not_a_receipt`; no suggestions are shown.
-- The receipt content and API keys never appear in the database, logs, or audit trail. Sensitive data is held only in memory during the request.

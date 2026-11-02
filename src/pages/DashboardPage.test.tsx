@@ -71,7 +71,7 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('link', { name: /add entry/i }).getAttribute('href')).toBe('/money-out');
     expect(screen.getByRole('link', { name: /vat page/i }).getAttribute('href')).toBe('/tax/vat');
     expect(await screen.findByText('£123.45')).toBeTruthy();
-    expect(screen.getByRole('link', { name: /tax page/i }).getAttribute('href')).toBe('/tax');
+    expect(screen.getByRole('link', { name: /tax page/i }).getAttribute('href')).toBe('/tax/income-tax');
   });
 
   it('shows dates in the UK display format, like the rest of the app', async () => {

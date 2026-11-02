@@ -83,7 +83,7 @@ export default function DashboardPage() {
   return (
     <main className="p-4 md:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Home</h1>
         <Link to="/money-out" className="inline-flex min-h-11 items-center rounded bg-blue-800 px-4 text-white">
           Add entry
         </Link>
@@ -128,7 +128,7 @@ export default function DashboardPage() {
             {taxEstimate.data && (
               <Card title="Tax set-aside (estimate)" period={`Tax year ${taxEstimate.data.taxYear}`}>
                 <Row label="Income tax and NIC" pence={taxEstimate.data.totalTaxPence} />
-                <Link to="/tax" className={linkClass}>
+                <Link to="/tax/income-tax" className={linkClass}>
                   Go to the Tax page
                 </Link>
               </Card>

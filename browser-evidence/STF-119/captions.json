@@ -1,98 +1,74 @@
 {
+  "1440-light-bank.png": {
+    "title": "Bank: your connected bank accounts, moved here from Settings"
+  },
   "1440-light-home.png": {
-    "title": "Home screen showing the six-item menu: Home, Money in, Money out, Bank, Tax, and Settings",
-    "state": "after"
+    "title": "Home: the overview with this year's money in, money out and tax set aside"
   },
-  "1440-dark-home.png": {
-    "title": "Home screen in dark mode showing the six-item menu",
-    "state": "after"
-  },
-  "390-light-home.png": {
-    "title": "Home screen at mobile width showing the six-item menu in a bottom bar",
-    "state": "after"
-  },
-  "390-dark-home.png": {
-    "title": "Home screen at mobile width in dark mode showing the six-item menu in a bottom bar",
-    "state": "after"
+  "1440-light-money-in-other-income.png": {
+    "title": "Money in, Other income tab: income that is not an invoice"
   },
   "1440-light-money-in.png": {
-    "title": "Money in screen showing invoices and income entries, accessible from the main menu",
-    "state": "after"
+    "title": "Money in: your invoices, with the Other income tab beside it"
   },
-  "1440-dark-money-in.png": {
-    "title": "Money in screen in dark mode",
-    "state": "after"
+  "1440-light-money-out-mileage.png": {
+    "title": "Money out, Mileage tab: record business trips"
   },
-  "390-light-money-in.png": {
-    "title": "Money in screen at mobile width",
-    "state": "after"
-  },
-  "390-dark-money-in.png": {
-    "title": "Money in screen at mobile width in dark mode",
-    "state": "after"
+  "1440-light-money-out-receipts.png": {
+    "title": "Money out, Receipts tab: receipt uploads are coming soon"
   },
   "1440-light-money-out.png": {
-    "title": "Money out screen showing expenses, receipts, and mileage, accessible from the main menu",
-    "state": "after"
-  },
-  "1440-dark-money-out.png": {
-    "title": "Money out screen in dark mode",
-    "state": "after"
-  },
-  "390-light-money-out.png": {
-    "title": "Money out screen at mobile width",
-    "state": "after"
-  },
-  "390-dark-money-out.png": {
-    "title": "Money out screen at mobile width in dark mode",
-    "state": "after"
-  },
-  "1440-light-bank.png": {
-    "title": "Bank screen showing connected accounts and payment sorting, moved from Settings to its own menu item",
-    "state": "after"
-  },
-  "1440-dark-bank.png": {
-    "title": "Bank screen in dark mode",
-    "state": "after"
-  },
-  "390-light-bank.png": {
-    "title": "Bank screen at mobile width",
-    "state": "after"
-  },
-  "390-dark-bank.png": {
-    "title": "Bank screen at mobile width in dark mode",
-    "state": "after"
-  },
-  "1440-light-tax.png": {
-    "title": "Tax screen showing VAT, Income Tax, and Reports, organized by tabs instead of separate menu items",
-    "state": "after"
-  },
-  "1440-dark-tax.png": {
-    "title": "Tax screen in dark mode",
-    "state": "after"
-  },
-  "390-light-tax.png": {
-    "title": "Tax screen at mobile width",
-    "state": "after"
-  },
-  "390-dark-tax.png": {
-    "title": "Tax screen at mobile width in dark mode",
-    "state": "after"
+    "title": "Money out: your expenses, with Receipts and Mileage tabs beside it"
   },
   "1440-light-settings.png": {
-    "title": "Settings screen with business details, HMRC connection, and security preferences, with Bank section removed",
-    "state": "after"
+    "title": "Settings: business details, HMRC connection, security and preferences"
   },
-  "1440-dark-settings.png": {
-    "title": "Settings screen in dark mode",
-    "state": "after"
+  "1440-light-tax-income-tax.png": {
+    "title": "Tax, Income Tax tab: your Income Tax estimate and the updates due"
+  },
+  "1440-light-tax-past-returns.png": {
+    "title": "Tax, Past returns tab: VAT returns you have already filed"
+  },
+  "1440-light-tax-reports.png": {
+    "title": "Tax, Reports tab: download your entries as a spreadsheet"
+  },
+  "1440-light-tax-vat.png": {
+    "title": "Tax, VAT tab: the VAT return for the current period"
+  },
+  "390-light-bank.png": {
+    "title": "Bank: your connected bank accounts, moved here from Settings (phone width)"
+  },
+  "390-light-home.png": {
+    "title": "Home: the overview with this year's money in, money out and tax set aside (phone width)"
+  },
+  "390-light-money-in-other-income.png": {
+    "title": "Money in, Other income tab: income that is not an invoice (phone width)"
+  },
+  "390-light-money-in.png": {
+    "title": "Money in: your invoices, with the Other income tab beside it (phone width)"
+  },
+  "390-light-money-out-mileage.png": {
+    "title": "Money out, Mileage tab: record business trips (phone width)"
+  },
+  "390-light-money-out-receipts.png": {
+    "title": "Money out, Receipts tab: receipt uploads are coming soon (phone width)"
+  },
+  "390-light-money-out.png": {
+    "title": "Money out: your expenses, with Receipts and Mileage tabs beside it (phone width)"
   },
   "390-light-settings.png": {
-    "title": "Settings screen at mobile width",
-    "state": "after"
+    "title": "Settings: business details, HMRC connection, security and preferences (phone width)"
   },
-  "390-dark-settings.png": {
-    "title": "Settings screen at mobile width in dark mode",
-    "state": "after"
+  "390-light-tax-income-tax.png": {
+    "title": "Tax, Income Tax tab: your Income Tax estimate and the updates due (phone width)"
+  },
+  "390-light-tax-past-returns.png": {
+    "title": "Tax, Past returns tab: VAT returns you have already filed (phone width)"
+  },
+  "390-light-tax-reports.png": {
+    "title": "Tax, Reports tab: download your entries as a spreadsheet (phone width)"
+  },
+  "390-light-tax-vat.png": {
+    "title": "Tax, VAT tab: the VAT return for the current period (phone width)"
   }
 }

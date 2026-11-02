@@ -31,7 +31,7 @@ describe('TaxHubPage', () => {
   });
 
   it.each([
-    ['/tax', 'vat content'],
+    ['/tax', 'income tax content'],
     ['/tax/vat', 'vat content'],
     ['/tax/income-tax', 'income tax content'],
     ['/tax/past-returns', 'past returns content'],

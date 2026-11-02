@@ -15,7 +15,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const LINK_CLASS =
-  'flex min-h-14 flex-1 flex-col items-center justify-center gap-1 px-2 text-xs font-medium md:min-h-11 md:min-w-11 md:flex-none md:flex-row md:gap-2 md:text-sm';
+  'flex min-h-14 flex-1 flex-col items-center justify-center gap-1 px-2 text-xs font-medium focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-blue-700 md:min-h-11 md:min-w-11 md:flex-none md:flex-row md:gap-2 md:text-sm';
 
 function renderLink({ to, label, icon: Icon }: NavItem) {
   return (

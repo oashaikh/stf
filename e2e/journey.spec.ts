@@ -74,7 +74,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     await page.getByLabel('Password').fill(ownerPassword!);
     await page.getByRole('button', { name: 'Sign in' }).click();
     const codeField = page.getByLabel('Authenticator code');
-    const dashboard = page.getByRole('heading', { level: 1, name: 'Dashboard' });
+    const dashboard = page.getByRole('heading', { level: 1, name: 'Home' });
     await expect(dashboard.or(codeField)).toBeVisible();
     if (await codeField.isVisible()) {
       missingTotpSecret = !journeyTotpSecret;
@@ -87,7 +87,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   // Not a failure: the owner's account is protected and this run was given no way past it. It sits outside the step because a skip thrown inside one is reported as a failure.
   if (missingTotpSecret) console.log('JOURNEY_SKIPPED: 2FA on, no journey secret (set JOURNEY_TOTP_SECRET to the authenticator secret)');
   test.skip(missingTotpSecret, '2FA on, no journey secret');
-  await step('dashboard', openPage('/home', 'Dashboard'));
+  await step('dashboard', openPage('/home', 'Home'));
   await step('expenses', openPage('/money-out', 'Money out'));
   // Mocked only: a deployed run must not write a test entry into the owner's books.
   if (mocked) {
@@ -209,7 +209,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   // The menu has six items at both widths, and each one opens its page.
   await step('six-menu-items', async () => {
     const menuItems: Array<[string, string]> = [
-      ['Home', 'Dashboard'], ['Money in', 'Money in'], ['Money out', 'Money out'],
+      ['Home', 'Home'], ['Money in', 'Money in'], ['Money out', 'Money out'],
       ['Bank', 'Bank'], ['Tax', 'Tax'], ['Settings', 'Settings'],
     ];
     for (const width of [1440, 390]) {
@@ -227,7 +227,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   await step('old-addresses-redirect', async () => {
     const oldAddresses = [
       ['/dashboard', /\/home$/], ['/invoices', /\/money-in$/], ['/expenses', /\/money-out$/],
-      ['/receipts', /\/money-out\/receipts$/], ['/vat', /\/tax\/vat$/], ['/reports', /\/tax\/reports$/],
+      ['/receipts', /\/money-out\/receipts$/], ['/vat', /\/tax\/vat$/], ['/reports', /\/tax\/reports$/], ['/tax', /\/tax\/income-tax$/],
     ] as const;
     for (const [from, to] of oldAddresses) {
       await page.goto(from);
@@ -246,7 +246,7 @@ test('owner opens an invoice and sees the Download PDF button', async ({ page })
   await page.goto('/');
   await page.getByLabel('Password').fill(ownerPassword!);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
   await page.goto('/money-in');
   await page.getByRole('button', { name: /INV-0042/ }).click();
@@ -270,10 +270,10 @@ test('owner sees Income Tax obligations with the next due one marked, and last k
   await page.goto('/');
   await page.getByLabel('Password').fill(ownerPassword!);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
-  await page.goto('/tax');
-  await expect(page.getByRole('heading', { name: 'Income Tax obligations' })).toBeVisible();
+  await page.goto('/tax/income-tax');
+  await expect(page.getByRole('heading', { name: 'Income Tax updates due' })).toBeVisible();
   await expect(page.getByText('Next due')).toHaveCount(1);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -357,7 +357,7 @@ test('owner sets up the authenticator, signs out, and signs back in with passwor
   await page.goto('/');
   await page.getByLabel('Password').fill(ownerPassword!);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
 
   await page.goto('/settings');
   await expect(page.getByText('Authenticator is off')).toBeVisible();
@@ -390,6 +390,6 @@ test('owner sets up the authenticator, signs out, and signs back in with passwor
 
   await page.getByLabel('Authenticator code').fill(mockMfaCode);
   await page.getByRole('button', { name: 'Verify' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
   await capture('dashboard-after-code');
 });

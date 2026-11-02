@@ -19,7 +19,7 @@ export default function TaxHubPage() {
       <h1 className="text-2xl font-semibold text-gray-900">Tax</h1>
       <SectionTabs label="Tax" tabs={TABS} />
       <Routes>
-        <Route index element={<Navigate to="/tax/vat" replace />} />
+        <Route index element={<Navigate to="/tax/income-tax" replace />} />
         <Route path="vat" element={<VatPage />} />
         <Route path="income-tax" element={<TaxPage />} />
         <Route

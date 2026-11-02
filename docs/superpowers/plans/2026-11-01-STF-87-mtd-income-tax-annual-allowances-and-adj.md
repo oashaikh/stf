@@ -122,9 +122,10 @@ Also depends on:
     - lint, typecheck, test and build pass
   - Commit: `a770e767c7fc`
 
-- [ ] **Task 7: Document the annual submission workflow** (after 4)
+- [x] **Task 7: Document the annual submission workflow** (after 4)
   - Intent: Add an annual submission section to docs/workflows/its-quarterly-update.md covering the endpoint, confirm and submit lifecycle, the lock, audit events, sandbox/live gating, the trading allowance rule, and the guided year end flow entry points (Tax page link now, Home to-do item later). Keep examples in line with the client code.
   - Files: `docs/workflows/its-quarterly-update.md`
   - Acceptance criteria the planner set:
     - The doc names the three routes and the status lifecycle
     - Examples match the field names in the builder
+  - Commit: `a4ec37902d45`

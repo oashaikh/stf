@@ -33,7 +33,7 @@ export interface EntryHeader {
 
 export interface Entry extends EntryHeader {
   id: string;
-  source: 'manual' | 'receipt_ai';
+  source: typeof transactions.$inferSelect['source'];
   lines: PostedLine[];
 }
 
@@ -303,13 +303,14 @@ async function loadEntry(executor: Executor, userId: string, entryId: string): P
       description: transactions.description,
       reference: transactions.reference,
       status: transactions.status,
+      source: transactions.source,
     })
     .from(transactions)
     .where(and(eq(transactions.id, entryId), eq(transactions.userId, userId), isNull(transactions.deletedAt)))
     .limit(1);
   if (!header || (header.status !== 'draft' && header.status !== 'confirmed')) return undefined;
   const lines = await executor.select(lineColumns).from(transactionLines).where(eq(transactionLines.transactionId, entryId)).limit(ENTRY_LINE_LIMIT);
-  return { ...header, status: header.status, source: 'manual', lines: toPostedLines(lines) };
+  return { ...header, status: header.status, lines: toPostedLines(lines) };
 }
 
 /** Marks the owner's live entry voided and returns its prior state; undefined if there is none. */
@@ -324,7 +325,29 @@ export async function voidLiveEntry(executor: Executor, userId: string, entryId:
     .returning({ id: transactions.id });
   if (!voided.length) return undefined;
   await releaseBankLines(executor, userId, entryId);
+  await releaseReceipts(executor, userId, entryId);
   return before;
+}
+
+/** A voided expense must not leave its receipt linked to a dead entry: unlink it so the owner can confirm it again, audited. */
+export async function releaseReceipts(executor: Executor, userId: string, entryId: string): Promise<void> {
+  const released = await executor
+    .update(receipts)
+    .set({ transactionId: null })
+    .where(and(eq(receipts.userId, userId), eq(receipts.transactionId, entryId)))
+    .returning({ id: receipts.id });
+  if (!released.length) return;
+  await executor.insert(auditEvents).values(
+    released.map((receipt) => ({
+      userId,
+      actorType: 'user' as const,
+      action: 'receipt.release',
+      resourceType: 'receipt',
+      resourceId: receipt.id,
+      beforeSnapshot: { transactionId: entryId },
+      afterSnapshot: { transactionId: null },
+    })),
+  );
 }
 
 /** A voided entry must not keep a bank line hidden as matched: put the line back in the owner's open list, audited. */

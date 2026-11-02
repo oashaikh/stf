@@ -103,7 +103,7 @@ Also depends on:
   - Risk: DashboardPage.tsx and its test are also edited by STF-120; keep the hunk to one import and one render line so it auto-merges.
   - Commit: `eecb3df83d80`
 
-- [ ] **Task 5: Mock API, new-user walkthrough and evidence** (after 4)
+- [x] **Task 5: Mock API, new-user walkthrough and evidence** (after 4)
   - Intent: Extend e2e/mockApi.ts with a setup-state endpoint (empty for a new user, remembers writes) and add a new-user walkthrough block to e2e/journey.spec.ts: sign in, land on /setup, go through all four steps once finished and once skipped, arrive at Home with to-dos. Capture screenshots at 1440 and 390, light and dark, of each changed screen walked from the start, invented figures, sandbox only, committed under browser-evidence/STF-123/ with captions.md giving every image a plain-English title. Add review-notes.md stating where screens differ from docs/design/ease-of-use.md and why. Add a short docs/workflows/first-time-setup.md.
   - Files: `e2e/mockApi.ts`, `e2e/journey.spec.ts`, `browser-evidence/STF-123/captions.md`, `browser-evidence/STF-123/review-notes.md`, `browser-evidence/STF-123/`, `docs/workflows/first-time-setup.md`
   - Acceptance criteria the planner set:
@@ -113,3 +113,4 @@ Also depends on:
     - No evidence file contains real customer data, tokens or machine paths
     - npm run lint, typecheck, test and build pass
   - Risk: e2e/mockApi.ts and e2e/journey.spec.ts are also edited by STF-121 and STF-74; add new handlers and a separate test block rather than editing existing ones. If the app ships no dark theme, say so in captions.md.
+  - Commit: `aeccefe63700`

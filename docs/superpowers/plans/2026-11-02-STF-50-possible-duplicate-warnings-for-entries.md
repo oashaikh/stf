@@ -101,3 +101,7 @@ Also depends on:
     - Screenshots at 390 and 1440 px of all four changed screens in browser-evidence/STF-50 with captions
     - npm run lint, typecheck, test and build pass
   - Commit: (none — no code change for this task)
+
+- [x] **Task 5: Fix: address 5 review findings (cycle 1)** (after 4)
+  - Intent: Review left 5 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Rules, hash check, API and notices work, and screenshots are clean. One correctness defect: dismissing a 'new entry' warning is stored as `<existing id>|new`, so it silenc The agent is fixing them; nothing is needed from you.
+  - Commit: `021aa3dc15d5`

@@ -1,0 +1,44 @@
+{
+  "vat-confirmed-step-1-of-2-1440-light.png": {
+    "title": "Step 1 of 2: each VAT figure in plain words, with its box number in small text and a 'Why is this amount?' link (1440px wide, light)"
+  },
+  "vat-confirmed-step-1-of-2-390-light.png": {
+    "title": "Step 1 of 2: each VAT figure in plain words, with its box number in small text and a 'Why is this amount?' link (390px wide, light)"
+  },
+  "vat-confirmed-step-2-of-2-1440-light.png": {
+    "title": "Step 2 of 2: one sentence saying what you are telling HMRC, then the Send to HMRC (test mode) button (1440px wide, light)"
+  },
+  "vat-confirmed-step-2-of-2-390-light.png": {
+    "title": "Step 2 of 2: one sentence saying what you are telling HMRC, then the Send to HMRC (test mode) button (390px wide, light)"
+  },
+  "vat-draft-step-1-of-2-1440-light.png": {
+    "title": "Step 1 of 2 for a return not yet confirmed: the same plain-words figures, with Back and Save and leave (1440px wide, light)"
+  },
+  "vat-draft-step-1-of-2-390-light.png": {
+    "title": "Step 1 of 2 for a return not yet confirmed: the same plain-words figures, with Back and Save and leave (390px wide, light)"
+  },
+  "vat-draft-step-2-of-2-1440-light.png": {
+    "title": "Step 2 of 2 for a return not yet confirmed: the summary sentence and the declaration to tick before Send to HMRC unlocks (1440px wide, light)"
+  },
+  "vat-draft-step-2-of-2-390-light.png": {
+    "title": "Step 2 of 2 for a return not yet confirmed: the summary sentence and the declaration to tick before Send to HMRC unlocks (390px wide, light)"
+  },
+  "vat-filed-step-1-of-2-1440-light.png": {
+    "title": "Step 1 of 2 for a return already sent: the figures that were filed, shown in plain words (1440px wide, light)"
+  },
+  "vat-filed-step-1-of-2-390-light.png": {
+    "title": "Step 1 of 2 for a return already sent: the figures that were filed, shown in plain words (390px wide, light)"
+  },
+  "vat-filed-step-2-of-2-1440-light.png": {
+    "title": "Step 2 of 2 for a return already sent: the summary and HMRC's receipt, with no send button (1440px wide, light)"
+  },
+  "vat-filed-step-2-of-2-390-light.png": {
+    "title": "Step 2 of 2 for a return already sent: the summary and HMRC's receipt, with no send button (390px wide, light)"
+  },
+  "vat-none-nothing-due-1440-light.png": {
+    "title": "What you see when there is no VAT return to file right now (1440px wide, light)"
+  },
+  "vat-none-nothing-due-390-light.png": {
+    "title": "What you see when there is no VAT return to file right now (390px wide, light)"
+  }
+}

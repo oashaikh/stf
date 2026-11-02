@@ -56,7 +56,7 @@ Also depends on:
   - Risk: Default model and effort. Read-only count, but it must be scoped to the user; tenant-isolation tests are required.
   - Commit: `73bc1e261da7`
 
-- [ ] **Task 2: Pure builder for the Home to-do list**
+- [x] **Task 2: Pure builder for the Home to-do list**
   - Intent: Add `src/lib/homeTodos.ts` with a pure function `buildHomeTodos(input, today)`. Inputs: open VAT obligations, open Income Tax obligations (ItsObligationRow), unsortedBankCount, receiptsToCheckCount, the bank consent state (existing consentState in bankApi), and an optional list of skipped setup steps. Each item has an id, plain-words title, optional due date, days-late figure for overdue items, button label and target route. Overdue items come first, most late first, saying how late ('3 days late'). The rest follow soonest first. Undated items (unsorted payments, receipts) go after dated ones. Bank expiry reads 'Your bank connection runs out in N days'. When the list is empty return the 'nothing due' state with the next upcoming date ('You're up to date. Your next VAT return is due 7 March.'). Use wording from docs/design/ease-of-use.md section 1 and the plain-words table. Targets: VAT to /tax/vat, Income Tax to /tax/update/:taxYear/:quarter, unsorted payments and expiring bank to /bank, receipts to /money-out/receipts. The setup-skipped input is a plain optional array so this task does not depend on STF-123.
   - Files: `src/lib/homeTodos.ts`, `src/lib/homeTodos.test.ts`
   - Acceptance criteria the planner set:
@@ -66,6 +66,7 @@ Also depends on:
     - Tests cover the bank expiry item shown for 'expiring' but not 'active'
     - No raw jargon in titles (obligation, reconcile, Box N)
     - `npm run typecheck`, `npm run lint` and `npm test` pass
+  - Commit: `342c533f8c28`
 
 - [ ] **Task 3: Replace the Dashboard content with the Home to-do list and money summary** (after 1, 2)
   - Intent: Rewrite `src/pages/DashboardPage.tsx` (route /home) to answer 'what needs doing'. Use existing queries and keys: useVatObligations ('vat-obligations', mocks must always return defined data), fetchItsObligations ('its-obligations'), fetchBankStatus, fetchDashboard, fetchTaxEstimate. Render buildHomeTodos as a list with one button per item, overdue items marked with text as well as colour, and the nothing-due message. Below is a short money summary: money in this month, money out this month, tax to set aside. Each figure is a link: money in to /money-in, money out to /money-out, tax to /tax/income-tax (confirm with the owner, since the spec says each figure opens the payments behind it). Use formatPence, right-aligned tabular figures. Remove the old cards (Box 5, VAT collected, drafts, latest entries). Use the shared StateMessage for loading and error states. Each query fails soft so one failing source does not blank the page. Use min-h-11 tap targets. Rewrite DashboardPage.test.tsx. Pass an empty setup-skipped list until STF-123 merges.

@@ -99,7 +99,7 @@ Also depends on:
   - Risk: HMRC submission, authorisation and idempotency work, so Opus at high.
   - Commit: `6da552ccca29`
 
-- [ ] **Task 5: Final declaration guided flow, API wrappers and routing** (after 4)
+- [x] **Task 5: Final declaration guided flow, API wrappers and routing** (after 4)
   - Intent: Add src/lib/itsFinalApi.ts (wrappers like itsAnnualApi.ts) and a guided step-by-step page, FinalDeclarationFlow, mounted at /tax/final-declaration/:taxYear following ease-of-use.md and the YearEndFlow pattern. Step 1: HMRC's figures for income tax, National Insurance and total next to STF's estimate, with a plain-words call-out of any difference and what it means (e.g. other income STF doesn't hold). Step 2: the owner ticks HMRC's wording, the Send button is disabled until then, and the server is the real gate. Step 3: done, with the sandbox badge when in sandbox mode. Use plain words, with official names in small muted OfficialName text, shared StateMessage for loading/error/empty, 44px targets, and the shared design tokens. Add the jargon test coverage as other screens do. The route goes in App.tsx and App.test.tsx.
   - Files: `src/lib/itsFinalApi.ts`, `src/lib/itsFinalApi.test.ts`, `src/pages/FinalDeclarationFlow.tsx`, `src/pages/FinalDeclarationFlow.test.tsx`, `src/pages/FinalDeclarationPage.tsx`, `src/pages/__tests__/jargonRender.test.tsx`, `src/App.tsx`, `src/App.test.tsx`, `e2e/mockApi.ts`
   - Acceptance criteria the planner set:
@@ -110,6 +110,7 @@ Also depends on:
     - The jargon render test passes for the new screens.
     - npm run lint, typecheck and test pass.
   - Risk: e2e/mockApi.ts and jargonRender.test.tsx are also edited by STF-38 and STF-74; keep the hunks small. Hunks in different places auto-merge.
+  - Commit: `3ea04b5ed3bc`
 
 - [ ] **Task 6: Tax page entry point for the final declaration** (after 5)
   - Intent: In src/pages/TaxPage.tsx add a link to the final declaration flow for the selected year next to the existing year-end link, with a plain-words label. Leave homeTodos.ts alone, since STF-38 is editing it. Update TaxPage.test.tsx.

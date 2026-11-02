@@ -176,6 +176,13 @@
       "when": 1792986664126,
       "tag": "0024_first_time_setup",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1792986665126,
+      "tag": "0025_audit_events_user_action_idx",
+      "breakpoints": true
     }
   ]
 }

@@ -63,7 +63,7 @@ Also depends on:
     - npm run lint, typecheck and test pass
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 2: Receipt file fingerprint: store it and flag repeat uploads on the server**
+- [x] **Task 2: Receipt file fingerprint: store it and flag repeat uploads on the server**
   - Intent: Add nullable file_hash (hex SHA-256) and duplicate_of_receipt_id columns to receipts, an index on (user_id, file_hash), and migration 0034 with journal entry (0033 is taken by STF-110). Client hashes the chosen file with crypto.subtle.digest and sends it in the receipt-create body. api/_lib/receipts.ts validates 64 hex chars, optional. On insert one bounded indexed query finds the owner's live receipt with the same hash and stores its id. Create response and list rows expose duplicateOfId. Never blocks the upload or changes existing records. Update column grants and input inventory.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0034_receipt_file_hash.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0034_snapshot.json`, `api/_lib/receipts.ts`, `api/receipts.ts`, `api/_lib/__tests__/receipts.test.ts`, `api/_lib/__tests__/receiptsRoute.test.ts`, `src/lib/receiptsApi.ts`, `src/lib/__tests__/receiptsApi.test.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -75,6 +75,7 @@ Also depends on:
     - Lookup is one indexed query with LIMIT 1, outside any transaction
     - npm run lint, typecheck, test and build pass
   - Risk: Opus high: schema migration plus an owner-scoped query where a cross-user leak would be a tenant-isolation bug.
+  - Commit: `bf68680d00ff`
 
 - [ ] **Task 3: Show duplicate warnings on the entry form and the Expenses list** (after 1)
   - Intent: In AddEntryForm (ExpensesPage.tsx), once date, amount and supplier are filled, fetch the owner's expense entries within date ±3 days (one bounded fetchEntries call) and run the Task 1 rule. Show a dismissible DuplicateNotice naming the other entry. Saving is never blocked or altered. On the Expenses list (EntriesList.tsx) run the rule once over loaded rows and show a small notice on flagged rows; rows stay one line and collapse at 390px. Plain wording; dismissed stays dismissed after reload.

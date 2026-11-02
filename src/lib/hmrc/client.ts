@@ -177,6 +177,108 @@ export async function submitAnnualSubmission(
   );
 }
 
+// ─── Individual Calculations (final declaration) ─────────────────────────────
+
+// Individual Calculations API v8.0. Version, paths and field names were written from the published
+// spec without live access to the docs page at build time: recheck against
+// https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/individual-calculations-api
+// before the first sandbox call.
+export const INDIVIDUAL_CALCULATIONS_API_ACCEPT = 'application/vnd.hmrc.8.0+json';
+
+export const individualCalculationsPath = (nino: string, taxYear: string) =>
+  `/individuals/calculations/${nino}/self-assessment/${taxYear}`;
+
+/**
+ * Pounds as HMRC returns them (a JSON number or string) to integer pence, by string maths.
+ * String(number) is the shortest round-trip form, so 1234.5 and 0.07 stay exact.
+ */
+export function poundsToPence(pounds: number | string): number {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(String(pounds));
+  if (!match) throw new Error(`Not a money amount: ${String(pounds)}`);
+  const [, sign, whole, fraction = ''] = match;
+  const pence = Number(whole + fraction.padEnd(2, '0').slice(0, 2));
+  return sign ? -pence : pence;
+}
+
+export type TaxCalculationResult = {
+  incomeTaxPence: number;
+  class2NicPence: number;
+  class4NicPence: number;
+  totalPence: number;
+};
+
+/** Ask HMRC to calculate the year's liability ahead of the final declaration. */
+export function triggerTaxCalculation(
+  nino: string,
+  taxYear: string,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<{ calculationId: string }> {
+  return hmrcFetch(
+    `${individualCalculationsPath(nino, taxYear)}/trigger/intent-to-finalise`,
+    accessToken,
+    fraudHeaders,
+    { method: 'POST', headers: { Accept: INDIVIDUAL_CALCULATIONS_API_ACCEPT } },
+    fetchFn,
+  );
+}
+
+type RawTaxCalculation = {
+  calculation: {
+    taxCalculation: {
+      incomeTax: { incomeTaxCharged: number | string };
+      nics?: {
+        class2Nics?: { amount?: number | string };
+        class4Nics?: { totalClass4Charge?: number | string };
+      };
+      totalIncomeTaxAndNicsDue: number | string;
+    };
+  };
+};
+
+export async function getTaxCalculation(
+  nino: string,
+  taxYear: string,
+  calculationId: string,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<TaxCalculationResult> {
+  const raw = await hmrcFetch<RawTaxCalculation>(
+    `${individualCalculationsPath(nino, taxYear)}/${encodeURIComponent(calculationId)}`,
+    accessToken,
+    fraudHeaders,
+    { headers: { Accept: INDIVIDUAL_CALCULATIONS_API_ACCEPT } },
+    fetchFn,
+  );
+  const { incomeTax, nics, totalIncomeTaxAndNicsDue } = raw.calculation.taxCalculation;
+  return {
+    incomeTaxPence: poundsToPence(incomeTax.incomeTaxCharged),
+    class2NicPence: poundsToPence(nics?.class2Nics?.amount ?? 0),
+    class4NicPence: poundsToPence(nics?.class4Nics?.totalClass4Charge ?? 0),
+    totalPence: poundsToPence(totalIncomeTaxAndNicsDue),
+  };
+}
+
+/** Submit the final declaration. MUST only be called after the owner ticks HMRC's declaration wording. */
+export async function submitFinalDeclaration(
+  nino: string,
+  taxYear: string,
+  calculationId: string,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<void> {
+  await hmrcFetch<void>(
+    `${individualCalculationsPath(nino, taxYear)}/${encodeURIComponent(calculationId)}/final-declaration`,
+    accessToken,
+    fraudHeaders,
+    { method: 'POST', headers: { Accept: INDIVIDUAL_CALCULATIONS_API_ACCEPT } },
+    fetchFn,
+  );
+}
+
 // ─── VAT ──────────────────────────────────────────────────────────────────────
 
 export type VatObligation = {

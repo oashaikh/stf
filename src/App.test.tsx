@@ -38,6 +38,15 @@ describe('public legal pages', () => {
   });
 });
 
+describe('final declaration', () => {
+  it('keeps the final declaration behind sign-in', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 } as Response));
+    window.history.pushState({}, '', '/tax/final-declaration/2026-27');
+    render(<App />);
+    expect(await screen.findByLabelText('Password')).toBeInTheDocument();
+  });
+});
+
 describe('old addresses', () => {
   it.each([
     ['/dashboard', '/home'],

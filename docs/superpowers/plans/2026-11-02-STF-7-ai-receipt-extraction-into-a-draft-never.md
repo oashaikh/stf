@@ -63,7 +63,7 @@
   - Risk: Opus at high: tenant isolation, secrets, AI-draft rule and audit trail. Edits receiptStorage.ts, which STF-74 also edits; add only a new method so the hunks merge.
   - Commit: `c79f21b1ae77`
 
-- [ ] **Task 4: Serverless route, vercel.json maxDuration, .env.example, input inventory** (after 3)
+- [x] **Task 4: Serverless route, vercel.json maxDuration, .env.example, input inventory** (after 3)
   - Intent: Add api/receipt-extract.ts (POST, body { id } validated with validateReceiptId from api/_lib/receipts.ts) wrapped in withAuth like api/receipts.ts, with userId taken from the session only. It calls the task 3 service with real deps built per request (storage config errors answer 503, as in api/receipts.ts) and returns only the receipt id, ai_status and the draft fields, never file_key or the raw reply. Other methods get 405; an unknown or not-ready receipt gets 404. Add the route to vercel.json functions with maxDuration 60. Add RECEIPT_AI_MODEL (default noted) and RECEIPT_AI_ENABLED (kill switch) to .env.example and update the Anthropic comment block; src/lib/__tests__/envExample.test.ts must keep passing, so read env as process.env.NAME. Add the route to docs/security/input-inventory.md. Route test in api/_lib/__tests__/receiptExtractionRoute.test.ts: unauthenticated refused, wrong method, bad id, a second user's receipt id refused with 404, happy path with the fake client. Finish by confirming the procedure doc matches the final env var names and behaviour.
   - Files: `api/receipt-extract.ts`, `api/_lib/__tests__/receiptExtractionRoute.test.ts`, `vercel.json`, `.env.example`, `docs/security/input-inventory.md`, `docs/agents/receipt-extraction.md`
   - Acceptance criteria the planner set:
@@ -73,3 +73,4 @@
     - Response carries no file_key or raw model output
     - npm run lint, typecheck, test and build all pass
   - Risk: Opus at high: authenticated route taking a record id and making a paid third-party call. Edits docs/security/input-inventory.md, which STF-74 also edits (different rows).
+  - Commit: `58ce49466237`

@@ -78,3 +78,7 @@
 - [x] **Task 5: Fix: address 11 review findings (cycle 1)** (after 4)
   - Intent: Review left 11 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens: the extraction route can be called repeatedly on one receipt, and each call inserts a new set of draft rows. The procedure doc also contradicts the code  The agent is fixing them; nothing is needed from you.
   - Commit: `2afe9e2354e0`
+
+- [x] **Task 6: Fix: address 6 review findings (cycle 2)** (after 5)
+  - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — APPROVED Correctness lens found nothing blocking. The once-only guard, the atomic conditional update in save(), the hourly rate limit, the pence and thousandths conversion and the fa The agent is fixing them; nothing is needed from you.
+  - Commit: `ccc9eca59245`

@@ -72,7 +72,7 @@ Also depends on:
   - Risk: Blocked on STF-75 not being in this tree. Wrong guess at the contract would ship a broken confirm.
   - Commit: `211277f7ec2f`
 
-- [ ] **Task 3: Build the receipt review screen component** (after 2)
+- [x] **Task 3: Build the receipt review screen component** (after 2)
   - Intent: New ReceiptReview component: receipt image or PDF beside the suggested fields (stacked on phones at 390 px). Use readUrl: img for images, an embedded viewer or open-link fallback for PDFs. Each field (date, who it was from, total including tax, tax paid, category) is an editable input with a confidence marker that uses text as well as colour (e.g. 'Sure' or 'Check this one'). Fields under LOW_CONFIDENCE_THOUSANDTHS are highlighted. Category is a select of the owner's active expense accounts (reuse fetchAccounts(false) filtered to type expense). Money is shown with formatPence and parsed with parsePence, as integer pence. Copy says plainly these are suggestions to check, with plain words per docs/design/ease-of-use.md (official names only in small muted text via OfficialName). Buttons: 'Confirm' (calls confirmReceiptDraft with the edited values, then shows a link to the new entry) and 'Discard' (asks for confirmation naming what it removes, then discardReceiptDraft). Use the shared StateMessage for loading, empty and error states, the page container, type-scale and colour tokens, 44 px targets and visible focus. Component tests (API mocked): low-confidence field is highlighted and high is not; an edited value, not the original suggestion, is what gets sent; discard path asks first and calls discard; confirm shows the entry link; a refusal is shown beside the fix.
   - Files: `src/pages/ReceiptReview.tsx`, `src/pages/ReceiptReview.test.tsx`
   - Acceptance criteria the planner set:
@@ -84,6 +84,7 @@ Also depends on:
     - Screen text says the values are suggestions to check and uses no word from the 'never on screen' list
     - Component tests for highlight, edited-values-sent and discard pass; lint, typecheck and test pass
   - Risk: Money handling: parsing the edited amount must stay integer pence with no float maths.
+  - Commit: `c47c80f957cf`
 
 - [ ] **Task 4: Open the review from the Receipts page and capture screenshots** (after 3)
   - Intent: Wire the review in: the 'needs checking' action on each ReceiptRow in src/pages/ReceiptsPage.tsx opens ReceiptReview (route /money-out/receipts/:receiptId, added under MoneyOutPage or App routes, with the existing redirects left intact). The current row 'confirm' mutation, which confirms unedited values, is replaced by this review path so nothing is confirmed without a look. After discard or confirm the owner returns to the list, and the list refreshes via receiptsQueryKey (and ENTRIES_QUERY_KEY after confirm). Add the screen to the jargon render test. Update ReceiptsPage.test.tsx and make mocks return defined data for every query key (vat-obligations flake noted in repo memory). Capture screenshots at 390 and 1440 px, light and dark, with a captions file (plain-English title per image) under browser-evidence/STF-76/, using invented receipts only. In the PR note where the screen differs from docs/design/ease-of-use.md (one review page rather than one field per screen, as the ticket specifies).

@@ -50,6 +50,7 @@ export async function checkItsReadiness(
   userId: string,
   hmrcStore: HmrcStore,
   identifiers: TaxIdentifiersStore,
+  business: 'self-employment' | 'property' = 'self-employment',
 ): Promise<Refusal | { ok: true; sandbox: boolean; nino: string; businessId: string; credentials: HmrcCredentials }> {
   // Off by default: nothing below runs, so no database read.
   if (process.env.HMRC_ITSA_ENABLED !== 'true') return refuse(404, 'ITSA_DISABLED', 'Income Tax is off');
@@ -61,12 +62,17 @@ export async function checkItsReadiness(
 
   const credentials = await hmrcStore.credentials(userId);
   if (!credentials) return refuse(409, 'HMRC_NOT_CONNECTED', 'HMRC is not connected');
-  const { itsBusinessId, needsItsReconnect } = await hmrcStore.status(userId);
+  const { itsBusinessId, itsPropertyBusinessId, needsItsReconnect } = await hmrcStore.status(userId);
   if (needsItsReconnect) return refuse(409, 'ITS_SCOPE_MISSING', 'Reconnect HMRC to grant Income Tax access');
-  if (!itsBusinessId) return refuse(409, 'NO_BUSINESS_SELECTED', 'Choose your self-employment business first');
+  const businessId = business === 'property' ? itsPropertyBusinessId : itsBusinessId;
+  if (!businessId) {
+    return business === 'property'
+      ? refuse(409, 'NO_PROPERTY_BUSINESS', 'HMRC has no rental property on record for you')
+      : refuse(409, 'NO_BUSINESS_SELECTED', 'Choose your self-employment business first');
+  }
   const stored = await identifiers.get(userId);
   if (!stored?.ninoEncrypted) return refuse(409, 'NO_NINO', 'Add your National Insurance number first');
-  return { ok: true, sandbox, nino: decryptToken(stored.ninoEncrypted), businessId: itsBusinessId, credentials };
+  return { ok: true, sandbox, nino: decryptToken(stored.ninoEncrypted), businessId, credentials };
 }
 
 /**

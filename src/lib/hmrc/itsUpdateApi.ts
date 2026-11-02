@@ -1,5 +1,5 @@
 import { quarterEndDate } from '../itsCumulativeUpdate';
-import type { CumulativePeriodSummary } from './client';
+import type { CumulativePeriodSummary, PropertyCumulativeSummary } from './client';
 import type { ItsObligationRow } from './itsObligationsApi';
 import { browserFraudHeaders } from './vatApi';
 
@@ -11,9 +11,9 @@ export function quarterOf(obligation: ItsObligationRow): Quarter | null {
   return ([1, 2, 3, 4] as const).find((quarter) => quarterEndDate(obligation.taxYear, quarter) === obligation.periodEnd) ?? null;
 }
 
-export interface ItsUpdatePreview {
+export interface ItsUpdatePreview<Body = CumulativePeriodSummary> {
   endpoint: { method: string; url: string; sandbox: boolean };
-  body: CumulativePeriodSummary;
+  body: Body;
   headers: Record<string, string>;
 }
 
@@ -38,6 +38,10 @@ export async function post(route: string, payload: object): Promise<{ ok: true; 
 
 export async function previewItsUpdate(taxYear: string, quarter: Quarter): Promise<ItsUpdatePreview> {
   return (await post('its-cumulative-preview', { taxYear, quarter })).data as ItsUpdatePreview;
+}
+
+export async function previewItsPropertyUpdate(taxYear: string, quarter: Quarter): Promise<ItsUpdatePreview<PropertyCumulativeSummary>> {
+  return (await post('its-property-preview', { taxYear, quarter })).data as ItsUpdatePreview<PropertyCumulativeSummary>;
 }
 
 /** Records the declaration on the server; submit then sends exactly what was confirmed. */

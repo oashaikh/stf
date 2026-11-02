@@ -50,7 +50,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: HMRC client: trigger and fetch the final-declaration tax calculation, and submit the declaration**
+- [x] **Task 1: HMRC client: trigger and fetch the final-declaration tax calculation, and submit the declaration**
   - Intent: Add to src/lib/hmrc/client.ts three functions that follow the existing hmrcFetch pattern: trigger a calculation for the year (type final-declaration / intent-to-finalise), fetch the calculation by id, and submit the final declaration for that calculation id. Take the Individual Calculations API version, paths and Accept header from HMRC's docs at build time, and record the version as a named constant like SELF_EMPLOYMENT_API_ACCEPT. Parse the calculation response into integer pence only (income tax, Class 2 and Class 4 NIC, total). HMRC returns pounds as decimals, so convert with string/integer maths and never floating point. Add unit tests with a fake fetch and a sandbox integration test that is skipped when the sandbox env is unset, following sandbox.integration.test.ts.
   - Files: `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`, `src/lib/hmrc/sandbox.integration.test.ts`
   - Acceptance criteria the planner set:
@@ -60,6 +60,7 @@ Also depends on:
     - The sandbox integration test is skipped when the sandbox credentials are unset.
     - npm run typecheck and npm test pass.
   - Risk: Endpoint and field names must be checked against HMRC's live docs; repo memory says earlier client paths were never verified.
+  - Commit: `89a85479c44e`
 
 - [ ] **Task 2: Pure comparison of HMRC's figures with STF's estimate, plus the declaration wording**
   - Intent: Add a pure module in src/lib that takes STF's estimate (TaxEstimateResult figures) and HMRC's calculated figures (pence) and returns the per-line difference (income tax, NIC, total) and a flag for whether they differ. Put HMRC's declaration wording in this module as one exported constant, copied from HMRC's docs, so the UI and the server check the same text. Add unit tests for equal, higher and lower cases. Do not hard-code any tax band values.

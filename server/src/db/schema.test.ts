@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { bankConnections, invoices, recurringEntryRuns } from "./schema";
+import { bankConnections, bankTransactions, invoices, recurringEntryRuns } from "./schema";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, "migrations");
@@ -396,6 +396,21 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0026_its_final_declarations");
+    expect(tags.at(-1)).toBe("0027_bank_suggestions");
+  });
+});
+
+describe("bank line suggestions", () => {
+  const sql = readMigrationSql();
+
+  it("adds nullable suggestion columns with a 0-100 integer confidence check", () => {
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "suggested_account_id" uuid;/);
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "suggested_confidence" integer;/);
+    expect(sql).toMatch(/CONSTRAINT "bank_transactions_suggested_confidence_check" CHECK \("suggested_confidence" IS NULL OR "suggested_confidence" BETWEEN 0 AND 100\)/);
+    expect(sql).toMatch(/"bank_transactions_suggested_account_id_accounts_id_fk" FOREIGN KEY \("suggested_account_id"\) REFERENCES "public"\."accounts"\("id"\)/);
+  });
+
+  it("exposes both columns on the table definition", () => {
+    expect(Object.keys(bankTransactions)).toEqual(expect.arrayContaining(["suggestedAccountId", "suggestedConfidence"]));
   });
 });

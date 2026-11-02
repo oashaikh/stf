@@ -618,9 +618,16 @@ export const bankTransactions = pgTable(
       .notNull()
       .default('unmatched'),
     possibleDuplicate: boolean('possible_duplicate').notNull().default(false),
+    // AI category suggestion: a draft hint only, null until the owner asks for one. Never a ledger row.
+    suggestedAccountId: uuid('suggested_account_id').references(() => accounts.id),
+    suggestedConfidence: integer('suggested_confidence'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
+    suggestedConfidenceRange: check(
+      'bank_transactions_suggested_confidence_check',
+      sql`${table.suggestedConfidence} IS NULL OR ${table.suggestedConfidence} BETWEEN 0 AND 100`,
+    ),
     connectionProviderIdUidx: uniqueIndex('bank_transactions_connection_provider_id_uidx').on(table.connectionId, table.providerTransactionId),
     connectionDateIdx: index('bank_transactions_connection_date_idx').on(table.connectionId, table.date),
   }),

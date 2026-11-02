@@ -14,7 +14,6 @@ import {
 import { formatPence } from '../lib/money';
 import type { VatReturnBoxes } from '../lib/vat';
 import type { ApiResponse } from '../model/types';
-import VatHistoryList from './VatHistoryList';
 import VatObligationsList from './VatObligationsList';
 import VatPreviewPanel from './VatPreviewPanel';
 import { useVatObligations } from './useVatObligations';
@@ -51,7 +50,7 @@ interface VatPeriod {
 function expensesLink(line: DrillLine): string {
   const filters = new URLSearchParams({ from: line.date, to: line.date });
   if (line.description) filters.set('search', line.description);
-  return `/expenses?${filters}#entry-${line.transactionId}`;
+  return `/money-out?${filters}#entry-${line.transactionId}`;
 }
 
 const boxNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
@@ -66,10 +65,10 @@ export default function VatPage() {
   const vatNumberMissing = obligations.error instanceof VatNumberMissingError;
 
   return (
-    <main className="p-4 md:p-8">
-      <h1 className="text-2xl font-semibold text-gray-900">VAT Returns</h1>
+    <div className="mt-6">
+      <h2 className="text-xl font-semibold text-gray-900">VAT Returns</h2>
 
-      {obligations.isPending && <StateMessage kind="loading">Loading your VAT obligations…</StateMessage>}
+      {obligations.isPending && <StateMessage kind="loading">Loading your VAT returns due…</StateMessage>}
       {notConnected && (
         <p className="mt-4 text-gray-700">
           HMRC is not connected yet.{' '}
@@ -87,14 +86,14 @@ export default function VatPage() {
         </p>
       )}
       {obligations.isError && !notConnected && !vatNumberMissing && (
-        <StateMessage kind="error">Could not load your VAT obligations. Reload the page to try again.</StateMessage>
+        <StateMessage kind="error">Could not load your VAT returns due. Reload the page to try again.</StateMessage>
       )}
       {obligations.data && open.length === 0 && (
-        <StateMessage kind="empty">No open VAT obligations to file.</StateMessage>
+        <StateMessage kind="empty">No VAT returns due right now.</StateMessage>
       )}
       {open.length > 1 && (
         <fieldset className="mt-4">
-          <legend className="text-sm font-medium text-gray-900">Choose the obligation to file</legend>
+          <legend className="text-sm font-medium text-gray-900">Choose the return to send</legend>
           {open.map((obligation) => (
             <label key={obligation.periodKey} className="flex min-h-[44px] items-center gap-3 text-sm text-gray-900">
               <input
@@ -115,10 +114,8 @@ export default function VatPage() {
       {/* Keyed by period so switching obligations drops the ticked declaration, mutation state and open dialog. */}
       {selected && <VatReturnReview key={selected.periodKey} period={selected} />}
 
-      {/* An empty history above the connect prompt only adds noise; the connect prompt should be the one thing shown. */}
-      {!notConnected && <VatHistoryList />}
       <VatObligationsList />
-    </main>
+    </div>
   );
 }
 
@@ -288,7 +285,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
           )}
 
           <section className="mt-8 max-w-3xl" aria-labelledby="vat-submit-heading">
-            <h2 id="vat-submit-heading" className="text-lg font-semibold text-gray-900">Submit to HMRC</h2>
+            <h2 id="vat-submit-heading" className="text-lg font-semibold text-gray-900">Send to HMRC</h2>
             {state.receipt && (
               <div role="status" className="mt-2 text-sm text-gray-900">
                 <p className="font-medium">{state.receipt.heading}</p>
@@ -301,7 +298,7 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
             )}
             {submit.isError && !outcomeUnknown && (
               <p role="alert" className="mt-2 text-sm text-red-700">
-                Could not submit the return: {submit.error.message}
+                Could not send the return: {submit.error.message}
               </p>
             )}
             <div className="mt-4 flex flex-wrap gap-3">
@@ -462,7 +459,7 @@ function SubmitDialog({ open, periodLabel, netVatPence, live, preview, onCancel,
     >
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
         <h2 id="vat-submit-dialog-title" className="text-lg font-semibold text-gray-900">
-          {live ? 'Submit this VAT return to HMRC?' : 'Submit this VAT return to the HMRC sandbox?'}
+          {live ? 'Send this VAT return to HMRC?' : 'Send this VAT return to the HMRC sandbox?'}
         </h2>
         <dl className="mt-4 space-y-2 text-sm text-gray-900">
           <div className="flex justify-between gap-4">
@@ -486,7 +483,7 @@ function SubmitDialog({ open, periodLabel, netVatPence, live, preview, onCancel,
           Cancel
         </button>
         <button type="button" onClick={onSubmit} className="min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800">
-          {live ? 'Submit to HMRC' : 'Submit to sandbox'}
+          {live ? 'Send to HMRC' : 'Send to sandbox'}
         </button>
       </div>
     </dialog>

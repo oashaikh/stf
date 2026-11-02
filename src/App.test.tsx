@@ -30,3 +30,30 @@ describe('public legal pages', () => {
     expect(await screen.findByLabelText('Password')).toBeInTheDocument();
   });
 });
+
+describe('old addresses', () => {
+  it.each([
+    ['/dashboard', '/home'],
+    ['/invoices', '/money-in'],
+    ['/expenses?status=draft', '/money-out?status=draft'],
+    ['/expenses?from=2026-08-15#entry-1', '/money-out?from=2026-08-15#entry-1'],
+    ['/receipts', '/money-out/receipts'],
+    ['/vat', '/tax/vat'],
+    ['/reports', '/tax/reports'],
+    ['/', '/home'],
+    ['/nowhere', '/home'],
+  ])('%s lands on %s', async (from, to) => {
+    // Only the session probe succeeds; page data requests fail into each page's error state.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => ({ ok: url === '/api/me', status: url === '/api/me' ? 200 : 500, json: async () => ({}) }) as Response),
+    );
+    window.history.pushState({}, '', from);
+    // A fresh module gives a fresh query cache, so the session answer from an earlier test is not reused.
+    vi.resetModules();
+    const { default: FreshApp } = await import('./App');
+    render(<FreshApp />);
+    await screen.findByRole('navigation', { name: 'Main' });
+    expect(window.location.pathname + window.location.search + window.location.hash).toBe(to);
+  });
+});

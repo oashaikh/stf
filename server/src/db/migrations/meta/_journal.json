@@ -155,6 +155,13 @@
       "when": 1792986661126,
       "tag": "0021_its_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1792986662126,
+      "tag": "0022_bank_transactions",
+      "breakpoints": true
     }
   ]
 }

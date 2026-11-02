@@ -5,7 +5,6 @@ import ChartOfAccountsSection from './ChartOfAccountsSection';
 import AuthenticatorSection from './AuthenticatorSection';
 import BusinessProfileSection from './BusinessProfileSection';
 import TaxIdentifiersSection from './TaxIdentifiersSection';
-import BankSection from './BankSection';
 import { LegalLinks } from './LegalPages';
 import {
   describeHmrcStatus,
@@ -409,7 +408,6 @@ export default function SettingsPage() {
       </section>
       <BusinessProfileSection />
       <TaxIdentifiersSection />
-      <BankSection />
       <AuthenticatorSection />
       <ChartOfAccountsSection />
       <section className="mt-6 max-w-xl" aria-labelledby="legal-heading">

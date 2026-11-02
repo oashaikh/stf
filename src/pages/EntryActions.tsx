@@ -75,7 +75,7 @@ export function LockedMessage() {
       This entry is in a VAT period that has been confirmed or filed, so it
       cannot be changed.{" "}
       <Link
-        to="/vat"
+        to="/tax/vat"
         className="block min-h-[44px] content-center font-medium underline"
       >
         Go to VAT

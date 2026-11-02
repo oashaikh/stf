@@ -114,3 +114,7 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
   - Risk: e2e/mockApi.ts and e2e/journey.spec.ts are also edited by STF-121 and STF-74; add new handlers and a separate test block rather than editing existing ones. If the app ships no dark theme, say so in captions.md.
   - Commit: `aeccefe63700`
+
+- [x] **Task 6: Fix: address 13 review findings (cycle 1)** (after 5)
+  - Intent: Review left 13 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found nothing blocking. I traced the server validation and update path, the resume, skip, finish and return-from-HMRC/bank logic, the once-per-load redi The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

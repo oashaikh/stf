@@ -24,7 +24,7 @@ export function quarterEndDate(taxYear: string, quarter: 1 | 2 | 3 | 4): string 
 }
 
 /** Integer pence to a pounds string. String maths on the whole and fraction parts keeps floats out of money. */
-function penceToPounds(pence: number): string {
+export function penceToPounds(pence: number): string {
   const sign = pence < 0 ? '-' : '';
   const absolute = Math.abs(pence);
   return `${sign}${Math.floor(absolute / 100)}.${String(absolute % 100).padStart(2, '0')}`;

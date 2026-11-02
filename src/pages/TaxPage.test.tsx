@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TAX_BANDS } from '../lib/taxBands';
@@ -31,7 +32,9 @@ function renderPage(fetchMock: (url: string) => Promise<Response>) {
   vi.stubGlobal('fetch', fetchSpy);
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <TaxPage />
+      <MemoryRouter>
+        <TaxPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   return fetchSpy;
@@ -44,6 +47,13 @@ afterEach(() => {
 });
 
 describe('TaxPage', () => {
+  it('links to the year end flow for the chosen tax year', async () => {
+    renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
+    await screen.findAllByText('£60,000.00');
+    const year = (screen.getByLabelText('Tax year') as HTMLSelectElement).value;
+    expect(screen.getByRole('link', { name: 'Do your Income Tax year end' }).getAttribute('href')).toBe(`/tax/year-end/${year}`);
+  });
+
   it('uses one content width: the page sets it and no section narrows itself', async () => {
     renderPage(async () => Response.json({ ok: true, data: estimateFor('2026-27') }));
     await screen.findAllByText('£60,000.00');

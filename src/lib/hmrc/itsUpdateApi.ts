@@ -24,7 +24,7 @@ export class ItsUpdateError extends Error {
   }
 }
 
-async function post(route: string, payload: object): Promise<{ ok: true; data: unknown }> {
+export async function post(route: string, payload: object): Promise<{ ok: true; data: unknown }> {
   const response = await fetch(`/api/hmrc/${route}`, {
     method: 'POST',
     credentials: 'same-origin',

@@ -1,3 +1,4 @@
+import type { AnnualSubmission } from '../itsAnnualSubmission.js';
 /**
  * HMRC MTD API client — STF
  *
@@ -135,6 +136,36 @@ export async function submitCumulativePeriodSummary(
 ): Promise<void> {
   await hmrcFetch<void>(
     selfEmploymentCumulativePath(nino, businessId, taxYear),
+    accessToken,
+    fraudHeaders,
+    {
+      method: 'PUT',
+      headers: { Accept: SELF_EMPLOYMENT_API_ACCEPT },
+      body: JSON.stringify(payload),
+    },
+    fetchFn,
+  );
+}
+
+export const selfEmploymentAnnualPath = (nino: string, businessId: string, taxYear: string) =>
+  `/individuals/business/self-employment/${nino}/${businessId}/annual/${taxYear}`;
+
+/**
+ * Submit the year's allowances and adjustments. MUST only be called after user explicitly confirms.
+ * Endpoint and field names were not checked against live HMRC docs: recheck them (same page as the
+ * cumulative call above) before the first sandbox submission. HMRC may reply with no body.
+ */
+export async function submitAnnualSubmission(
+  nino: string,
+  businessId: string,
+  taxYear: string,
+  payload: AnnualSubmission,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<void> {
+  await hmrcFetch<void>(
+    selfEmploymentAnnualPath(nino, businessId, taxYear),
     accessToken,
     fraudHeaders,
     {

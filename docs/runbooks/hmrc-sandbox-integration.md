@@ -41,16 +41,20 @@ headers. Same credentials and same sandbox-only guard as the rest of the suite. 
 
 ## Income Tax integration
 
-The suite now includes a test for listing self-employment businesses from the HMRC
-Income Tax API. This requires:
+The suite includes tests for:
+
+1. Listing self-employment and UK property businesses from the HMRC Income Tax API
+2. Submitting cumulative quarterly updates for self-employment and UK property
+3. Submitting annual allowances for self-employment and UK property
+
+This requires:
 
 1. The sandbox application to be subscribed to Income Tax (ITSA) in the Developer Hub.
 2. A test user enrolled for both VAT (MTD) and Income Tax (ITSA).
 3. The test user's NINO captured in `HMRC_SANDBOX_NINO`.
+4. For property tests: the test user must have a UK property business. If not present, property tests will fail rather than skip.
 
-When the owner has connected HMRC and sees the
-"Income Tax needs a one-time reconnect" notice in Settings, they reconnect and choose
-a self-employment business from the list returned by the API.
+When the owner has connected HMRC and sees the "Income Tax needs a one-time reconnect" notice in Settings, they reconnect and choose a self-employment and/or UK property business from the list returned by the API.
 
 Income Tax obligations on the Tax page also need `HMRC_ITSA_ENABLED=true`; see `docs/workflows/its-obligations.md`.
 

@@ -13,11 +13,13 @@ import {
   HmrcError,
   listItsPropertyBusinesses,
   PROPERTY_BUSINESS_API_ACCEPT,
+  propertyAnnualPath,
   propertyCumulativePath,
   refreshAccessToken,
   SELF_EMPLOYMENT_API_ACCEPT,
   submitAnnualSubmission,
   submitCumulativePeriodSummary,
+  submitPropertyAnnualSubmission,
   submitPropertyCumulativeSummary,
   validateFraudHeaders,
   withHmrcToken,
@@ -542,5 +544,26 @@ describe('final declaration calls', () => {
     const fetchFn = vi.fn().mockResolvedValue(jsonResponse(403, { code: 'RULE_FINAL_DECLARATION_RECEIVED', message: 'Already received' }));
     await expect(submitFinalDeclaration(nino, '2026-27', 'calc-1', 'tok', fraud, fetchFn))
       .rejects.toMatchObject({ apiError: { code: 'RULE_FINAL_DECLARATION_RECEIVED', statusCode: 403 } });
+  });
+});
+
+describe('UK property annual submission', () => {
+  const payload = { ukProperty: { allowances: { propertyIncomeAllowance: 1000 } } };
+  const fraudHeaders = { 'Gov-Client-Connection-Method': 'WEB_APP_VIA_SERVER' };
+
+  it('builds the UK property annual path', () => {
+    expect(propertyAnnualPath('AA123456A', 'XPIS1', '2026-27')).toBe(
+      '/individuals/business/property/uk/AA123456A/XPIS1/annual/2026-27',
+    );
+  });
+
+  it('PUTs the annual body with the v6 accept header', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    await submitPropertyAnnualSubmission('AA123456A', 'XPIS1', '2026-27', payload, 'tok', fraudHeaders, fetchFn);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe('https://test-api.service.hmrc.gov.uk/individuals/business/property/uk/AA123456A/XPIS1/annual/2026-27');
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBe(JSON.stringify(payload));
+    expect(init.headers.Accept).toBe(PROPERTY_BUSINESS_API_ACCEPT);
   });
 });

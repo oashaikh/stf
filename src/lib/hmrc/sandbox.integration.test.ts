@@ -9,6 +9,7 @@ import {
   listItsSelfEmploymentBusinesses,
   refreshAccessToken,
   submitAnnualSubmission,
+  submitPropertyAnnualSubmission,
   triggerTaxCalculation,
   submitCumulativePeriodSummary,
   submitPropertyCumulativeSummary,
@@ -16,6 +17,7 @@ import {
   withHmrcToken,
   type CumulativePeriodSummary,
   type HmrcTokenSet,
+  type PropertyAnnualSubmission,
   type PropertyCumulativeSummary,
   type VatReturnPayload,
 } from './client';
@@ -178,6 +180,18 @@ describe.skipIf(!hasCredentials || !sandboxOnly)('HMRC sandbox integration', () 
       },
     };
     await expect(submitPropertyCumulativeSummary(
+      nino!, property!.businessId, '2024-25', payload, tokens.accessToken, fraudHeaders(),
+    )).resolves.toBeUndefined();
+  });
+
+  it('submits annual allowances for a UK property business', async () => {
+    const tokens = await refreshAccessToken(refreshToken!);
+    const [property] = await listItsPropertyBusinesses(nino!, tokens.accessToken, fraudHeaders());
+    expect(property).toBeDefined();
+    const payload: PropertyAnnualSubmission = {
+      ukProperty: { allowances: { propertyIncomeAllowance: 1000.0 } },
+    };
+    await expect(submitPropertyAnnualSubmission(
       nino!, property!.businessId, '2024-25', payload, tokens.accessToken, fraudHeaders(),
     )).resolves.toBeUndefined();
   });

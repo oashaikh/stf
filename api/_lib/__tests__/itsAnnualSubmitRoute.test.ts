@@ -24,7 +24,8 @@ const authDeps: AuthDeps = {
 
 function fakeDeps() {
   const rows = new Map<string, { id: string; userId: string; status: 'confirmed' | 'pending' | 'submitted' | 'rejected'; payload: unknown }>();
-  const key = (userId: string, period: { taxYear: string; sandbox: boolean }) => `${userId}:${period.taxYear}:${period.sandbox}`;
+  const key = (userId: string, period: { taxYear: string; sandbox: boolean; businessKind?: string }) =>
+    `${userId}:${period.taxYear}:${period.sandbox}:${period.businessKind ?? 'self-employment'}`;
   const submissions: ItsAnnualStore = {
     find: async (userId, period) => {
       const row = rows.get(key(userId, period));
@@ -54,10 +55,12 @@ function fakeDeps() {
       storedRefreshToken: 'stored',
       expiresAt: new Date('2099-01-01T00:00:00Z'),
     }),
-    status: async () => ({ connected: true, expiresAt: null, itsBusinessId: 'XAIS12345678901', needsItsReconnect: false }),
+    status: async () => ({ connected: true, expiresAt: null, itsBusinessId: 'XAIS12345678901', itsPropertyBusinessId: 'XPIS12345678901', needsItsReconnect: false }),
     saveRefreshedTokens: async () => true,
   } as unknown as HmrcStore;
-  const summaryStore: TaxYearSummaryStore = { loadLines: async () => [], loadTrips: async () => [], loadChoice: async () => 'allowance' };
+  const summaryStore: TaxYearSummaryStore = { loadLines: async () => [
+      { date: '2026-07-10', accountId: 'rent', accountName: 'Rent', accountType: 'income', taxCategory: 'property-rent-received', amountPence: -500000, vatPence: 0, status: 'confirmed', deletedAt: null },
+    ], loadTrips: async () => [], loadChoice: async () => 'allowance' };
   const fetchFn = vi.fn(async (..._args: Parameters<typeof fetch>) => new Response(null, { status: 204 }));
   const deps: ItsAnnualDeps = {
     submissions,
@@ -172,5 +175,39 @@ describe('annual submission confirm then submit over HTTP', () => {
     expect(res.status).toBe(409);
     expect((await res.json()).code).toBe('NOT_CONFIRMED');
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+});
+
+describe('uk-property annual routes', () => {
+  const property = { taxYear: '2026-27', business: 'uk-property', choice: 'allowance' };
+
+  it.each([
+    ['choice missing for property', { taxYear: '2026-27', business: 'uk-property' }],
+    ['unknown choice', { ...property, choice: 'both' }],
+    ['choice on self-employment', { taxYear: '2026-27', choice: 'allowance' }],
+    ['unknown business', { ...property, business: 'furnished-holiday' }],
+  ])('answers 400 for %s', async (_label, body) => {
+    const { deps, fetchFn } = fakeDeps();
+    expect((await post((r) => createItsAnnualPreviewHandler(deps, authDeps)(r), body)).status).toBe(400);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('previews the property body without calling HMRC', async () => {
+    const { deps, fetchFn } = fakeDeps();
+    const res = await post((r) => createItsAnnualPreviewHandler(deps, authDeps)(r), property);
+    expect(res.status).toBe(200);
+    expect((await res.json()).data.body).toEqual({ ukProperty: { allowances: { propertyIncomeAllowance: 1000 } } });
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('confirms and submits to the property endpoint, and refuses a second user', async () => {
+    const { deps, fetchFn } = fakeDeps();
+    await post((r) => createItsAnnualConfirmHandler(deps, authDeps)(r), { ...property, declaration: true }, 'tok-u1');
+    const other = await post((r) => createItsAnnualSubmitHandler(deps, authDeps)(r), { ...property, confirm: true }, 'tok-u2');
+    expect(other.status).toBe(409);
+    expect(fetchFn).not.toHaveBeenCalled();
+    const res = await post((r) => createItsAnnualSubmitHandler(deps, authDeps)(r), { ...property, confirm: true }, 'tok-u1');
+    expect(res.status).toBe(200);
+    expect(String(fetchFn.mock.calls[0]![0])).toContain('/property/uk/');
   });
 });

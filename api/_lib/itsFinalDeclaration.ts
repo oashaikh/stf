@@ -1,7 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { auditEvents, itsFinalDeclarations } from '../../server/src/db/schema.js';
+import { auditEvents, itsAnnualSubmissions, itsFinalDeclarations } from '../../server/src/db/schema.js';
 import { getTaxCalculation, HmrcError, refreshAccessToken, submitFinalDeclaration, triggerTaxCalculation, type HmrcTokenSet, type TaxCalculationResult } from '../../src/lib/hmrc/client.js';
 import { compareWithHmrc, FINAL_DECLARATION_WORDING } from '../../src/lib/finalDeclaration.js';
 import { TAX_BANDS } from '../../src/lib/taxBands.js';
@@ -10,7 +10,7 @@ import { db } from './db.js';
 import { requestFraudHeaders, withUserTokens } from './hmrcCall.js';
 import { databaseHmrcStore, type HmrcStore } from './hmrcStore.js';
 import { checkItsReadiness } from './itsCumulativePreview.js';
-import type { ItsAnnualPeriod, ItsAnnualStatus } from './itsAnnualSubmit.js';
+import type { ItsAnnualBusiness, ItsAnnualPeriod, ItsAnnualStatus } from './itsAnnualSubmit.js';
 import { databaseTaxIdentifiersStore, type TaxIdentifiersStore } from './taxIdentifiers.js';
 import { getTaxEstimate } from './taxEstimate.js';
 import { databaseTaxYearSummaryStore, type TaxYearSummaryStore } from './taxYearSummary.js';
@@ -33,6 +33,8 @@ export const itsFinalSubmitSchema = z.object({ taxYear: taxYearField, confirm: z
  */
 export interface ItsFinalStore {
   find(userId: string, period: ItsAnnualPeriod): Promise<{ id: string; status: ItsAnnualStatus; calculationId: string } | undefined>;
+  /** Businesses whose annual figures HMRC has accepted for the year. One query on the unique key's prefix, at most two rows. */
+  submittedAnnualBusinesses(userId: string, period: ItsAnnualPeriod): Promise<ItsAnnualBusiness[]>;
   /** Stores the calculation the owner agreed to. False when the year is already pending or submitted. */
   saveConfirmed(
     userId: string,
@@ -66,6 +68,22 @@ const databaseFinalStore: ItsFinalStore = {
       .where(and(eq(itsFinalDeclarations.userId, userId), eq(itsFinalDeclarations.taxYear, taxYear), eq(itsFinalDeclarations.sandbox, sandbox)))
       .limit(1);
     return row;
+  },
+
+  async submittedAnnualBusinesses(userId, { taxYear, sandbox }) {
+    const rows = await db
+      .select({ businessKind: itsAnnualSubmissions.businessKind })
+      .from(itsAnnualSubmissions)
+      .where(
+        and(
+          eq(itsAnnualSubmissions.userId, userId),
+          eq(itsAnnualSubmissions.taxYear, taxYear),
+          eq(itsAnnualSubmissions.sandbox, sandbox),
+          eq(itsAnnualSubmissions.status, 'submitted'),
+        ),
+      )
+      .limit(2);
+    return rows.map((row) => row.businessKind as ItsAnnualBusiness);
   },
 
   async saveConfirmed(userId, { taxYear, sandbox }, calculation, now, audit) {
@@ -143,9 +161,32 @@ async function finishPending(
   });
 }
 
-async function ready(userId: string, { hmrcStore = databaseHmrcStore, identifiers = databaseTaxIdentifiersStore }: ItsFinalDeps) {
-  const readiness = await checkItsReadiness(userId, hmrcStore, identifiers);
+const BUSINESS_NAMES: Record<ItsAnnualBusiness, string> = { 'self-employment': 'self-employment', 'uk-property': 'UK property' };
+
+/**
+ * The readiness gates, then the yearly-figures gate. HMRC will not calculate a year until every
+ * business has its annual figures in, so preview, confirm and submit all stop here first.
+ */
+async function ready(userId: string, taxYear: string, deps: ItsFinalDeps) {
+  const { hmrcStore = databaseHmrcStore, identifiers = databaseTaxIdentifiersStore, submissions = databaseFinalStore } = deps;
+  // Same first gate as checkItsReadiness, so a disabled feature costs no database read.
+  if (process.env.HMRC_ITSA_ENABLED !== 'true') throw new VatReturnError(404, 'ITSA_DISABLED', 'Income Tax is off');
+  const { itsBusinessId, itsPropertyBusinessId } = await hmrcStore.status(userId);
+  const businesses: ItsAnnualBusiness[] = [];
+  if (itsBusinessId) businesses.push('self-employment');
+  if (itsPropertyBusinessId) businesses.push('uk-property');
+  // A property-only owner has no self-employment id, so readiness is checked against the business they do have.
+  const readiness = await checkItsReadiness(userId, hmrcStore, identifiers, !itsBusinessId && itsPropertyBusinessId ? 'property' : 'self-employment');
   if (!readiness.ok) throw new VatReturnError(readiness.status, readiness.code, readiness.error);
+  const submitted = await submissions.submittedAnnualBusinesses(userId, { taxYear, sandbox: readiness.sandbox });
+  const missing = businesses.find((business) => !submitted.includes(business));
+  if (missing) {
+    throw new VatReturnError(
+      409,
+      'ANNUAL_FIGURES_MISSING',
+      `Your ${BUSINESS_NAMES[missing]} yearly figures are not sent yet. Nothing has been sent to HMRC. Go to Year end, finish the yearly figures step for ${BUSINESS_NAMES[missing]}, then come back.`,
+    );
+  }
   return readiness;
 }
 
@@ -157,7 +198,7 @@ const hmrcFailure = () => new VatReturnError(502, 'HMRC_UNAVAILABLE', 'HMRC coul
  */
 export async function previewItsFinalForUser({ userId, taxYear, request }: { userId: string; taxYear: string; request: Request }, deps: ItsFinalDeps = {}) {
   const { hmrcStore = databaseHmrcStore, summaryStore = databaseTaxYearSummaryStore, fetchFn, refresh = refreshAccessToken, now = () => new Date() } = deps;
-  const { sandbox, nino, credentials } = await ready(userId, deps);
+  const { sandbox, nino, credentials } = await ready(userId, taxYear, deps);
   const fraudHeaders = requestFraudHeaders(request, userId, now());
   let calculationId: string;
   let hmrc: TaxCalculationResult;
@@ -196,7 +237,7 @@ export async function confirmItsFinalForUser(
 ) {
   if (!declaration) throw new VatReturnError(400, 'DECLARATION_REQUIRED', 'Tick the declaration to confirm');
   const { submissions = databaseFinalStore, hmrcStore = databaseHmrcStore, fetchFn, refresh = refreshAccessToken, now = () => new Date() } = deps;
-  const { sandbox, nino, credentials } = await ready(userId, deps);
+  const { sandbox, nino, credentials } = await ready(userId, taxYear, deps);
   const fraudHeaders = requestFraudHeaders(request, userId, now());
 
   let hmrc: TaxCalculationResult;
@@ -226,7 +267,7 @@ export async function submitItsFinalForUser(
   deps: ItsFinalDeps = {},
 ) {
   const { submissions = databaseFinalStore, hmrcStore = databaseHmrcStore, fetchFn, refresh = refreshAccessToken, now = () => new Date() } = deps;
-  const { sandbox, nino, credentials } = await ready(userId, deps);
+  const { sandbox, nino, credentials } = await ready(userId, taxYear, deps);
 
   const confirmation = await submissions.find(userId, { taxYear, sandbox });
   if (!confirmation || confirmation.status === 'rejected') throw new VatReturnError(409, 'NOT_CONFIRMED', 'Confirm your figures before declaring');

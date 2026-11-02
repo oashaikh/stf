@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildAnnualSubmission } from './itsAnnualSubmission.js';
+import { buildAnnualSubmission, buildPropertyAnnualSubmission } from './itsAnnualSubmission.js';
 import { getTaxBands } from './taxBands.js';
 import type { TaxYearSummary } from './taxYearSummary.js';
 
@@ -49,5 +49,34 @@ describe('buildAnnualSubmission', () => {
       const submission = buildAnnualSubmission({ ...summary, expenseMethod });
       expect(Boolean(submission.allowances) && Boolean(submission.adjustments)).toBe(false);
     }
+  });
+});
+
+describe('buildPropertyAnnualSubmission', () => {
+  const property = (rentPence: number) => ({
+    start: '2026-04-06',
+    end: '2027-04-05',
+    incomeCategories: rentPence ? [{ taxCategory: 'property-rent-received', totalPence: rentPence }] : [],
+    expenseCategories: [],
+  });
+
+  it('claims the property allowance in pounds when the owner chooses it', () => {
+    expect(buildPropertyAnnualSubmission(property(500000), 'allowance', '2026-27')).toEqual({
+      ukProperty: { allowances: { propertyIncomeAllowance: 1000 } },
+    });
+  });
+
+  it('caps the allowance at the rent received', () => {
+    expect(buildPropertyAnnualSubmission(property(45050), 'allowance', '2026-27')).toEqual({
+      ukProperty: { allowances: { propertyIncomeAllowance: 450.5 } },
+    });
+  });
+
+  it('sends no allowance when the owner claims actual costs', () => {
+    expect(buildPropertyAnnualSubmission(property(500000), 'actual', '2026-27')).toEqual({ ukProperty: {} });
+  });
+
+  it('sends no allowance when there is no rent', () => {
+    expect(buildPropertyAnnualSubmission(property(0), 'allowance', '2026-27')).toEqual({ ukProperty: {} });
   });
 });

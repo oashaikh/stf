@@ -385,6 +385,7 @@ export const itsAnnualSubmissions = pgTable(
       .references(() => users.id),
     taxYear: text('tax_year').notNull(),
     sandbox: boolean('sandbox').notNull(),
+    businessKind: text('business_kind').notNull().default('self-employment'),
     status: itsSubmissionStatusEnum('status').notNull().default('confirmed'),
     confirmedPayload: jsonb('confirmed_payload').notNull(),
     confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull(),
@@ -394,8 +395,14 @@ export const itsAnnualSubmissions = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    // Also the lookup index: every query filters on (user_id, tax_year, sandbox).
-    userTaxYearSandboxUnique: unique().on(table.userId, table.taxYear, table.sandbox),
+    // Also the lookup index: every query filters on (user_id, tax_year, sandbox, business_kind).
+    userYearSandboxKindUnique: unique('its_annual_submissions_user_year_sandbox_kind_unique').on(
+      table.userId,
+      table.taxYear,
+      table.sandbox,
+      table.businessKind,
+    ),
+    businessKindValues: check('its_annual_submissions_business_kind_check', sql`${table.businessKind} IN ('self-employment', 'uk-property')`),
   }),
 );
 

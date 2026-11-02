@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { formatPence } from '../lib/money';
 import { currentTaxYear, TAX_BANDS } from '../lib/taxBands';
@@ -108,6 +109,13 @@ export default function TaxPage() {
           </p>
         </section>
       )}
+
+      <Link
+        to={`/tax/year-end/${taxYear}`}
+        className="mt-6 inline-flex min-h-11 items-center rounded bg-blue-700 px-4 font-medium text-white"
+      >
+        Do your Income Tax year end
+      </Link>
 
       <ItsObligationsSection />
     </div>

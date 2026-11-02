@@ -52,7 +52,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Duplicate rule, dismissal memory and shared notice component**
+- [x] **Task 1: Duplicate rule, dismissal memory and shared notice component**
   - Intent: Add a pure function that flags likely duplicate expenses: same gross amount in pence, same supplier (the entry reference, falling back to the description, compared ignoring case and extra spaces), dates within 3 days. Each flag carries a stable key. Add a small dismissal store backed by localStorage (as vatFlowState.ts does) that records dismissed keys and reports them as dismissed on later loads. Add one shared notice component (plain words, Dismiss button, 44px tap target) for the screens to reuse. Never changes or blocks anything. Mark the localStorage choice with a ponytail: comment (ceiling: dismissals do not follow the owner across devices; upgrade: a server table).
   - Files: `src/lib/duplicateEntries.ts`, `src/lib/duplicateEntries.test.ts`, `src/lib/duplicateDismissals.ts`, `src/lib/duplicateDismissals.test.ts`, `src/components/DuplicateNotice.tsx`, `src/components/DuplicateNotice.test.tsx`
   - Acceptance criteria the planner set:
@@ -61,6 +61,7 @@ Also depends on:
     - A test shows a dismissed key stays dismissed after re-reading storage
     - The notice renders the message and calls onDismiss from a keyboard-reachable button
     - npm run lint, typecheck and test pass
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 2: Receipt file fingerprint: store it and flag repeat uploads on the server**
   - Intent: Add nullable file_hash (hex SHA-256) and duplicate_of_receipt_id columns to receipts, an index on (user_id, file_hash), and migration 0034 with journal entry (0033 is taken by STF-110). Client hashes the chosen file with crypto.subtle.digest and sends it in the receipt-create body. api/_lib/receipts.ts validates 64 hex chars, optional. On insert one bounded indexed query finds the owner's live receipt with the same hash and stores its id. Create response and list rows expose duplicateOfId. Never blocks the upload or changes existing records. Update column grants and input inventory.

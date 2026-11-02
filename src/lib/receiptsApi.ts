@@ -9,8 +9,11 @@ export interface ApiReceipt {
   createdAt: string;
 }
 
-/** What was read from the receipt, by field. Drafts until `confirmed`. */
-export type ReceiptDetails = Record<string, { value: string; confirmed: boolean }>;
+/** Fields read with less confidence than this (integer thousandths) are flagged for a closer look; matches the "below 0.7" line in the extraction prompt. */
+export const LOW_CONFIDENCE_THOUSANDTHS = 700;
+
+/** What was read from the receipt, by field. Drafts until `confirmed`. `confidence` is integer thousandths (0-1000), null when unknown. */
+export type ReceiptDetails = Record<string, { value: string; confirmed: boolean; confidence: number | null }>;
 
 export interface ListedReceipt extends ApiReceipt {
   aiStatus: string | null;

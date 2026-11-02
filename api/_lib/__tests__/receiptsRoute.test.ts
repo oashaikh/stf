@@ -288,7 +288,18 @@ describe('receipts route', () => {
   });
 
   describe('read details', () => {
-    const draft = (): ReceiptDetails => ({ vendor: { value: 'Corner Cafe', confirmed: false }, totalPence: { value: '1250', confirmed: false } });
+    const draft = (): ReceiptDetails => ({ vendor: { value: 'Corner Cafe', confirmed: false, confidence: 900 }, totalPence: { value: '1250', confirmed: false, confidence: null } });
+
+    it('returns each field confidence to its owner and nothing to another user', async () => {
+      const { store, rows } = makeStore();
+      seed(rows, 'owner_a', 1);
+      rows[0].details = draft();
+      const own = await (await call(store, makeStorage().storage, 'GET', 'owner_a')).json();
+      expect(own.receipts[0].details.vendor.confidence).toBe(900);
+      expect(own.receipts[0].details.totalPence.confidence).toBeNull();
+      const other = await (await call(store, makeStorage().storage, 'GET', 'owner_b')).json();
+      expect(other.receipts).toEqual([]);
+    });
 
     it('returns the read details as unconfirmed drafts in the list', async () => {
       const { store, rows } = makeStore();

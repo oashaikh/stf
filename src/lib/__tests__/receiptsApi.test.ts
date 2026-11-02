@@ -1,11 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { confirmReceiptDetails, confirmReceiptUpload, readReceiptDetails, fetchReceipts, removeReceipt, startReceiptUpload, uploadToSignedUrl, validateReceiptFile } from '../receiptsApi';
+import { confirmReceiptDetails, confirmReceiptUpload, readReceiptDetails, fetchReceipts, LOW_CONFIDENCE_THOUSANDTHS, removeReceipt, startReceiptUpload, uploadToSignedUrl, validateReceiptFile } from '../receiptsApi';
 
 const respond = (status: number, body: unknown) => vi.fn().mockImplementation(async () => new Response(JSON.stringify(body), { status }));
 const fileOf = (type: string, size: number, name = 'r.jpg') => ({ name, type, size }) as File;
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe('LOW_CONFIDENCE_THOUSANDTHS', () => {
+  it('is the integer 700, the extraction prompt\'s 0.7 line', () => {
+    expect(LOW_CONFIDENCE_THOUSANDTHS).toBe(700);
+  });
 });
 
 describe('validateReceiptFile', () => {
@@ -139,12 +145,12 @@ describe('readReceiptDetails', () => {
   it('reads the amount as integer pence and flags unconfirmed details for checking', () => {
     const read = readReceiptDetails({
       ...base,
-      details: { vendor: { value: 'Corner Cafe', confirmed: false }, totalPence: { value: '1250', confirmed: false }, date: { value: '2026-10-28', confirmed: false } },
+      details: { vendor: { value: 'Corner Cafe', confirmed: false, confidence: null }, totalPence: { value: '1250', confirmed: false, confidence: null }, date: { value: '2026-10-28', confirmed: false, confidence: null } },
     });
     expect(read).toMatchObject({ who: 'Corner Cafe', amountPence: 1250, date: '2026-10-28', needsCheck: true });
   });
   it('has nothing to check when no details were read, and none once confirmed', () => {
     expect(readReceiptDetails({ ...base, details: {} })).toMatchObject({ who: null, amountPence: null, date: '2026-10-30T10:00:00Z', needsCheck: false });
-    expect(readReceiptDetails({ ...base, details: { vendor: { value: 'X', confirmed: true } } }).needsCheck).toBe(false);
+    expect(readReceiptDetails({ ...base, details: { vendor: { value: 'X', confirmed: true, confidence: null } } }).needsCheck).toBe(false);
   });
 });

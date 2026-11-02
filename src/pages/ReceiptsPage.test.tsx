@@ -34,10 +34,10 @@ const photo: ListedReceipt = {
   aiStatus: 'extracted',
   readUrl: 'https://files.test/cafe-lunch.jpg',
   details: {
-    date: { value: '2026-10-28', confirmed: false },
-    vendor: { value: 'Corner Cafe', confirmed: false },
-    totalPence: { value: '1250', confirmed: false },
-    category: { value: 'Meals', confirmed: false },
+    date: { value: '2026-10-28', confirmed: false, confidence: null },
+    vendor: { value: 'Corner Cafe', confirmed: false, confidence: null },
+    totalPence: { value: '1250', confirmed: false, confidence: null },
+    category: { value: 'Meals', confirmed: false, confidence: null },
   },
 };
 const pdf: ListedReceipt = {
@@ -131,7 +131,7 @@ describe('receipts list', () => {
   it('filters to this month and to receipts that need checking', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-31T12:00:00Z'));
-    const september = { ...pdf, id: '33333333-3333-4333-8333-333333333333', fileName: 'old.pdf', details: { date: { value: '2026-09-02', confirmed: true } } };
+    const september = { ...pdf, id: '33333333-3333-4333-8333-333333333333', fileName: 'old.pdf', details: { date: { value: '2026-09-02', confirmed: true, confidence: null } } };
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo, september], nextCursor: null });
     renderPage();
     await screen.findByText('Corner Cafe');

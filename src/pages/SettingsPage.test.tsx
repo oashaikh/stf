@@ -208,11 +208,11 @@ describe('VAT registration number', () => {
     renderPage();
     fireEvent.change(await screen.findByRole('textbox', { name: 'VAT registration number' }), { target: { value: 'pending' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save VAT number' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('live VAT submission is pending');
+    expect(await screen.findByRole('alert')).toHaveTextContent('VAT return is being sent to HMRC for real');
   });
 });
 
-describe('Check HMRC fraud headers', () => {
+describe('Check my connection', () => {
   let checkResponse: Response;
 
   beforeEach(() => {
@@ -244,7 +244,7 @@ describe('Check HMRC fraud headers', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Check HMRC fraud headers' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Check my connection' }));
   };
 
   it('lists each error and warning with its header name and message', async () => {
@@ -273,7 +273,7 @@ describe('Check HMRC fraud headers', () => {
       data: { outcome: 'pass', code: 'VALID_HEADERS', message: 'Headers valid', errors: [], warnings: [] },
     });
     await renderAndRun();
-    expect(await screen.findByText(/HMRC accepted every fraud prevention header/)).toBeInTheDocument();
+    expect(await screen.findByText(/HMRC accepted every safety check/)).toBeInTheDocument();
   });
 
   it('shows an error when the request fails', async () => {

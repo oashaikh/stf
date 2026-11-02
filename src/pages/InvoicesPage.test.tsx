@@ -193,8 +193,6 @@ describe('issued invoice view', () => {
     expect(findJargon(document.body)).toEqual([]);
     fireEvent.click(await screen.findByRole('button', { name: 'Void' }));
     expect(findJargon(screen.getByRole('dialog'))).toEqual([]);
-    // The scanner matches whole words only, so plurals are checked here.
-    expect(screen.getByRole('dialog').textContent).not.toMatch(/posting/i);
   });
 
   it('voids only with a reason, after confirming', async () => {

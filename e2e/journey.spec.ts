@@ -134,7 +134,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await page.goto('/home');
       const card = page.getByRole('heading', { name: 'Upcoming VAT return' }).locator('xpath=ancestor::section[1]');
       await expect(card.getByText('7 Aug 2026')).toBeVisible();
-      await expect(card.getByText('Box 5: net VAT to pay')).toBeVisible();
+      await expect(card.getByText('VAT you owe HMRC')).toBeVisible();
       await captureEvidence(page, 'dashboard-vat-reminder');
       await card.getByRole('link', { name: 'Review VAT return' }).click();
       await expect(page).toHaveURL(/\/tax\/vat$/);

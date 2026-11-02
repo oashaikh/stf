@@ -41,7 +41,8 @@ describe('findJargon', () => {
 
   it('matches case-insensitively as whole words only', () => {
     expect(findJargon(html('<p>SUBMIT now</p>'))).toEqual(['submit']);
-    expect(findJargon(html('<p>Tokenise, submitted and resync are fine</p>'))).toEqual([]);
+    expect(findJargon(html('<p>Tokenise and resync are fine</p>'))).toEqual([]);
+    expect(findJargon(html('<p>Tokens, obligations, submitted, syncing and postings are not</p>'))).toEqual(['tokens', 'obligations', 'submitted', 'syncing', 'postings']);
   });
 
   it('ignores text inside an official-name element', () => {

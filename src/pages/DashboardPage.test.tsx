@@ -100,6 +100,8 @@ describe('DashboardPage', () => {
       expect(await screen.findByText('£543.21')).toBeTruthy();
       expect(screen.getByText(formatDate(dueSoon.due))).toBeTruthy();
       expect(screen.getByText('Draft saved')).toBeTruthy();
+      expect(screen.getByText('1 Jul 2026 to 30 Sep 2026')).toBeTruthy();
+      expect(screen.queryByText(/26C3/)).toBeNull();
       expect(screen.getByRole('link', { name: /review vat return/i }).getAttribute('href')).toBe('/tax/vat');
     });
 

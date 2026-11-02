@@ -58,7 +58,7 @@ function UpcomingVatReturnCard() {
   if (!dueSoon || !review.data) return null;
 
   return (
-    <Card title="Upcoming VAT return" period={`Period ${dueSoon.periodKey}`}>
+    <Card title="Upcoming VAT return" period={`${formatDate(dueSoon.start)} to ${formatDate(dueSoon.end)}`}>
       <div className="flex justify-between gap-4">
         <dt className="text-gray-700">Due</dt>
         <dd className="text-right font-medium text-gray-900">{formatDate(dueSoon.due)}</dd>

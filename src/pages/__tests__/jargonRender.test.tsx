@@ -45,7 +45,9 @@ const row = { id: 'e1', date: '2026-05-01', description: 'Print cartridges', sta
 
 // Invented figures. Every call gets a defined answer, so no query resolves to undefined (TanStack rejects that).
 const loadedBody = (url: string): unknown => {
-  if (url.includes('obligations')) return { obligations: [] };
+  // An open return due soon, so the Home reminder card is rendered and scanned.
+  if (url.includes('obligations')) return { obligations: [{ periodKey: '26A1', start: '2026-10-01', end: '2026-12-31', due: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10), status: 'O', overdue: false }] };
+  if (url.startsWith('/api/vat/return')) return { ok: true, data: { boxes: { box5: 4500 }, status: null } };
   if (url.startsWith('/api/dashboard')) return { data: { taxYear: totals, month: totals, vatQuarter: { ...period, vatCollectedPence: 2000, vatPaidPence: 500 }, draftCount: 1, recentEntries: [row] } };
   if (url.startsWith('/api/tax-estimate')) {
     return { data: { taxYear: '2026-27', profitPence: 90000, incomeTaxPence: 0, class2NicPence: 0, class4NicPence: 0, totalTaxPence: 0, setAsidePence: 0, expenseMethod: 'actual', tradingAllowancePence: 100000, profitWithActualExpensesPence: 90000, profitWithAllowancePence: 20000, lowerProfitMethod: 'allowance' } };

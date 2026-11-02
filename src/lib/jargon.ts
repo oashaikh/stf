@@ -15,7 +15,8 @@ const BANNED_PHRASES = [
   'vat due on sales',
   'vat reclaimed on purchases',
   'total value of sales ex vat',
-  'submit',
+  'submit(?:s|ted|ting)?',
+  'submissions?',
   'payload',
   'endpoint',
   'sync',
@@ -25,7 +26,8 @@ const BANNED_PHRASES = [
 // Raw error codes: SHOUTING_SNAKE_CASE identifiers and "status 500" style messages.
 const ERROR_CODE_PATTERNS = [/\b[A-Z]{2,}(?:_[A-Z0-9]+)+\b/g, /\bstatus \d{3}\b/gi];
 
-const BANNED_WORDS = new RegExp(`\\b(?:${BANNED_PHRASES.join('|').replace(/ /g, '\\s+')})\\b`, 'gi');
+// Plurals and -ed/-ing endings count too, so "tokens" and "syncing" fail the build like "token" and "sync".
+const BANNED_WORDS = new RegExp(`\\b(?:${BANNED_PHRASES.join('|').replace(/ /g, '\\s+')})(?:s|es|ed|d|ing)?\\b`, 'gi');
 
 // Text marked with data-official-name is the one place official terms may appear.
 function visibleText(root: Element): string {

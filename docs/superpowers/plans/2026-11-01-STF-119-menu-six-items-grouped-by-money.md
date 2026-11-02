@@ -107,3 +107,7 @@ Starts at: Signed-in user lands on / and is sent to Home
 - [x] **Task 6: Fix: address 46 review findings (cycle 1)** (after 5)
   - Intent: Review left 46 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The routing, redirects and tabs are correct in code, and the orchestrator's checks pass. The evidence is not acceptable. The "dark" captures are byte-identical to the ligh The agent is fixing them; nothing is needed from you.
   - Commit: `10ee7a051f46`
+
+- [x] **Task 7: Fix: address 28 review findings (cycle 2)** (after 6)
+  - Intent: Review left 28 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The routing, six-item menu, redirects (search and hash kept), tabs, and the Bank move all look correct, and the orchestrator's checks pass. The evidence still has a gap: b The agent is fixing them; nothing is needed from you.
+  - Commit: `9043f0e06c64`

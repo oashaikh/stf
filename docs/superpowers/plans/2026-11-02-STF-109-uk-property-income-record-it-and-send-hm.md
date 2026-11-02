@@ -154,3 +154,7 @@ Also depends on:
 - [x] **Task 11: Fix: address 17 review findings (cycle 2)** (after 10)
   - Intent: Review left 17 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The cycle-1 code defects are fixed: rental code clashes are now refused, Home to-dos are tagged by business, and other tickets' evidence is restored. Two 390 px captures w The agent is fixing them; nothing is needed from you.
   - Commit: `337914572e3f`
+
+- [x] **Task 12: Fix: address 11 review findings (cycle 3)** (after 11)
+  - Intent: Review left 11 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The two 390 px captures that failed last cycle are fixed: the fixed bars are gone and nothing is clipped. Code correctness holds: property id, obligations, preview, confir The agent is fixing them; nothing is needed from you.
+  - Commit: `735a8bac7806`

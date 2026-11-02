@@ -107,7 +107,7 @@ Also depends on:
   - Risk: e2e files also in STF-119 plan; keep hunks narrow.
   - Commit: `2e589926b00c`
 
-- [ ] **Task 6: Capture first-time-user evidence, captions and review notes** (after 5)
+- [x] **Task 6: Capture first-time-user evidence, captions and review notes** (after 5)
   - Intent: Run the app in sandbox mode with invented figures and walk the flow as a new user at 1440 and 390, light and dark, committing images to browser-evidence/STF-121/ with captions.md giving each a plain-English title, plus notes on where screens differ from the spec and why.
   - Files: `browser-evidence/STF-121/captions.md`, `browser-evidence/STF-121/`
   - Acceptance criteria the planner set:
@@ -115,3 +115,4 @@ Also depends on:
     - Every image captioned
     - Deviations from the spec listed with reasons
     - No real data or paths
+  - Commit: `ea63865a70f6`

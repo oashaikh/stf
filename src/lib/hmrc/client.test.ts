@@ -4,6 +4,11 @@ import {
   exchangeAuthCode,
   getItsFinalDeclarationObligations,
   getItsIncomeAndExpenditureObligations,
+  getTaxCalculation,
+  INDIVIDUAL_CALCULATIONS_API_ACCEPT,
+  poundsToPence,
+  submitFinalDeclaration,
+  triggerTaxCalculation,
   getVatObligations,
   HmrcError,
   refreshAccessToken,
@@ -387,5 +392,87 @@ describe('submitAnnualSubmission', () => {
     await expect(
       submitAnnualSubmission('AA123456A', 'biz1', '2026-27', payload, 'tok', fraudHeaders, fetchFn),
     ).rejects.toMatchObject({ apiError: { code: 'RULE_X', statusCode: 422 } });
+  });
+});
+
+describe('poundsToPence', () => {
+  it.each([
+    [1234.5, 123450],
+    [0.07, 7],
+    [0, 0],
+    ['19.99', 1999],
+    [-3.1, -310],
+  ])('converts %s pounds to %s pence without floating point', (pounds, pence) => {
+    expect(poundsToPence(pounds as number | string)).toBe(pence);
+  });
+
+  it('rejects a value that is not a money amount', () => {
+    expect(() => poundsToPence('abc')).toThrow();
+    expect(() => poundsToPence(undefined as unknown as number)).toThrow();
+  });
+});
+
+describe('final declaration calls', () => {
+  const nino = 'AA123456A';
+  const fraud = { 'Gov-Client-Timezone': 'UTC+00:00' };
+  const base = `/individuals/calculations/${nino}/self-assessment/2026-27`;
+
+  it('triggers a final-declaration calculation with the version header and fraud headers', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { calculationId: 'calc-1' }));
+    const result = await triggerTaxCalculation(nino, '2026-27', 'tok', fraud, fetchFn);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(new URL(url).pathname).toBe(`${base}/trigger/intent-to-finalise`);
+    expect(init.method).toBe('POST');
+    expect(init.headers.Accept).toBe(INDIVIDUAL_CALCULATIONS_API_ACCEPT);
+    expect(init.headers.Authorization).toBe('Bearer tok');
+    expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
+    expect(result).toEqual({ calculationId: 'calc-1' });
+  });
+
+  it('fetches a calculation and returns integer pence only', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, {
+      calculation: { taxCalculation: {
+        incomeTax: { incomeTaxCharged: 1234.5 },
+        nics: { class2Nics: { amount: 0.07 }, class4Nics: { totalClass4Charge: 500 } },
+        totalIncomeTaxAndNicsDue: 1735.57,
+      } },
+    }));
+    const result = await getTaxCalculation(nino, '2026-27', 'calc-1', 'tok', fraud, fetchFn);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(new URL(url).pathname).toBe(`${base}/calc-1`);
+    expect(init.method ?? 'GET').toBe('GET');
+    expect(init.headers.Accept).toBe(INDIVIDUAL_CALCULATIONS_API_ACCEPT);
+    expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
+    expect(result).toEqual({
+      incomeTaxPence: 123450, class2NicPence: 7, class4NicPence: 50000, totalPence: 173557,
+    });
+  });
+
+  it('treats a missing Class 2 charge as zero', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, {
+      calculation: { taxCalculation: {
+        incomeTax: { incomeTaxCharged: 10 },
+        nics: { class4Nics: { totalClass4Charge: 5 } },
+        totalIncomeTaxAndNicsDue: 15,
+      } },
+    }));
+    const result = await getTaxCalculation(nino, '2026-27', 'calc-1', 'tok', fraud, fetchFn);
+    expect(result.class2NicPence).toBe(0);
+  });
+
+  it('submits the final declaration for a calculation id', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(submitFinalDeclaration(nino, '2026-27', 'calc-1', 'tok', fraud, fetchFn)).resolves.toBeUndefined();
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(new URL(url).pathname).toBe(`${base}/calc-1/final-declaration`);
+    expect(init.method).toBe('POST');
+    expect(init.headers.Accept).toBe(INDIVIDUAL_CALCULATIONS_API_ACCEPT);
+    expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
+  });
+
+  it('maps an HMRC rejection of the declaration to HmrcError', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(403, { code: 'RULE_FINAL_DECLARATION_RECEIVED', message: 'Already received' }));
+    await expect(submitFinalDeclaration(nino, '2026-27', 'calc-1', 'tok', fraud, fetchFn))
+      .rejects.toMatchObject({ apiError: { code: 'RULE_FINAL_DECLARATION_RECEIVED', statusCode: 403 } });
   });
 });

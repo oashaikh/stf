@@ -111,12 +111,20 @@ export default function TaxPage() {
         </section>
       )}
 
-      <Link
-        to={`/tax/year-end/${taxYear}`}
-        className="mt-6 inline-flex min-h-11 items-center rounded bg-blue-700 px-4 font-medium text-white"
-      >
-        Do your Income Tax year end
-      </Link>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          to={`/tax/year-end/${taxYear}`}
+          className="inline-flex min-h-11 items-center rounded bg-blue-700 px-4 font-medium text-white"
+        >
+          Do your Income Tax year end
+        </Link>
+        <Link
+          to={`/tax/final-declaration/${taxYear}`}
+          className="inline-flex min-h-11 items-center rounded bg-blue-700 px-4 font-medium text-white"
+        >
+          Check and send your final tax bill
+        </Link>
+      </div>
 
       <ItsObligationsSection />
     </div>

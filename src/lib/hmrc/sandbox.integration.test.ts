@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { buildFraudHeaders } from './fraudHeaders';
 import {
+  getTaxCalculation,
   getVatObligations,
   HmrcError,
   listItsSelfEmploymentBusinesses,
   refreshAccessToken,
   submitAnnualSubmission,
+  triggerTaxCalculation,
   submitCumulativePeriodSummary,
   submitVatReturn,
   withHmrcToken,
@@ -131,5 +133,13 @@ describe.skipIf(!hasCredentials || !sandboxOnly)('HMRC sandbox integration', () 
       nino!, businessDetails[0]!.businessId, '2024-25',
       { allowances: { tradingIncomeAllowance: '1000.00' } }, tokens.accessToken, fraudHeaders(),
     )).resolves.toBeUndefined();
+  });
+
+  it('triggers a final-declaration calculation and reads it back in pence', async () => {
+    const tokens = await refreshAccessToken(refreshToken!);
+    const { calculationId } = await triggerTaxCalculation(nino!, '2024-25', tokens.accessToken, fraudHeaders());
+    expect(calculationId).toBeTruthy();
+    const calculation = await getTaxCalculation(nino!, '2024-25', calculationId, tokens.accessToken, fraudHeaders());
+    for (const pence of Object.values(calculation)) expect(Number.isInteger(pence)).toBe(true);
   });
 });

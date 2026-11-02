@@ -1,0 +1,42 @@
+{
+  "1440-light-tax-page.png": {
+    "title": "The Tax page now has a button to check and send your final tax bill",
+    "state": "after"
+  },
+  "1440-light-final-declaration-figures.png": {
+    "title": "HMRC's own tax figures sit next to our estimate, with any gap explained",
+    "state": "after"
+  },
+  "1440-light-final-declaration-check-and-send.png": {
+    "title": "You read HMRC's declaration and tick it before anything can be sent",
+    "state": "after"
+  },
+  "1440-light-final-declaration-ticked.png": {
+    "title": "Once you tick the declaration, the Send to HMRC button turns on",
+    "state": "after"
+  },
+  "1440-light-final-declaration-done.png": {
+    "title": "Confirmation that your tax return was sent (to HMRC test mode here)",
+    "state": "after"
+  },
+  "390-light-tax-page.png": {
+    "title": "The Tax page now has a button to check and send your final tax bill",
+    "state": "after"
+  },
+  "390-light-final-declaration-figures.png": {
+    "title": "HMRC's own tax figures sit next to our estimate, with any gap explained",
+    "state": "after"
+  },
+  "390-light-final-declaration-check-and-send.png": {
+    "title": "You read HMRC's declaration and tick it before anything can be sent",
+    "state": "after"
+  },
+  "390-light-final-declaration-ticked.png": {
+    "title": "Once you tick the declaration, the Send to HMRC button turns on",
+    "state": "after"
+  },
+  "390-light-final-declaration-done.png": {
+    "title": "Confirmation that your tax return was sent (to HMRC test mode here)",
+    "state": "after"
+  }
+}

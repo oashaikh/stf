@@ -54,6 +54,9 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/hmrc/its-annual-preview.ts` | POST | HMRC |
 | `api/hmrc/its-annual-confirm.ts` | POST | HMRC |
 | `api/hmrc/its-annual-submit.ts` | POST | HMRC |
+| `api/hmrc/its-final-preview.ts` | POST | HMRC |
+| `api/hmrc/its-final-confirm.ts` | POST | HMRC |
+| `api/hmrc/its-final-submit.ts` | POST | HMRC |
 | `api/bank/connect.ts` | GET | Bank (no input beyond session) |
 | `api/bank/callback.ts` | GET | Bank |
 | `api/bank/status.ts` | GET | Bank (no input) |
@@ -217,6 +220,10 @@ Text fields have a length cap and reject control characters (`plainText`; notes 
 | `taxYear` | its-annual-preview, -confirm, -submit POST body | tax year with bands; extra keys refused | `itsAnnualInputSchema`, `api/_lib/itsAnnualSubmit.ts` |
 | `declaration` | its-annual-confirm POST body | literal `true`, else 400; the snapshot is recomputed server side | `api/hmrc/its-annual-confirm.ts` |
 | `confirm` | its-annual-submit POST body | literal `true`; the payload comes from the stored confirmation, never the body | `api/hmrc/its-annual-submit.ts` |
+| `taxYear` | its-final-preview, -confirm, -submit POST body | tax year with bands; extra keys refused | `itsFinalInputSchema`, `api/_lib/itsFinalDeclaration.ts` |
+| `calculationId` | its-final-confirm POST body | 1-64 chars of letters, digits, hyphen; figures are re-read from HMRC by this id, never taken from the body | `itsFinalConfirmSchema`, `api/_lib/itsFinalDeclaration.ts` |
+| `declaration` | its-final-confirm POST body | literal `true`, else 400 | `api/hmrc/its-final-confirm.ts` |
+| `confirm` | its-final-submit POST body | literal `true`; the calculation id comes from the stored confirmation | `api/hmrc/its-final-submit.ts` |
 
 Public route: `api/hmrc/callback.ts` and `api/bank/callback.ts` are the only routes outside `withAuth` besides login, MFA and logout.
 

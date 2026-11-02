@@ -103,3 +103,7 @@ Starts at: Signed-in user lands on / and is sent to Home
     - Captions file titles every image in plain English
     - Differences from the spec are listed with reasons
   - Commit: `18ce93b4345c`
+
+- [x] **Task 6: Fix: address 46 review findings (cycle 1)** (after 5)
+  - Intent: Review left 46 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The routing, redirects and tabs are correct in code, and the orchestrator's checks pass. The evidence is not acceptable. The "dark" captures are byte-identical to the ligh The agent is fixing them; nothing is needed from you.
+  - Commit: `10ee7a051f46`

@@ -86,3 +86,7 @@
 - [x] **Task 6: Fix: address 11 review findings (cycle 1)** (after 5)
   - Intent: Review left 11 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens: the code paths trace correctly. Money is converted to pence, the adjustments route validates its input and checks the sandbox/live mode, and failures are The agent is fixing them; nothing is needed from you.
   - Commit: `4d9cc0e9b28b`
+
+- [x] **Task 7: Fix: address 6 review findings (cycle 2)** (after 6)
+  - Intent: Review left 6 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Runbook token steps and call count are fixed; code paths trace correctly. One unverifiable claim remains: the audit doc says the operator compared it with the live HMRC pa The agent is fixing them; nothing is needed from you.
+  - Commit: `b218d61c7ebd`

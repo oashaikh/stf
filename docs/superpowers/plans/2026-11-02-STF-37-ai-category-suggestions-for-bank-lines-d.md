@@ -46,7 +46,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Write the bank-line categorisation agent procedure**
+- [x] **Task 1: Write the bank-line categorisation agent procedure**
   - Intent: Add docs/agents/bank-categorisation.md before any code. Cover: what it reads (unmatched line descriptions, amounts and dates, plus the owner's account list names and codes only), what it writes (suggested account id and confidence on the bank line, never a ledger row), the trigger (owner taps 'Suggest' in Sort bank payments, nothing automatic), what the owner sees (plain-words suggestion with one-tap confirm), the audit event, the kill switch and model-id variables (the same ones STF-7 defines), the data sent to Anthropic, and the fallback when the call fails (manual sorting). Add the new route to the route index and inputs table in docs/security/input-inventory.md. STF-7 may create docs/agents/ and its own SOP; this task adds only the new file and must not recreate STF-7's.
   - Files: `docs/agents/bank-categorisation.md`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -55,6 +55,7 @@ Also depends on:
     - The doc names the exact env var names for the model id and kill switch as STF-7 defines them, or notes they are to be read from STF-7's merged code
     - input-inventory.md has a row for the new route, with the enforcing file
   - Risk: STF-7 is unmerged in this worktree, so the env var names are not visible here. The implementer must check the base branch for them and reuse them rather than invent new ones.
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 2: Store category suggestions on bank lines (schema and migration)** (after 1)
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0026_bank_suggestions.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0026_snapshot.json`

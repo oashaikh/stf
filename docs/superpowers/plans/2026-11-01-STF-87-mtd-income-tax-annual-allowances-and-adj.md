@@ -101,7 +101,7 @@ Also depends on:
   - Risk: Opus/high: HMRC submission, authorisation and idempotency lock. Needs the table (task 3) and client (task 2).
   - Commit: `76221003e376`
 
-- [ ] **Task 5: Income Tax year end guided flow: steps, figures and send** (after 4)
+- [x] **Task 5: Income Tax year end guided flow: steps, figures and send** (after 4)
   - Intent: Replace the Tax-page section with a guided step-by-step flow, per the owner's 1 Nov direction. Add src/lib/itsAnnualApi.ts (fetch wrappers for the three routes). Add src/pages/YearEndFlow.tsx: one thing per screen, 'Step N of M' header, Back and 'Save and leave' on every step (progress resumes on return from the server-side preview/confirm state; no new data collected). Steps: (a) trading allowance choice in plain words, pre-filled from the STF-31 choice and shown via formatPence from tax bands, (b) each remaining figure on its own screen, pre-filled from the preview, with the HMRC field name only in small muted text. Every figure has a 'Why is this amount?' disclosure explaining in plain words where it came from. Final step: one plain sentence of what will be sent, the declaration checkbox, and a 'Send to HMRC' button enabled only after the declaration is ticked and confirm has succeeded, with a sandbox label in sandbox mode. Use StateMessage for loading/empty/error, 44px tap targets, visible focus, design tokens, right-aligned tabular figures. Plain words, no accounting jargon in headings. Component tests mock itsAnnualApi and cover step navigation, Back, Save and leave, Why links, and Send gating. docs/design/ease-of-use.md is absent from this worktree, so follow the ticket comment; where it is silent (exact copy, step count, resume behaviour) ask in the ticket rather than guessing.
   - Files: `src/lib/itsAnnualApi.ts`, `src/lib/itsAnnualApi.test.ts`, `src/pages/YearEndFlow.tsx`, `src/pages/YearEndFlow.test.tsx`
   - Acceptance criteria the planner set:
@@ -111,6 +111,7 @@ Also depends on:
     - Final step has one plain sentence of what is sent, the declaration and a Send to HMRC button, disabled until the declaration is ticked and confirm has succeeded
     - Sandbox label shown in sandbox mode
     - Component tests mock the API client and pass; lint and typecheck pass
+  - Commit: `859a0c79eac7`
 
 - [ ] **Task 6: Route, entry points and screenshots for the year end flow** (after 5)
   - Files: `src/App.tsx`, `src/App.test.tsx`, `src/pages/TaxPage.tsx`, `src/pages/TaxPage.test.tsx`, `docs/screenshots/`

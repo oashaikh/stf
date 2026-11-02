@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import StateMessage from '../components/StateMessage';
@@ -11,9 +12,13 @@ export default function ItsUpdatePage() {
   const { taxYear, quarter } = useParams();
   const navigate = useNavigate();
   const obligations = useQuery({ queryKey: ['its-obligations'], queryFn: () => fetchItsObligations(), retry: false });
-  const found = obligations.data && 'obligations' in obligations.data
+  const openRow = obligations.data && 'obligations' in obligations.data
     ? obligations.data.obligations.find((row) => row.taxYear === taxYear && String(quarterOf(row)) === quarter && row.status === 'open')
     : undefined;
+  // Once the update is open on screen, keep it mounted: a send turns the quarter fulfilled, and the confirmation must outlive that refetch.
+  const shown = useRef(openRow);
+  if (openRow) shown.current = openRow;
+  const found = shown.current;
 
   return (
     <main className="max-w-4xl p-4 md:p-8">

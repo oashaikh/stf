@@ -135,6 +135,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
   const templates: Array<Record<string, unknown>> = [];
   let authenticatorEnabled = false;
   let codePending = false;
+  let itsSent = false;
   await page.route('**/api/**', (route) => {
     const request = route.request();
     const key = `${request.method()} ${new URL(request.url()).pathname}`;
@@ -248,7 +249,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
       case 'GET /api/hmrc/status':
         return json(route, { connected: true, needsItsReconnect: false, itsBusinessId: null });
       case 'GET /api/hmrc/its-obligations':
-        return json(route, { ok: true, stale: false, obligations: mockItsObligations });
+        return json(route, { ok: true, stale: false, obligations: mockItsObligations.map((row) => (itsSent && row.status === 'open' ? { ...row, status: 'fulfilled' as const } : row)) });
       case 'GET /api/mileage':
         return json(route, { trips: [], claim: { totalPence: 0, tripClaims: [] } });
       case 'POST /api/hmrc/its-cumulative-preview':
@@ -264,8 +265,10 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
             headers: { Accept: 'application/vnd.hmrc.5.0+json' },
           },
         });
-      case 'POST /api/hmrc/its-cumulative-confirm':
       case 'POST /api/hmrc/its-cumulative-submit':
+        itsSent = true;
+        return json(route, { ok: true, data: { sandbox: true } });
+      case 'POST /api/hmrc/its-cumulative-confirm':
         return json(route, { ok: true, data: { sandbox: true } });
       case 'GET /api/hmrc/mode':
         return json(route, { live: false, envLive: false });

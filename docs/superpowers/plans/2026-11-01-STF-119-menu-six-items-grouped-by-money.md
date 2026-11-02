@@ -87,12 +87,13 @@ Starts at: Signed-in user lands on / and is sent to Home
     - npm run lint, typecheck, test pass
   - Commit: `a01a48594bb4`
 
-- [ ] **Task 4: Update e2e mock journey and run the full checks** (after 3)
+- [x] **Task 4: Update e2e mock journey and run the full checks** (after 3)
   - Intent: Fix e2e/mockApi.ts and journey.spec.ts for the new paths, assert old addresses redirect and six nav items at 390 and 1440, and make sure lint, typecheck, test and build all pass.
   - Files: `e2e/journey.spec.ts`, `e2e/mockApi.ts`
   - Acceptance criteria the planner set:
     - e2e journey walks all six menu items
     - All five project checks pass
+  - Commit: `1e8e275c798e`
 
 - [ ] **Task 5: Browser evidence and review notes** (after 4)
   - Intent: Walk each changed screen as a new user in sandbox mode with invented figures, capture 1440 and 390 shots in light and dark under browser-evidence/STF-119/ (following the STF-107 layout), plus a captions file with a plain-English title per image. Write notes listing where screens differ from docs/design/ease-of-use.md and why. No real data, no secrets.

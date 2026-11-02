@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { box5ReviewNote, box5SentNote, boxLabel, reviewState } from './vatReviewState';
+import { PLAIN_BOX_LABELS, box5ReviewNote, box5SentNote, boxLabel, reviewState } from './vatReviewState';
 
 const base = { status: 'draft' as const, declarationTicked: true, confirmPending: false };
 
@@ -50,24 +50,24 @@ describe('reviewState submit', () => {
   it('shows the receipt and disables submit after a live filing', () => {
     const state = reviewState({ ...confirmed, submission: receipt, live: true });
     expect(state.canSubmit).toBe(false);
-    expect(state.receipt).toMatchObject({ formBundleNumber: '256 SANDBOX 1', heading: 'Submitted to HMRC' });
+    expect(state.receipt).toMatchObject({ formBundleNumber: '256 SANDBOX 1', heading: 'Sent to HMRC' });
   });
   it('labels a sandbox receipt so it is not mistaken for a real filing', () => {
     const state = reviewState({ ...confirmed, submission: { ...receipt, sandbox: true } });
-    expect(state.receipt?.heading).toBe('Sandbox test submission');
+    expect(state.receipt?.heading).toBe('Test return sent. Nothing was filed with HMRC.');
     expect(state.canSubmit).toBe(false);
   });
   it('lets a sandbox rehearsal be followed by the live filing', () => {
     expect(reviewState({ ...confirmed, submission: { ...receipt, sandbox: true }, live: true }).canSubmit).toBe(true);
   });
   it('names the target in the button label', () => {
-    expect(reviewState(confirmed).submitLabel).toBe('Send to HMRC sandbox');
+    expect(reviewState(confirmed).submitLabel).toBe('Send to HMRC (test mode)');
     expect(reviewState({ ...confirmed, live: true }).submitLabel).toBe('Send to HMRC');
   });
   it('tells the user not to retry when the outcome is unknown', () => {
     const state = reviewState({ ...confirmed, outcomeUnknown: true });
     expect(state.canSubmit).toBe(false);
-    expect(state.warning).toMatch(/Do not submit again/);
+    expect(state.warning).toMatch(/Do not send it again/);
   });
   it('renders a nil return like any other', () => {
     expect(reviewState(confirmed).canSubmit).toBe(true);
@@ -99,5 +99,14 @@ describe('box 5 notes', () => {
     expect(box5SentNote(4500, true)).toBe('Sent to HMRC as £45.00 (refund)');
     expect(box5SentNote(4500, false)).toBe('Sent to HMRC as £45.00 (payment)');
     expect(box5SentNote(0, false)).toBeNull();
+  });
+});
+
+describe('plain box wording', () => {
+  it('has plain words for every box, with the number kept separate', () => {
+    for (let box = 1; box <= 9; box++) {
+      expect(PLAIN_BOX_LABELS[box]).toBeTruthy();
+      expect(PLAIN_BOX_LABELS[box]).not.toMatch(/box/i);
+    }
   });
 });

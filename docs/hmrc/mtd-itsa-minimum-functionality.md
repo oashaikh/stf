@@ -46,9 +46,9 @@ Approval-process requirements (not product standards):
 
 | Requirement | Status | Where |
 | --- | --- | --- |
-| Test every documented endpoint of each minimum-standard API we use; tell SDSTeam which others we support | Gap | Existing sandbox tests are in `src/lib/hmrc/sandbox.integration.test.ts` and cover part of the list. Scripted run is task 4 |
+| Test every documented endpoint of each minimum-standard API we use; tell SDSTeam which others we support | Gap | Existing sandbox tests are in `src/lib/hmrc/sandbox.integration.test.ts` and cover part of the list. Scripted run is in `docs/runbooks/hmrc-evidence-run.md` (task 5) |
 | Proper error handling | Met | `HmrcError` in `src/lib/hmrc/client.ts` |
-| Send SDSTeam the sandbox application ID and tell them when testing is done | Owner | `docs/runbooks/hmrc-evidence-run.md` (task 5) |
+| Send SDSTeam the sandbox application ID and tell them when testing is done | Owner | Follow `docs/runbooks/hmrc-evidence-run.md` (task 5) |
 | Return the checklist HMRC issues on request to SDSTeam@hmrc.gov.uk | Owner | After the evidence run |
 
 HMRC Assist prompts are encouraged, not required. Not built, not planned.

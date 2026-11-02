@@ -1,8 +1,8 @@
 # HMRC sandbox evidence run
 
-The script `npm run hmrc:evidence` creates test users in the HMRC sandbox, signs in as each of them, and calls every API endpoint STF uses. HMRC watches the logs for these calls in the 2 weeks after you email your approval request. See `docs/hmrc/mtd-itsa-minimum-functionality.md` for why HMRC requires this evidence.
+The script `npm run hmrc:evidence` (in `scripts/hmrcSandboxEvidence.ts`) creates test users in the HMRC sandbox, signs in as each of them, and calls every API endpoint STF uses. HMRC checks their logs for these API calls in the **2 weeks following your approval email** to `SDSTeam@hmrc.gov.uk`. Run this script no more than **2 weeks before** sending that email. See `docs/hmrc/mtd-itsa-minimum-functionality.md` for why HMRC requires this evidence.
 
-**Note:** This runbook was written during development. The evidence run has not yet been executed, so no real evidence note exists yet. The owner will run this script after merging all code and produce the actual evidence that HMRC will review.
+**Status:** The script was built during development. The evidence run has not yet been executed with real sandbox credentials, so no evidence note yet exists. After all code merges, the owner will run this script and produce the actual evidence that HMRC will review.
 
 ## Prerequisites
 

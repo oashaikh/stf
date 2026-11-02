@@ -76,7 +76,7 @@ Also depends on:
   - Risk: Opus/high: schema change on financial data. STF-74 also adds a migration, so re-check the number against main.
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 3: Reconciliation API: proposals, match, unmatch, dismiss, create draft** (after 1, 2)
+- [x] **Task 3: Reconciliation API: proposals, match, unmatch, dismiss, create draft** (after 1, 2)
   - Intent: Add api/_lib/bankReconcile.ts (store, rules, database store, audit) and one route api/bank/reconcile.ts wrapped in withAuth. GET returns up to 100 unmatched lines for the session owner's connections plus the owner's confirmed entries in the same date window (LIMIT), runs the matcher and returns proposals. POST with zod-validated action: match {lineId, entryId} sets line matched and entry confirmed->reconciled in one transaction with no network call inside; unmatch {lineId} reverses to unmatched and confirmed; dismiss {lineId, reason 1-200 chars}; undismiss; createEntry {lineId, categoryAccountId, vatRatePercent} uses the existing createEntry to make a DRAFT only, linked to the line. Every query is scoped to auth.userId (line ownership via its connection, entry via transactions.user_id); another owner's id gets 404. Each action writes an audit_events row with before/after snapshots. Already-matched lines, entries matched elsewhere, voided or deleted entries are refused. Tests with fake stores for each action, audit, double-match, cross-user refusal, unauthenticated, bad bodies. Register the route in docs/security/input-inventory.md and route tests.
   - Files: `api/_lib/bankReconcile.ts`, `api/bank/reconcile.ts`, `api/_lib/__tests__/bankReconcile.test.ts`, `api/_lib/__tests__/bankReconcileRoute.test.ts`, `api/_lib/__tests__/maliciousInputRoutes.test.ts`, `api/_lib/__tests__/apiRoutes.test.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -87,6 +87,7 @@ Also depends on:
     - input-inventory.md lists the route and inputInventory.test.ts passes
     - npm test, typecheck and lint pass
   - Risk: Opus/high: tenant isolation, financial status changes and audit trail.
+  - Commit: `9c84d2a95e12`
 
 - [ ] **Task 4: Client API and 'Sort your bank payments' screen** (after 3)
   - Intent: Add src/lib/bankReconcileApi.ts and a child component src/pages/BankSortSection.tsx rendered in BankPage (ease-of-use.md puts sorting payments on the Bank page). Plain words only (match, sort; never reconcile). Each payment shows a suggested match with a reason ('Same amount, 2 days apart'), one-tap 'Yes, match it', 'No', 'Set aside' with reason, and 'Add as new payment' creating a draft. Undo after every action. Shared StateMessage for loading/empty/error, an all-sorted empty state, formatPence right-aligned tabular, 44px targets, focus rings, rows collapse on phones. Tests with the API module mocked. Check the Home to-do for bank payments links to /bank.

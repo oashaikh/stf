@@ -135,3 +135,7 @@ Also depends on:
 - [x] **Task 8: Fix: address 30 review findings (cycle 1)** (after 7)
   - Intent: Review left 30 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Replace the eight screenshots in browser-evidence/STF-30/ with real captures of the running app. They are hand-made mock pages, not the app: plain text on a white page, th The agent is fixing them; nothing is needed from you.
   - Commit: `4b85bf29601f`
+
+- [x] **Task 9: Fix: address 30 review findings (cycle 1)** (after 8)
+  - Intent: Review left 30 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Replace the eight screenshots in browser-evidence/STF-30/ with real captures of the running app. They are hand-made mock pages, not the app: plain text on a white page, th The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

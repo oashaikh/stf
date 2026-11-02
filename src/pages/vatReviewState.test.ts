@@ -45,29 +45,29 @@ describe('reviewState submit', () => {
   it('disables submit and relabels while submitting', () => {
     const state = reviewState({ ...confirmed, submitPending: true });
     expect(state.canSubmit).toBe(false);
-    expect(state.submitLabel).toBe('Submitting…');
+    expect(state.submitLabel).toBe('Sending…');
   });
   it('shows the receipt and disables submit after a live filing', () => {
     const state = reviewState({ ...confirmed, submission: receipt, live: true });
     expect(state.canSubmit).toBe(false);
-    expect(state.receipt).toMatchObject({ formBundleNumber: '256 SANDBOX 1', heading: 'Submitted to HMRC' });
+    expect(state.receipt).toMatchObject({ formBundleNumber: '256 SANDBOX 1', heading: 'Sent to HMRC' });
   });
   it('labels a sandbox receipt so it is not mistaken for a real filing', () => {
     const state = reviewState({ ...confirmed, submission: { ...receipt, sandbox: true } });
-    expect(state.receipt?.heading).toBe('Sandbox test submission');
+    expect(state.receipt?.heading).toBe('Test return sent. Nothing was filed with HMRC.');
     expect(state.canSubmit).toBe(false);
   });
   it('lets a sandbox rehearsal be followed by the live filing', () => {
     expect(reviewState({ ...confirmed, submission: { ...receipt, sandbox: true }, live: true }).canSubmit).toBe(true);
   });
   it('names the target in the button label', () => {
-    expect(reviewState(confirmed).submitLabel).toBe('Submit to HMRC sandbox');
-    expect(reviewState({ ...confirmed, live: true }).submitLabel).toBe('Submit to HMRC');
+    expect(reviewState(confirmed).submitLabel).toBe('Send to HMRC (test mode)');
+    expect(reviewState({ ...confirmed, live: true }).submitLabel).toBe('Send to HMRC');
   });
   it('tells the user not to retry when the outcome is unknown', () => {
     const state = reviewState({ ...confirmed, outcomeUnknown: true });
     expect(state.canSubmit).toBe(false);
-    expect(state.warning).toMatch(/Do not submit again/);
+    expect(state.warning).toMatch(/Do not send it again/);
   });
   it('renders a nil return like any other', () => {
     expect(reviewState(confirmed).canSubmit).toBe(true);

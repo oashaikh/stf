@@ -27,6 +27,7 @@ import {
 import StateMessage from "../components/StateMessage";
 import { nextButtonClass, VatFlowFrame, VatStop } from "./VatFlow";
 import {
+  finalSentence,
   monthRange,
   readSavedStep,
   saveStep,
@@ -335,6 +336,13 @@ function VatReturnReview({
 
           {step === "send" && (
             <>
+              <p className="text-lg font-semibold text-gray-900">
+                {finalSentence(
+                  review.data.boxes.box5,
+                  period.start,
+                  period.end,
+                )}
+              </p>
               {state.alreadyConfirmed ? (
                 <p className="mt-8 text-sm font-medium text-gray-900">
                   Confirmed
@@ -387,14 +395,14 @@ function VatReturnReview({
                   id="vat-submit-heading"
                   className="text-lg font-semibold text-gray-900"
                 >
-                  Submit to HMRC
+                  Send to HMRC
                 </h2>
                 {state.receipt && (
                   <div role="status" className="mt-2 text-sm text-gray-900">
                     <p className="font-medium">{state.receipt.heading}</p>
                     <p>Form bundle number: {state.receipt.formBundleNumber}</p>
                     <p>
-                      Processing date:{" "}
+                      Received by HMRC on{" "}
                       {formatDate(state.receipt.processingDate)}
                     </p>
                   </div>
@@ -406,7 +414,7 @@ function VatReturnReview({
                 )}
                 {submit.isError && !outcomeUnknown && (
                   <p role="alert" className="mt-2 text-sm text-red-700">
-                    Could not submit the return: {submit.error.message}
+                    Could not send the return: {submit.error.message}
                   </p>
                 )}
                 <div className="mt-4 flex flex-wrap gap-3">
@@ -421,7 +429,12 @@ function VatReturnReview({
                   >
                     {state.submitLabel}
                   </button>
-                  {state.canSubmit && (
+                </div>
+                {state.canSubmit && (
+                  <details className="mt-4">
+                    <summary className="min-h-[44px] cursor-pointer py-3 text-sm text-blue-700 underline">
+                      Technical details
+                    </summary>
                     <button
                       type="button"
                       disabled={pagePreview.isPending}
@@ -430,9 +443,9 @@ function VatReturnReview({
                     >
                       Preview what will be sent
                     </button>
-                  )}
-                </div>
-                {state.canSubmit && <PreviewResult mutation={pagePreview} />}
+                    <PreviewResult mutation={pagePreview} />
+                  </details>
+                )}
               </section>
 
               <SubmitDialog
@@ -517,16 +530,21 @@ function SubmitDialog({
           className="text-lg font-semibold text-gray-900"
         >
           {live
-            ? "Submit this VAT return to HMRC?"
-            : "Submit this VAT return to the HMRC sandbox?"}
+            ? "Send this VAT return to HMRC?"
+            : "Send this test VAT return to HMRC?"}
         </h2>
+        {!live && (
+          <p className="mt-2 rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900">
+            Test mode: nothing here is sent to the real HMRC
+          </p>
+        )}
         <dl className="mt-4 space-y-2 text-sm text-gray-900">
           <div className="flex justify-between gap-4">
             <dt>Period</dt>
             <dd className="text-right tabular-nums">{periodLabel}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt>Net VAT to pay or reclaim</dt>
+            <dt>What you pay HMRC, or they pay you</dt>
             <dd className="text-right tabular-nums">
               {formatPence(netVatPence)}
             </dd>
@@ -535,14 +553,14 @@ function SubmitDialog({
             <dt>Destination</dt>
             <dd className="text-right">
               {live
-                ? "HMRC live (a real filing)"
-                : "HMRC sandbox (a test, nothing is filed)"}
+                ? "HMRC (this is a real filing)"
+                : "HMRC test service (nothing is filed)"}
             </dd>
           </div>
         </dl>
         {live && (
           <p className="mt-4 text-sm text-gray-900">
-            A live submission cannot be undone.
+            Once sent, this cannot be undone.
           </p>
         )}
         <PreviewResult mutation={preview} />
@@ -560,7 +578,7 @@ function SubmitDialog({
           onClick={onSubmit}
           className="min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800"
         >
-          {live ? "Submit to HMRC" : "Submit to sandbox"}
+          {live ? "Send to HMRC" : "Send test return"}
         </button>
       </div>
     </dialog>

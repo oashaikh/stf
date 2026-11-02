@@ -133,7 +133,7 @@ describe('VatPage', () => {
     renderPage();
     expect(await screen.findByText('You have no VAT return to file right now.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm return' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Submit to HMRC/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Send to HMRC/ })).not.toBeInTheDocument();
     expect(returnRequests()).toHaveLength(0);
   });
 
@@ -155,7 +155,7 @@ describe('VatPage', () => {
         for (const name of ['Back', 'Save and leave']) {
           expect(screen.getByRole('button', { name })).toHaveClass('min-h-[44px]');
         }
-        expect(screen.getByText(/Test mode/)).toBeInTheDocument();
+        expect(screen.getAllByText(/Test mode/)[0]).toBeInTheDocument();
         if (step === 'Step 1 of 2') await goToNextStep();
       }
     });
@@ -253,10 +253,61 @@ describe('VatPage', () => {
     it('shows the same preview in the submit dialog and still submits from it', async () => {
       showReview(confirmed);
       await goToNextStep();
-      fireEvent.click(await screen.findByRole('button', { name: 'Submit to HMRC sandbox' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Send to HMRC (test mode)' }));
       expect(await screen.findByText('Bearer (hidden)')).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Submit to sandbox' }));
+      expect(submitVatReturn).not.toHaveBeenCalled();
+      const dialog = screen.getByRole('dialog', { hidden: true });
+      expect(within(dialog).getByText(/Test mode/)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Send test return' }));
       await waitFor(() => expect(submitVatReturn).toHaveBeenCalled());
+    });
+
+    it('says the return is a test before sending and nothing is sent until the dialog is confirmed', async () => {
+      showReview(confirmed);
+      await goToNextStep();
+      expect(await screen.findByText("You're telling HMRC you owe £0 VAT for July to September 2026.")).toBeInTheDocument();
+      expect(screen.getAllByText(/Test mode/).length).toBeGreaterThan(0);
+      expect(submitVatReturn).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [4500, "You're telling HMRC you owe £45.00 VAT for July to September 2026."],
+      [-4500, "You're telling HMRC they owe you £45.00 VAT for July to September 2026."],
+    ])('writes the sentence for box 5 of %i pence', async (box5, sentence) => {
+      showReview({ ...confirmed, boxes: { ...confirmed.boxes, box5 } });
+      await goToNextStep();
+      expect(await screen.findByText(sentence)).toBeInTheDocument();
+    });
+
+    it('keeps Send disabled until the return is confirmed', async () => {
+      showReview(review);
+      await goToNextStep();
+      expect(await screen.findByRole('button', { name: 'Send to HMRC (test mode)' })).toBeDisabled();
+    });
+
+    it('keeps Send disabled when the figures changed since confirming', async () => {
+      showReview({ ...confirmed, stale: true });
+      await goToNextStep();
+      expect(await screen.findByRole('button', { name: 'Send to HMRC (test mode)' })).toBeDisabled();
+    });
+
+    it('shows the receipt in plain words and locks Send once filed', async () => {
+      showReview({ ...confirmed, submission: { formBundleNumber: '256 SANDBOX 1', processingDate: '2026-10-26T10:00:00Z', sandbox: false } });
+      await goToNextStep();
+      expect(await screen.findByText('Sent to HMRC')).toBeInTheDocument();
+      expect(screen.getByText(/Form bundle number: 256 SANDBOX 1/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Send to HMRC (test mode)' })).toBeDisabled();
+    });
+
+    it('warns in plain words not to send again when the outcome is unknown', async () => {
+      showReview(confirmed);
+      const { SubmitVatError } = await import('../lib/hmrc/vatApi');
+      submitVatReturn.mockRejectedValue(new SubmitVatError('OUTCOME_UNKNOWN', 'unclear'));
+      await goToNextStep();
+      fireEvent.click(await screen.findByRole('button', { name: 'Send to HMRC (test mode)' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Send test return' }));
+      expect(await screen.findByText(/Do not send it again/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Send to HMRC (test mode)' })).toBeDisabled();
     });
 
     it('says so when the preview cannot be built', async () => {

@@ -101,12 +101,12 @@ export function reviewState(input: ReviewStateInput): ReviewState {
     alreadyConfirmed,
     canConfirm: input.declarationTicked && !input.confirmPending && !alreadyConfirmed,
     canSubmit: alreadyConfirmed && !input.submitPending && !filed && !outcomeUnknown,
-    submitLabel: input.submitPending ? 'Submitting…' : input.live ? 'Submit to HMRC' : 'Submit to HMRC sandbox',
+    submitLabel: input.submitPending ? 'Sending…' : input.live ? 'Send to HMRC' : 'Send to HMRC (test mode)',
     receipt: submission
-      ? { ...submission, heading: submission.sandbox ? 'Sandbox test submission' : 'Submitted to HMRC' }
+      ? { ...submission, heading: submission.sandbox ? 'Test return sent. Nothing was filed with HMRC.' : 'Sent to HMRC' }
       : null,
     warning: outcomeUnknown
-      ? 'We could not confirm whether HMRC received this return. Do not submit again. Check your HMRC online account before trying again.'
+      ? 'We could not confirm whether HMRC received this return. Do not send it again. Check your HMRC online account before trying again.'
       : null,
     needsConfirming: !alreadyConfirmed && submission === null,
   };

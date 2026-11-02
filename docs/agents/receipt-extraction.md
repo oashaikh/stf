@@ -34,10 +34,11 @@ An owner's request to extract one ready receipt.
 
 Every suggested field is a draft shown in plain words. Nothing is saved to the database until the owner confirms it.
 
-- The UI shows date, vendor, total amount, VAT, and category in plain language (e.g., "Total (including tax): £12.99", not "total_pence: 1299").
-- Each field shows the suggested value, confidence as a percentage (0–100%), and an "Edit" or "Confirm" button.
-- The flow is one field per screen, with "Back" and "Save and leave" buttons (following `docs/design/ease-of-use.md`).
-- Once all fields are confirmed, the owner can create a transaction or discard the suggestions.
+- On the Receipts page, a receipt with unchecked suggestions shows "Check these details". It opens the review at `/money-out/receipts/:receiptId`. There is no confirm button on the list, so nothing is confirmed without opening the review.
+- The review is one page, not one field per screen as `docs/design/ease-of-use.md` describes. The receipt (photo or PDF) sits on one side and the suggested date, who it was from, total, tax paid and category on the other. On a phone they stack.
+- Each field has a marker: "Sure", or "Check this one" with a highlight when the model's confidence is under 700 out of 1000 or missing. Every field is editable. Category is chosen from the owner's active expense accounts.
+- "Confirm" sends the values as they stand in the form, edited or not, and creates the expense. A link to the new entry is then shown. "Discard" asks first, then drops the draft.
+- After discarding, the owner returns to the Receipts list. The list and the expenses refresh after either action.
 - If extraction fails or is not a receipt, the UI shows a plain-language error and the owner enters the receipt by hand.
 
 ## The audit event

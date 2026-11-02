@@ -104,8 +104,6 @@ export function uploadToSignedUrl(uploadUrl: string, file: File, onProgress: (pe
 
 export const confirmReceiptUpload = (id: string) => sendReceiptId('PATCH', id, 'Could not confirm the upload. Please try again.');
 
-export const confirmReceiptDetails = (id: string) => sendReceiptId('PUT', id, 'Could not save your check. Please try again.');
-
 export const removeReceipt = (id: string) => sendReceiptId('DELETE', id, 'Could not remove the receipt. Please try again.');
 
 /** The owner's checked values. `grossPence` is integer pence; the server re-validates all of it and takes the owner from the session. */

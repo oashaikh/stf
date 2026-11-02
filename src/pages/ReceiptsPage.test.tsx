@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
-  confirmReceiptDetails,
   confirmReceiptUpload,
   fetchReceipts,
   removeReceipt,
@@ -20,7 +20,6 @@ vi.mock('../lib/receiptsApi', async (importOriginal) => ({
   startReceiptUpload: vi.fn(),
   uploadToSignedUrl: vi.fn(),
   confirmReceiptUpload: vi.fn(),
-  confirmReceiptDetails: vi.fn(),
   removeReceipt: vi.fn(),
 }));
 
@@ -63,7 +62,9 @@ function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <ReceiptsPage />
+      <MemoryRouter>
+        <ReceiptsPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -105,16 +106,13 @@ describe('receipts list', () => {
     expect(pdfRow.querySelector('svg')).toBeTruthy();
   });
 
-  it('keeps read details as a draft until the person confirms them', async () => {
+  it('opens the review for a draft instead of confirming it from the list', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo], nextCursor: null });
-    vi.mocked(confirmReceiptDetails).mockResolvedValue(photo);
     renderPage();
     const row = (await screen.findByText('Corner Cafe')).closest('li')!;
     expect(within(row).getByText(/draft/i)).toBeTruthy();
-    expect(confirmReceiptDetails).not.toHaveBeenCalled();
-    fireEvent.click(within(row).getByRole('button', { name: 'These are right' }));
-    await waitFor(() => expect(confirmReceiptDetails).toHaveBeenCalledWith(photo.id));
-    await waitFor(() => expect(fetchReceipts).toHaveBeenCalledTimes(2));
+    expect(within(row).queryByRole('button', { name: /these are right/i })).toBeNull();
+    expect(within(row).getByRole('link', { name: 'Check these details' }).getAttribute('href')).toBe(`/money-out/receipts/${photo.id}`);
   });
 
   it('searches by who and category', async () => {

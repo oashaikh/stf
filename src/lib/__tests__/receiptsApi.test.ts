@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { confirmReceiptDraft, discardReceiptDraft, confirmReceiptDetails, confirmReceiptUpload, readReceiptDetails, fetchReceipts, LOW_CONFIDENCE_THOUSANDTHS, removeReceipt, startReceiptUpload, uploadToSignedUrl, validateReceiptFile } from '../receiptsApi';
+import { confirmReceiptDraft, discardReceiptDraft, confirmReceiptUpload, readReceiptDetails, fetchReceipts, LOW_CONFIDENCE_THOUSANDTHS, removeReceipt, startReceiptUpload, uploadToSignedUrl, validateReceiptFile } from '../receiptsApi';
 
 const respond = (status: number, body: unknown) => vi.fn().mockImplementation(async () => new Response(JSON.stringify(body), { status }));
 const fileOf = (type: string, size: number, name = 'r.jpg') => ({ name, type, size }) as File;
@@ -128,15 +128,6 @@ describe('uploadToSignedUrl', () => {
     const failed = uploadToSignedUrl('https://s/u', fileOf('image/png', 1), () => {});
     FakeXhr.last.onerror?.();
     await expect(failed).rejects.toThrow(/upload/i);
-  });
-});
-
-describe('confirmReceiptDetails', () => {
-  it('sends PUT with the id', async () => {
-    const fetchMock = respond(200, { receipt: { id: 'r1' } });
-    vi.stubGlobal('fetch', fetchMock);
-    await confirmReceiptDetails('r1');
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'PUT', body: JSON.stringify({ id: 'r1' }) });
   });
 });
 

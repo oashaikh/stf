@@ -1,15 +1,18 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import OfficialName from '../components/OfficialName';
 import StateMessage from '../components/StateMessage';
 import { fetchAccounts, type ApiAccount } from '../lib/accountsApi';
+import { ENTRIES_QUERY_KEY } from '../lib/entriesApi';
 import { vatRateOf } from '../lib/entryForm';
 import { formatPenceRaw, parsePence } from '../lib/money';
 import {
   confirmReceiptDraft,
   type ConfirmedReceiptFields,
   discardReceiptDraft,
+  fetchReceipts,
+  receiptsQueryKey,
   LOW_CONFIDENCE_THOUSANDTHS,
   type ListedReceipt,
 } from '../lib/receiptsApi';
@@ -113,8 +116,21 @@ export default function ReceiptReview({ receipt, onDone }: { receipt: ListedRece
   const accounts = accountsQuery.data ?? [];
   const accountId = chosenAccountId ?? suggestedAccountId(accounts, receipt.details.category?.value);
 
-  const confirm = useMutation({ mutationFn: (fields: ConfirmedReceiptFields) => confirmReceiptDraft(fields) });
-  const discard = useMutation({ mutationFn: (id: string) => discardReceiptDraft(id), onSuccess: onDone });
+  const queryClient = useQueryClient();
+  const confirm = useMutation({
+    mutationFn: (fields: ConfirmedReceiptFields) => confirmReceiptDraft(fields),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: receiptsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: ENTRIES_QUERY_KEY }),
+    ]),
+  });
+  const discard = useMutation({
+    mutationFn: (id: string) => discardReceiptDraft(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: receiptsQueryKey });
+      onDone();
+    },
+  });
 
   function submit() {
     setFormError(null);
@@ -140,7 +156,10 @@ export default function ReceiptReview({ receipt, onDone }: { receipt: ListedRece
     return (
       <div className="mt-6" role="status">
         <p className="text-gray-900">Saved. This receipt is now one of your expenses.</p>
-        <Link to={`/money-out?entry=${confirm.data}`} className={`${primaryButtonClass} mt-4`}>See it in your expenses</Link>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link to={`/money-out?entry=${confirm.data}`} className={primaryButtonClass}>See it in your expenses</Link>
+          <Link to="/money-out/receipts" className={buttonClass}>Back to receipts</Link>
+        </div>
       </div>
     );
   }
@@ -201,6 +220,33 @@ export default function ReceiptReview({ receipt, onDone }: { receipt: ListedRece
           }}
         />
       )}
+    </div>
+  );
+}
+
+/** The route screen: finds the draft in the same paged list the Receipts page uses, then returns to that list when done. */
+export function ReceiptReviewPage() {
+  const { receiptId } = useParams();
+  const navigate = useNavigate();
+  const list = useInfiniteQuery({
+    queryKey: receiptsQueryKey,
+    queryFn: ({ pageParam }) => fetchReceipts(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+  });
+  const receipt = list.data?.pages.flatMap((page) => page.receipts).find((candidate) => candidate.id === receiptId);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = list;
+  useEffect(() => {
+    if (!receipt && hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [receipt, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  if (list.isError) return <StateMessage kind="error" onRetry={() => void list.refetch()}>Could not load this receipt.</StateMessage>;
+  if (receipt) return <ReceiptReview key={receipt.id} receipt={receipt} onDone={() => navigate('/money-out/receipts')} />;
+  if (list.isPending || hasNextPage) return <StateMessage kind="loading">Loading…</StateMessage>;
+  return (
+    <div className="mt-6">
+      <p className="text-gray-900">We could not find that receipt. It may already have been checked or removed.</p>
+      <Link to="/money-out/receipts" className={`${buttonClass} mt-4`}>Back to receipts</Link>
     </div>
   );
 }

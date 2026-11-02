@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { fetchAccounts, type ApiAccount } from '../lib/accountsApi';
-import { confirmReceiptDraft, discardReceiptDraft, type ListedReceipt } from '../lib/receiptsApi';
-import ReceiptReview from './ReceiptReview';
+import { confirmReceiptDraft, discardReceiptDraft, fetchReceipts, type ListedReceipt } from '../lib/receiptsApi';
+import ReceiptReview, { ReceiptReviewPage } from './ReceiptReview';
 
 vi.mock('../lib/accountsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/accountsApi')>()),
@@ -16,6 +16,7 @@ vi.mock('../lib/receiptsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/receiptsApi')>()),
   confirmReceiptDraft: vi.fn(),
   discardReceiptDraft: vi.fn(),
+  fetchReceipts: vi.fn(),
 }));
 
 const account = (id: string, name: string, accountType: ApiAccount['accountType'], taxCategory: string | null = null): ApiAccount => ({
@@ -148,5 +149,45 @@ describe('ReceiptReview', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Keep it' }));
     expect(discardReceiptDraft).not.toHaveBeenCalled();
+  });
+});
+
+describe('ReceiptReviewPage', () => {
+  function renderAt(receiptId: string) {
+    vi.mocked(fetchAccounts).mockResolvedValue(accounts);
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={[`/money-out/receipts/${receiptId}`]}>
+          <Routes>
+            <Route path="/money-out/receipts/:receiptId" element={<ReceiptReviewPage />} />
+            <Route path="/money-out/receipts" element={<p>the receipts list</p>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('finds the draft on a later page of the list and shows its review', async () => {
+    vi.mocked(fetchReceipts)
+      .mockResolvedValueOnce({ receipts: [], nextCursor: 'c1' })
+      .mockResolvedValueOnce({ receipts: [draft], nextCursor: null });
+    renderAt(draft.id);
+    expect(await screen.findByLabelText(/who it was from/i)).toBeTruthy();
+  });
+
+  it('says so, with a way back, when the receipt is not in the list', async () => {
+    vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [], nextCursor: null });
+    renderAt('22222222-2222-4222-8222-222222222222');
+    expect(await screen.findByText(/could not find that receipt/i)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Back to receipts' })).toBeTruthy();
+  });
+
+  it('returns to the list after discarding', async () => {
+    vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [draft], nextCursor: null });
+    vi.mocked(discardReceiptDraft).mockResolvedValue();
+    renderAt(draft.id);
+    fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Discard receipt' }));
+    expect(await screen.findByText('the receipts list')).toBeTruthy();
   });
 });

@@ -90,7 +90,7 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
   - Commit: `c8606ec353ef`
 
-- [ ] **Task 4: Show duplicate warnings on the receipt review and Receipts list, with screenshots** (after 1, 2, 3)
+- [x] **Task 4: Show duplicate warnings on the receipt review and Receipts list, with screenshots** (after 1, 2, 3)
   - Intent: In ReceiptReview.tsx show a DuplicateNotice if the receipt has duplicateOfId, and run the Task 1 rule against existing expenses using the supplier, total and date as edited. Both dismissible; confirm and discard unchanged. In ReceiptsPage.tsx show the file-level notice on the row after upload. Add a Playwright spec and mock data to capture 390 and 1440 px screenshots of each changed screen.
   - Files: `src/pages/ReceiptReview.tsx`, `src/pages/ReceiptReview.test.tsx`, `src/pages/ReceiptsPage.tsx`, `src/pages/ReceiptsPage.test.tsx`, `src/pages/__tests__/jargonRender.test.tsx`, `e2e/mockApi.ts`, `e2e/duplicate-warnings.spec.ts`, `browser-evidence/STF-50/captions.json`
   - Acceptance criteria the planner set:
@@ -100,3 +100,4 @@ Also depends on:
     - Jargon render test still passes
     - Screenshots at 390 and 1440 px of all four changed screens in browser-evidence/STF-50 with captions
     - npm run lint, typecheck, test and build pass
+  - Commit: (none — no code change for this task)

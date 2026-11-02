@@ -9,6 +9,7 @@ import MoneyOutPage from './pages/MoneyOutPage.tsx';
 import BankPage from './pages/BankPage.tsx';
 import TaxHubPage from './pages/TaxHubPage.tsx';
 import ItsUpdatePage from './pages/ItsUpdatePage.tsx';
+import FinalDeclarationPage from './pages/FinalDeclarationPage.tsx';
 import YearEndPage from './pages/YearEndPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import SetupFlow, { ReturnToSetup } from './pages/SetupFlow.tsx';
@@ -76,6 +77,7 @@ function AuthGate() {
         <Route path="/tax/*" element={<TaxHubPage />} />
         <Route path="/tax/update/:taxYear/:quarter" element={<ItsUpdatePage />} />
         <Route path="/tax/year-end/:taxYear" element={<YearEndPage />} />
+        <Route path="/tax/final-declaration/:taxYear" element={<FinalDeclarationPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/setup" element={<SetupFlow />} />
       </Route>

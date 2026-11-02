@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import AppShell from '../../components/AppShell';
 import { findJargon } from '../../lib/jargon';
+import FinalDeclarationPage from '../FinalDeclarationPage';
 import DashboardPage from '../DashboardPage';
 import ItsUpdatePage from '../ItsUpdatePage';
 import LoginPage from '../LoginPage';
@@ -31,6 +32,7 @@ const PAGE_ADDRESSES = [
   '/tax/income-tax',
   '/tax/reports',
   '/tax/update/2026-27/Q1',
+  '/tax/final-declaration/2026-27',
   '/settings',
   '/privacy',
   '/terms',
@@ -47,6 +49,10 @@ const row = { id: 'e1', date: '2026-05-01', description: 'Print cartridges', sta
 const loadedBody = (url: string): unknown => {
   // An open return due soon, so the Home reminder card is rendered and scanned.
   if (url.includes('obligations')) return { obligations: [{ periodKey: '26A1', start: '2026-10-01', end: '2026-12-31', due: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10), status: 'O', overdue: false }] };
+  if (url.includes('its-final-preview')) {
+    const figures = { incomeTaxPence: 150000, class2NicPence: 0, class4NicPence: 50000, totalPence: 200000 };
+    return { ok: true, data: { sandbox: true, calculationId: 'calc-1', hmrc: { ...figures, incomeTaxPence: 250000, totalPence: 300000 }, stfEstimate: figures, comparison: { incomeTaxDifferencePence: 100000, nicDifferencePence: 0, totalDifferencePence: 100000, differs: true }, declarationWording: 'I declare that the information I have given on this return is correct and complete to the best of my knowledge.' } };
+  }
   if (url.startsWith('/api/vat/return')) return { ok: true, data: { boxes: { box5: 4500 }, status: null } };
   if (url.startsWith('/api/dashboard')) return { data: { taxYear: totals, month: totals, vatQuarter: { ...period, vatCollectedPence: 2000, vatPaidPence: 500 }, draftCount: 1, recentEntries: [row] } };
   if (url.startsWith('/api/tax-estimate')) {
@@ -79,6 +85,7 @@ function renderAt(address: string) {
             <Route path="/money-out/*" element={<MoneyOutPage />} />
             <Route path="/bank" element={<BankPage />} />
             <Route path="/tax/update/:taxYear/:quarter" element={<ItsUpdatePage />} />
+            <Route path="/tax/final-declaration/:taxYear" element={<FinalDeclarationPage />} />
             <Route path="/tax/*" element={<TaxHubPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

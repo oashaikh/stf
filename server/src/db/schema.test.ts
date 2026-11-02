@@ -172,6 +172,37 @@ describe("schema migrations", () => {
     });
   });
 
+  describe("its_final_declarations", () => {
+    const tableBody = () => {
+      const match = sql.match(/CREATE TABLE IF NOT EXISTS "its_final_declarations" \(([\s\S]*?)\n\);/);
+      expect(match, "could not find CREATE TABLE statement for its_final_declarations").not.toBeNull();
+      return match![1];
+    };
+
+    it("locks one final declaration per user, tax year and HMRC environment", () => {
+      expect(tableBody()).toContain('UNIQUE("user_id","tax_year","sandbox")');
+    });
+
+    it("stores HMRC's figures as integer pence", () => {
+      const body = tableBody();
+      for (const column of ["income_tax_pence", "class2_nic_pence", "class4_nic_pence", "total_pence"]) {
+        expect(body).toMatch(new RegExp(`"${column}" integer NOT NULL`));
+      }
+    });
+
+    it("records the calculation id, confirmation time and correlation id", () => {
+      const body = tableBody();
+      expect(body).toMatch(/"hmrc_calculation_id" text NOT NULL/);
+      expect(body).toMatch(/"declaration_confirmed_at" timestamp with time zone/);
+      expect(body).toMatch(/"hmrc_correlation_id" text/);
+      expect(body).not.toMatch(/token|authorization/i);
+    });
+
+    it("has no deleted_at, since rows only change status", () => {
+      expect(tableBody()).not.toContain("deleted_at");
+    });
+  });
+
   it("indexes vat_return_drafts by (user_id, period_end) for the history list", () => {
     expect(sql).toMatch(
       /CREATE INDEX IF NOT EXISTS "vat_return_drafts_user_period_end_idx" ON "vat_return_drafts" \("user_id","period_end"\)/,
@@ -195,7 +226,7 @@ describe("schema migrations", () => {
   });
 
   it("indexes receipts by (user_id, created_at, id) for the newest-first list", () => {
-    const sql = readFileSync(new URL("./migrations/0026_receipts_user_created_idx.sql", import.meta.url), "utf8");
+    const sql = readFileSync(new URL("./migrations/0027_receipts_user_created_idx.sql", import.meta.url), "utf8");
     expect(sql).toMatch(
       /CREATE INDEX IF NOT EXISTS "receipts_user_created_idx" ON "receipts" \("user_id","created_at","id"\)/,
     );
@@ -374,6 +405,6 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0027_receipt_extractions_receipt_idx");
+    expect(tags.at(-1)).toBe("0028_receipt_extractions_receipt_idx");
   });
 });

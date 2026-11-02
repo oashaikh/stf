@@ -383,6 +383,37 @@ export const itsAnnualSubmissions = pgTable(
   }),
 );
 
+// One row per owner, tax year and HMRC environment for the final declaration. Same lock as
+// its_annual_submissions: the unique key refuses a second declaration, and only a definite HMRC
+// rejection flips the row to 'rejected' to release it. Holds the figures HMRC calculated, which the
+// owner saw and agreed to. Rows are never deleted.
+export const itsFinalDeclarations = pgTable(
+  'its_final_declarations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    taxYear: text('tax_year').notNull(),
+    sandbox: boolean('sandbox').notNull(),
+    status: itsSubmissionStatusEnum('status').notNull().default('confirmed'),
+    hmrcCalculationId: text('hmrc_calculation_id').notNull(),
+    incomeTaxPence: integer('income_tax_pence').notNull(),
+    class2NicPence: integer('class2_nic_pence').notNull(),
+    class4NicPence: integer('class4_nic_pence').notNull(),
+    totalPence: integer('total_pence').notNull(),
+    declarationConfirmedAt: timestamp('declaration_confirmed_at', { withTimezone: true }).notNull(),
+    hmrcCorrelationId: text('hmrc_correlation_id'),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // Also the lookup index: every query filters on (user_id, tax_year, sandbox).
+    userTaxYearSandboxUnique: unique().on(table.userId, table.taxYear, table.sandbox),
+  }),
+);
+
 export const tradingAllowanceMethodEnum = pgEnum('trading_allowance_method', ['actual', 'allowance']);
 
 // The owner's expense method for each tax year. No row means the default, actual expenses.

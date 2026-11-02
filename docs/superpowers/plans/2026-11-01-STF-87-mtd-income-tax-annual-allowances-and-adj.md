@@ -75,7 +75,7 @@ Also depends on:
     - npm test passes
   - Commit: `227271766927`
 
-- [ ] **Task 3: Table and migration to lock and audit annual submissions**
+- [x] **Task 3: Table and migration to lock and audit annual submissions**
   - Intent: Add an its_annual_submissions table to server/src/db/schema.ts, modelled on its_submissions but keyed on (user_id, tax_year, sandbox) with no quarter. Columns: status confirmed/pending/submitted/rejected, confirmed_payload, confirmed_at, submitted_at. Add migration 0023_its_annual_submissions.sql (0022 is claimed by STF-74), the _journal.json entry with a unique tag, and snapshot; single migration head. Grant the new table to the app role. Update schema.test.ts. Records are never hard-deleted.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0023_its_annual_submissions.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0023_snapshot.json`
   - Acceptance criteria the planner set:
@@ -84,6 +84,7 @@ Also depends on:
     - Grants for the new table are in the migration
     - npm test passes
   - Risk: Opus/high: schema, migration and role grants. Re-check the 0022 collision with STF-74 before finishing.
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 4: Preview, confirm and submit logic and routes for the annual submission** (after 1, 2, 3)
   - Intent: Add api/_lib/itsAnnualSubmit.ts reusing checkItsReadiness, the hmrcCall helpers and the claim/confirm/receipt pattern from api/_lib/itsSubmit.ts. Three routes: preview (server recomputes the builder output from the tax year summary), confirm (stores the server-computed payload with the user's declaration), submit (claims the row atomically, calls submitAnnualSubmission outside any DB transaction, records the receipt or rejection). The payload is never taken from the request. Live submission needs HMRC_SANDBOX_MODE=false and user opt-in. Audit rows for confirm, submit and reject. Route tests: submit without confirmation refused, concurrent second submit refused, second user cannot submit another user's confirmation, ITSA disabled and live-mode refusals. Add the routes to docs/security/input-inventory.md. Check how its-* routes are registered and follow that.

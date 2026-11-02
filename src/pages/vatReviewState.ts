@@ -52,6 +52,19 @@ export const BOX_LABELS: Record<number, string> = {
   9: 'Total acquisitions from EU excluding VAT',
 };
 
+/** Plain-words names for the guided flow; the box number is shown separately in small muted text. */
+export const PLAIN_BOX_LABELS: Record<number, string> = {
+  1: 'VAT you charged on sales',
+  2: 'VAT on goods bought from the EU',
+  3: 'Total VAT you owe',
+  4: 'VAT you can claim back on purchases',
+  5: 'What you pay HMRC, or they pay you',
+  6: 'Your sales, before VAT',
+  7: 'Your purchases, before VAT',
+  8: 'Goods you sold to the EU, before VAT',
+  9: 'Goods you bought from the EU, before VAT',
+};
+
 /** Box 5 is signed on the server: negative means HMRC owes the user a refund. */
 export function boxLabel(box: number, pence: number): string {
   return box === 5 && pence < 0 ? `${BOX_LABELS[5]} (refund due to you)` : BOX_LABELS[box];
@@ -72,7 +85,7 @@ export function box5SentNote(absolutePence: number, isRefund: boolean): string |
 export function reviewState(input: ReviewStateInput): ReviewState {
   const stale = input.stale === true;
   const statusLabel = stale
-    ? 'Ledger changed since you confirmed. Review and confirm again.'
+    ? 'Your payments changed since you confirmed. Review and confirm again.'
     : input.status === 'confirmed'
       ? 'Confirmed'
       : input.status === 'draft'
@@ -88,12 +101,12 @@ export function reviewState(input: ReviewStateInput): ReviewState {
     alreadyConfirmed,
     canConfirm: input.declarationTicked && !input.confirmPending && !alreadyConfirmed,
     canSubmit: alreadyConfirmed && !input.submitPending && !filed && !outcomeUnknown,
-    submitLabel: input.submitPending ? 'Sending…' : input.live ? 'Send to HMRC' : 'Send to HMRC sandbox',
+    submitLabel: input.submitPending ? 'Sending…' : input.live ? 'Send to HMRC' : 'Send to HMRC (test mode)',
     receipt: submission
-      ? { ...submission, heading: submission.sandbox ? 'Sandbox test submission' : 'Submitted to HMRC' }
+      ? { ...submission, heading: submission.sandbox ? 'Test return sent. Nothing was filed with HMRC.' : 'Sent to HMRC' }
       : null,
     warning: outcomeUnknown
-      ? 'We could not confirm whether HMRC received this return. Do not submit again. Check your HMRC online account before trying again.'
+      ? 'We could not confirm whether HMRC received this return. Do not send it again. Check your HMRC online account before trying again.'
       : null,
     needsConfirming: !alreadyConfirmed && submission === null,
   };

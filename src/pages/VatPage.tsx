@@ -1,33 +1,20 @@
 import { formatDate } from '../lib/dates';
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchHmrcMode, isEffectivelyLive } from '../lib/hmrc/settingsApi';
-import {
-  NotConnectedError,
-  previewVatReturn,
-  SubmitVatError,
-  submitVatReturn,
-  VatNumberMissingError,
-  type VatPreview,
-} from '../lib/hmrc/vatApi';
+import { NotConnectedError, previewVatReturn, SubmitVatError, submitVatReturn, VatNumberMissingError, type VatPreview } from '../lib/hmrc/vatApi';
 import { formatPence } from '../lib/money';
 import type { VatReturnBoxes } from '../lib/vat';
 import type { ApiResponse } from '../model/types';
 import VatObligationsList from './VatObligationsList';
+import VatFigures, { type DrillLine } from './VatFigures';
 import VatPreviewPanel from './VatPreviewPanel';
 import { useVatObligations } from './useVatObligations';
-import { box5ReviewNote, boxLabel, DRILLABLE_BOXES, reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
+import { reviewState, type ReviewStatus, type SubmissionReceipt } from './vatReviewState';
 import StateMessage from '../components/StateMessage';
-
-interface DrillLine {
-  lineId: string;
-  transactionId: string;
-  date: string;
-  amountPence: number;
-  vatPence: number;
-  description: string | null;
-}
+import { VatFlowFrame, VatStop } from './VatFlow';
+import { clearSavedStep, finalSentence, monthRange, readSavedStep, saveStep, type VatFlowStep } from './vatFlowState';
 
 interface ReturnReview {
   boxes: VatReturnBoxes;
@@ -46,86 +33,105 @@ interface VatPeriod {
   end: string;
 }
 
-// STF-10's list filters by from, to and search; the hash lets the Expenses list highlight the entry.
-function expensesLink(line: DrillLine): string {
-  const filters = new URLSearchParams({ from: line.date, to: line.date });
-  if (line.description) filters.set('search', line.description);
-  return `/money-out?${filters}#entry-${line.transactionId}`;
-}
-
-const boxNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
-
 export default function VatPage() {
+  const navigate = useNavigate();
   const obligations = useVatObligations();
   const [chosenPeriodKey, setChosenPeriodKey] = useState<string | null>(null);
+  const [stepOverride, setStepOverride] = useState<VatFlowStep | null>(null);
   const open = (obligations.data ?? []).filter((obligation) => obligation.status === 'O');
-  // A lone open obligation is the only thing the user can file, so it needs no click.
-  const selected = open.length === 1 ? open[0] : open.find((obligation) => obligation.periodKey === chosenPeriodKey);
+  // A lone open return is the only thing the user can file, so there is nothing to pick.
+  const picksReturn = open.length > 1;
+  const selected = picksReturn ? (open.find((obligation) => obligation.periodKey === chosenPeriodKey) ?? open.find((obligation) => readSavedStep(obligation.periodKey) !== null)) : open[0];
+  const steps: VatFlowStep[] = picksReturn ? ['period', 'figures', 'send'] : ['figures', 'send'];
+  const inFlow = picksReturn || selected !== undefined;
+  const savedStep = selected ? readSavedStep(selected.periodKey) : null;
+  const step = stepOverride ?? savedStep ?? steps[0];
+  const stepNumber = steps.indexOf(step) + 1;
   const notConnected = obligations.error instanceof NotConnectedError;
   const vatNumberMissing = obligations.error instanceof VatNumberMissingError;
+
+  const mode = useQuery({
+    queryKey: ['hmrc-mode'],
+    queryFn: async () => fetchHmrcMode(),
+  });
+  const live = mode.data ? isEffectivelyLive(mode.data) : false;
+
+  const leaveFlow = () => navigate('/tax');
+  const goBack = () => {
+    const previous = steps[stepNumber - 2];
+    if (previous) setStepOverride(previous);
+    else leaveFlow();
+  };
+  const saveAndLeave = () => {
+    if (selected && step !== 'period') saveStep(selected.periodKey, step);
+    leaveFlow();
+  };
+  const frame = {
+    stepNumber,
+    stepCount: steps.length,
+    live,
+    onBack: goBack,
+    onSaveAndLeave: saveAndLeave,
+  };
 
   return (
     <div className="mt-6">
       <h2 className="text-xl font-semibold text-gray-900">VAT Returns</h2>
 
-      {obligations.isPending && <StateMessage kind="loading">Loading your VAT returns due…</StateMessage>}
-      {notConnected && (
-        <p className="mt-4 text-gray-700">
-          HMRC is not connected yet.{' '}
-          <Link to="/settings" className="inline-flex min-h-[44px] items-center text-blue-700 underline">
-            Connect HMRC in Settings
-          </Link>
-        </p>
-      )}
-      {vatNumberMissing && (
-        <p className="mt-4 text-gray-700">
-          Add your VAT number to review a return.{' '}
-          <Link to="/settings" className="inline-flex min-h-[44px] items-center text-blue-700 underline">
-            Open Settings
-          </Link>
-        </p>
-      )}
-      {obligations.isError && !notConnected && !vatNumberMissing && (
-        <StateMessage kind="error">Could not load your VAT returns due. Reload the page to try again.</StateMessage>
-      )}
-      {obligations.data && open.length === 0 && (
-        <StateMessage kind="empty">No VAT returns due right now.</StateMessage>
-      )}
-      {open.length > 1 && (
-        <fieldset className="mt-4">
-          <legend className="text-sm font-medium text-gray-900">Choose the return to send</legend>
-          {open.map((obligation) => (
-            <label key={obligation.periodKey} className="flex min-h-[44px] items-center gap-3 text-sm text-gray-900">
-              <input
-                type="radio"
-                name="vat-obligation"
-                className="h-5 w-5 shrink-0"
-                checked={obligation.periodKey === selected?.periodKey}
-                onChange={() => setChosenPeriodKey(obligation.periodKey)}
-              />
-              <span>
-                {obligation.periodKey}: {formatDate(obligation.start)} to {formatDate(obligation.end)}, due {formatDate(obligation.due)}
-              </span>
-            </label>
-          ))}
-        </fieldset>
+      {obligations.isPending && <StateMessage kind="loading">Loading your VAT returns…</StateMessage>}
+      {notConnected && <VatStop fix={{ to: '/settings', label: 'Connect HMRC in Settings' }}>HMRC is not connected yet.</VatStop>}
+      {vatNumberMissing && <VatStop fix={{ to: '/settings', label: 'Add your VAT number in Settings' }}>We need your VAT number before you can file a return.</VatStop>}
+      {obligations.isError && !notConnected && !vatNumberMissing && <StateMessage kind="error">Could not load your VAT returns. Reload the page to try again.</StateMessage>}
+      {obligations.data && open.length === 0 && <StateMessage kind="empty">You have no VAT return to file right now.</StateMessage>}
+      {picksReturn && step === 'period' && (
+        <VatFlowFrame {...frame} onNext={() => setStepOverride('figures')} nextDisabled={!selected}>
+          <fieldset>
+            <legend className="text-sm font-medium text-gray-900">Which return do you want to file?</legend>
+            {open.map((obligation) => (
+              <label key={obligation.periodKey} className="flex min-h-[44px] items-center gap-3 text-sm text-gray-900">
+                <input
+                  type="radio"
+                  name="vat-obligation"
+                  className="h-5 w-5 shrink-0"
+                  checked={obligation.periodKey === selected?.periodKey}
+                  onChange={() => setChosenPeriodKey(obligation.periodKey)}
+                />
+                <span>
+                  {monthRange(obligation.start, obligation.end)}, due {formatDate(obligation.due)}
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        </VatFlowFrame>
       )}
 
-      {/* Keyed by period so switching obligations drops the ticked declaration, mutation state and open dialog. */}
-      {selected && <VatReturnReview key={selected.periodKey} period={selected} />}
+      {/* Keyed by period so switching returns drops the ticked declaration, mutation state and open dialog. */}
+      {selected && step !== 'period' && <VatReturnReview key={selected.periodKey} period={selected} step={step} live={live} frame={frame} onNext={() => setStepOverride('send')} />}
 
-      <VatObligationsList />
+      {/* Obligations would put a second page under the step, so they show only when no step does. */}
+      {!inFlow && !notConnected && !vatNumberMissing && <VatObligationsList />}
     </div>
   );
 }
 
-function VatReturnReview({ period }: { period: VatPeriod }) {
+interface VatReturnReviewProps {
+  period: VatPeriod;
+  step: VatFlowStep;
+  live: boolean;
+  frame: Omit<ComponentProps<typeof VatFlowFrame>, 'children'>;
+  onNext: () => void;
+}
+
+function VatReturnReview({ period, step, live, frame, onNext }: VatReturnReviewProps) {
   const queryClient = useQueryClient();
   const [declarationTicked, setDeclarationTicked] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
-  const [expandedBox, setExpandedBox] = useState<number | null>(null);
   // The obligation row also carries due date and status, which the server neither needs nor should be sent.
-  const periodFields = { periodKey: period.periodKey, start: period.start, end: period.end };
+  const periodFields = {
+    periodKey: period.periodKey,
+    start: period.start,
+    end: period.end,
+  };
   const queryKey = ['vat-return', period.periodKey];
 
   async function callApi(path: string, init?: RequestInit): Promise<ReturnReview> {
@@ -145,7 +151,11 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
   });
 
   const saveDraft = useMutation({
-    mutationFn: () => callApi('/api/vat/return', { method: 'PUT', body: JSON.stringify(periodFields) }),
+    mutationFn: () =>
+      callApi('/api/vat/return', {
+        method: 'PUT',
+        body: JSON.stringify(periodFields),
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
 
@@ -158,27 +168,25 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
 
   const confirm = useMutation({
     mutationFn: () =>
-      callApi('/api/vat/return-confirm', { method: 'POST', body: JSON.stringify({ ...periodFields, declaration: true }) }),
+      callApi('/api/vat/return-confirm', {
+        method: 'POST',
+        body: JSON.stringify({ ...periodFields, declaration: true }),
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   });
-
-  const mode = useQuery({
-    queryKey: ['hmrc-mode'],
-    queryFn: async () => fetchHmrcMode(),
-  });
-  const live = mode.data ? isEffectivelyLive(mode.data) : false;
 
   const submit = useMutation({
     mutationFn: () => submitVatReturn(periodFields),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
   // The page preview and the dialog preview are separate so opening one never changes what the other shows.
-  const previewMutation = () => ({ mutationFn: () => previewVatReturn(periodFields) });
+  const previewMutation = () => ({
+    mutationFn: () => previewVatReturn(periodFields),
+  });
   const pagePreview = useMutation(previewMutation());
   const dialogPreview = useMutation(previewMutation());
   // A pending claim means HMRC may already hold the return, so a refused retry reads the same as an unknown outcome.
-  const outcomeUnknown =
-    submit.error instanceof SubmitVatError && ['OUTCOME_UNKNOWN', 'ALREADY_SUBMITTED'].includes(submit.error.code);
+  const outcomeUnknown = submit.error instanceof SubmitVatError && ['OUTCOME_UNKNOWN', 'ALREADY_SUBMITTED'].includes(submit.error.code);
 
   const state = reviewState({
     status: review.data?.status ?? null,
@@ -191,162 +199,164 @@ function VatReturnReview({ period }: { period: VatPeriod }) {
     live,
   });
 
+  const filedReceipt = review.data?.submission ?? null;
+  const returnId = period.periodKey;
+  // Once the return is sent there is no step left to resume.
+  useEffect(() => {
+    if (filedReceipt) clearSavedStep(returnId);
+  }, [filedReceipt, returnId]);
+
   return (
-    <>
-      <p className="mt-4 text-sm text-gray-700">
+    <VatFlowFrame {...frame} onNext={step === 'figures' ? onNext : undefined}>
+      <p className="text-sm text-gray-700">
         Period {formatDate(period.start)} to {formatDate(period.end)}
       </p>
 
-      {review.isPending && <StateMessage kind="loading" className="mt-6">Loading your VAT return…</StateMessage>}
+      {review.isPending && (
+        <StateMessage kind="loading" className="mt-6">
+          Loading your VAT return…
+        </StateMessage>
+      )}
       {review.isError && (
-        <StateMessage kind="error" className="mt-6">Could not load your VAT return. Reload the page to try again.</StateMessage>
+        <StateMessage kind="error" className="mt-6">
+          Could not load your VAT return. Reload the page to try again.
+        </StateMessage>
       )}
 
       {review.data && (
         <>
-          <p role="status" className="mt-4 text-sm font-medium text-gray-900">
-            Status: {state.statusLabel}
-          </p>
-          {review.data.entryCount === 0 && (
+          {review.data.stale ? (
+            <VatStop fix={{ to: '/money-out', label: 'Check your payments' }}>{state.statusLabel}</VatStop>
+          ) : (
+            <p role="status" className="mt-4 text-sm font-medium text-gray-900">
+              Status: {state.statusLabel}
+            </p>
+          )}
+          {filedReceipt && step === 'figures' && <p className="mt-2 text-sm font-medium text-gray-900">This return has already been sent to HMRC.</p>}
+          {review.data.entryCount === 0 && step === 'figures' && (
             <p className="mt-2 text-sm text-gray-700">
-              No VAT-relevant transactions in this period.{state.needsConfirming && ' This is a nil return and still needs confirming.'}
+              No VAT-relevant transactions in this period.
+              {state.needsConfirming && ' This is a nil return and still needs confirming.'}
             </p>
           )}
 
-          <table className="mt-6 w-full max-w-3xl border-collapse text-sm">
-            <caption className="sr-only">VAT return boxes for the period</caption>
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-gray-700">
-                <th scope="col" className="py-2 pr-4 font-medium">Box</th>
-                <th scope="col" className="py-2 pr-4 font-medium">Description</th>
-                <th scope="col" className="py-2 text-right font-medium">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {boxNumbers.map((box) => {
-                const pence = review.data.boxes[`box${box}` as keyof VatReturnBoxes];
-                const drillable = (DRILLABLE_BOXES as readonly number[]).includes(box);
-                const lines = review.data.drillDown[`box${box}` as keyof VatReturnBoxes];
-                const expanded = expandedBox === box;
-                const label = boxLabel(box, pence);
-                return (
-                  <BoxRows
-                    key={box}
-                    box={box}
-                    label={label}
-                    pence={pence}
-                    lines={drillable ? lines : undefined}
-                    totalLines={review.data.drillDownTotals[`box${box}` as keyof VatReturnBoxes]}
-                    expanded={expanded}
-                    onToggle={() => setExpandedBox(expanded ? null : box)}
-                  />
-                );
-              })}
-            </tbody>
-          </table>
-
-          {state.alreadyConfirmed ? (
-            <p className="mt-8 text-sm font-medium text-gray-900">
-              Confirmed{review.data.confirmedAt && ` on ${formatDate(review.data.confirmedAt)}`}
-            </p>
-          ) : (
+          {step === 'figures' && (
             <>
-            <fieldset className="mt-8 max-w-3xl">
-              <legend className="sr-only">Declaration</legend>
-              <label className="flex min-h-[44px] items-start gap-3 text-sm text-gray-900">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-5 w-5 shrink-0"
-                  checked={declarationTicked}
-                  onChange={(event) => setDeclarationTicked(event.target.checked)}
-                />
-                <span>
-                  I declare that the information given in this VAT return is true and complete to the best of my
-                  knowledge and belief.
-                </span>
-              </label>
-            </fieldset>
-
-            {confirm.isError && (
-              <p role="alert" className="mt-4 text-red-700">
-                Could not confirm the return. Try again.
-              </p>
-            )}
-
-            <button
-              type="button"
-              disabled={!state.canConfirm}
-              onClick={() => confirm.mutate()}
-              className="mt-4 min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
-            >
-              {confirm.isPending ? 'Confirming…' : 'Confirm return'}
-            </button>
+              <VatFigures boxes={review.data.boxes} drillDown={review.data.drillDown} drillDownTotals={review.data.drillDownTotals} />
             </>
           )}
 
-          <section className="mt-8 max-w-3xl" aria-labelledby="vat-submit-heading">
-            <h2 id="vat-submit-heading" className="text-lg font-semibold text-gray-900">Send to HMRC</h2>
-            {state.receipt && (
-              <div role="status" className="mt-2 text-sm text-gray-900">
-                <p className="font-medium">{state.receipt.heading}</p>
-                <p>Form bundle number: {state.receipt.formBundleNumber}</p>
-                <p>Processing date: {formatDate(state.receipt.processingDate)}</p>
-              </div>
-            )}
-            {state.warning && (
-              <p role="alert" className="mt-2 text-sm text-red-700">{state.warning}</p>
-            )}
-            {submit.isError && !outcomeUnknown && (
-              <p role="alert" className="mt-2 text-sm text-red-700">
-                Could not send the return: {submit.error.message}
-              </p>
-            )}
-            <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              type="button"
-              disabled={!state.canSubmit}
-              onClick={() => {
-                setSubmitDialogOpen(true);
-                dialogPreview.mutate();
-              }}
-              className="min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
-            >
-              {state.submitLabel}
-            </button>
-            {state.canSubmit && (
-              <button
-                type="button"
-                disabled={pagePreview.isPending}
-                onClick={() => pagePreview.mutate()}
-                className="min-h-[44px] rounded border border-gray-300 px-6 text-sm font-medium text-gray-900 disabled:cursor-not-allowed disabled:text-gray-600"
-              >
-                Preview what will be sent
-              </button>
-            )}
-            </div>
-            {state.canSubmit && <PreviewResult mutation={pagePreview} />}
-          </section>
+          {step === 'send' && (
+            <>
+              <p className="mt-6 text-lg font-semibold text-gray-900">{finalSentence(review.data.boxes.box5, period.start, period.end)}</p>
+              {state.alreadyConfirmed ? (
+                <p className="mt-4 text-sm font-medium text-gray-900">
+                  Confirmed
+                  {review.data.confirmedAt && ` on ${formatDate(review.data.confirmedAt)}`}
+                </p>
+              ) : (
+                <>
+                  <fieldset className="mt-8 max-w-3xl">
+                    <legend className="sr-only">Declaration</legend>
+                    <label className="flex min-h-[44px] items-start gap-3 text-sm text-gray-900">
+                      <input type="checkbox" className="mt-1 h-5 w-5 shrink-0" checked={declarationTicked} onChange={(event) => setDeclarationTicked(event.target.checked)} />
+                      <span>I declare that the information given in this VAT return is true and complete to the best of my knowledge and belief.</span>
+                    </label>
+                  </fieldset>
 
-          <SubmitDialog
-            open={submitDialogOpen}
-            periodLabel={`${formatDate(period.start)} to ${formatDate(period.end)}`}
-            netVatPence={review.data.boxes.box5}
-            live={live}
-            preview={dialogPreview}
-            onCancel={() => setSubmitDialogOpen(false)}
-            onSubmit={() => {
-              setSubmitDialogOpen(false);
-              submit.mutate();
-            }}
-          />
+                  {confirm.isError && (
+                    <p role="alert" className="mt-4 text-red-700">
+                      Could not confirm the return. Try again.
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={!state.canConfirm}
+                    onClick={() => confirm.mutate()}
+                    className="mt-4 min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+                  >
+                    {confirm.isPending ? 'Confirming…' : 'Confirm return'}
+                  </button>
+                </>
+              )}
+
+              <section className="mt-8 max-w-3xl" aria-labelledby="vat-submit-heading">
+                <h2 id="vat-submit-heading" className="text-lg font-semibold text-gray-900">
+                  Send to HMRC
+                </h2>
+                {state.receipt && (
+                  <div role="status" className="mt-2 text-sm text-gray-900">
+                    <p className="font-medium">{state.receipt.heading}</p>
+                    <p>Form bundle number: {state.receipt.formBundleNumber}</p>
+                    <p>Received by HMRC on {formatDate(state.receipt.processingDate)}</p>
+                  </div>
+                )}
+                {state.warning && (
+                  <p role="alert" className="mt-2 text-sm text-red-700">
+                    {state.warning}
+                  </p>
+                )}
+                {submit.isError && !outcomeUnknown && (
+                  <p role="alert" className="mt-2 text-sm text-red-700">
+                    Could not send the return: {submit.error.message}
+                  </p>
+                )}
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    disabled={!state.canSubmit}
+                    onClick={() => {
+                      setSubmitDialogOpen(true);
+                      dialogPreview.mutate();
+                    }}
+                    className="min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
+                  >
+                    {state.submitLabel}
+                  </button>
+                </div>
+                {state.canSubmit && (
+                  <details className="mt-4">
+                    <summary className="min-h-[44px] cursor-pointer py-3 text-sm text-blue-700 underline">Technical details</summary>
+                    <button
+                      type="button"
+                      disabled={pagePreview.isPending}
+                      onClick={() => pagePreview.mutate()}
+                      className="min-h-[44px] rounded border border-gray-300 px-6 text-sm font-medium text-gray-900 disabled:cursor-not-allowed disabled:text-gray-600"
+                    >
+                      Preview what will be sent
+                    </button>
+                    <PreviewResult mutation={pagePreview} />
+                  </details>
+                )}
+              </section>
+
+              <SubmitDialog
+                open={submitDialogOpen}
+                periodLabel={`${formatDate(period.start)} to ${formatDate(period.end)}`}
+                netVatPence={review.data.boxes.box5}
+                live={live}
+                preview={dialogPreview}
+                onCancel={() => setSubmitDialogOpen(false)}
+                onSubmit={() => {
+                  setSubmitDialogOpen(false);
+                  submit.mutate();
+                }}
+              />
+            </>
+          )}
         </>
       )}
-    </>
+    </VatFlowFrame>
   );
 }
 
 interface PreviewResultProps {
-  mutation: { isPending: boolean; isError: boolean; data: VatPreview | undefined };
+  mutation: {
+    isPending: boolean;
+    isError: boolean;
+    data: VatPreview | undefined;
+  };
 }
 
 function PreviewResult({ mutation }: PreviewResultProps) {
@@ -355,79 +365,6 @@ function PreviewResult({ mutation }: PreviewResultProps) {
     return <StateMessage kind="error">Could not build the preview. Try again.</StateMessage>;
   }
   return mutation.data ? <VatPreviewPanel preview={mutation.data} /> : null;
-}
-
-interface BoxRowsProps {
-  box: number;
-  label: string;
-  pence: number;
-  lines?: DrillLine[];
-  totalLines: number;
-  expanded: boolean;
-  onToggle: () => void;
-}
-
-function BoxRows({ box, label, pence, lines, totalLines, expanded, onToggle }: BoxRowsProps) {
-  const detailId = `vat-box-${box}-lines`;
-  return (
-    <>
-      <tr className="border-b border-gray-100">
-        <td className="py-1 pr-4 text-gray-900">{box}</td>
-        <td className="py-1 pr-4 text-gray-900">
-          {lines ? (
-            <button
-              type="button"
-              aria-expanded={expanded}
-              aria-controls={detailId}
-              onClick={onToggle}
-              className="min-h-[44px] text-left text-blue-700 underline"
-            >
-              {label}
-            </button>
-          ) : (
-            label
-          )}
-        </td>
-        <td className="py-1 text-right tabular-nums text-gray-900">
-          {formatPence(pence)}
-          {box === 5 && box5ReviewNote(pence) && <span className="block text-xs text-gray-700">{box5ReviewNote(pence)}</span>}
-        </td>
-      </tr>
-      {lines && expanded && (
-        <tr id={detailId}>
-          <td colSpan={3} className="bg-gray-50 px-4 py-2">
-            {lines.length === 0 ? (
-              <p className="text-gray-700">No transactions contribute to this box.</p>
-            ) : (
-              <ul className="divide-y divide-gray-200">
-                {lines.map((line) => (
-                  <li key={line.lineId}>
-                    <Link
-                      to={expensesLink(line)}
-                      className="flex min-h-[44px] flex-wrap items-center gap-x-4 py-1 text-blue-700 hover:underline sm:flex-nowrap"
-                    >
-                      <span className="shrink-0 tabular-nums">{formatDate(line.date)}</span>
-                      <span className="order-last min-w-0 basis-full truncate sm:order-none sm:basis-0 sm:flex-1" title={line.description ?? undefined}>
-                        {line.description ?? ''}
-                      </span>
-                      <span className="shrink-0 text-right tabular-nums">
-                        {formatPence(line.amountPence)} + {formatPence(line.vatPence)} VAT
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {lines.length < totalLines && (
-              <p className="mt-2 text-gray-700">
-                Showing the first {lines.length} of {totalLines} transactions, so the list does not add up to the box.
-              </p>
-            )}
-          </td>
-        </tr>
-      )}
-    </>
-  );
 }
 
 interface SubmitDialogProps {
@@ -451,31 +388,27 @@ function SubmitDialog({ open, periodLabel, netVatPence, live, preview, onCancel,
   }, [open]);
 
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby="vat-submit-dialog-title"
-      onClose={onCancel}
-      className="w-full max-w-2xl max-h-[90vh] flex-col rounded p-0 open:flex backdrop:bg-black/50"
-    >
+    <dialog ref={dialogRef} aria-labelledby="vat-submit-dialog-title" onClose={onCancel} className="w-full max-w-2xl max-h-[90vh] flex-col rounded p-0 open:flex backdrop:bg-black/50">
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
         <h2 id="vat-submit-dialog-title" className="text-lg font-semibold text-gray-900">
-          {live ? 'Send this VAT return to HMRC?' : 'Send this VAT return to the HMRC sandbox?'}
+          {live ? 'Send this VAT return to HMRC?' : 'Send this test VAT return to HMRC?'}
         </h2>
+        {!live && <p className="mt-2 rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900">Test mode: nothing here is sent to the real HMRC</p>}
         <dl className="mt-4 space-y-2 text-sm text-gray-900">
           <div className="flex justify-between gap-4">
             <dt>Period</dt>
             <dd className="text-right tabular-nums">{periodLabel}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt>Net VAT to pay or reclaim</dt>
+            <dt>What you pay HMRC, or they pay you</dt>
             <dd className="text-right tabular-nums">{formatPence(netVatPence)}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt>Destination</dt>
-            <dd className="text-right">{live ? 'HMRC live (a real filing)' : 'HMRC sandbox (a test, nothing is filed)'}</dd>
+            <dd className="text-right">{live ? 'HMRC (this is a real filing)' : 'HMRC test service (nothing is filed)'}</dd>
           </div>
         </dl>
-        {live && <p className="mt-4 text-sm text-gray-900">A live submission cannot be undone.</p>}
+        {live && <p className="mt-4 text-sm text-gray-900">Once sent, this cannot be undone.</p>}
         <PreviewResult mutation={preview} />
       </div>
       <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 p-4">
@@ -483,7 +416,7 @@ function SubmitDialog({ open, periodLabel, netVatPence, live, preview, onCancel,
           Cancel
         </button>
         <button type="button" onClick={onSubmit} className="min-h-[44px] rounded bg-blue-700 px-6 text-sm font-medium text-white hover:bg-blue-800">
-          {live ? 'Send to HMRC' : 'Send to sandbox'}
+          {live ? 'Send to HMRC' : 'Send test return'}
         </button>
       </div>
     </dialog>

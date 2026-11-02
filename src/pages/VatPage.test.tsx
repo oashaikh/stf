@@ -51,6 +51,10 @@ function renderPage() {
   );
 }
 
+async function goToNextStep() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Next' }));
+}
+
 function returnRequests() {
   return fetchMock.mock.calls.filter(([path]) => String(path).startsWith('/api/vat/return'));
 }
@@ -58,6 +62,7 @@ function returnRequests() {
 describe('VatPage', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-26T10:00:00Z') });
+    localStorage.clear();
     fetchVatObligations.mockReset();
     fetchVatHistory.mockReset();
     fetchVatHistory.mockResolvedValue([]);
@@ -92,6 +97,7 @@ describe('VatPage', () => {
     const put = fetchMock.mock.calls.find(([, init]) => init?.method === 'PUT')!;
     expect(JSON.parse(put[1].body)).toEqual({ periodKey: '26C3', start: '2026-07-01', end: '2026-09-30' });
 
+    await goToNextStep();
     fireEvent.click(await screen.findByRole('checkbox'));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm return' }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => path === '/api/vat/return-confirm')).toBe(true));
@@ -110,10 +116,13 @@ describe('VatPage', () => {
     renderPage();
     const choices = await screen.findAllByRole('radio');
     expect(choices).toHaveLength(2);
+    expect(screen.getByText('Step 1 of 3')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Confirm return' })).not.toBeInTheDocument();
     expect(returnRequests()).toHaveLength(0);
 
     fireEvent.click(choices[1]);
+    await goToNextStep();
     await screen.findByText(/Status:/);
     const params = new URL(String(returnRequests()[0][0]), 'http://localhost').searchParams;
     expect(params.get('periodKey')).toBe('26C2');
@@ -122,7 +131,7 @@ describe('VatPage', () => {
   it('offers no review or submit when no obligation is open', async () => {
     fetchVatObligations.mockResolvedValue([obligation('26C1', '2026-01-01', '2026-03-31', 'F')]);
     renderPage();
-    expect(await screen.findByText('No VAT returns due right now.')).toBeInTheDocument();
+    expect(await screen.findByText('You have no VAT return to file right now.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm return' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Send to HMRC/ })).not.toBeInTheDocument();
     expect(returnRequests()).toHaveLength(0);
@@ -132,9 +141,110 @@ describe('VatPage', () => {
     const { NotConnectedError } = await import('../lib/hmrc/vatApi');
     fetchVatObligations.mockRejectedValue(new NotConnectedError());
     renderPage();
-    await screen.findAllByRole('link', { name: 'Connect HMRC in Settings' });
+    expect(await screen.findAllByRole('link', { name: 'Connect HMRC in Settings' })).toHaveLength(1);
+    expect(screen.queryByRole('heading', { name: 'VAT obligations' })).not.toBeInTheDocument();
     expect(screen.queryByText('No past VAT returns yet.')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'VAT return history' })).not.toBeInTheDocument();
+  });
+
+  describe('guided steps', () => {
+    it('shows the step count, Back, Save and leave and the test-mode label on every step', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      for (const step of ['Step 1 of 2', 'Step 2 of 2']) {
+        expect(await screen.findByText(step)).toBeInTheDocument();
+        for (const name of ['Back', 'Save and leave']) {
+          expect(screen.getByRole('button', { name })).toHaveClass('min-h-[44px]');
+        }
+        expect(screen.getAllByText(/Test mode/)[0]).toBeInTheDocument();
+        if (step === 'Step 1 of 2') await goToNextStep();
+      }
+    });
+
+    it('puts Back, Save and leave and Next in one footer, Next last', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      const next = await screen.findByRole('button', { name: 'Next' });
+      const footer = next.parentElement!;
+      expect(within(footer).getAllByRole('button').map((button) => button.textContent)).toEqual(['Back', 'Save and leave', 'Next']);
+    });
+
+    it('shows only the current step, not the history or obligations lists', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      await screen.findByText('Step 1 of 2');
+      expect(screen.queryByRole('heading', { name: 'VAT obligations' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'VAT return history' })).not.toBeInTheDocument();
+    });
+
+    it('announces the step change in a polite status region', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      expect(await screen.findByText('Step 1 of 2')).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('keeps the nil note off the send step', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      await goToNextStep();
+      await screen.findByText('Step 2 of 2');
+      expect(screen.queryByText(/No VAT-relevant transactions/)).not.toBeInTheDocument();
+    });
+
+    it('says on the figures step when the return was already sent', async () => {
+      fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data: { ...review, status: 'confirmed', submission: { formBundleNumber: '123', processingDate: '2026-10-20T10:00:00Z' } } })));
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      expect(await screen.findByText('This return has already been sent to HMRC.')).toBeInTheDocument();
+    });
+
+    it('forgets the saved step once the return is sent', async () => {
+      localStorage.setItem('stf-vat-step:26C3', 'send');
+      fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data: { ...review, status: 'confirmed', submission: { formBundleNumber: '123', processingDate: '2026-10-20T10:00:00Z' } } })));
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      await screen.findByText(/Status:/);
+      await waitFor(() => expect(localStorage.getItem('stf-vat-step:26C3')).toBeNull());
+    });
+
+    it('resumes the saved step after Save and leave', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      await goToNextStep();
+      fireEvent.click(screen.getByRole('button', { name: 'Save and leave' }));
+      cleanup();
+      renderPage();
+      expect(await screen.findByText('Step 2 of 2')).toBeInTheDocument();
+    });
+
+    it('goes back from the last step to the figures', async () => {
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      await goToNextStep();
+      fireEvent.click(await screen.findByRole('button', { name: 'Back' }));
+      expect(await screen.findByText('Step 1 of 2')).toBeInTheDocument();
+    });
+
+    it('stops with plain words and a fix link when the VAT number is missing', async () => {
+      const { VatNumberMissingError } = await import('../lib/hmrc/vatApi');
+      fetchVatObligations.mockRejectedValue(new VatNumberMissingError());
+      renderPage();
+      expect(await screen.findByRole('link', { name: 'Add your VAT number in Settings' })).toHaveAttribute('href', '/settings');
+      expect(screen.getAllByRole('link', { name: /Settings/ })).toHaveLength(1);
+      expect(screen.queryByText('Step 1 of 2')).not.toBeInTheDocument();
+      expect(document.body.textContent).not.toMatch(/ledger/i);
+      expect(screen.getByText(/We need your VAT number/).textContent).not.toMatch(/obligation/i);
+    });
+
+    it('stops with a link to the payments when the figures changed since confirming', async () => {
+      fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data: { ...review, status: 'confirmed', stale: true } })));
+      fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
+      renderPage();
+      expect(await screen.findByText(/Your payments changed since you confirmed/)).toBeInTheDocument();
+      expect(screen.queryByText(/Some payments changed/)).not.toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Check your payments' })).toHaveAttribute('href', '/money-out');
+      expect(document.body.textContent).not.toMatch(/ledger/i);
+    });
   });
 
   describe('preview of what will be sent', () => {
@@ -164,12 +274,14 @@ describe('VatPage', () => {
 
     it('offers no preview button before the return is confirmed', async () => {
       showReview(review);
-      await screen.findByText(/Status:/);
+      await goToNextStep();
+      await screen.findByText(/I declare/);
       expect(screen.queryByRole('button', { name: 'Preview what will be sent' })).not.toBeInTheDocument();
     });
 
     it('replaces the declaration and Confirm return button with the confirmed date', async () => {
       showReview(confirmed);
+      await goToNextStep();
       expect(await screen.findByText('Confirmed on 25 Oct 2026')).toBeInTheDocument();
       expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Confirm return' })).not.toBeInTheDocument();
@@ -177,6 +289,7 @@ describe('VatPage', () => {
 
     it('shows the boxes, headers and raw JSON of a nil return once confirmed, without submitting', async () => {
       showReview(confirmed);
+      await goToNextStep();
       fireEvent.click(await screen.findByRole('button', { name: 'Preview what will be sent' }));
       expect(await screen.findByText('Bearer (hidden)')).toBeInTheDocument();
       const sentBoxes = screen.getByRole('table', { name: 'Boxes exactly as they will be sent' });
@@ -188,15 +301,68 @@ describe('VatPage', () => {
 
     it('shows the same preview in the submit dialog and still submits from it', async () => {
       showReview(confirmed);
-      fireEvent.click(await screen.findByRole('button', { name: 'Send to HMRC sandbox' }));
+      await goToNextStep();
+      fireEvent.click(await screen.findByRole('button', { name: 'Send to HMRC (test mode)' }));
       expect(await screen.findByText('Bearer (hidden)')).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Send to sandbox' }));
+      expect(submitVatReturn).not.toHaveBeenCalled();
+      const dialog = screen.getByRole('dialog', { hidden: true });
+      expect(within(dialog).getByText(/Test mode/)).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Send test return' }));
       await waitFor(() => expect(submitVatReturn).toHaveBeenCalled());
+    });
+
+    it('says the return is a test before sending and nothing is sent until the dialog is confirmed', async () => {
+      showReview(confirmed);
+      await goToNextStep();
+      expect(await screen.findByText("You're telling HMRC you owe £0 VAT for July to September 2026.")).toBeInTheDocument();
+      expect(screen.getAllByText(/Test mode/).length).toBeGreaterThan(0);
+      expect(submitVatReturn).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [4500, "You're telling HMRC you owe £45.00 VAT for July to September 2026."],
+      [-4500, "You're telling HMRC they owe you £45.00 VAT for July to September 2026."],
+    ])('writes the sentence for box 5 of %i pence', async (box5, sentence) => {
+      showReview({ ...confirmed, boxes: { ...confirmed.boxes, box5 } });
+      await goToNextStep();
+      expect(await screen.findByText(sentence)).toBeInTheDocument();
+    });
+
+    it('keeps Send disabled until the return is confirmed', async () => {
+      showReview(review);
+      await goToNextStep();
+      expect(await screen.findByRole('button', { name: 'Send to HMRC (test mode)' })).toBeDisabled();
+    });
+
+    it('keeps Send disabled when the figures changed since confirming', async () => {
+      showReview({ ...confirmed, stale: true });
+      await goToNextStep();
+      expect(await screen.findByRole('button', { name: 'Send to HMRC (test mode)' })).toBeDisabled();
+    });
+
+    it('shows the receipt in plain words and locks Send once filed', async () => {
+      showReview({ ...confirmed, submission: { formBundleNumber: '256 SANDBOX 1', processingDate: '2026-10-26T10:00:00Z', sandbox: false } });
+      await goToNextStep();
+      expect(await screen.findByText('Sent to HMRC')).toBeInTheDocument();
+      expect(screen.getByText(/Form bundle number: 256 SANDBOX 1/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Send to HMRC (test mode)' })).toBeDisabled();
+    });
+
+    it('warns in plain words not to send again when the outcome is unknown', async () => {
+      showReview(confirmed);
+      const { SubmitVatError } = await import('../lib/hmrc/vatApi');
+      submitVatReturn.mockRejectedValue(new SubmitVatError('OUTCOME_UNKNOWN', 'unclear'));
+      await goToNextStep();
+      fireEvent.click(await screen.findByRole('button', { name: 'Send to HMRC (test mode)' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Send test return' }));
+      expect(await screen.findByText(/Do not send it again/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Send to HMRC (test mode)' })).toBeDisabled();
     });
 
     it('says so when the preview cannot be built', async () => {
       showReview(confirmed);
       previewVatReturn.mockRejectedValue(new Error('boom'));
+      await goToNextStep();
       fireEvent.click(await screen.findByRole('button', { name: 'Preview what will be sent' }));
       expect(await screen.findByText(/Could not build the preview/)).toBeInTheDocument();
     });
@@ -221,7 +387,7 @@ describe('VatPage', () => {
 
     it('links each drill-down line to the Expenses list for that entry', async () => {
       showReview(withEntries);
-      fireEvent.click(await screen.findByRole('button', { name: /VAT due on sales/i }));
+      fireEvent.click((await screen.findAllByRole("button", { name: /Why is this amount/ }))[0]);
       const link = screen.getByRole('link', { name: /Consulting & design/ });
       expect(link).toHaveAttribute(
         'href',

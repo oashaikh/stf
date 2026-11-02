@@ -100,10 +100,11 @@ Also depends on:
     - npm test, lint, typecheck and build pass
   - Commit: `9944c2f0a882`
 
-- [ ] **Task 5: E2E mock and screenshot evidence at 390 and 1440 px** (after 4)
+- [x] **Task 5: E2E mock and screenshot evidence at 390 and 1440 px** (after 4)
   - Intent: Extend e2e/mockApi.ts with an appended /api/bank/reconcile mock using invented data, add an e2e spec for the Bank sort flow, and capture screenshots at 390 px and 1440 px (light, and dark if shipped) into browser-evidence/STF-38 with captions.md.
   - Files: `e2e/mockApi.ts`, `e2e/bank-sort.spec.ts`, `browser-evidence/STF-38/captions.md`
   - Acceptance criteria the planner set:
     - Mock returns only invented records
     - Screenshots at 390 and 1440 px of proposals and all-sorted state exist and are listed in captions.md
     - lint, typecheck, test and build pass
+  - Commit: `d70bb5fd3ba3`

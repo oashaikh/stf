@@ -195,7 +195,7 @@ describe("schema migrations", () => {
   });
 
   it("indexes receipts by (user_id, created_at, id) for the newest-first list", () => {
-    const sql = readFileSync(new URL("./migrations/0025_receipts_user_created_idx.sql", import.meta.url), "utf8");
+    const sql = readFileSync(new URL("./migrations/0026_receipts_user_created_idx.sql", import.meta.url), "utf8");
     expect(sql).toMatch(
       /CREATE INDEX IF NOT EXISTS "receipts_user_created_idx" ON "receipts" \("user_id","created_at","id"\)/,
     );

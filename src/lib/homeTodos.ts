@@ -75,12 +75,13 @@ export function buildHomeTodos(input: HomeTodoInput, today: Date): HomeTodos {
   for (const obligation of input.itsObligations) {
     const quarter = quarterOf(obligation);
     if (obligation.status !== 'open' || quarter === null) continue;
-    consider(obligation.dueDate, 'Income Tax update', () =>
+    const rental = obligation.business === 'uk-property';
+    consider(obligation.dueDate, rental ? 'rental property update' : 'Income Tax update', () =>
       datedItem(
-        `its-${obligation.taxYear}-${quarter}`,
-        'Send your Income Tax update',
+        `its-${obligation.business}-${obligation.taxYear}-${quarter}`,
+        rental ? 'Send your rental property update' : 'Send your Income Tax update',
         'Send update',
-        `/tax/update/${obligation.taxYear}/${quarter}`,
+        `/tax/update/${rental ? 'property/' : ''}${obligation.taxYear}/${quarter}`,
         obligation.dueDate,
         todayNumber,
       ),

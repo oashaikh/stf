@@ -202,4 +202,10 @@ describe('ensurePropertyAccounts', () => {
     const other = await listAccounts(store, 'u2', false);
     expect(other.some((a) => a.taxCategory?.startsWith('property-'))).toBe(false);
   });
+
+  it('refuses when the owner already uses a rental account code', async () => {
+    const { store } = fakeStore();
+    await createAccount(store, 'u1', { code: PROPERTY_ACCOUNTS[0].code, name: 'My own account', accountType: 'income', taxCategory: null });
+    await expect(ensurePropertyAccounts(store, 'u1')).rejects.toThrow(AccountRuleError);
+  });
 });

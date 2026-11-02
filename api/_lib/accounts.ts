@@ -78,7 +78,13 @@ export async function listAccounts(store: AccountStore, userId: string, archived
 export async function ensurePropertyAccounts(store: AccountStore, userId: string): Promise<Account[]> {
   await store.seedDefaults(userId);
   await store.seedPropertyAccounts(userId);
-  return (await store.list(userId, false)).filter((account) => isPropertyCategory(account.taxCategory));
+  const present = (await store.list(userId, false)).filter((account) => isPropertyCategory(account.taxCategory));
+  // Seeding skips a code the owner already uses; refuse loudly rather than leave a category missing.
+  const missing = PROPERTY_ACCOUNTS.filter((wanted) => !present.some((account) => account.taxCategory === wanted.taxCategory));
+  if (missing.length > 0) {
+    throw new AccountRuleError(`Account codes ${missing.map((account) => account.code).join(', ')} are already in use, so rental categories cannot be added`);
+  }
+  return present;
 }
 
 /** is_system is never client-supplied: accounts created here are always user accounts. */

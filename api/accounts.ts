@@ -27,7 +27,14 @@ export function createAccountsHandler(store: AccountStore = databaseAccountStore
 
     if (request.method === 'POST') {
       const body = await request.json().catch(() => null);
-      if (body?.propertyAccounts === true) return Response.json({ ok: true, accounts: await ensurePropertyAccounts(store, auth.userId) });
+      if (body?.propertyAccounts === true) {
+        try {
+          return Response.json({ ok: true, accounts: await ensurePropertyAccounts(store, auth.userId) });
+        } catch (error) {
+          if (error instanceof AccountRuleError) return refuse(409, error.message, 'CODE_IN_USE');
+          throw error;
+        }
+      }
       const newAccount = validateNewAccount(body);
       if (!newAccount) return refuse(400, 'Account needs a code, name and valid type', 'BAD_REQUEST');
       try {

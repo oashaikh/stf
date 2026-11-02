@@ -32,6 +32,15 @@ describe('buildHomeTodos', () => {
     ]);
   });
 
+  it('gives a rental property update its own id, wording and link', () => {
+    const rental = { ...its('2026-11-05'), business: 'uk-property' as const };
+    const { items } = buildHomeTodos(input({ itsObligations: [its('2026-11-05'), rental] }), today);
+    expect(new Set(items.map((item) => item.id)).size).toBe(2);
+    const rentalItem = items.find((item) => item.id.includes('uk-property'));
+    expect(rentalItem?.route).toBe('/tax/update/property/2026-27/1');
+    expect(rentalItem?.title).toMatch(/^Send your rental property update/);
+  });
+
   it('says how late an overdue item is, singular and plural', () => {
     const { items } = buildHomeTodos(input({ vatObligations: [vat('2026-11-01'), vat('2026-10-30')] }), today);
     expect(items[0]).toMatchObject({ daysLate: 3, title: 'File your VAT return, 3 days late' });

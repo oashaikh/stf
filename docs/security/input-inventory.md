@@ -61,6 +61,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/bank/callback.ts` | GET | Bank |
 | `api/bank/status.ts` | GET | Bank (no input) |
 | `api/bank/disconnect.ts` | POST | Bank (no input beyond session) |
+| `api/bank/categorise.ts` | POST | Bank |
 | `api/vat/preview.ts` | POST | VAT |
 | `api/vat/return.ts` | GET, POST | VAT |
 | `api/vat/return-confirm.ts` | POST | VAT |
@@ -233,6 +234,7 @@ Public route: `api/hmrc/callback.ts` and `api/bank/callback.ts` are the only rou
 | `state` | callback query | HMAC-signed value naming the user; invalid, forged, expired or missing gives 400 and no provider call. This is the credential for this public route | `verifiedStateUserId`, `api/bank/callback.ts` |
 | `code` | callback query | non-empty string of at most 256 chars, passed to the bank token endpoint | `api/bank/callback.ts` |
 | `error` | callback query | presence only | `api/bank/callback.ts` |
+| `lineIds` | `api/bank/categorise.ts` POST body | array of 1 to 25 uuids; every line must be the session user's, unmatched and not deleted, else 404 and no model call | `api/bank/categorise.ts` |
 
 ## VAT
 

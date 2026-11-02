@@ -65,7 +65,7 @@ Also depends on:
   - Risk: Schema migration and a new authenticated write route, hence opus at high. Migration number clashes with STF-74/STF-87 plans; implementer must re-check the head against main.
   - Commit: `42405211e12f`
 
-- [ ] **Task 2: Setup steps logic and client API** (after 1)
+- [x] **Task 2: Setup steps logic and client API** (after 1)
   - Intent: Pure, tested logic for the flow plus a thin fetch client. src/lib/setupFlow.ts defines the four steps in order (business type, VAT registered or not, connect HMRC, connect the bank), the one-sentence 'what this is for' text for each in plain words (no word from the 'Never on screen' table in docs/design/ease-of-use.md; official names only as small-text companions), and functions: which steps are done (from setup state plus existing HMRC status, bank status and vat_number), which is next, which are skipped and so still to-do, and whether the flow should show at all. Pre-fill rule: a step STF already knows (HMRC connected, bank connected, VAT number saved implies registered) shows as done and only asks to confirm. src/lib/setupApi.ts wraps GET/POST /api/settings/setup in the style of businessProfileApi.ts and reuses fetchHmrcStatus, fetchBankStatus, fetchVatNumberMask and saveVatNumber.
   - Files: `src/lib/setupFlow.ts`, `src/lib/setupFlow.test.ts`, `src/lib/setupApi.ts`, `src/lib/setupApi.test.ts`
   - Acceptance criteria the planner set:
@@ -73,6 +73,7 @@ Also depends on:
     - Step copy is one plain sentence per step and a test checks no banned word from the ease-of-use table appears
     - setupApi tests use a fake fetch, no live network
     - npm run lint, typecheck, test and build pass
+  - Commit: `451408b59775`
 
 - [ ] **Task 3: Guided first-time setup screens** (after 2)
   - Intent: New page src/pages/SetupFlow.tsx at /setup: one question per screen with a 'Step 2 of 4' progress line, Back, 'Save and leave' and 'Skip for now' on every step. Step 1: three plain business type choices. Step 2: 'Are you registered for VAT?' Yes uses the existing saveVatNumber (9-digit validation reused), No records vatRegistered=false. Step 3: connect HMRC via fetchHmrcConnectUrl, labelled test mode, no live opt-in offered. Step 4: connect the bank via fetchBankConnectUrl. Both OAuth callbacks return to other pages (/settings?hmrc=... and /bank?bank=...), so the page sets a sessionStorage marker before leaving and a small component sends the user back to /setup, which resumes at the next unfinished step from server state. Use StateMessage, min-h-11 tap targets, focus rings and existing Tailwind tokens as in BankSection. Add the route in src/App.tsx (small hunk). Component tests mock the API modules.

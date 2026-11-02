@@ -37,9 +37,9 @@ export function PrivacyPage() {
       </Section>
       <Section heading="What STF stores">
         <ul className="list-disc space-y-1 pl-6">
-          <li>Your ledger: transactions, invoices, receipts and the details you type in.</li>
+          <li>Your records: transactions, invoices, receipts and the details you type in.</li>
           <li>Your VAT returns: drafts, confirmed figures and the receipts HMRC gives back, plus your VAT number.</li>
-          <li>Your HMRC connection tokens. They are encrypted before they are saved.</li>
+          <li>Your HMRC sign-in details. They are encrypted before they are saved.</li>
           <li>Login attempts, kept only to lock the login after too many wrong passwords.</li>
         </ul>
         <p>STF does not use advertising or analytics trackers.</p>
@@ -63,14 +63,14 @@ export function PrivacyPage() {
       </Section>
       <Section heading="How long it is kept">
         <p>
-          Ledger and VAT records are kept for as long as you use STF, because HMRC expects VAT records to be kept for at
+          Your records and VAT records are kept for as long as you use STF, because HMRC expects VAT records to be kept for at
           least six years. Login attempts are removed once they are too old to count towards a lockout. Deleted
           financial records are marked as deleted rather than erased, so the audit trail stays complete.
         </p>
       </Section>
       <Section heading="Deleting your data">
         <p>
-          Email {CONTACT_EMAIL} and we will delete your data, including uploaded receipts and your stored HMRC tokens.
+          Email {CONTACT_EMAIL} and we will delete your data, including uploaded receipts and your stored HMRC sign-in details.
           Records HMRC already holds cannot be removed by us. To stop STF using your HMRC connection, you can also
           remove STF under your Government Gateway account.
         </p>

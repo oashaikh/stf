@@ -80,7 +80,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('6 Apr 2026 to 5 Apr 2027')).toBeTruthy();
   });
 
-  it('shows the empty state for a new ledger', async () => {
+  it('shows the empty state for a new account', async () => {
     renderPage(Response.json({ ok: true, data: empty }));
     expect(await screen.findByText(/no entries yet/i)).toBeTruthy();
     expect(screen.getByRole('link', { name: /add entry/i }).getAttribute('href')).toBe('/money-out');

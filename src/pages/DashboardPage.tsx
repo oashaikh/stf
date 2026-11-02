@@ -12,6 +12,7 @@ import { getObligationDueWithin, REMINDER_WINDOW_DAYS } from "../lib/vatReminder
 import type { ApiResponse } from "../model/types";
 import { useVatObligations } from "./useVatObligations";
 import StateMessage from '../components/StateMessage';
+import OfficialName from '../components/OfficialName';
 
 const linkClass = "inline-flex min-h-11 items-center text-blue-800 underline";
 
@@ -25,7 +26,7 @@ function Card({ title, period, children }: { title: string; period?: string; chi
   );
 }
 
-function Row({ label, pence }: { label: string; pence: number }) {
+function Row({ label, pence }: { label: React.ReactNode; pence: number }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-gray-700">{label}</dt>
@@ -66,7 +67,7 @@ function UpcomingVatReturnCard() {
         <dt className="text-gray-700">Draft</dt>
         <dd className="text-right text-gray-900">{review.data.status === null ? "Not yet drafted" : "Draft saved"}</dd>
       </div>
-      <Row label="Box 5: net VAT to pay" pence={review.data.boxes.box5} />
+      <Row label={<>VAT you owe HMRC<OfficialName>Box 5</OfficialName></>} pence={review.data.boxes.box5} />
       <Link to="/tax/vat" className={linkClass}>
         Review VAT return
       </Link>

@@ -11,7 +11,8 @@
     "api/cron/create-recurring-entries.ts": { "maxDuration": 60 },
     "api/cron/prepare-vat-draft.ts": { "maxDuration": 60 },
     "api/cron/import-bank-transactions.ts": { "maxDuration": 60 },
-    "api/invoice-pdf.ts": { "maxDuration": 15 }
+    "api/invoice-pdf.ts": { "maxDuration": 15 },
+    "api/receipt-extract.ts": { "maxDuration": 60 }
   },
   "crons": [
     { "path": "/api/cron/refresh-hmrc-tokens", "schedule": "*/5 * * * *" },

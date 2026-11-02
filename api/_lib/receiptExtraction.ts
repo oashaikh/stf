@@ -36,7 +36,7 @@ export interface ExtractionStore {
 }
 
 type ContentBlock =
-  | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+  | { type: 'image'; source: { type: 'base64'; media_type: 'image/jpeg' | 'image/png' | 'image/webp'; data: string } }
   | { type: 'document'; source: { type: 'base64'; media_type: 'application/pdf'; data: string } }
   | { type: 'text'; text: string };
 

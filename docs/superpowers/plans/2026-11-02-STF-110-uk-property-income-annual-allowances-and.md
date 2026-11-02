@@ -114,3 +114,7 @@ Also depends on:
 - [x] **Task 8: Fix: address 13 review findings (cycle 1)** (after 7)
   - Intent: Review left 13 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens: a property-only owner cannot reach the rental year-end steps, yet the new final-declaration gate demands those figures. Everything else I traced held up: The agent is fixing them; nothing is needed from you.
   - Commit: (none — no code change for this task)
+
+- [x] **Task 9: Fix: address 8 review findings (cycle 2)** (after 8)
+  - Intent: Review left 8 findings unresolved (NEEDS_WORK): **correctness** — APPROVED The correctness lens found no blocking defect. The cycle-1 blocker is fixed: YearEndFlow now starts at PropertyYearEnd when the owner has a property business and no self-emp The agent is fixing them; nothing is needed from you.
+  - Commit: `14ee520f0223`

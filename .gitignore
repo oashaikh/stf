@@ -46,3 +46,6 @@ playwright-report/
 uploads/
 .agent-tmp/
 test-results/
+
+# HMRC sandbox test users created by npm run hmrc:evidence (holds their passwords)
+.hmrc-sandbox-users.json

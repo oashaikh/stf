@@ -48,6 +48,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/hmrc/callback.ts` | GET | HMRC |
 | `api/hmrc/status.ts` | GET | HMRC (no input) |
 | `api/hmrc/its-businesses.ts` | GET, POST | HMRC |
+| `api/hmrc/its-adjustments.ts` | GET | HMRC |
 | `api/hmrc/its-obligations.ts` | GET | HMRC (no input beyond session and fraud headers) |
 | `api/hmrc/its-cumulative-preview.ts` | POST | HMRC |
 | `api/hmrc/its-property-preview.ts` | POST | HMRC |
@@ -223,6 +224,7 @@ Text fields have a length cap and reject control characters (`plainText`; notes 
 | `state` | callback query | HMAC-signed value naming the user; invalid or missing gives 400. This is the credential for this public route | `verifiedStateUserId`, `src/lib/hmrc/client.ts` |
 | `code` | callback query | non-empty string of at most 256 chars, passed to the HMRC token endpoint | `api/hmrc/callback.ts` |
 | `error` | callback query | presence only | `api/hmrc/callback.ts` |
+| `taxYear` | its-adjustments GET query | key of `TAX_BANDS` and a real period; anything else gives 400 before any HMRC call | `api/hmrc/its-adjustments.ts` |
 | `businessId` | its-businesses POST body | string, 1 to 40 of `A-Za-z0-9_-`; also checked against the businesses HMRC returned | `chooseBusinessSchema`, `api/hmrc/its-businesses.ts` |
 | `taxYear`, `quarter` | its-cumulative-preview, its-property-preview, its-property-confirm, its-property-submit, -confirm, -submit POST body | tax year with bands, quarter 1 to 4; extra keys refused | `itsCumulativePreviewSchema`, `api/_lib/itsCumulativePreview.ts` |
 | `declaration` | its-cumulative-confirm POST body | literal `true`, else 400; the snapshot is recomputed server side | `api/hmrc/its-cumulative-confirm.ts` |

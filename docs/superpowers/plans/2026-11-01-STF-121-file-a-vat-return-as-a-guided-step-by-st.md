@@ -124,3 +124,7 @@ Also depends on:
 - [x] **Task 8: Fix: address 25 review findings (cycle 2)** (after 7)
   - Intent: Review left 25 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The flow logic is correct, but the three 390px step-1 captures hide the Box 7 row behind the fixed bottom nav. I traced step selection, resume, Back and Save and leave, th The agent is fixing them; nothing is needed from you.
   - Commit: (none — no code change for this task)
+
+- [x] **Task 9: Fix: address 18 review findings (cycle 3)** (after 8)
+  - Intent: Review left 18 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The flow logic and the send gate are correct, and the cycle-2 defects are fixed: step-1 figures at 390 no longer hide Box 7, and the stop screens show one message with one The agent is fixing them; nothing is needed from you.
+  - Commit: `5edbdc68ef8f`

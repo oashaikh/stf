@@ -42,11 +42,10 @@ const organisationRefreshToken = process.env.HMRC_SANDBOX_VAT_REFRESH_TOKEN;
 if (!individualRefreshToken || !organisationRefreshToken) {
   fail(
     [
-      'Test users are ready, but HMRC needs a browser sign-in for each before the calls can run:',
-      `  1. Sign in to the sandbox app as the organisation (user id ${users.organisationUserId}) and the individual (user id ${users.individualUserId}).`,
-      `     Passwords are in ${USERS_FILE} (local, not committed).`,
-      '  2. Put the individual\'s refresh token in HMRC_SANDBOX_REFRESH_TOKEN and the organisation\'s in HMRC_SANDBOX_VAT_REFRESH_TOKEN.',
-      '  3. Run npm run hmrc:evidence again.',
+      'Test users are ready, but each needs an OAuth sign-in to get a refresh token before the calls can run.',
+      `  Organisation user id ${users.organisationUserId}, individual user id ${users.individualUserId}; passwords are in ${USERS_FILE} (local, not committed).`,
+      '  Follow "Getting a refresh token for each test user" in docs/runbooks/hmrc-evidence-run.md.',
+      '  Then set HMRC_SANDBOX_VAT_REFRESH_TOKEN (organisation) and HMRC_SANDBOX_REFRESH_TOKEN (individual) and run npm run hmrc:evidence again.',
     ].join('\n'),
   );
 }

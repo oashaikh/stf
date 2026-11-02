@@ -37,11 +37,16 @@ interface UploadProgress {
 /** What a person calls the receipt: who it was from, or the file name until it has been read. */
 const titleOf = (receipt: ListedReceipt) => readReceiptDetails(receipt).who ?? receipt.fileName;
 
+const localMonth = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
+
 function matchesFilter(receipt: ListedReceipt, filter: Filter, search: string): boolean {
   const read = readReceiptDetails(receipt);
   if (filter === 'Needs checking' && !read.needsCheck) return false;
-  if (filter === 'This month' && read.date.slice(0, 7) !== new Date().toISOString().slice(0, 7)) return false;
-  const words = [receipt.fileName, read.who, read.whatFor, read.category].join(' ').toLowerCase();
+  if (filter === 'This month' && read.date.slice(0, 7) !== localMonth()) return false;
+  const words = [receipt.fileName, read.who, read.category].join(' ').toLowerCase();
   return words.includes(search.trim().toLowerCase());
 }
 
@@ -167,7 +172,6 @@ function ReceiptRow({ receipt, onRemove }: { receipt: ListedReceipt; onRemove: (
     mutationFn: () => confirmReceiptDetails(receipt.id),
     onSettled: () => queryClient.invalidateQueries({ queryKey: receiptsQueryKey }),
   });
-  const detail = [read.whatFor, read.category].filter(Boolean);
   return (
     <li className="p-3">
       <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-x-3 gap-y-1">
@@ -181,10 +185,9 @@ function ReceiptRow({ receipt, onRemove }: { receipt: ListedReceipt; onRemove: (
         <span className="truncate font-medium text-gray-900" title={title}>{title}</span>
         <span className="text-right tabular-nums text-gray-900">{read.amountPence === null ? '' : formatPence(read.amountPence)}</span>
         <span className="col-start-2 truncate text-sm text-gray-700">{formatDate(read.date)}</span>
-        {detail.length > 0 ? (
+        {read.category ? (
           <span className="col-span-2 col-start-2 flex gap-2 text-sm text-gray-800">
-            {read.whatFor && <span className="truncate" title={read.whatFor}>{read.whatFor}</span>}
-            {read.category && <span className="shrink-0 rounded bg-gray-100 px-2 text-gray-800">{read.category}</span>}
+            <span className="shrink-0 rounded bg-gray-100 px-2 text-gray-800">{read.category}</span>
           </span>
         ) : (
           <span className="col-span-2 col-start-2 text-sm text-gray-700">

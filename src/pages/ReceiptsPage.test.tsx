@@ -35,9 +35,8 @@ const photo: ListedReceipt = {
   readUrl: 'https://files.test/cafe-lunch.jpg',
   details: {
     date: { value: '2026-10-28', confirmed: false },
-    merchant: { value: 'Corner Cafe', confirmed: false },
-    description: { value: 'Team lunch', confirmed: false },
-    totalAmount: { value: '12.50', confirmed: false },
+    vendor: { value: 'Corner Cafe', confirmed: false },
+    totalPence: { value: '1250', confirmed: false },
     category: { value: 'Meals', confirmed: false },
   },
 };
@@ -97,7 +96,7 @@ describe('receipts list', () => {
     renderPage();
     const photoRow = (await screen.findByText('Corner Cafe')).closest('li')!;
     expect(within(photoRow).getByText('28 Oct 2026')).toBeTruthy();
-    expect(within(photoRow).getByText('Team lunch')).toBeTruthy();
+    expect(within(photoRow).getByText('Meals')).toBeTruthy();
     expect(within(photoRow).getByText('£12.50')).toBeTruthy();
     expect(within(photoRow).getByText('Meals')).toBeTruthy();
     expect(photoRow.querySelector('img')?.getAttribute('src')).toBe('https://files.test/cafe-lunch.jpg');

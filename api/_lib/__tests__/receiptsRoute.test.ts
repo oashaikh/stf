@@ -288,7 +288,7 @@ describe('receipts route', () => {
   });
 
   describe('read details', () => {
-    const draft = (): ReceiptDetails => ({ merchant: { value: 'Corner Cafe', confirmed: false }, totalAmount: { value: '12.50', confirmed: false } });
+    const draft = (): ReceiptDetails => ({ vendor: { value: 'Corner Cafe', confirmed: false }, totalPence: { value: '1250', confirmed: false } });
 
     it('returns the read details as unconfirmed drafts in the list', async () => {
       const { store, rows } = makeStore();
@@ -304,7 +304,7 @@ describe('receipts route', () => {
       rows[0].details = draft();
       const response = await call(store, makeStorage().storage, 'PUT', 'owner_a', { id: rows[0].id });
       expect(response.status).toBe(200);
-      expect(rows[0].details?.merchant.confirmed).toBe(true);
+      expect(rows[0].details?.vendor.confirmed).toBe(true);
     });
 
     it("refuses another user's receipt id and confirms nothing", async () => {
@@ -313,7 +313,7 @@ describe('receipts route', () => {
       rows[0].details = draft();
       const response = await call(store, makeStorage().storage, 'PUT', 'owner_b', { id: rows[0].id });
       expect(response.status).toBe(404);
-      expect(rows[0].details?.merchant.confirmed).toBe(false);
+      expect(rows[0].details?.vendor.confirmed).toBe(false);
     });
   });
 });

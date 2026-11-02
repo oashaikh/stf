@@ -1,5 +1,3 @@
-import { parsePence } from './money';
-
 export type ReceiptUploadStatus = 'pending' | 'ready' | 'failed';
 
 export interface ApiReceipt {
@@ -27,13 +25,12 @@ export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
 /** The few facts a person recognises a receipt by, in plain words. Amount is integer pence. */
 export function readReceiptDetails({ details, createdAt }: Pick<ListedReceipt, 'details' | 'createdAt'>) {
   const read = (field: string) => details[field]?.value ?? null;
-  const amount = read('totalAmount');
+  const amount = read('totalPence') === null ? NaN : Number(read('totalPence'));
   return {
     date: read('date') ?? createdAt,
-    who: read('merchant'),
-    whatFor: read('description'),
+    who: read('vendor'),
     category: read('category'),
-    amountPence: amount === null ? null : parsePence(amount),
+    amountPence: Number.isInteger(amount) ? amount : null,
     needsCheck: Object.values(details).some((detail) => !detail.confirmed),
   };
 }

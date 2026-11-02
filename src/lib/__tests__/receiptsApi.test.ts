@@ -136,15 +136,15 @@ describe('confirmReceiptDetails', () => {
 
 describe('readReceiptDetails', () => {
   const base = { id: 'r1', fileName: 'a.jpg', mimeType: 'image/jpeg', sizeBytes: 1, uploadStatus: 'ready' as const, createdAt: '2026-10-30T10:00:00Z', aiStatus: 'extracted', readUrl: null };
-  it('turns the amount into integer pence and flags unconfirmed details for checking', () => {
+  it('reads the amount as integer pence and flags unconfirmed details for checking', () => {
     const read = readReceiptDetails({
       ...base,
-      details: { merchant: { value: 'Corner Cafe', confirmed: false }, totalAmount: { value: '12.50', confirmed: false }, date: { value: '2026-10-28', confirmed: false } },
+      details: { vendor: { value: 'Corner Cafe', confirmed: false }, totalPence: { value: '1250', confirmed: false }, date: { value: '2026-10-28', confirmed: false } },
     });
     expect(read).toMatchObject({ who: 'Corner Cafe', amountPence: 1250, date: '2026-10-28', needsCheck: true });
   });
   it('has nothing to check when no details were read, and none once confirmed', () => {
     expect(readReceiptDetails({ ...base, details: {} })).toMatchObject({ who: null, amountPence: null, date: '2026-10-30T10:00:00Z', needsCheck: false });
-    expect(readReceiptDetails({ ...base, details: { merchant: { value: 'X', confirmed: true } } }).needsCheck).toBe(false);
+    expect(readReceiptDetails({ ...base, details: { vendor: { value: 'X', confirmed: true } } }).needsCheck).toBe(false);
   });
 });

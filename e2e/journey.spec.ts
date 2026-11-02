@@ -602,5 +602,7 @@ test('owner sees the rental prompt on the Tax page and the Rental property group
   await page.goto('/money-out');
   await page.getByRole('button', { name: 'Add entry' }).click();
   await expect(page.locator('#entry-category optgroup[label="Rental property"]')).toHaveCount(1);
+  // A closed native select hides its groups, so open the list in the page for the capture.
+  await page.locator('#entry-category').evaluate((select) => select.setAttribute('size', '8'));
   await capture('money-out-rental-group');
 });

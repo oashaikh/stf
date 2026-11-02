@@ -29,7 +29,7 @@ export default function UkPropertyPrompt() {
 
   return (
     <section className="mt-6 rounded border border-gray-300 p-4" aria-labelledby="rental-heading">
-      <h3 id="rental-heading" className="font-medium text-gray-900">Do you let out a property in the UK?</h3>
+      <h3 id="rental-heading" className="font-semibold text-gray-900">Do you let out a property in the UK?</h3>
       <OfficialName>UK property income</OfficialName>
       {isOn ? (
         <p className="mt-2 text-gray-700">

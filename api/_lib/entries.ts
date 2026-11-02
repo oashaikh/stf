@@ -33,7 +33,7 @@ export interface EntryHeader {
 
 export interface Entry extends EntryHeader {
   id: string;
-  source: 'manual';
+  source: 'manual' | 'receipt_ai';
   lines: PostedLine[];
 }
 
@@ -184,7 +184,7 @@ async function assertDateOpen(store: EntryStore, userId: string, date: string): 
 }
 
 /** The route does no arithmetic: lines come only from postEntry. */
-async function buildEntry(store: EntryStore, userId: string, input: NewEntry, now: Date) {
+export async function buildEntry(store: EntryStore, userId: string, input: NewEntry, now: Date) {
   assertDateNotTooFarAhead(input.date, now);
   await assertDateOpen(store, userId, input.date);
   const context = await store.loadPostingContext(userId, input.categoryAccountId);
@@ -278,10 +278,10 @@ export function entryListConditions(userId: string, filters: EntryListFilters, a
 // Works on the pool or inside a transaction.
 export type Executor = Pick<typeof db, 'select' | 'insert' | 'update'>;
 
-async function insertEntry(executor: Executor, userId: string, header: EntryHeader, lines: PostedLine[]): Promise<Entry> {
+export async function insertEntry(executor: Executor, userId: string, header: EntryHeader, lines: PostedLine[], source: Entry['source'] = 'manual'): Promise<Entry> {
   const [row] = await executor
     .insert(transactions)
-    .values({ userId, ...header, source: 'manual' })
+    .values({ userId, ...header, source })
     .returning({ id: transactions.id });
   await executor.insert(transactionLines).values(
     lines.map((line) => ({
@@ -292,7 +292,7 @@ async function insertEntry(executor: Executor, userId: string, header: EntryHead
       vatRatePercent: line.vatRatePercent ?? 0,
     })),
   );
-  return { id: row.id, ...header, source: 'manual', lines };
+  return { id: row.id, ...header, source, lines };
 }
 
 async function loadEntry(executor: Executor, userId: string, entryId: string): Promise<Entry | undefined> {

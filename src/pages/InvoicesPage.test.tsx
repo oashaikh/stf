@@ -5,6 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { fetchHasVatNumber } from '../lib/entriesApi';
 import { downloadInvoicePdf, fetchInvoice, fetchInvoices, issueInvoice, markInvoicePaid, saveDraft, voidInvoice, type ApiInvoice } from '../lib/invoicesApi';
+import { findJargon } from '../lib/jargon';
 import InvoicesPage from './InvoicesPage';
 
 vi.mock('../lib/invoicesApi', async (importOriginal) => ({
@@ -185,6 +186,15 @@ describe('issued invoice view', () => {
     fireEvent.change(within(dialog).getByLabelText('Payment date'), { target: { value: '2026-06-02' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Mark as paid' }));
     await waitFor(() => expect(markInvoicePaid).toHaveBeenCalledWith(sent.id, '2026-06-02'));
+  });
+
+  it('uses no accounting jargon on the invoice list, the invoice or the void dialog', async () => {
+    await openInvoice(sent);
+    expect(findJargon(document.body)).toEqual([]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Void' }));
+    expect(findJargon(screen.getByRole('dialog'))).toEqual([]);
+    // The scanner matches whole words only, so plurals are checked here.
+    expect(screen.getByRole('dialog').textContent).not.toMatch(/posting/i);
   });
 
   it('voids only with a reason, after confirming', async () => {

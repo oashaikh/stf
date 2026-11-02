@@ -67,7 +67,7 @@ Also depends on:
   - Risk: Opus/high: schema migration and a change to the route that handles HMRC credentials.
   - Commit: `836ec603689a`
 
-- [ ] **Task 2: Property income and cost categories, kept apart from self-employment figures**
+- [x] **Task 2: Property income and cost categories, kept apart from self-employment figures**
   - Intent: Done means an owner can record income and expenses against HMRC's UK property categories (rent received, repairs and maintenance, finance costs, premises running costs, professional fees, cost of services, travel, other). Use dedicated accounts with a property- prefixed taxCategory, defined in src/lib/chartOfAccounts.ts as a separate PROPERTY_ACCOUNTS list (not in DEFAULT_ACCOUNTS, so people without a rental see no extra categories). Add an idempotent ensurePropertyAccounts in api/_lib/accounts.ts, exposed through the existing accounts route. Category names are plain words. Update buildTaxYearSummary and getTaxYearSummary so property categories never appear in self-employment income, expenses, profit or the uncategorised list. No new column on entries.
   - Files: `src/lib/chartOfAccounts.ts`, `src/lib/__tests__/chartOfAccounts.test.ts`, `src/lib/taxYearSummary.ts`, `src/lib/taxYearSummary.test.ts`, `api/_lib/taxYearSummary.ts`, `api/_lib/accounts.ts`, `api/_lib/__tests__/accounts.test.ts`, `api/_lib/__tests__/accountsRoute.test.ts`, `api/_lib/__tests__/taxYearSummaryRoute.test.ts`, `src/lib/accountsApi.ts`
   - Acceptance criteria the planner set:
@@ -75,6 +75,7 @@ Also depends on:
     - A tax year summary with property income and expenses gives the same self-employment turnover, expenses, profit and uncategorised list as without them
     - All amounts stay integer pence
     - Lint, typecheck, test and build pass
+  - Commit: `5219d00c9b4e`
 
 - [ ] **Task 3: Build the cumulative property update and its dry-run preview** (after 1, 2)
   - Intent: Done means a pure function maps tax-year-to-date property totals onto HMRC's cumulative property request (fromDate, toDate, ukProperty income and expenses). Pounds strings use the existing pence-to-pounds helper, no floats; only categories HMRC accepts are sent. Add a property summary alongside getTaxYearSummary totalling property- accounts from 6 April to the quarter end. Add api/hmrc/its-property-preview.ts and api/_lib/itsPropertyPreview.ts following the self-employment preview pattern: same schema checks, sandbox guard, audit event, fraud-header dry run, and the exact request body shown. Reuse quarterEndDate and existing helpers. VAT code untouched.

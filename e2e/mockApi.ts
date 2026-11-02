@@ -20,6 +20,7 @@ function itsRowsFor(homeState: MockHomeState) {
   return mockItsObligations;
 }
 
+const expenseAccount = { id: 'acc-expense-1', code: '7000', name: 'Office costs', accountType: 'expense', taxCategory: 'allowable', isSystem: true };
 const incomeAccount = { id: 'acc-income-1', code: '4000', name: 'Sales', accountType: 'income', taxCategory: 'turnover', isSystem: true };
 
 interface SavedEntry {
@@ -152,6 +153,12 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
     : { businessType: 'sole_trader', vatRegistered: true as boolean | null, skippedSteps: [] as string[], finishedAt: '2026-10-01T09:00:00.000Z' as string | null };
   let hmrcConnected = !newUser;
   let bankConnected = false;
+  // Invented bank lines for the Bank page's "Sort your bank payments"; a sorted line leaves the list.
+  let unsortedBankLines = [
+    { id: 'line-1', date: '2026-10-12', amountPence: 12000, description: 'Example Client Ltd' },
+    { id: 'line-2', date: '2026-10-15', amountPence: -4599, description: 'Example Stationery' },
+    { id: 'line-3', date: '2026-10-20', amountPence: -1250, description: 'Example Train Co' },
+  ];
   let vatNumberSaved = !newUser;
   const entries: SavedEntry[] = [];
   const templates: Array<Record<string, unknown>> = [];
@@ -213,6 +220,13 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
       case 'GET /api/bank/connect':
         bankConnected = true;
         return json(route, { url: '/setup' });
+      case 'GET /api/bank/reconcile':
+        return json(route, { lines: unsortedBankLines, proposals: unsortedBankLines.some((line) => line.id === 'line-1') ? [{ lineId: 'line-1', entryId: 'entry-1', kind: 'exact', entryDescription: 'Client invoice 114', entryDate: '2026-10-12' }] : [] });
+      case 'POST /api/bank/reconcile': {
+        const { action, lineId } = request.postDataJSON();
+        if (action === 'match' || action === 'dismiss' || action === 'createEntry') unsortedBankLines = unsortedBankLines.filter((line) => line.id !== lineId);
+        return json(route, { ok: true, entryId: action === 'createEntry' ? 'entry-new' : undefined });
+      }
       case 'GET /api/bank/status':
         return json(route, homeState === 'items-due'
           ? { ok: true, connected: true, displayName: 'Example Bank', maskedAccountNumber: '****1234', consentExpiresAt: new Date(Date.now() + 10 * DAY_MS).toISOString(), expired: false }
@@ -355,7 +369,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
       case 'GET /api/vat/filed':
         return json(route, { ok: true, data: previewBody(entries) });
       case 'GET /api/accounts':
-        return json(route, { accounts: [incomeAccount] });
+        return json(route, { accounts: [incomeAccount, expenseAccount] });
       case 'GET /api/profit-and-loss': {
         const params = new URL(request.url()).searchParams;
         return json(route, {

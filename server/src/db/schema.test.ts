@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { bankConnections, invoices, recurringEntryRuns } from "./schema";
+import { bankConnections, bankTransactions, invoices, recurringEntryRuns } from "./schema";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, "migrations");
@@ -400,22 +400,37 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0028_its_submissions_business_kind");
+    expect(tags.at(-1)).toBe("0029_its_submissions_business_kind");
   });
 });
 
-describe("0027_uk_property_business migration", () => {
-  const sql = readFileSync(join(MIGRATIONS_DIR, "0027_uk_property_business.sql"), "utf8");
+describe("bank reconciliation columns", () => {
+  const sql = readMigrationSql();
+
+  it("adds the link and dismiss reason idempotently, with an index and a foreign key", () => {
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "matched_transaction_id" uuid;/);
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "dismissed_reason" text;/);
+    expect(sql).toMatch(/FOREIGN KEY \("matched_transaction_id"\) REFERENCES "public"\."transactions"\("id"\)/);
+    expect(sql).toMatch(/CREATE INDEX IF NOT EXISTS "bank_transactions_matched_transaction_id_idx" ON "bank_transactions" \("matched_transaction_id"\)/);
+  });
+
+  it("exposes both columns on the schema", () => {
+    expect(Object.keys(bankTransactions)).toEqual(expect.arrayContaining(["matchedTransactionId", "dismissedReason"]));
+  });
+});
+
+describe("0028_uk_property_business migration", () => {
+  const sql = readFileSync(join(MIGRATIONS_DIR, "0028_uk_property_business.sql"), "utf8");
   const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
 
   it("only adds the nullable property business id column", () => {
     expect(sql.trim()).toBe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "hmrc_its_property_business_id" text;');
   });
 
-  it("is journalled once, as index 27", () => {
-    const entries = journal.entries.filter((entry: { tag: string }) => entry.tag === "0027_uk_property_business");
+  it("is journalled once, as index 28", () => {
+    const entries = journal.entries.filter((entry: { tag: string }) => entry.tag === "0028_uk_property_business");
     expect(entries).toHaveLength(1);
-    expect(entries[0].idx).toBe(27);
+    expect(entries[0].idx).toBe(28);
   });
 });
 

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import BankPage from './BankPage';
 
 vi.mock('./BankSection', () => ({ default: () => <p>bank section</p> }));
+vi.mock('./BankSortSection', () => ({ default: () => <p>sort section</p> }));
 
 afterEach(cleanup);
 
@@ -13,5 +14,6 @@ describe('BankPage', () => {
     render(<BankPage />);
     expect(screen.getByRole('heading', { level: 1, name: 'Bank' })).toBeTruthy();
     expect(screen.getByText('bank section')).toBeTruthy();
+    expect(screen.getByText('sort section')).toBeTruthy();
   });
 });

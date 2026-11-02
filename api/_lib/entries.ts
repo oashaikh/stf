@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
   accounts,
   auditEvents,
+  bankTransactions,
   invoices,
   receipts,
   transactionLines,
@@ -321,7 +322,30 @@ export async function voidLiveEntry(executor: Executor, userId: string, entryId:
     .set({ status: 'voided', deletedAt: now, updatedAt: now })
     .where(and(eq(transactions.id, entryId), eq(transactions.userId, userId), isNull(transactions.deletedAt)))
     .returning({ id: transactions.id });
-  return voided.length ? before : undefined;
+  if (!voided.length) return undefined;
+  await releaseBankLines(executor, userId, entryId);
+  return before;
+}
+
+/** A voided entry must not keep a bank line hidden as matched: put the line back in the owner's open list, audited. */
+export async function releaseBankLines(executor: Executor, userId: string, entryId: string): Promise<void> {
+  const released = await executor
+    .update(bankTransactions)
+    .set({ status: 'unmatched', matchedTransactionId: null })
+    .where(and(eq(bankTransactions.matchedTransactionId, entryId), eq(bankTransactions.status, 'matched')))
+    .returning({ id: bankTransactions.id });
+  if (!released.length) return;
+  await executor.insert(auditEvents).values(
+    released.map((line) => ({
+      userId,
+      actorType: 'user' as const,
+      action: 'bank.release',
+      resourceType: 'bank_transaction',
+      resourceId: line.id,
+      beforeSnapshot: { status: 'matched', matchedTransactionId: entryId },
+      afterSnapshot: { status: 'unmatched', matchedTransactionId: null },
+    })),
+  );
 }
 
 // Query audit: transactions are read by primary key and user_id; lines by the transaction_id foreign key

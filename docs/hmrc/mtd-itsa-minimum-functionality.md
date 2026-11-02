@@ -27,8 +27,8 @@ Size: S under half a day, M about a day, L several days.
 | 4b | Quarterly updates: UK property | Met | `submitPropertyCumulativeSummary` in `src/lib/hmrc/client.ts`; `api/hmrc/its-property-*.ts`; `src/lib/itsPropertyUpdate.ts` |
 | 4c | Quarterly updates: foreign property | Gap, owner decision | Not built and not in scope for this customer. Point customers to other software, or build later (L) |
 | 5 | Show an income tax estimate, or signpost to the HMRC online account | Met | `api/tax-estimate.ts`, `src/pages/TaxPage.tsx`; HMRC's own calculation next to STF's estimate in `src/pages/FinalDeclarationFlow.tsx`. Gap: confirm an accuracy disclaimer is shown beside the in-app estimate. Fix: add one line of plain-words copy, S |
-| 6a | Make required adjustments for the year | Partly met | Self-employment annual allowances and adjustments in `src/lib/itsAnnualSubmission.ts`, `api/hmrc/its-annual-*.ts`, `src/pages/YearEndFlow.tsx`. STF records no adjustments of its own, it only shows those already held by HMRC. Gap: no Business Source Adjustable Summary or Individuals Tax Liability Adjustments calls. Fix: add client functions, routes and a guided step, M each |
-| 6b | Property annual submission | Gap, left for the owner | No property annual function in `src/lib/hmrc/client.ts`. The property annual ticket had not merged into `dev` when checked on 2 Nov 2026, so it is not built here. Revisit once it lands, S to M |
+| 6a | Make required adjustments for the year | Met (read-only) | Self-employment annual allowances and adjustments in `src/lib/itsAnnualSubmission.ts`, `api/hmrc/its-annual-*.ts`, `src/pages/YearEndFlow.tsx`. STF records no adjustments of its own, it only shows those already held by HMRC. `triggerAdjustableSummary`, `getAdjustableSummary` and `getTaxLiabilityAdjustments` in `src/lib/hmrc/client.ts`, served read-only by `api/hmrc/its-adjustments.ts`, with fake-fetch tests in `client.test.ts`. Remaining: guided step in the year-end flow (task 3) |
+| 6b | Property annual submission | Met | `submitPropertyAnnualSubmission` in `src/lib/hmrc/client.ts`, merged from STF-110 (#94), tested in `client.test.ts` |
 | 6c | Finalise business income for the year | Met | `src/pages/YearEndFlow.tsx`, `api/hmrc/its-annual-submit.ts` |
 | 7 | Handle losses: carry forward, carry back, sideways, earlier losses against this year's profits | Gap, owner decision | No Individual Losses API calls anywhere in `src` or `api`. Fix: client for the Individual Losses API, routes, and a guided "you made a loss" flow, L. Alternative: signpost to other software |
 | 8 | Submit non-mandated income sources, or point customers elsewhere | Gap, owner decision | Not built. Fix for now: a plain-words pointer to other software, S |
@@ -37,9 +37,9 @@ Size: S under half a day, M about a day, L several days.
 | 11 | Business Details API | Met | `api/hmrc/its-businesses.ts` |
 | 12 | Individual Calculations API | Met | `triggerTaxCalculation`, `getTaxCalculation` in `src/lib/hmrc/client.ts` |
 | 13 | Individual Losses API | Gap | See row 7 |
-| 14 | Individuals Tax Liability Adjustments API | Gap | See row 6a |
-| 15 | Business Source Adjustable Summary API | Gap | See row 6a |
-| 16 | Property Business API | Partly met | Cumulative summary only; annual pending, see row 6b |
+| 14 | Individuals Tax Liability Adjustments API | Met | See row 6a |
+| 15 | Business Source Adjustable Summary API | Met | See row 6a |
+| 16 | Property Business API | Met | Cumulative and annual, see rows 4b and 6b |
 | 17 | Self-Employment Business API | Met | Cumulative and annual submission in `src/lib/hmrc/client.ts` |
 
 Approval-process requirements (not product standards):
@@ -58,7 +58,7 @@ HMRC Assist prompts are encouraged, not required. Not built, not planned.
 Tasks 2 and 3 will build:
 
 1. Business Source Adjustable Summary and Individuals Tax Liability Adjustments client functions and routes (M each, task 2), with a guided step in the year-end flow (M, task 3).
-2. Property annual submission, once the property annual ticket merges (S to M, task 2). If it has not merged, this is left for the owner.
+2. Property annual submission: now built (STF-110), no further backend work.
 3. In-app estimate disclaimer, in plain words (S, task 3).
 4. Check the quarterly update flow handles several self-employment businesses (S, task 3).
 5. Fraud header validation for the Income Tax routes, in the evidence run (S, task 4).

@@ -88,7 +88,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
   if (missingTotpSecret) console.log('JOURNEY_SKIPPED: 2FA on, no journey secret (set JOURNEY_TOTP_SECRET to the authenticator secret)');
   test.skip(missingTotpSecret, '2FA on, no journey secret');
   await step('dashboard', openPage('/home', 'Dashboard'));
-  await step('expenses', openPage('/money-out', 'Expenses'));
+  await step('expenses', openPage('/money-out', 'Money out'));
   // Mocked only: a deployed run must not write a test entry into the owner's books.
   if (mocked) {
     await step('add-income-entry', async () => {
@@ -184,7 +184,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     }
   });
   await step('reports', async () => {
-    await openPage('/reports', 'Reports')();
+    await openPage('/tax/reports', 'Tax')();
     if (evidenceDir) {
       await captureEvidence(page, 'reports');
       // Test error state: set a date range that exceeds the limit (400 days)
@@ -205,6 +205,35 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
     }
   });
   await step('settings', openPage('/settings', 'Settings'));
+
+  // The menu has six items at both widths, and each one opens its page.
+  await step('six-menu-items', async () => {
+    const menuItems: Array<[string, string]> = [
+      ['Home', 'Dashboard'], ['Money in', 'Money in'], ['Money out', 'Money out'],
+      ['Bank', 'Bank'], ['Tax', 'Tax'], ['Settings', 'Settings'],
+    ];
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/home');
+      const links = page.getByRole('navigation', { name: 'Main' }).getByRole('link');
+      await expect(links).toHaveCount(6);
+      for (const [label, heading] of menuItems) {
+        await links.filter({ hasText: label }).first().click();
+        await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
+      }
+    }
+  });
+
+  await step('old-addresses-redirect', async () => {
+    const oldAddresses = [
+      ['/dashboard', /\/home$/], ['/invoices', /\/money-in$/], ['/expenses', /\/money-out$/],
+      ['/receipts', /\/money-out\/receipts$/], ['/vat', /\/tax\/vat$/], ['/reports', /\/tax\/reports$/],
+    ] as const;
+    for (const [from, to] of oldAddresses) {
+      await page.goto(from);
+      await expect(page).toHaveURL(to);
+    }
+  });
 });
 }
 

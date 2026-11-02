@@ -544,6 +544,31 @@ export const bankConnections = pgTable(
   }),
 );
 
+// Bank lines imported by the cron job and held for review; never ledger rows. Removed with the connection.
+// The unique key makes re-importing a line a no-op; possible_duplicate is a flag, never a reason to drop one.
+export const bankTransactions = pgTable(
+  'bank_transactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => bankConnections.id, { onDelete: 'cascade' }),
+    providerTransactionId: text('provider_transaction_id').notNull(),
+    date: date('date').notNull(),
+    amountPence: integer('amount_pence').notNull(),
+    description: text('description').notNull(),
+    status: text('status', { enum: ['unmatched', 'matched', 'dismissed'] })
+      .notNull()
+      .default('unmatched'),
+    possibleDuplicate: boolean('possible_duplicate').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    connectionProviderIdUidx: uniqueIndex('bank_transactions_connection_provider_id_uidx').on(table.connectionId, table.providerTransactionId),
+    connectionDateIdx: index('bank_transactions_connection_date_idx').on(table.connectionId, table.date),
+  }),
+);
+
 // ─── Inferred row types ────────────────────────────────────────────────────
 // Canonical DB row shapes, derived from the table definitions above so they
 // can never drift from the schema. Re-exported (type-only) from
@@ -589,3 +614,5 @@ export type AuditEventInsert = typeof auditEvents.$inferInsert;
 
 export type BankConnectionRow = typeof bankConnections.$inferSelect;
 export type BankConnectionInsert = typeof bankConnections.$inferInsert;
+
+export type BankTransactionRow = typeof bankTransactions.$inferSelect;

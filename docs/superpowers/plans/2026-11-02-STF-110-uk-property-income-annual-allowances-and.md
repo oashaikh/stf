@@ -46,7 +46,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Property annual figures: tax data, pure builder, HMRC client call, schema**
+- [x] **Task 1: Property annual figures: tax data, pure builder, HMRC client call, schema**
   - Intent: Add everything the property annual submission needs underneath the API. First, a property allowance amount per tax year in src/lib/taxBands.ts, next to tradingAllowancePence. Second, a pure builder in src/lib/itsAnnualSubmission.ts that takes the property summary and the owner's choice ('allowance' or 'actual') and returns HMRC's UK property annual body, with money as integer pence and converted only at the edge. The allowance and actual expenses are mutually exclusive, and the builder sends no allowance when the owner claims actual costs. Third, a submitPropertyAnnualSubmission client function and path helper in src/lib/hmrc/client.ts, using Property Business API v6 (PUT /individuals/business/property/uk/{nino}/{businessId}/annual/{taxYear}). Field names must be rechecked against the published HMRC spec. Fourth, migration 0033 following 0031: add a business_kind column to its_annual_submissions with a CHECK constraint, and widen the unique key to (user_id, tax_year, sandbox, business_kind). Update server/src/db/schema.ts and the drizzle meta journal and snapshot, with a single migration head. Unit tests for the builder (both choices, zero income, rounding) and for the client call using a fake fetch.
   - Files: `src/lib/taxBands.ts`, `src/lib/itsAnnualSubmission.ts`, `src/lib/itsAnnualSubmission.test.ts`, `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`, `server/src/db/schema.ts`, `server/src/db/migrations/0033_its_annual_business_kind.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0033_snapshot.json`
   - Acceptance criteria the planner set:
@@ -57,6 +57,7 @@ Also depends on:
     - drizzle journal has one head and 0033 parents on 0032
     - npm run typecheck, lint and test pass
   - Risk: Opus at high: schema and migration work, plus an HMRC money payload whose field names are unverified against live docs.
+  - Commit: `5555add6e4c8`
 
 - [ ] **Task 2: Property annual submission API: preview, confirm, submit** (after 1)
   - Intent: Extend the existing annual flow in api/_lib/itsAnnualSubmit.ts with a business parameter ('self-employment' by default, or 'uk-property') rather than copying the file. The input schema stays strict. For property, add a choice field ('allowance' or 'actual') on preview and confirm. The server recomputes the body from the ledger; client figures are never trusted. checkItsReadiness is called with 'property', and the store find/saveConfirmed/claim methods filter on business_kind and user_id. Preview is a dry run: no HMRC call, only an audit event, with NINO and business id masked. Confirm requires the declaration. Submit requires confirm:true, takes its body from the stored confirmation, locks the row atomically, and treats an unknown outcome as 'do not resend'. Existing self-employment behaviour must not change. The api/hmrc/its-annual-*.ts routes accept the new fields. Route and unit tests cover: a second user's year is refused, the live-mode gate, double submit, HMRC 4xx releasing the lock, a 5xx leaving it pending, and the choice being validated.

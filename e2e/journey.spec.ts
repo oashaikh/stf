@@ -134,7 +134,7 @@ test(`owner signs in and walks Dashboard, Expenses, VAT and Settings${mockVatSta
       await page.goto('/home');
       const card = page.getByRole('heading', { name: 'Upcoming VAT return' }).locator('xpath=ancestor::section[1]');
       await expect(card.getByText('7 Aug 2026')).toBeVisible();
-      await expect(card.getByText('Box 5: net VAT to pay')).toBeVisible();
+      await expect(card.getByText('VAT you owe HMRC')).toBeVisible();
       await captureEvidence(page, 'dashboard-vat-reminder');
       await card.getByRole('link', { name: 'Review VAT return' }).click();
       await expect(page).toHaveURL(/\/tax\/vat$/);
@@ -444,4 +444,79 @@ test('owner sets up the authenticator, signs out, and signs back in with passwor
   await page.getByRole('button', { name: 'Verify' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
   await capture('dashboard-after-code');
+});
+
+// Mock mode only: first-time setup walked as a brand-new user, once finished and once skipped, as review evidence for STF-123.
+// The app ships no dark theme, so the captures are light only (see review-notes.md).
+const setupEvidenceDir = path.join('browser-evidence', 'STF-123');
+
+async function signInAsNewUser(page: Page) {
+  await mockApi(page, ownerPassword!, 'confirmed', true);
+  await page.goto('/');
+  await page.getByLabel('Password').fill(ownerPassword!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/setup$/);
+}
+
+// Viewport captures, not full-page, so the menu and header show around the setup screen.
+async function captureSetupScreen(page: Page, name: string) {
+  for (const width of evidenceWidths) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: path.join(setupEvidenceDir, `${name}-${width}-light.png`) });
+  }
+}
+
+test('new user is walked through setup, answers every step and lands on Home with no to-dos', async ({ page }) => {
+  test.skip(!mocked, 'Uses the mocked setup API (JOURNEY_MOCK=1)');
+  mkdirSync(setupEvidenceDir, { recursive: true });
+  await signInAsNewUser(page);
+
+  await expect(page.getByRole('heading', { level: 1, name: 'What kind of business do you run?' })).toBeVisible();
+  await captureSetupScreen(page, 'finished-1-business-type');
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Are you registered for VAT?' })).toBeVisible();
+  await page.getByLabel('Yes').check();
+  await page.getByLabel('Your VAT number').fill('123456789');
+  await captureSetupScreen(page, 'finished-2-vat');
+  await page.getByRole('button', { name: 'Continue' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Connect to HMRC' })).toBeVisible();
+  await captureSetupScreen(page, 'finished-3-hmrc');
+  await page.getByRole('button', { name: 'Connect', exact: true }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Connect your bank' })).toBeVisible();
+  await captureSetupScreen(page, 'finished-4-bank');
+  await page.getByRole('button', { name: 'Connect your bank' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'You are all set' })).toBeVisible();
+  await captureSetupScreen(page, 'finished-5-all-set');
+  await page.getByRole('button', { name: 'Go to Home' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Finish setting up' })).toHaveCount(0);
+  await captureSetupScreen(page, 'finished-6-home');
+});
+
+test('new user skips every setup step and finds them as to-dos on Home', async ({ page }) => {
+  test.skip(!mocked, 'Uses the mocked setup API (JOURNEY_MOCK=1)');
+  mkdirSync(setupEvidenceDir, { recursive: true });
+  await signInAsNewUser(page);
+
+  for (const title of ['What kind of business do you run?', 'Are you registered for VAT?', 'Connect to HMRC', 'Connect your bank']) {
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await page.getByRole('button', { name: 'Skip for now' }).click();
+  }
+
+  await expect(page.getByRole('heading', { level: 1, name: 'You are all set' })).toBeVisible();
+  await captureSetupScreen(page, 'skipped-1-all-set');
+  await page.getByRole('button', { name: 'Go to Home' }).click();
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Finish setting up' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Answer' })).toHaveCount(2);
+  await expect(page.getByRole('link', { name: 'Connect HMRC' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Connect bank' })).toBeVisible();
+  await captureSetupScreen(page, 'skipped-2-home-with-to-dos');
 });

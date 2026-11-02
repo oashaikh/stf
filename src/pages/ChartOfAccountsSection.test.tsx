@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ApiAccount } from '../lib/accountsApi';
 import ChartOfAccountsSection from './ChartOfAccountsSection';
+import { findJargon } from '../lib/jargon';
 
 const account = (id: string, code: string, name: string, accountType: ApiAccount['accountType'], isSystem = false): ApiAccount => ({
   id,
@@ -73,10 +74,10 @@ describe('ChartOfAccountsSection', () => {
   it('adds an account with a tax category from the list', async () => {
     render(<ChartOfAccountsSection />);
     await screen.findByText('Travel');
-    fireEvent.change(screen.getByLabelText('Code'), { target: { value: '6700' } });
+    fireEvent.change(screen.getByLabelText('Category number'), { target: { value: '6700' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Parking' } });
     fireEvent.change(screen.getByLabelText('Tax category'), { target: { value: 'travel' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add account' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add category' }));
     expect(await screen.findByText('Parking')).toBeInTheDocument();
     expect(requests[0].body).toEqual({ code: '6700', name: 'Parking', accountType: 'expense', taxCategory: 'travel' });
   });
@@ -92,18 +93,18 @@ describe('ChartOfAccountsSection', () => {
   it('shows the duplicate-code error next to the code field', async () => {
     render(<ChartOfAccountsSection />);
     await screen.findByText('Travel');
-    fireEvent.change(screen.getByLabelText('Code'), { target: { value: '6000' } });
+    fireEvent.change(screen.getByLabelText('Category number'), { target: { value: '6000' } });
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Trips' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add account' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add category' }));
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('That code is already used');
-    expect(screen.getByLabelText('Code')).toHaveAccessibleDescription(alert.textContent!);
+    expect(screen.getByLabelText('Category number')).toHaveAccessibleDescription(alert.textContent!);
   });
 
   it('renames an account', async () => {
     render(<ChartOfAccountsSection />);
     fireEvent.click(await screen.findByRole('button', { name: 'Rename Travel' }));
-    fireEvent.change(screen.getByLabelText('New name for 6000'), { target: { value: 'Travel and fuel' } });
+    fireEvent.change(screen.getByLabelText('New name for Travel'), { target: { value: 'Travel and fuel' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
     expect(await screen.findByText('Travel and fuel')).toBeInTheDocument();
     expect(requests[0].body).toEqual({ id: 'i3', name: 'Travel and fuel' });
@@ -122,7 +123,7 @@ describe('ChartOfAccountsSection', () => {
   it('unarchives from the archived view', async () => {
     render(<ChartOfAccountsSection />);
     await screen.findByText('Travel');
-    fireEvent.click(screen.getByLabelText('Show archived accounts'));
+    fireEvent.click(screen.getByLabelText('Show archived categories'));
     fireEvent.click(await screen.findByRole('button', { name: 'Unarchive Advertising' }));
     await waitFor(() => expect(requests[0].body).toEqual({ id: 'i4', archived: false }));
   });
@@ -130,11 +131,17 @@ describe('ChartOfAccountsSection', () => {
   it('says so when there are no accounts to show', async () => {
     active = [];
     render(<ChartOfAccountsSection />);
-    expect(await screen.findByText('No accounts to show.')).toBeInTheDocument();
+    expect(await screen.findByText('No categories to show.')).toBeInTheDocument();
   });
 
   it('does not claim there are no accounts while they are loading', () => {
     render(<ChartOfAccountsSection />);
-    expect(screen.queryByText('No accounts to show.')).toBeNull();
+    expect(screen.queryByText('No categories to show.')).toBeNull();
+  });
+
+  it('uses no accounting jargon on screen', async () => {
+    render(<ChartOfAccountsSection />);
+    await screen.findByText('Travel');
+    expect(findJargon(document.body)).toEqual([]);
   });
 });

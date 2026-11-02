@@ -54,6 +54,10 @@ export const users = pgTable('users', {
   utrEncrypted: text('utr_encrypted'),
   ninoEncrypted: text('nino_encrypted'),
   vatNumber: text('vat_number'),
+  // First-time setup progress (STF-123). vatRegistered is null until answered; setupFinishedAt is stamped by the server.
+  vatRegistered: boolean('vat_registered'),
+  setupSkippedSteps: text('setup_skipped_steps').array().notNull().default(sql`'{}'::text[]`),
+  setupFinishedAt: timestamp('setup_finished_at', { withTimezone: true }),
   vatScheme: vatSchemeEnum('vat_scheme'),
   flatRatePercent: integer('flat_rate_percent'),
   accountingBasis: accountingBasisEnum('accounting_basis').notNull().default('accruals'),

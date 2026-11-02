@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import OfficialName from '../components/OfficialName';
 import StateMessage from '../components/StateMessage';
 import {
   ACCOUNT_TYPE_GROUPS,
@@ -79,7 +80,7 @@ export default function ChartOfAccountsSection() {
 
   return (
     <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-4 sm:p-6" aria-labelledby="accounts-heading">
-      <h2 id="accounts-heading" className="text-lg font-semibold text-gray-900">Chart of accounts</h2>
+      <h2 id="accounts-heading" className="text-lg font-semibold text-gray-900">Categories</h2>
       <p className="mt-2 text-gray-700">The income and expense categories you file under.</p>
       {loadError && <StateMessage kind="error" className="mt-2">{loadError}</StateMessage>}
 
@@ -90,10 +91,10 @@ export default function ChartOfAccountsSection() {
           checked={showArchived}
           onChange={(event) => setShowArchived(event.target.checked)}
         />
-        Show archived accounts
+        Show archived categories
       </label>
 
-      {loaded && accounts.length === 0 && <p className="mt-4 text-gray-700">No accounts to show.</p>}
+      {loaded && accounts.length === 0 && <p className="mt-4 text-gray-700">No categories to show.</p>}
 
       {ACCOUNT_TYPE_GROUPS.map(({ type, label }) => {
         const group = accounts.filter((account) => account.accountType === type);
@@ -111,7 +112,7 @@ export default function ChartOfAccountsSection() {
                         void changeRow(account.id, () => renameAccount(account.id, renameInput.trim()));
                       }}
                     >
-                      <label htmlFor={`rename-${account.id}`} className="block text-gray-900">New name for {account.code}</label>
+                      <label htmlFor={`rename-${account.id}`} className="block text-gray-900">New name for {account.name}</label>
                       <input id={`rename-${account.id}`} className={fieldClass} value={renameInput} onChange={(event) => setRenameInput(event.target.value)} />
                       <div className="mt-2 flex gap-3">
                         <button type="submit" className={primaryButton}>Save name</button>
@@ -120,7 +121,7 @@ export default function ChartOfAccountsSection() {
                     </form>
                   ) : (
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="font-mono text-gray-900">{account.code}</span>
+                      <OfficialName>{account.code}</OfficialName>
                       <span className="min-w-0 flex-1 truncate text-gray-900" title={account.name}>{account.name}</span>
                       {account.isSystem && <span className="rounded border border-gray-400 px-2 text-sm text-gray-800">System</span>}
                       <button
@@ -178,9 +179,9 @@ export default function ChartOfAccountsSection() {
         );
       })}
 
-      <form onSubmit={submitNewAccount} className="mt-6 border-t border-gray-200 pt-4" aria-label="Add an account">
-        <h3 className="font-semibold text-gray-900">Add an account</h3>
-        <label htmlFor="account-code" className="mt-2 block text-gray-900">Code</label>
+      <form onSubmit={submitNewAccount} className="mt-6 border-t border-gray-200 pt-4" aria-label="Add a category">
+        <h3 className="font-semibold text-gray-900">Add a category</h3>
+        <label htmlFor="account-code" className="mt-2 block text-gray-900">Category number</label>
         <input
           id="account-code"
           className={fieldClass}
@@ -203,7 +204,7 @@ export default function ChartOfAccountsSection() {
             <option key={slug} value={slug}>{label}</option>
           ))}
         </select>
-        <button type="submit" className={`mt-4 ${primaryButton}`}>Add account</button>
+        <button type="submit" className={`mt-4 ${primaryButton}`}>Add category</button>
       </form>
     </section>
   );

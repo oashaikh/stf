@@ -5,6 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { addTrip, fetchMileage, voidTrip } from '../lib/mileageApi';
 import MileageSection from './MileageSection';
+import { findJargon } from '../lib/jargon';
 
 vi.mock('../lib/mileageApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/mileageApi')>()),
@@ -54,6 +55,13 @@ describe('MileageSection', () => {
     expect(screen.getAllByText('12.4', { exact: false }).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Voided').length).toBeGreaterThan(0);
     expect(screen.getByText(/cannot also claim fuel/)).toBeTruthy();
+  });
+
+  it('uses no accounting jargon on screen', async () => {
+    vi.mocked(fetchMileage).mockResolvedValue(loaded);
+    renderSection();
+    await screen.findByText('£5.58', { selector: 'dd' });
+    expect(findJargon(document.body)).toEqual([]);
   });
 
   it('labels the miles and claim on a trip row so phone rows are not bare figures', async () => {

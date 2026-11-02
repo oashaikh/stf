@@ -11,6 +11,7 @@ import {
   saveHmrcLiveOptIn,
 } from '../lib/hmrc/settingsApi';
 import SettingsPage, { LIVE_CONFIRMATION_TEXT } from './SettingsPage';
+import { findJargon } from '../lib/jargon';
 
 
 function jsonResponse(body: unknown, ok = true) {
@@ -207,11 +208,11 @@ describe('VAT registration number', () => {
     renderPage();
     fireEvent.change(await screen.findByRole('textbox', { name: 'VAT registration number' }), { target: { value: 'pending' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save VAT number' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('live VAT submission is pending');
+    expect(await screen.findByRole('alert')).toHaveTextContent('VAT return is being sent to HMRC for real');
   });
 });
 
-describe('Check HMRC fraud headers', () => {
+describe('Check my connection', () => {
   let checkResponse: Response;
 
   beforeEach(() => {
@@ -243,7 +244,7 @@ describe('Check HMRC fraud headers', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Check HMRC fraud headers' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Check my connection' }));
   };
 
   it('lists each error and warning with its header name and message', async () => {
@@ -272,7 +273,7 @@ describe('Check HMRC fraud headers', () => {
       data: { outcome: 'pass', code: 'VALID_HEADERS', message: 'Headers valid', errors: [], warnings: [] },
     });
     await renderAndRun();
-    expect(await screen.findByText(/HMRC accepted every fraud prevention header/)).toBeInTheDocument();
+    expect(await screen.findByText(/HMRC accepted every safety check/)).toBeInTheDocument();
   });
 
   it('shows an error when the request fails', async () => {
@@ -373,4 +374,34 @@ describe('Income Tax connection', () => {
     renderPage();
     expect(await screen.findByText('Could not load your HMRC businesses. Please try again.')).toBeInTheDocument();
   });
+
+describe('Settings wording', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('uses no accounting jargon on screen', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string) => {
+        if (path === '/api/hmrc/mode') return jsonResponse({ ok: true, live: false, envLive: true });
+        if (path === '/api/settings/tax-identifiers') return jsonResponse({ ok: true, nino: null, utr: null });
+        if (path === '/api/settings/business-profile') return jsonResponse({ ok: true, profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 } });
+        if (path.startsWith('/api/accounts')) return jsonResponse({ ok: true, accounts: [] });
+        if (path === '/api/hmrc/its-businesses') return jsonResponse({ ok: true, businesses: [], selectedBusinessId: null });
+        return jsonResponse({ ok: true, connected: true });
+      }),
+    );
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <SettingsPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await screen.findByRole('checkbox', { name: /allow live filing/i });
+    expect(findJargon(document.body)).toEqual([]);
+  });
+});
 });

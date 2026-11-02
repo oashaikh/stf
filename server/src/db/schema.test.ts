@@ -144,6 +144,33 @@ describe("schema migrations", () => {
     });
   });
 
+  describe("its_annual_submissions", () => {
+    const tableBody = () => {
+      const match = sql.match(/CREATE TABLE IF NOT EXISTS "its_annual_submissions" \(([\s\S]*?)\n\);/);
+      expect(match, "could not find CREATE TABLE statement for its_annual_submissions").not.toBeNull();
+      return match![1];
+    };
+
+    it("locks one annual submission per user, tax year and HMRC environment", () => {
+      expect(tableBody()).toContain('UNIQUE("user_id","tax_year","sandbox")');
+    });
+
+    it("has no quarter column", () => {
+      expect(tableBody()).not.toContain('"quarter"');
+    });
+
+    it("stores the confirmed payload and receipt fields, never tokens or headers", () => {
+      const body = tableBody();
+      expect(body).toMatch(/"confirmed_payload" jsonb NOT NULL/);
+      expect(body).toMatch(/"hmrc_correlation_id" text/);
+      expect(body).not.toMatch(/token|authorization/i);
+    });
+
+    it("has no deleted_at, since rejected attempts are flipped, never removed", () => {
+      expect(tableBody()).not.toContain("deleted_at");
+    });
+  });
+
   it("indexes vat_return_drafts by (user_id, period_end) for the history list", () => {
     expect(sql).toMatch(
       /CREATE INDEX IF NOT EXISTS "vat_return_drafts_user_period_end_idx" ON "vat_return_drafts" \("user_id","period_end"\)/,

@@ -340,6 +340,33 @@ export const itsSubmissions = pgTable(
   }),
 );
 
+// One row per owner, tax year and HMRC environment for the annual allowances and
+// adjustments. Same lock as its_submissions without the quarter: the unique key
+// refuses a second submit, and only a definite HMRC rejection flips the row to
+// 'rejected' to release it. Rows are never deleted.
+export const itsAnnualSubmissions = pgTable(
+  'its_annual_submissions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    taxYear: text('tax_year').notNull(),
+    sandbox: boolean('sandbox').notNull(),
+    status: itsSubmissionStatusEnum('status').notNull().default('confirmed'),
+    confirmedPayload: jsonb('confirmed_payload').notNull(),
+    confirmedAt: timestamp('confirmed_at', { withTimezone: true }).notNull(),
+    hmrcCorrelationId: text('hmrc_correlation_id'),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // Also the lookup index: every query filters on (user_id, tax_year, sandbox).
+    userTaxYearSandboxUnique: unique().on(table.userId, table.taxYear, table.sandbox),
+  }),
+);
+
 export const tradingAllowanceMethodEnum = pgEnum('trading_allowance_method', ['actual', 'allowance']);
 
 // The owner's expense method for each tax year. No row means the default, actual expenses.

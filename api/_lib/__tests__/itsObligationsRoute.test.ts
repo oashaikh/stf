@@ -73,6 +73,7 @@ const handler = () =>
   );
 
 const storedItem: ItsObligation = {
+  business: 'self-employment',
   kind: 'quarterly',
   taxYear: '2026-27',
   periodStart: '2026-07-06',
@@ -182,6 +183,46 @@ describe('GET /api/hmrc/its-obligations', () => {
     expect(hmrcFetch).toHaveBeenCalledTimes(4);
     expect(hmrcFetch.mock.calls.map(([url]) => url).join(' ')).toContain('fromDate=2025-04-06');
     expect(hmrcFetch.mock.calls[0][1].headers['Gov-Client-User-IDs']).toBeDefined();
+  });
+
+  describe('with a property business', () => {
+    beforeEach(() => {
+      status = { ...status, itsPropertyBusinessId: 'XAPP12345678901' };
+    });
+
+    it('returns both sets tagged and stores them together per year', async () => {
+      const body = await (await handler()(asUser('u1'))).json();
+      expect(body.obligations).toHaveLength(5);
+      expect(body.obligations.filter((o: ItsObligation) => o.business === 'uk-property')).toHaveLength(2);
+      expect(body.obligations.filter((o: ItsObligation) => o.business === 'self-employment')).toHaveLength(3);
+      expect(body.propertyError).toBeUndefined();
+      const urls = hmrcFetch.mock.calls.map(([url]) => url);
+      expect(urls.some((url) => url.includes('typeOfBusiness=uk-property') && url.includes('businessId=XAPP12345678901'))).toBe(true);
+      const current = saved.find((entry) => entry.taxYear === '2026-27')!.payload as ItsObligation[];
+      expect(current.map((o) => o.business).sort()).toEqual(['self-employment', 'self-employment', 'self-employment', 'uk-property', 'uk-property']);
+    });
+
+    it('keeps self-employment dates, explains the property failure and keeps cached property rows', async () => {
+      const cachedProperty: ItsObligation = { ...storedItem, business: 'uk-property' };
+      cacheByUser.u1 = [{ taxYear: '2026-27', payload: [cachedProperty], fetchedAt: new Date('2026-10-20T08:00:00Z') }];
+      const working = hmrcFetch;
+      hmrcFetch = vi.fn(async (...args: FetchArgs) => (args[0].includes('uk-property') ? new Response('{}', { status: 500 }) : working(...args)));
+      const body = await (await handler()(asUser('u1'))).json();
+      expect(body).toMatchObject({ ok: true, stale: false });
+      expect(body.propertyError).toMatch(/rental property/i);
+      expect(body.obligations.filter((o: ItsObligation) => o.business === 'self-employment')).toHaveLength(3);
+      const current = saved.find((entry) => entry.taxYear === '2026-27')!.payload as ItsObligation[];
+      expect(current.filter((o) => o.business === 'uk-property')).toEqual([cachedProperty]);
+    });
+
+    it('reads old cached rows with no tag as self-employment', async () => {
+      const legacy: Partial<ItsObligation> = { ...storedItem };
+      delete legacy.business;
+      cacheByUser.u1 = [{ taxYear: '2026-27', payload: [legacy], fetchedAt: new Date('2026-10-20T08:00:00Z') }];
+      hmrcFetch = vi.fn(async (..._args: FetchArgs) => new Response('{}', { status: 500 }));
+      const body = await (await handler()(asUser('u1'))).json();
+      expect(body.obligations[0].business).toBe('self-employment');
+    });
   });
 
   it('returns the stored state as stale with a plain error when HMRC fails', async () => {

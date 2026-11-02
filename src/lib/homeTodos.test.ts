@@ -9,7 +9,7 @@ const vat = (due: string): VatObligationRow => ({
   periodKey: 'A', start: '2026-08-01', end: '2026-10-31', due, status: 'O', overdue: false,
 });
 const its = (dueDate: string): ItsObligationRow => ({
-  kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-04-06', periodEnd: '2026-07-05',
+  business: 'self-employment', kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-04-06', periodEnd: '2026-07-05',
   dueDate, status: 'open', receivedDate: null, overdue: false, nextDue: false,
 });
 const input = (overrides: Partial<HomeTodoInput> = {}): HomeTodoInput => ({

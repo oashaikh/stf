@@ -4,6 +4,7 @@ type FetchFn = typeof fetch;
 
 /** Mirrors ItsObligationView in api/_lib/itsObligations.ts. */
 export interface ItsObligationRow {
+  business: 'self-employment' | 'uk-property';
   kind: 'quarterly' | 'finalDeclaration';
   taxYear: string;
   periodStart: string;
@@ -20,6 +21,8 @@ export interface ItsObligationsState {
   stale: boolean;
   fetchedAt: string | null;
   error: string | null;
+  /** Plain-words note when only the rental property dates could not be refreshed. */
+  propertyError: string | null;
 }
 
 /** Why the section cannot show dates yet; each one has a Settings step to fix it. */
@@ -51,5 +54,6 @@ export async function fetchItsObligations(fetchFn: FetchFn = fetch): Promise<Its
     stale: body.stale === true,
     fetchedAt: body.fetchedAt ?? null,
     error: body.error ?? null,
+    propertyError: body.propertyError ?? null,
   };
 }

@@ -165,6 +165,14 @@ describe('ITSA obligations', () => {
     expect(result.obligations[0].obligationDetails[1].status).toBe('Open');
   });
 
+  it('asks for the property business when told to', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { obligations: [] }));
+    await getItsIncomeAndExpenditureObligations(nino, 'XAPP1', '2026-04-06', '2027-04-05', 'tok', fraud, fetchFn, undefined, 'uk-property');
+    const params = new URL(fetchFn.mock.calls[0][0]).searchParams;
+    expect(params.get('typeOfBusiness')).toBe('uk-property');
+    expect(params.get('businessId')).toBe('XAPP1');
+  });
+
   it('passes the status filter on quarterly updates', async () => {
     const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { obligations: [] }));
     await getItsIncomeAndExpenditureObligations(nino, 'B1', '2026-04-06', '2027-04-05', 'tok', fraud, fetchFn, 'Open');

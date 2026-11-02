@@ -2,6 +2,8 @@ import type { ItsFinalDeclarationObligations, ItsIncomeAndExpenditureObligations
 
 /** What is stored per tax year and what the page shows, before today's date is applied. */
 export interface ItsObligation {
+  /** Which HMRC business the row belongs to, so the Tax page can tell the two sets apart. */
+  business: 'self-employment' | 'uk-property';
   kind: 'quarterly' | 'finalDeclaration';
   taxYear: string;
   periodStart: string;
@@ -22,8 +24,9 @@ export function previousTaxYear(taxYear: string): string {
   return `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
 }
 
-function normaliseDetail(kind: ItsObligation['kind'], taxYear: string, detail: ItsObligationDetail): ItsObligation {
+function normaliseDetail(business: ItsObligation['business'], kind: ItsObligation['kind'], taxYear: string, detail: ItsObligationDetail): ItsObligation {
   return {
+    business,
     kind,
     taxYear,
     periodStart: detail.periodStartDate,
@@ -41,9 +44,19 @@ export function normaliseItsObligations(
   finalDeclaration: ItsFinalDeclarationObligations,
 ): ItsObligation[] {
   return [
-    ...quarterly.obligations.flatMap((business) => business.obligationDetails.map((detail) => normaliseDetail('quarterly', taxYear, detail))),
-    ...finalDeclaration.obligations.map((detail) => normaliseDetail('finalDeclaration', taxYear, detail)),
+    ...quarterly.obligations.flatMap((business) => business.obligationDetails.map((detail) => normaliseDetail('self-employment', 'quarterly', taxYear, detail))),
+    ...finalDeclaration.obligations.map((detail) => normaliseDetail('self-employment', 'finalDeclaration', taxYear, detail)),
   ];
+}
+
+/** The final declaration is per taxpayer and already comes with the self-employment rows, so property adds quarterly rows only. */
+export function normalisePropertyObligations(taxYear: string, quarterly: ItsIncomeAndExpenditureObligations): ItsObligation[] {
+  return quarterly.obligations.flatMap((business) => business.obligationDetails.map((detail) => normaliseDetail('uk-property', 'quarterly', taxYear, detail)));
+}
+
+/** Rows cached before property support carry no tag; they were all self-employment. */
+export function withBusinessTag(row: ItsObligation | Omit<ItsObligation, 'business'>): ItsObligation {
+  return { business: 'self-employment', ...row };
 }
 
 /**

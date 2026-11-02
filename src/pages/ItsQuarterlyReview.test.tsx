@@ -8,6 +8,7 @@ import type { ItsObligationRow } from '../lib/hmrc/itsObligationsApi';
 import ItsQuarterlyReview from './ItsQuarterlyReview';
 
 const obligation: ItsObligationRow = {
+  business: 'self-employment',
   kind: 'quarterly',
   taxYear: '2026-27',
   periodStart: '2026-04-06',

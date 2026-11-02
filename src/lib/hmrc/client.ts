@@ -377,8 +377,9 @@ export async function getItsIncomeAndExpenditureObligations(
   fraudHeaders: Record<string, string>,
   fetchFn?: typeof fetch,
   status?: ItsObligationStatus,
+  typeOfBusiness: 'self-employment' | 'uk-property' = 'self-employment',
 ): Promise<ItsIncomeAndExpenditureObligations> {
-  const query = new URLSearchParams({ typeOfBusiness: 'self-employment', businessId, fromDate, toDate });
+  const query = new URLSearchParams({ typeOfBusiness, businessId, fromDate, toDate });
   if (status) query.set('status', status);
   return hmrcFetch(
     `${itsObligationsPath(nino, 'income-and-expenditure')}?${query}`,

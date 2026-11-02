@@ -9,6 +9,7 @@ import ItsObligationsSection from './ItsObligationsSection';
 import { findJargon } from '../lib/jargon';
 
 const row = (overrides: Partial<ItsObligationRow>): ItsObligationRow => ({
+  business: 'self-employment',
   kind: 'quarterly',
   taxYear: '2026-27',
   periodStart: '2026-04-06',

@@ -68,7 +68,7 @@ Also depends on:
     - `npm run typecheck`, `npm run lint` and `npm test` pass
   - Commit: `342c533f8c28`
 
-- [ ] **Task 3: Replace the Dashboard content with the Home to-do list and money summary** (after 1, 2)
+- [x] **Task 3: Replace the Dashboard content with the Home to-do list and money summary** (after 1, 2)
   - Intent: Rewrite `src/pages/DashboardPage.tsx` (route /home) to answer 'what needs doing'. Use existing queries and keys: useVatObligations ('vat-obligations', mocks must always return defined data), fetchItsObligations ('its-obligations'), fetchBankStatus, fetchDashboard, fetchTaxEstimate. Render buildHomeTodos as a list with one button per item, overdue items marked with text as well as colour, and the nothing-due message. Below is a short money summary: money in this month, money out this month, tax to set aside. Each figure is a link: money in to /money-in, money out to /money-out, tax to /tax/income-tax (confirm with the owner, since the spec says each figure opens the payments behind it). Use formatPence, right-aligned tabular figures. Remove the old cards (Box 5, VAT collected, drafts, latest entries). Use the shared StateMessage for loading and error states. Each query fails soft so one failing source does not blank the page. Use min-h-11 tap targets. Rewrite DashboardPage.test.tsx. Pass an empty setup-skipped list until STF-123 merges.
   - Files: `src/pages/DashboardPage.tsx`, `src/pages/DashboardPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -80,6 +80,7 @@ Also depends on:
     - Tests mock fetch and the vat-obligations mock always returns defined data
     - `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` pass
   - Risk: DashboardPage.tsx is also edited by STF-123 and STF-120; keep the rewrite compact and expect a merge conflict at PR time. Do not touch SetupTodos.tsx (STF-123).
+  - Commit: `fff59e9b463b`
 
 - [ ] **Task 4: Update the end-to-end walk-through and capture the Home evidence** (after 3)
   - Files: `e2e/mockApi.ts`, `e2e/journey.spec.ts`, `browser-evidence/STF-122/captions.md`, `browser-evidence/STF-122/review-notes.md`, `browser-evidence/STF-122/`

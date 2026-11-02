@@ -129,3 +129,7 @@ Also depends on:
     - The doc names the three routes and the status lifecycle
     - Examples match the field names in the builder
   - Commit: `a4ec37902d45`
+
+- [x] **Task 8: Fix: address 9 review findings (cycle 1)** (after 7)
+  - Intent: Review left 9 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens: the server side is sound. Confirm, claim, receipt and reject transitions are atomic and keyed by user, the body is recomputed on the server, and 4xx, 5xx The agent is fixing them; nothing is needed from you.
+  - Commit: `e4a605df5647`

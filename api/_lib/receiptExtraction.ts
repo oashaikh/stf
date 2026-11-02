@@ -1,4 +1,4 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 
 import { auditEvents, receiptExtractions, receipts } from '../../server/src/db/schema.js';
 import { buildReceiptSystemPrompt, buildReceiptUserPrompt, parseReceiptReply, type ReceiptDraft } from '../../src/lib/receiptPrompt.js';
@@ -8,12 +8,16 @@ import type { ReceiptStorage } from './receiptStorage.js';
 
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 const MAX_REPLY_TOKENS = 1024;
+export const EXTRACTIONS_PER_HOUR = 20;
+const RATE_WINDOW_MS = 60 * 60_000;
 const DRAFT_FIELDS = ['date', 'vendor', 'totalPence', 'vatPence', 'category'] as const;
 
 export interface ReadyReceipt {
   id: string;
   fileKey: string;
   mimeType: NewReceipt['mimeType'];
+  /** Already has suggestions, or is attached to a transaction: extraction must not run again. */
+  alreadyExtracted: boolean;
 }
 
 export interface ExtractionOutcome {
@@ -31,6 +35,8 @@ export interface ExtractionOutcome {
 export interface ExtractionStore {
   /** The live, ready receipt for (id, userId), or undefined. */
   findReady(userId: string, id: string): Promise<ReadyReceipt | undefined>;
+  /** At most `limit` extractions by this owner since `since`; the count only needs to reach `limit`. */
+  countRecent(userId: string, since: Date, limit: number): Promise<number>;
   /** Writes the outcome and its audit event in one transaction. Never touches transactions. */
   save(userId: string, id: string, outcome: ExtractionOutcome): Promise<void>;
 }
@@ -60,7 +66,7 @@ export interface ExtractionDeps {
   env: Record<string, string | undefined>;
 }
 
-export type ExtractionResult = { status: 'extracted' | 'failed' | 'skipped' | 'not_found' };
+export type ExtractionResult = { status: 'extracted' | 'failed' | 'skipped' | 'not_found' | 'already_extracted' | 'rate_limited' };
 
 const failedOutcome = (model: string, rawOutput: ExtractionOutcome['rawOutput']): ExtractionOutcome => ({
   aiStatus: 'failed',
@@ -86,6 +92,12 @@ function draftRows(draft: ReceiptDraft) {
 export async function extractReceipt(deps: ExtractionDeps, userId: string, receiptId: string): Promise<ExtractionResult> {
   const receipt = await deps.store.findReady(userId, receiptId);
   if (!receipt) return { status: 'not_found' };
+  // Checked before the key and kill switch so a repeat call never adds a second set of draft rows.
+  if (receipt.alreadyExtracted) return { status: 'already_extracted' };
+
+  const now = deps.now();
+  const recent = await deps.store.countRecent(userId, new Date(now.getTime() - RATE_WINDOW_MS), EXTRACTIONS_PER_HOUR);
+  if (recent >= EXTRACTIONS_PER_HOUR) return { status: 'rate_limited' };
 
   const model = deps.env.RECEIPT_AI_MODEL || DEFAULT_MODEL;
   if (!deps.env.ANTHROPIC_API_KEY || deps.env.RECEIPT_AI_ENABLED === 'false') {
@@ -111,7 +123,7 @@ export async function extractReceipt(deps: ExtractionDeps, userId: string, recei
     const response = await deps.client.messages.create({
       model,
       max_tokens: MAX_REPLY_TOKENS,
-      system: buildReceiptSystemPrompt(deps.now().toISOString().slice(0, 10)),
+      system: buildReceiptSystemPrompt(now.toISOString().slice(0, 10)),
       messages: [{ role: 'user', content: [file, { type: 'text', text: buildReceiptUserPrompt() }] }],
     });
     reply = response.content.map((block) => block.text ?? '').join('');
@@ -140,27 +152,40 @@ export async function extractReceipt(deps: ExtractionDeps, userId: string, recei
   return { status: 'extracted' };
 }
 
-// Query audit: both statements filter on receipts.id (primary key) and user_id from the session, with
-// LIMIT 1. The transaction updates one receipt row and inserts at most five extraction rows plus one
+// Query audit: findReady filters on receipts.id (primary key) and user_id from the session, LIMIT 1.
+// countRecent uses audit_events_user_action_occurred_idx and a LIMIT. The transaction updates one receipt row and inserts at most five extraction rows plus one
 // audit row; it never touches transactions. receipt_extractions has no index on receipt_id yet, but
 // nothing here filters on it.
 export const databaseExtractionStore: ExtractionStore = {
   async findReady(userId, id) {
     const [row] = await db
-      .select({ id: receipts.id, fileKey: receipts.fileKey, mimeType: receipts.mimeType })
+      .select({
+        id: receipts.id,
+        fileKey: receipts.fileKey,
+        mimeType: receipts.mimeType,
+        alreadyExtracted: sql<boolean>`(${receipts.aiStatus} = 'extracted' or ${receipts.transactionId} is not null)`,
+      })
       .from(receipts)
       .where(and(eq(receipts.id, id), eq(receipts.userId, userId), eq(receipts.uploadStatus, 'ready'), isNull(receipts.deletedAt)))
       .limit(1);
     return row && { ...row, mimeType: row.mimeType as NewReceipt['mimeType'] };
+  },
+  async countRecent(userId, since, limit) {
+    const rows = await db
+      .select({ id: auditEvents.id })
+      .from(auditEvents)
+      .where(and(eq(auditEvents.userId, userId), eq(auditEvents.action, 'receipt.extract'), gt(auditEvents.occurredAt, since)))
+      .limit(limit);
+    return rows.length;
   },
   async save(userId, id, outcome) {
     await db.transaction(async (tx) => {
       const updated = await tx
         .update(receipts)
         .set({ aiStatus: outcome.aiStatus, aiModel: outcome.aiModel, aiConfidence: outcome.aiConfidence, aiRawOutput: outcome.rawOutput })
-        .where(and(eq(receipts.id, id), eq(receipts.userId, userId), isNull(receipts.deletedAt)))
+        .where(and(eq(receipts.id, id), eq(receipts.userId, userId), isNull(receipts.deletedAt), sql`${receipts.aiStatus} <> 'extracted'`, isNull(receipts.transactionId)))
         .returning({ id: receipts.id });
-      if (updated.length === 0) throw new Error('Receipt vanished before the extraction was saved');
+      if (updated.length === 0) throw new Error('Receipt vanished or was extracted by another request before this one was saved');
       if (outcome.extractions.length > 0) {
         await tx.insert(receiptExtractions).values(outcome.extractions.map((extraction) => ({ receiptId: id, ...extraction })));
       }

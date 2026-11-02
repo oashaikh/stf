@@ -30,7 +30,8 @@ const RAW_REPLY = JSON.stringify({
 function setup() {
   const saved: ExtractionOutcome[] = [];
   const store: ExtractionStore = {
-    findReady: async (userId, id) => (userId === 'owner_a' && id === RECEIPT_ID ? { id, fileKey: FILE_KEY, mimeType: 'image/png' } : undefined),
+    findReady: async (userId, id) => (userId === 'owner_a' && id === RECEIPT_ID ? { id, fileKey: FILE_KEY, mimeType: 'image/png', alreadyExtracted: saved.length > 0 } : undefined),
+    countRecent: async () => 0,
     save: async (_userId, _id, outcome) => {
       saved.push(outcome);
     },
@@ -96,6 +97,16 @@ describe('receipt extraction route', () => {
         { field: 'totalPence', suggestedValue: '2399', confidence: 990 },
       ],
     });
+    expect(saved).toHaveLength(1);
+  });
+
+  it('answers a second call for the same receipt from the stored result with no second model call', async () => {
+    const { call, saved, client } = setup();
+    await call('POST', 'owner_a', { id: RECEIPT_ID });
+    const second = await call('POST', 'owner_a', { id: RECEIPT_ID });
+    expect(second.status).toBe(200);
+    expect((await second.json()).receipt).toEqual({ id: RECEIPT_ID, aiStatus: 'extracted', drafts: [] });
+    expect(client.messages.create).toHaveBeenCalledTimes(1);
     expect(saved).toHaveLength(1);
   });
 });

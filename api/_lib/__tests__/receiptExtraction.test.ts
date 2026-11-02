@@ -24,24 +24,25 @@ const goodReply = {
   notes: null,
 }
 
-const receipt = (mimeType: ReadyReceipt['mimeType'] = 'image/png'): ReadyReceipt => ({ id: RECEIPT_ID, fileKey: `${OWNER}/file`, mimeType })
+const receipt = (mimeType: ReadyReceipt['mimeType'] = 'image/png'): ReadyReceipt => ({ id: RECEIPT_ID, fileKey: `${OWNER}/file`, mimeType, alreadyExtracted: false })
 
-function setup(options: { reply?: string | Error; mimeType?: ReadyReceipt['mimeType']; env?: Record<string, string | undefined> } = {}) {
+function setup(options: { reply?: string | Error; mimeType?: ReadyReceipt['mimeType']; env?: Record<string, string | undefined>; alreadyExtracted?: boolean; recentCount?: number } = {}) {
   const saved: { userId: string; receiptId: string; outcome: ExtractionOutcome }[] = []
-  const findReady = vi.fn(async (userId: string, id: string) => (userId === OWNER && id === RECEIPT_ID ? receipt(options.mimeType) : undefined))
+  const findReady = vi.fn(async (userId: string, id: string) => (userId === OWNER && id === RECEIPT_ID ? { ...receipt(options.mimeType), alreadyExtracted: options.alreadyExtracted ?? false } : undefined))
   const create = vi.fn(async (_params: Parameters<ModelClient['messages']['create']>[0]) => {
     if (options.reply instanceof Error) throw options.reply
     return { content: [{ type: 'text' as const, text: options.reply ?? JSON.stringify(goodReply) }] }
   })
+  const countRecent = vi.fn(async () => options.recentCount ?? 0)
   const getObject = vi.fn(async () => new Uint8Array([1, 2, 3]))
   const deps: ExtractionDeps = {
-    store: { findReady, save: async (userId, receiptId, outcome) => void saved.push({ userId, receiptId, outcome }) },
+    store: { findReady, countRecent, save: async (userId, receiptId, outcome) => void saved.push({ userId, receiptId, outcome }) },
     storage: { getObject },
     client: { messages: { create } },
     now: () => new Date('2026-11-02T10:00:00Z'),
     env: { ANTHROPIC_API_KEY: API_KEY, ...options.env },
   }
-  return { deps, saved, findReady, create, getObject }
+  return { deps, saved, findReady, create, getObject, countRecent }
 }
 
 afterEach(() => {
@@ -146,5 +147,21 @@ describe('extractReceipt', () => {
     expect(findReady).toHaveBeenCalledWith(OTHER_OWNER, RECEIPT_ID)
     expect(saved).toEqual([])
     expect(create).not.toHaveBeenCalled()
+  })
+
+  it('returns the stored result without a model call or new rows when the receipt is already extracted', async () => {
+    const { deps, saved, create, getObject } = setup({ alreadyExtracted: true })
+    expect(await extractReceipt(deps, OWNER, RECEIPT_ID)).toEqual({ status: 'already_extracted' })
+    expect(create).not.toHaveBeenCalled()
+    expect(getObject).not.toHaveBeenCalled()
+    expect(saved).toEqual([])
+  })
+
+  it('refuses without a model call once the owner has used the hourly allowance', async () => {
+    const { deps, saved, create, countRecent } = setup({ recentCount: 20 })
+    expect(await extractReceipt(deps, OWNER, RECEIPT_ID)).toEqual({ status: 'rate_limited' })
+    expect(countRecent).toHaveBeenCalledWith(OWNER, new Date('2026-11-02T09:00:00Z'), 20)
+    expect(create).not.toHaveBeenCalled()
+    expect(saved).toEqual([])
   })
 })

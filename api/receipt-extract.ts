@@ -33,6 +33,7 @@ export function createReceiptExtractHandler(overrides: ExtractHandlerDeps = {}, 
       {
         store: {
           findReady: (userId, receiptId) => store.findReady(userId, receiptId),
+          countRecent: (userId, since, limit) => store.countRecent(userId, since, limit),
           save: async (userId, receiptId, outcome) => {
             await store.save(userId, receiptId, outcome);
             saved = outcome;
@@ -49,10 +50,12 @@ export function createReceiptExtractHandler(overrides: ExtractHandlerDeps = {}, 
     );
     if (result.status === 'not_found') return refuse(404, 'Receipt not found', 'NOT_FOUND');
 
+    if (result.status === 'rate_limited') return refuse(429, 'Too many receipts read this hour. Try again later or enter it by hand.', 'RATE_LIMITED');
+
     // Never file_key or the raw reply: only the status and the draft fields the owner reviews.
     return Response.json({
       ok: true,
-      receipt: { id, aiStatus: result.status, drafts: saved?.extractions ?? [] },
+      receipt: { id, aiStatus: result.status === 'already_extracted' ? 'extracted' : result.status, drafts: saved?.extractions ?? [] },
     });
   }, authDeps);
 }

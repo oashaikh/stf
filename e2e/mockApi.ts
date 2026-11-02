@@ -185,6 +185,8 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
             month: { start: '2026-10-01', end: '2026-10-31', incomePence: 0, expensesPence: 0, profitPence: 0 },
             vatQuarter: { start: '2026-10-01', end: '2026-12-31', vatCollectedPence: 0, vatPaidPence: 0 },
             draftCount: 0,
+            unsortedBankCount: 0,
+            receiptsToCheckCount: 0,
             recentEntries: [],
           },
         });

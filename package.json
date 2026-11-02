@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "lint": "eslint src api server --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p server/tsconfig.json --noEmit && tsc -p tsconfig.api.json --noEmit",
+    "hmrc:evidence": "tsx --env-file-if-exists=.env scripts/hmrcSandboxEvidence.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

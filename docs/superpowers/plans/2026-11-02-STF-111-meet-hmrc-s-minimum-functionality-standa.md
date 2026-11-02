@@ -38,7 +38,7 @@
   - Risk: Standards text comes from a live web page. Quote only what was read, and mark anything unverified.
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 2: Build the gaps the audit found in the HMRC client and API routes** (after 1)
+- [x] **Task 2: Build the gaps the audit found in the HMRC client and API routes** (after 1)
   - Intent: Implement the backend gaps task 1 listed, using existing client.ts patterns (fraud headers on every call, integer pence, sandbox guard). Do not touch VAT code (vatApi, vatSubmit, vatPreview, vatReturns). STF-110 edits client.ts, so keep to small appended exports and rebase before finishing. Every new call gets a test with a fake fetch. If the audit finds no backend gap, record that in the audit doc and finish with only that doc edit.
   - Files: `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`, `docs/hmrc/mtd-itsa-minimum-functionality.md`
   - Acceptance criteria the planner set:
@@ -47,6 +47,7 @@
     - No VAT file is modified
     - npm run lint, typecheck and test pass
   - Risk: client.ts is shared with STF-110, so hunks must stay small and non-overlapping.
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 3: Build any user-facing gaps, following the ease-of-use spec** (after 1)
   - Files: `docs/hmrc/mtd-itsa-minimum-functionality.md`, `docs/screenshots/`

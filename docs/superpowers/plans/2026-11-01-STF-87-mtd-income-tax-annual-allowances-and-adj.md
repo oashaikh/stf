@@ -113,13 +113,14 @@ Also depends on:
     - Component tests mock the API client and pass; lint and typecheck pass
   - Commit: `859a0c79eac7`
 
-- [ ] **Task 6: Route, entry points and screenshots for the year end flow** (after 5)
+- [x] **Task 6: Route, entry points and screenshots for the year end flow** (after 5)
   - Files: `src/App.tsx`, `src/App.test.tsx`, `src/pages/TaxPage.tsx`, `src/pages/TaxPage.test.tsx`, `docs/screenshots/`
   - Acceptance criteria the planner set:
     - The flow is reachable from a link on the Tax page and the route is behind sign-in
     - Existing TaxPage and App tests pass
     - Screenshots of each step at 1440 and 390 px, with captions, use invented data only
     - lint, typecheck, test and build pass
+  - Commit: `a770e767c7fc`
 
 - [ ] **Task 7: Document the annual submission workflow** (after 4)
   - Intent: Add an annual submission section to docs/workflows/its-quarterly-update.md covering the endpoint, confirm and submit lifecycle, the lock, audit events, sandbox/live gating, the trading allowance rule, and the guided year end flow entry points (Tax page link now, Home to-do item later). Keep examples in line with the client code.

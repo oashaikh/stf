@@ -109,10 +109,11 @@ Also depends on:
     - npm run lint, typecheck, test, build all pass
   - Commit: `0ecf5467afec`
 
-- [ ] **Task 7: Capture new-user screenshots, captions and spec-difference notes** (after 6)
+- [x] **Task 7: Capture new-user screenshots, captions and spec-difference notes** (after 6)
   - Files: `browser-evidence/STF-120/captions.md`, `browser-evidence/STF-120/`
   - Acceptance criteria the planner set:
     - each changed screen has four images (1440/390, light/dark) and a caption line
     - captions.md has a section naming where screens differ from docs/design/ease-of-use.md and why
     - all figures are invented; no secrets in images
   - Risk: Dark mode may not ship in this app; if absent, say so in captions.md rather than faking it.
+  - Commit: `c71a0db20f0e`

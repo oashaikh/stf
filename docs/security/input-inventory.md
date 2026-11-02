@@ -48,6 +48,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/hmrc/its-businesses.ts` | GET, POST | HMRC |
 | `api/hmrc/its-obligations.ts` | GET | HMRC (no input beyond session and fraud headers) |
 | `api/hmrc/its-cumulative-preview.ts` | POST | HMRC |
+| `api/hmrc/its-property-preview.ts` | POST | HMRC |
 | `api/hmrc/its-cumulative-confirm.ts` | POST | HMRC |
 | `api/hmrc/its-cumulative-submit.ts` | POST | HMRC |
 | `api/hmrc/its-annual-preview.ts` | POST | HMRC |
@@ -208,7 +209,7 @@ Text fields have a length cap and reject control characters (`plainText`; notes 
 | `code` | callback query | non-empty string of at most 256 chars, passed to the HMRC token endpoint | `api/hmrc/callback.ts` |
 | `error` | callback query | presence only | `api/hmrc/callback.ts` |
 | `businessId` | its-businesses POST body | string, 1 to 40 of `A-Za-z0-9_-`; also checked against the businesses HMRC returned | `chooseBusinessSchema`, `api/hmrc/its-businesses.ts` |
-| `taxYear`, `quarter` | its-cumulative-preview, -confirm, -submit POST body | tax year with bands, quarter 1 to 4; extra keys refused | `itsCumulativePreviewSchema`, `api/_lib/itsCumulativePreview.ts` |
+| `taxYear`, `quarter` | its-cumulative-preview, its-property-preview, -confirm, -submit POST body | tax year with bands, quarter 1 to 4; extra keys refused | `itsCumulativePreviewSchema`, `api/_lib/itsCumulativePreview.ts` |
 | `declaration` | its-cumulative-confirm POST body | literal `true`, else 400; the snapshot is recomputed server side | `api/hmrc/its-cumulative-confirm.ts` |
 | `confirm` | its-cumulative-submit POST body | literal `true`; the payload comes from the stored confirmation, never the body | `api/hmrc/its-cumulative-submit.ts` |
 | `taxYear` | its-annual-preview, -confirm, -submit POST body | tax year with bands; extra keys refused | `itsAnnualInputSchema`, `api/_lib/itsAnnualSubmit.ts` |

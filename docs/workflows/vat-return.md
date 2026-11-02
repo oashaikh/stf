@@ -7,12 +7,20 @@ it, and never do tax arithmetic themselves.
 
 ## Steps
 
-1. Fetch open HMRC obligations and let the user select one (period key, start, end). If there is only one open obligation, select it automatically. If there are none, say so and offer no review or submit. Sandbox mode unless
-   `HMRC_SANDBOX_MODE=false` and the user has opted in under Settings.
+1. Fetch open HMRC obligations. The VAT page is a guided flow, one thing per screen, headed "Step N of M" with
+   Back and Save and leave on every step. Save and leave stores the step in the browser (`src/pages/vatFlowState.ts`)
+   and the flow resumes there next time. With several open obligations, step 1 asks which return to file; with one it
+   is selected automatically and the flow starts at the figures. If there are none, the page says so and offers no
+   review or submit. Problems that stop the flow (HMRC not connected, VAT number missing, payments changed since
+   confirming) are shown in plain words with a link to the fix. Sandbox mode unless
+   `HMRC_SANDBOX_MODE=false` and the user has opted in under Settings; test mode is labelled on every step.
 2. Load the user's transaction lines for the period, joined to the transaction (date,
    status, `deleted_at`) and account (`account_type`), as `LedgerLine[]`.
 3. Call `buildVatReturnFromLedger(lines, { start, end })`. The result is a draft.
-4. Draft and confirmation: the user reviews the nine boxes and confirms.
+4. Draft and confirmation: the figures step shows each box in plain words with its box number in small text and a
+   "Why is this amount?" link listing the entries behind it. The last step states in one sentence what is being
+   sent (for example "You're telling HMRC you owe £0 VAT for August to October 2026"), then the declaration, Confirm
+   return and Send to HMRC.
    - **Draft state:** `PUT /api/vat/return` with `{ periodKey, start, end, reopen?: boolean }` saves
      a draft snapshot to `vatReturnDrafts` with status `draft`. The server recomputes the boxes
      from the ledger every time (never trusts the client boxes). A user can leave and return to
@@ -142,8 +150,8 @@ The submission process writes two audit events (action, resource type, resource 
 
 ## Preview
 
-On the VAT page, once a return is confirmed and not stale or submitted, "Preview what will be sent" sits beside
-the submit button. It calls `POST /api/vat/preview` and shows the endpoint (sandbox or live, VRN masked), boxes 1 to 9
+On the last step of the VAT flow, once a return is confirmed and not stale or submitted, "Preview what will be sent"
+sits under "Technical details" below the Send to HMRC button. It calls `POST /api/vat/preview` and shows the endpoint (sandbox or live, VRN masked), boxes 1 to 9
 in pounds as they will be sent, the header names and values (Authorization reads "Bearer (hidden)") and the raw JSON
 in a collapsible block (`src/pages/VatPreviewPanel.tsx`). The submit confirmation dialog fetches and shows the same
 preview when it opens. Nothing is sent to HMRC and no submission row is written.
@@ -163,8 +171,8 @@ The preview payload includes:
 
 ## Drill-down links
 
-On the VAT page, boxes 1 (VAT on sales), 4 (VAT reclaimed), 6 (total sales ex VAT) and 7 (total purchases ex VAT)
-are expandable. Clicking the box description expands a list of the entries (up to 50) that contribute to it, showing
+On the figures step, boxes 1 (VAT on sales), 4 (VAT reclaimed), 6 (total sales ex VAT) and 7 (total purchases ex VAT)
+each have a "Why is this amount?" link. Clicking it expands a list of the entries (up to 50) that contribute to it, showing
 the entry's date, description, net amount and VAT. Each entry is a link to the Expenses page filtered and highlighted
 to show that entry.
 

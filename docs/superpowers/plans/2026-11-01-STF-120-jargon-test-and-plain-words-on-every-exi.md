@@ -51,7 +51,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Add the official-name component and the jargon scanner**
+- [x] **Task 1: Add the official-name component and the jargon scanner**
   - Intent: Create one small shared component (e.g. OfficialName) that renders small muted text marked with a data attribute, e.g. data-official-name. Add a pure scanner in src/lib that takes rendered DOM text, skips anything inside an official-name element, and returns the banned words from the spec's Never on screen column (ledger, posting, journal, nominal code, chart of accounts, reconcile/reconciliation, obligation, period key, payload, endpoint, token, sync, submit, Box 1/4/6, VAT due on sales etc, and raw error code patterns). Match whole words, case-insensitive, so words like 'tokenise' in unrelated text are not an issue. Unit-test the scanner and component only; the all-pages test comes later so the build stays green. Use the spec at docs/design/ease-of-use.md section 4 as the word list; do not invent extra words.
   - Files: `src/components/OfficialName.tsx`, `src/components/OfficialName.test.tsx`, `src/lib/jargon.ts`, `src/lib/jargon.test.ts`
   - Acceptance criteria the planner set:
@@ -59,6 +59,7 @@ Also depends on:
     - scanner flags each banned word in a plain element and returns the matched words
     - scanner ignores the same word inside an OfficialName element
     - npm run lint, typecheck and test pass
+  - Commit: `4cf211efdefe`
 
 - [ ] **Task 2: Plain words on Dashboard, Reports, app menu, sign-in and legal pages** (after 1)
   - Intent: Rewrite visible text only in DashboardPage, ReportsPage, AppShell, LoginPage and LegalPages so none of the banned words appear outside OfficialName: plain English, short sentences, you/your, buttons saying what they do, errors saying what happened and what to do next. Do not change behaviour or layout, and do not restructure the home page into a to-do list (that is STF-119). Update the existing tests that assert on the old wording.

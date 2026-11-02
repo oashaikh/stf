@@ -87,7 +87,7 @@ Also depends on:
     - Lint, typecheck, test and build pass
   - Commit: `e5d416463238`
 
-- [ ] **Task 4: Confirm and submit the property update through the same confirmation gate** (after 1, 3)
+- [x] **Task 4: Confirm and submit the property update through the same confirmation gate** (after 1, 3)
   - Intent: Done means property updates are confirmed then submitted exactly like the self-employment update (STF-85): declaration recorded first, payload compared on submit (STALE_CONFIRMATION), claim row blocks double filing, a 4xx marks the row rejected, a 5xx or network failure leaves it pending with OUTCOME_UNKNOWN. Add a business_kind column ('self-employment' | 'uk-property', default 'self-employment') to its_submissions and widen the unique key to include it, in migration 0026 (single head, snapshot, journal, grants). Parameterise the existing itsSubmit.ts by kind rather than copying it. Add property confirm and submit routes. Sandbox default and the live-needs-both-switches guard are kept. Existing self-employment submissions and tests are unaffected; VAT untouched.
   - Files: `api/_lib/itsSubmit.ts`, `api/_lib/__tests__/itsSubmit.test.ts`, `api/_lib/__tests__/itsSubmitRoute.test.ts`, `api/_lib/__tests__/itsPropertySubmitRoute.test.ts`, `api/hmrc/its-property-confirm.ts`, `api/hmrc/its-property-submit.ts`, `api/hmrc/its-cumulative-confirm.ts`, `api/hmrc/its-cumulative-submit.ts`, `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0026_its_submissions_business_kind.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0026_snapshot.json`, `src/lib/hmrc/itsUpdateApi.ts`
   - Acceptance criteria the planner set:
@@ -98,6 +98,7 @@ Also depends on:
     - Migration leaves one head; existing rows get 'self-employment'
     - Lint, typecheck, test and build pass
   - Risk: Opus/high: schema change to the submission lock and a filing path where a mistake could file twice or lose a receipt.
+  - Commit: `f6b0fd790ac3`
 
 - [ ] **Task 5: Fetch and cache property obligations next to the self-employment ones** (after 1)
   - Intent: Done means the quarterly updates due for the UK property business come from HMRC's obligations endpoint (using the property business id), are cached and returned tagged by business kind so the Tax page can tell them apart. Extend api/hmrc/its-obligations.ts, api/_lib/itsObligations.ts and getItsIncomeAndExpenditureObligations to take a business id and tag rows. Property rows must not overwrite self-employment rows in its_obligations_cache (store both inside the existing jsonb payload, no migration unless unavoidable). Owners with no property business see no change.

@@ -83,7 +83,7 @@ Also depends on:
   - Risk: Opus at high: sends personal bank text to a third party, with an owner-scoped data and permission boundary. Depends on STF-7 for the client, model variable and kill switch; if they are not on the base branch the implementer must stop and ask. Overlaps STF-38 and STF-7 on apiRoutes.test.ts, input-inventory.md and .env.example.
   - Commit: `be7cc0e2d3f8`
 
-- [ ] **Task 4: Show suggestions in Sort bank payments and accept as a draft** (after 3)
+- [x] **Task 4: Show suggestions in Sort bank payments and accept as a draft** (after 3)
   - Intent: Add src/lib/bankCategoriseApi.ts as the client for the new route. In the STF-38 Sort bank payments view (BankSortSection), show the suggested category in plain words, e.g. 'Looks like Office costs', with confidence as a small muted note and the official account name in small muted text. Add a 'Suggest categories' button. When off or failed, show the fix beside the message and keep manual sorting working. Accepting calls STF-38's existing confirm path, which creates a draft entry; the owner can pick a different category. No suggestion is applied without a tap. Follow docs/design/ease-of-use.md. Use shared loading, empty and error components, 44px tap targets, and money via formatPence. Update the jargon render test. Provide screenshots at 1440 and 390 px.
   - Files: `src/lib/bankCategoriseApi.ts`, `src/lib/bankReconcileApi.ts`, `src/pages/BankSortSection.tsx`, `src/pages/BankSortSection.test.tsx`, `src/pages/__tests__/jargonRender.test.tsx`, `e2e/mockApi.ts`, `e2e/bank-categorise.spec.ts`, `browser-evidence/STF-37/captions.md`
   - Acceptance criteria the planner set:
@@ -95,3 +95,4 @@ Also depends on:
     - Screenshots at 1440 and 390 px are included
     - npm run lint, typecheck, test and build pass
   - Risk: Hard dependency: STF-38 must be merged so BankSortSection and its confirm path exist; this worktree does not have them. Heavy file overlap with STF-38, so rebase on its merge before starting.
+  - Commit: `ad96bdddbbbe`

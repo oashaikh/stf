@@ -220,7 +220,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         bankConnected = true;
         return json(route, { url: '/setup' });
       case 'GET /api/bank/reconcile':
-        return json(route, { lines: unsortedBankLines, proposals: unsortedBankLines.some((line) => line.id === 'line-1') ? [{ lineId: 'line-1', entryId: 'entry-1', kind: 'exact' }] : [] });
+        return json(route, { lines: unsortedBankLines, proposals: unsortedBankLines.some((line) => line.id === 'line-1') ? [{ lineId: 'line-1', entryId: 'entry-1', kind: 'exact', entryDescription: 'Client invoice 114', entryDate: '2026-10-12' }] : [] });
       case 'POST /api/bank/reconcile': {
         const { action, lineId } = request.postDataJSON();
         if (action === 'match' || action === 'dismiss' || action === 'createEntry') unsortedBankLines = unsortedBankLines.filter((line) => line.id !== lineId);

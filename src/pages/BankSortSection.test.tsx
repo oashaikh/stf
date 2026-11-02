@@ -13,7 +13,7 @@ vi.mock('../lib/accountsApi', async (importOriginal) => ({ ...(await importOrigi
 const line = { id: 'l1', date: '2026-10-03', amountPence: -1250, description: 'COFFEE SUPPLIES' };
 const withLine = (kind: 'exact' | 'close' | null) => ({
   lines: [line],
-  proposals: kind ? [{ lineId: 'l1', entryId: 'e1', kind }] : [],
+  proposals: kind ? [{ lineId: 'l1', entryId: 'e1', kind, entryDescription: 'Coffee beans', entryDate: '2026-10-03' }] : [],
 });
 
 function renderSection() {
@@ -42,8 +42,11 @@ describe('BankSortSection', () => {
   it('shows a suggested match with its reason, and matches in one tap', async () => {
     vi.mocked(fetchReconcile).mockResolvedValue(withLine('exact'));
     renderSection();
-    expect(await screen.findByText('Same amount, same day')).toBeInTheDocument();
+    expect(await screen.findByText('Coffee beans')).toBeInTheDocument();
+    expect(screen.getByText(/Same amount, same day/)).toBeInTheDocument();
     expect(screen.getByText('£12.50')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add as new payment' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Yes, match it' }).className).toContain('bg-blue-800');
     fireEvent.click(screen.getByRole('button', { name: 'Yes, match it' }));
     await waitFor(() => expect(matchLine).toHaveBeenCalledTimes(1));
     expect(matchLine).toHaveBeenCalledWith('l1', 'e1');
@@ -53,9 +56,10 @@ describe('BankSortSection', () => {
   it('says close matches are a few days apart, and hides a suggestion on No', async () => {
     vi.mocked(fetchReconcile).mockResolvedValue(withLine('close'));
     renderSection();
-    expect(await screen.findByText('Same amount, a few days apart')).toBeInTheDocument();
+    expect(await screen.findByText(/Same amount, a few days apart/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'No' }));
     expect(screen.queryByRole('button', { name: 'Yes, match it' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add as new payment' })).toBeInTheDocument();
     expect(matchLine).not.toHaveBeenCalled();
   });
 

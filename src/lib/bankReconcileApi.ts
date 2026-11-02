@@ -1,8 +1,10 @@
 import type { BankLine, MatchProposal } from './bankMatching';
 
+export type ProposalView = MatchProposal & { entryDescription: string; entryDate: string };
+
 export interface SortData {
   lines: BankLine[];
-  proposals: MatchProposal[];
+  proposals: ProposalView[];
 }
 
 type SortAction =

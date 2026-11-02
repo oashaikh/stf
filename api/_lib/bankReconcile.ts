@@ -23,7 +23,7 @@ export interface ReconcileStore {
   /** The owner's unmatched lines, oldest first, at most `limit`. */
   listOpenLines(userId: string, limit: number): Promise<BankLineView[]>;
   /** The owner's confirmed (not yet reconciled) entries dated from..to with their signed bank-account amount, at most `limit`. */
-  listConfirmedEntries(userId: string, from: string, to: string, limit: number): Promise<MatchableEntry[]>;
+  listConfirmedEntries(userId: string, from: string, to: string, limit: number): Promise<Array<MatchableEntry & { description: string }>>;
   /** The owner's line in any state; undefined when it is not theirs. */
   getLine(userId: string, lineId: string): Promise<(BankLineView & { status: string }) | undefined>;
   /** Line unmatched to matched and entry confirmed to reconciled, plus one bank.match audit event, in one transaction. */
@@ -60,11 +60,20 @@ export function entryWindow(lines: BankLineView[]): { from: string; to: string }
   return { from: shift(dates[0], -MATCH_WINDOW_DAYS), to: shift(dates[dates.length - 1], MATCH_WINDOW_DAYS) };
 }
 
-export async function getProposals(store: ReconcileStore, userId: string): Promise<{ lines: BankLineView[]; proposals: MatchProposal[] }> {
+export type ProposalView = MatchProposal & { entryDescription: string; entryDate: string };
+
+export async function getProposals(store: ReconcileStore, userId: string): Promise<{ lines: BankLineView[]; proposals: ProposalView[] }> {
   const lines = await store.listOpenLines(userId, OPEN_LINE_LIMIT);
   const window = entryWindow(lines);
   const entries = window ? await store.listConfirmedEntries(userId, window.from, window.to, WINDOW_ENTRY_LIMIT) : [];
-  return { lines, proposals: proposeMatches(lines, entries).proposals };
+  const byId = new Map(entries.map((entry) => [entry.id, entry]));
+  // Named so the owner can see what "Yes, match it" will match.
+  const proposals = proposeMatches(lines, entries).proposals.map((proposal) => ({
+    ...proposal,
+    entryDescription: byId.get(proposal.entryId)?.description ?? '',
+    entryDate: byId.get(proposal.entryId)?.date ?? '',
+  }));
+  return { lines, proposals };
 }
 
 const REFUSALS: Record<Exclude<ReconcileOutcome, 'ok'>, [number, string, string]> = {
@@ -207,15 +216,15 @@ export const databaseReconcileStore: ReconcileStore = {
 
   async listConfirmedEntries(userId, from, to, limit) {
     const rows = await db
-      .select({ id: transactions.id, date: transactions.date, grossPence: sql<string>`sum(${transactionLines.amountPence})` })
+      .select({ id: transactions.id, date: transactions.date, description: transactions.description, grossPence: sql<string>`sum(${transactionLines.amountPence})` })
       .from(transactions)
       .innerJoin(transactionLines, eq(transactionLines.transactionId, transactions.id))
       .innerJoin(accounts, and(eq(accounts.id, transactionLines.accountId), eq(accounts.userId, userId), eq(accounts.code, BANK_ACCOUNT_CODE)))
       .where(and(eq(transactions.userId, userId), eq(transactions.status, 'confirmed'), isNull(transactions.deletedAt), gte(transactions.date, from), lte(transactions.date, to)))
-      .groupBy(transactions.id, transactions.date)
+      .groupBy(transactions.id, transactions.date, transactions.description)
       .orderBy(asc(transactions.date), asc(transactions.id))
       .limit(limit);
-    return rows.map((row) => ({ id: row.id, date: row.date, grossPence: Number(row.grossPence) }));
+    return rows.map((row) => ({ id: row.id, date: row.date, description: row.description, grossPence: Number(row.grossPence) }));
   },
 
   async getLine(userId, id) {

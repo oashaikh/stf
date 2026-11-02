@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { fetchAccounts } from '../lib/accountsApi';
-import type { BankLine, MatchProposal } from '../lib/bankMatching';
-import { createDraftFromLine, dismissLine, fetchReconcile, matchLine, undismissLine, unmatchLine } from '../lib/bankReconcileApi';
+import type { BankLine } from '../lib/bankMatching';
+import { createDraftFromLine, dismissLine, fetchReconcile, matchLine, undismissLine, unmatchLine, type ProposalView } from '../lib/bankReconcileApi';
 import { formatPence } from '../lib/money';
 import StateMessage from '../components/StateMessage';
 
 const QUERY_KEY = ['bank-sort'];
-const REASONS: Record<MatchProposal['kind'], string> = {
+const REASONS: Record<ProposalView['kind'], string> = {
   exact: 'Same amount, same day',
   close: 'Same amount, a few days apart',
 };
@@ -19,7 +19,8 @@ interface Undoable {
 
 const buttonClass =
   'inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-gray-300 bg-white px-4 text-gray-900 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:opacity-50';
-const primaryClass = buttonClass.replace('border-gray-300 bg-white text-gray-900 hover:bg-gray-50', 'border-blue-800 bg-blue-800 text-white hover:bg-blue-900');
+const primaryClass =
+  'inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-blue-800 bg-blue-800 px-4 font-medium text-white hover:bg-blue-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:opacity-50';
 const fieldClass = 'min-h-11 rounded-md border border-gray-400 px-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700';
 
 export default function BankSortSection() {
@@ -51,7 +52,7 @@ export default function BankSortSection() {
   const categoriesFor = (line: BankLine) => (accounts.data ?? []).filter((account) => account.accountType === (line.amountPence < 0 ? 'expense' : 'income'));
   const chosenCategory = (line: BankLine) => categoryFor[line.id] ?? categoriesFor(line)[0]?.id ?? '';
 
-  const accept = (line: BankLine, proposal: MatchProposal) =>
+  const accept = (line: BankLine, proposal: ProposalView) =>
     run.mutate({
       act: async () => {
         await matchLine(line.id, proposal.entryId);
@@ -104,7 +105,11 @@ export default function BankSortSection() {
                 <div className="min-w-0 sm:flex-1">
                   <p className="truncate font-medium text-gray-900" title={line.description}>{line.description}</p>
                   <p className="text-sm text-gray-700">{line.date} · {line.amountPence < 0 ? 'Paid out' : 'Paid in'}</p>
-                  {proposal && <p className="mt-1 text-sm text-gray-900">{REASONS[proposal.kind]}</p>}
+                  {proposal && (
+                    <p className="mt-1 text-sm text-gray-900">
+                      Looks like <span className="font-medium">{proposal.entryDescription}</span> on {proposal.entryDate}. {REASONS[proposal.kind]}.
+                    </p>
+                  )}
                 </div>
                 <p className="text-right tabular-nums font-medium text-gray-900 sm:w-28">{formatPence(Math.abs(line.amountPence))}</p>
                 <div className="flex flex-wrap gap-2 sm:w-80 sm:justify-end">
@@ -114,6 +119,7 @@ export default function BankSortSection() {
                       <button type="button" className={buttonClass} onClick={() => setPassed([...passed, line.id])}>No</button>
                     </>
                   )}
+                  {!proposal && (<>
                   <label className="flex w-full flex-col text-sm text-gray-700">
                     Category
                     <select className={fieldClass} value={chosenCategory(line)} onChange={(event) => setCategoryFor({ ...categoryFor, [line.id]: event.target.value })}>
@@ -121,6 +127,7 @@ export default function BankSortSection() {
                     </select>
                   </label>
                   <button type="button" className={buttonClass} disabled={run.isPending || !chosenCategory(line)} onClick={() => addNew(line)}>Add as new payment</button>
+                  </>)}
                   <button type="button" className={buttonClass} onClick={() => { setAsideFor(line.id); setReason(''); }}>Set aside</button>
                   {asideFor === line.id && (
                     <div className="flex w-full flex-col gap-2">

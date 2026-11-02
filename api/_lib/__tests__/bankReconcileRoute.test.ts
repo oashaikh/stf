@@ -29,6 +29,7 @@ interface FakeLine extends BankLineView {
   dismissedReason: string | null;
 }
 interface FakeEntry extends MatchableEntry {
+  description: string;
   userId: string;
   status: 'draft' | 'confirmed' | 'reconciled' | 'voided';
 }
@@ -145,8 +146,8 @@ describe('bank reconcile route', () => {
       { id: OTHER_LINE, userId: 'rival', date: '2026-02-05', amountPence: -2400, description: 'RIVAL LINE', status: 'unmatched', matchedEntryId: null, dismissedReason: null },
     ];
     entries = [
-      { id: ENTRY, userId: 'owner', date: '2026-02-05', grossPence: -2400, status: 'confirmed' },
-      { id: OTHER_ENTRY, userId: 'rival', date: '2026-02-05', grossPence: -2400, status: 'confirmed' },
+      { id: ENTRY, userId: 'owner', date: '2026-02-05', description: 'Printer paper', grossPence: -2400, status: 'confirmed' },
+      { id: OTHER_ENTRY, userId: 'rival', date: '2026-02-05', description: 'Rival', grossPence: -2400, status: 'confirmed' },
     ];
     audits = [];
     created = [];
@@ -169,7 +170,7 @@ describe('bank reconcile route', () => {
   it('proposes matches for only the session owner', async () => {
     const body = await (await call('GET', undefined, 'owner')).json();
     expect(body.lines.map((line: { id: string }) => line.id)).toEqual([LINE]);
-    expect(body.proposals).toEqual([{ lineId: LINE, entryId: ENTRY, kind: 'exact' }]);
+    expect(body.proposals).toEqual([{ lineId: LINE, entryId: ENTRY, kind: 'exact', entryDescription: 'Printer paper', entryDate: '2026-02-05' }]);
   });
 
   it('match marks the line matched and the entry reconciled, with one audit event', async () => {
@@ -182,7 +183,7 @@ describe('bank reconcile route', () => {
 
   it('refuses to match a line that is already matched', async () => {
     await call('POST', { action: 'match', lineId: LINE, entryId: ENTRY }, 'owner');
-    entries.push({ id: id(13), userId: 'owner', date: '2026-02-05', grossPence: -2400, status: 'confirmed' });
+    entries.push({ id: id(13), userId: 'owner', date: '2026-02-05', description: 'Paper', grossPence: -2400, status: 'confirmed' });
     const response = await call('POST', { action: 'match', lineId: LINE, entryId: id(13) }, 'owner');
     expect(response.status).toBe(409);
     expect(audits).toHaveLength(1);

@@ -24,25 +24,17 @@ The script will create test users and save their sign-in details in `.hmrc-sandb
 
 ## Signing in via browser
 
-The script needs a refresh token from each test user. HMRC only issues refresh tokens after the user signs in through their own browser.
+The script needs a refresh token from each test user. HMRC only issues refresh tokens after the user signs in through their own browser. The script prints step-by-step instructions when it is ready; follow them exactly.
 
-1. Open the message the script printed. It shows two user IDs and where to find their passwords.
-2. In your browser, go to the HMRC sandbox login at `https://sandbox.tax.service.gov.uk/` and sign in as the organisation user ID first. Use the password from `.hmrc-sandbox-users.json`.
-3. Go through the OAuth connection flow as if you were the organisation. You can approve everything.
-4. Once approved, you are redirected back. Look for the individual refresh token in the message shown (HMRC shows it once per user, here in the browser).
-5. Copy the organisation refresh token and set it:
+1. Open the message the script printed. It shows two user IDs and their passwords.
+2. In your browser, go to `https://sandbox.tax.service.gov.uk/` and sign in as the organisation user first, then approve the OAuth flow.
+3. When redirected back, copy the organisation refresh token that HMRC shows in the browser (shown once).
+4. Set the token and sign in again as the individual:
    ```bash
    export HMRC_SANDBOX_VAT_REFRESH_TOKEN=...
-   ```
-6. Sign out in the same browser.
-7. Sign in again as the individual test user ID (same password pattern, different ID). Repeat the OAuth flow.
-8. Copy the individual refresh token:
-   ```bash
    export HMRC_SANDBOX_REFRESH_TOKEN=...
    ```
-9. Back in the terminal, run `npm run hmrc:evidence` again.
-
-The script now runs all 21 API calls and writes the results.
+5. Back in the terminal, run `npm run hmrc:evidence` again. The script now runs all 21 API calls and writes the results.
 
 ## Reading the evidence note
 

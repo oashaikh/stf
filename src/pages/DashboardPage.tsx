@@ -10,6 +10,7 @@ import { formatPence } from "../lib/money";
 import { currentTaxYear } from "../lib/taxBands";
 import { fetchTaxEstimate, taxEstimateQueryKey } from "../lib/taxEstimateApi";
 import { useVatObligations } from "./useVatObligations";
+import SetupTodos from "./SetupTodos";
 
 const actionClass = "inline-flex min-h-11 shrink-0 items-center rounded bg-blue-800 px-4 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-800";
 const figureClass = "flex min-h-11 items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4 text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-800";
@@ -54,7 +55,7 @@ export default function DashboardPage() {
           unsortedBankCount: summary.data?.unsortedBankCount ?? 0,
           receiptsToCheckCount: summary.data?.receiptsToCheckCount ?? 0,
           bank: bankStatus ? { state: consentState(bankStatus.consentExpiresAt!, now), expiresAt: bankStatus.consentExpiresAt! } : null,
-          // STF-123 supplies the skipped setup steps once it merges.
+          // Skipped setup steps render in <SetupTodos /> above, with their own fetch and error state.
           skippedSetupSteps: [],
         },
         now,
@@ -67,6 +68,8 @@ export default function DashboardPage() {
       {failures.length > 0 && (
         <StateMessage kind="error" className="mt-4">{failures.join(" ")}</StateMessage>
       )}
+
+      <SetupTodos />
 
       <section aria-labelledby="todo-heading" className="mt-6">
         <h2 id="todo-heading" className="text-lg font-medium text-gray-900">What needs doing</h2>

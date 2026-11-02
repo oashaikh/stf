@@ -169,6 +169,13 @@
       "when": 1792986663126,
       "tag": "0023_its_annual_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1792986664126,
+      "tag": "0024_first_time_setup",
+      "breakpoints": true
     }
   ]
 }

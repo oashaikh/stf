@@ -2,9 +2,20 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { SetupFacts } from '../lib/setupFlow';
 import DashboardPage from './DashboardPage';
+
+const setupApi = vi.hoisted(() => ({ fetchSetupFacts: vi.fn(), SETUP_FACTS_QUERY_KEY: ['setup-facts'] }));
+vi.mock('../lib/setupApi', () => setupApi);
+
+const finishedSetup: SetupFacts = {
+  setup: { businessType: 'sole_trader', vatRegistered: false, skippedSteps: [], finishedAt: '2026-11-01T09:00:00Z' },
+  hmrcConnected: true,
+  bankConnected: true,
+  hasVatNumber: false,
+};
 
 function daysFromToday(days: number) {
   return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
@@ -54,6 +65,10 @@ function renderPage(overrides: Routes = {}) {
     </QueryClientProvider>,
   );
 }
+
+beforeEach(() => {
+  setupApi.fetchSetupFacts.mockResolvedValue(finishedSetup);
+});
 
 afterEach(() => {
   cleanup();
@@ -127,5 +142,18 @@ describe('DashboardPage (Home)', () => {
     renderPage({ '/api/vat/obligations': () => Response.json({ obligations: [overdueVat] }) });
     await screen.findByText(/File your VAT return/);
     expect(document.body.textContent).not.toMatch(/ledger|obligation|reconcile|box 5/i);
+  });
+
+  it('lists skipped setup steps near the top', async () => {
+    setupApi.fetchSetupFacts.mockResolvedValue({ ...finishedSetup, hmrcConnected: false, setup: { ...finishedSetup.setup, skippedSteps: ['hmrc'] } });
+    renderPage();
+    expect((await screen.findByRole('link', { name: 'Connect HMRC' })).getAttribute('href')).toBe('/setup?step=hmrc');
+  });
+
+  it('keeps the rest of Home in place when the setup state cannot be loaded', async () => {
+    setupApi.fetchSetupFacts.mockRejectedValue(new Error('down'));
+    renderPage();
+    expect(await screen.findByText('We could not load your setup to-dos.')).toBeTruthy();
+    expect((await screen.findByRole('link', { name: /money in/i })).textContent).toContain('£200.00');
   });
 });

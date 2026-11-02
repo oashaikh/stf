@@ -143,7 +143,15 @@ function mockReturn(vatState: MockVatState, entries: SavedEntry[]) {
 
 /** A fake of the deployed API, so the journey can run against a built preview with no server behind it. */
 export async function mockApi(page: Page, ownerPassword: string, vatState: MockVatState = 'confirmed', homeState: MockHomeState = 'items-due') {
+  const newUser = homeState === 'new-user';
   let signedIn = false;
+  // A new user has answered nothing and connected nothing; everyone else is past setup, so the other journeys land on Home.
+  let setup = newUser
+    ? { businessType: 'sole_trader', vatRegistered: null as boolean | null, skippedSteps: [] as string[], finishedAt: null as string | null }
+    : { businessType: 'sole_trader', vatRegistered: true as boolean | null, skippedSteps: [] as string[], finishedAt: '2026-10-01T09:00:00.000Z' as string | null };
+  let hmrcConnected = !newUser;
+  let bankConnected = false;
+  let vatNumberSaved = !newUser;
   const entries: SavedEntry[] = [];
   const templates: Array<Record<string, unknown>> = [];
   let authenticatorEnabled = false;
@@ -186,10 +194,28 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         return json(route, {
           profile: { businessName: null, businessAddress: null, paymentBankName: null, paymentSortCode: null, paymentAccountNumber: null, invoicePrefix: 'INV-', nextInvoiceNumber: 1 },
         });
+      case 'GET /api/settings/setup':
+        return json(route, { ok: true, ...setup });
+      case 'POST /api/settings/setup': {
+        const answers = request.postDataJSON();
+        const { finish, ...saved } = answers;
+        setup = { ...setup, ...saved, ...(finish && { finishedAt: '2026-11-02T09:00:00.000Z' }) };
+        return json(route, { ok: true, ...setup });
+      }
+      case 'POST /api/settings/vat-number':
+        vatNumberSaved = true;
+        return json(route, { ok: true, masked: '*******000' });
+      // The real connect calls return HMRC's or the bank's address; here the user is "sent" straight back to setup, connected.
+      case 'GET /api/hmrc/connect':
+        hmrcConnected = true;
+        return json(route, { url: '/setup' });
+      case 'GET /api/bank/connect':
+        bankConnected = true;
+        return json(route, { url: '/setup' });
       case 'GET /api/bank/status':
         return json(route, homeState === 'items-due'
           ? { ok: true, connected: true, displayName: 'Example Bank', maskedAccountNumber: '****1234', consentExpiresAt: new Date(Date.now() + 10 * DAY_MS).toISOString(), expired: false }
-          : { ok: true, connected: false, displayName: null, maskedAccountNumber: null, consentExpiresAt: null, expired: false });
+          : { ok: true, connected: bankConnected, displayName: null, maskedAccountNumber: null, consentExpiresAt: null, expired: false });
       case 'GET /api/settings/tax-identifiers':
         return json(route, { ok: true, nino: null, utr: null });
       case 'GET /api/dashboard':
@@ -264,7 +290,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
           },
         });
       case 'GET /api/hmrc/status':
-        return json(route, { connected: true, needsItsReconnect: false, itsBusinessId: null });
+        return json(route, { connected: hmrcConnected, needsItsReconnect: false, itsBusinessId: null });
       case 'GET /api/hmrc/its-obligations':
         return json(route, { ok: true, stale: false, obligations: itsRowsFor(homeState).map((row) => (itsSent && row.status === 'open' ? { ...row, status: 'fulfilled' as const } : row)) });
       case 'GET /api/hmrc/its-businesses':
@@ -292,7 +318,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
       case 'GET /api/hmrc/mode':
         return json(route, { live: false, envLive: false });
       case 'GET /api/settings/vat-number':
-        return json(route, { masked: '*******000' });
+        return json(route, { masked: vatNumberSaved ? '*******000' : null });
       case 'GET /api/vat/filed':
         return json(route, { ok: true, data: previewBody(entries) });
       case 'GET /api/accounts':

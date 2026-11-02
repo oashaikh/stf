@@ -351,3 +351,20 @@ describe("schema migrations", () => {
     });
   });
 });
+
+describe("first-time setup columns", () => {
+  const sql = readMigrationSql();
+
+  it("adds the three users columns idempotently, with vat_registered nullable", () => {
+    expect(sql).toMatch(/ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "vat_registered" boolean;/);
+    expect(sql).toMatch(/ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "setup_skipped_steps" text\[\] DEFAULT '\{\}'::text\[\] NOT NULL;/);
+    expect(sql).toMatch(/ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "setup_finished_at" timestamp with time zone;/);
+  });
+
+  it("keeps a single journal head with unique tags", () => {
+    const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
+    const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
+    expect(new Set(tags).size).toBe(tags.length);
+    expect(tags.at(-1)).toBe("0024_first_time_setup");
+  });
+});

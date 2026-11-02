@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useRef } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 
 // Pages — lazy imports to be added as features are built
@@ -10,10 +11,13 @@ import TaxHubPage from './pages/TaxHubPage.tsx';
 import ItsUpdatePage from './pages/ItsUpdatePage.tsx';
 import YearEndPage from './pages/YearEndPage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
+import SetupFlow, { ReturnToSetup } from './pages/SetupFlow.tsx';
 import AppShell from './components/AppShell.tsx';
 import StateMessage from './components/StateMessage.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import { PrivacyPage, TermsPage } from './pages/LegalPages.tsx';
+import { SETUP_FACTS_QUERY_KEY, fetchSetupFacts } from './lib/setupApi.ts';
+import { shouldShowSetup } from './lib/setupFlow.ts';
 import { SESSION_QUERY_KEY, fetchSignedIn } from './lib/session.ts';
 
 const queryClient = new QueryClient({
@@ -41,6 +45,17 @@ function RedirectKeepingSearch({ to }: { to: string }) {
   return <Navigate to={{ pathname: to, search, hash }} replace />;
 }
 
+// Once per page load, on Home only: skipping or finishing in /setup then lands on Home without bouncing back.
+// A failed load sends nobody anywhere; Home shows the error itself.
+function SetupRedirect() {
+  const { pathname } = useLocation();
+  const redirected = useRef(false);
+  const facts = useQuery({ queryKey: SETUP_FACTS_QUERY_KEY, queryFn: fetchSetupFacts, enabled: pathname === '/home', retry: false });
+  if (pathname !== '/home' || redirected.current || !facts.data || !shouldShowSetup(facts.data)) return null;
+  redirected.current = true;
+  return <Navigate to="/setup" replace />;
+}
+
 function AuthGate() {
   const session = useQuery({ queryKey: SESSION_QUERY_KEY, queryFn: fetchSignedIn, staleTime: Infinity, retry: false });
   if (session.isPending) return <StateMessage kind="loading" className="p-6">Loading…</StateMessage>;
@@ -48,6 +63,9 @@ function AuthGate() {
   if (!session.data) return <LoginPage />;
 
   return (
+    <>
+    <ReturnToSetup />
+    <SetupRedirect />
     <Routes>
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route element={<AppShell />}>
@@ -59,12 +77,14 @@ function AuthGate() {
         <Route path="/tax/update/:taxYear/:quarter" element={<ItsUpdatePage />} />
         <Route path="/tax/year-end/:taxYear" element={<YearEndPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/setup" element={<SetupFlow />} />
       </Route>
       {OLD_ADDRESSES.map(([from, to]) => (
         <Route key={from} path={from} element={<RedirectKeepingSearch to={to} />} />
       ))}
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
+    </>
   );
 }
 

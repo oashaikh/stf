@@ -38,6 +38,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/settings/business-profile.ts` | GET, PUT | Settings |
 | `api/settings/tax-identifiers.ts` | GET, PUT | Settings |
 | `api/settings/vat-number.ts` | GET, PUT | Settings |
+| `api/settings/setup.ts` | GET, POST | Settings |
 | `api/settings/trading-allowance.ts` | GET, PUT | Settings |
 | `api/settings/authenticator.ts` | GET, POST | Sign-in |
 | `api/hmrc/mode.ts` | GET, POST | HMRC |
@@ -191,6 +192,10 @@ Text fields have a length cap and reject control characters (`plainText`; notes 
 | `nino` | tax-identifiers PUT | HMRC NINO pattern, upper-cased; encrypted at rest | `taxIdentifiersSchema`, `api/_lib/taxIdentifiers.ts` |
 | `utr` | same | `^\d{10}$` | same |
 | `vatNumber` | vat-number PUT | string; spaces and a leading GB removed, then `^\d{9}$` | `normaliseVatNumber`, `api/_lib/vatNumber.ts` |
+| `businessType` | setup POST body | one of `sole_trader`, `partnership`, `limited_company` | `parseSetupUpdate`, `api/_lib/setupProgress.ts` |
+| `vatRegistered` | setup POST body | boolean; false leaves a saved VAT number alone | same |
+| `skippedSteps` | setup POST body | array of known step ids (`business_type`, `vat`, `hmrc`, `bank`), no duplicates | same |
+| `finish` | setup POST body | `true` only; the server sets the finished time, the client cannot send it | same |
 | `taxYear` | trading-allowance GET query, PUT body | key of `TAX_BANDS` and a real period | `taxYearField`, `api/_lib/tradingAllowance.ts` |
 | `method` | trading-allowance PUT body | `actual` or `allowance` | `tradingAllowanceChoiceSchema` |
 

@@ -39,7 +39,7 @@ export interface StoredReceipt extends NewReceipt {
 export type ReceiptAiStatus = 'pending' | 'extracted' | 'failed' | 'skipped';
 
 /** What was read from a receipt, by field name. A value stays a draft until the owner confirms it. */
-export type ReceiptDetails = Record<string, { value: string; confirmed: boolean }>;
+export type ReceiptDetails = Record<string, { value: string; confirmed: boolean; confidence: number | null }>;
 
 /** A list row keeps fileKey so the route can presign a read URL; the route never serialises it. */
 export type ReceiptListRow = StoredReceipt & { fileKey: string; aiStatus: ReceiptAiStatus; details: ReceiptDetails };
@@ -137,6 +137,7 @@ export const databaseReceiptStore: ReceiptStore = {
             receiptId: receiptExtractions.receiptId,
             field: receiptExtractions.field,
             suggestedValue: receiptExtractions.suggestedValue,
+            confidence: receiptExtractions.confidence,
             confirmedValue: receiptExtractions.confirmedValue,
             confirmedAt: receiptExtractions.confirmedAt,
           })
@@ -148,7 +149,7 @@ export const databaseReceiptStore: ReceiptStore = {
       details: Object.fromEntries(
         extractions
           .filter((extraction) => extraction.receiptId === row.id)
-          .map((extraction) => [extraction.field, { value: extraction.confirmedValue ?? extraction.suggestedValue, confirmed: extraction.confirmedAt !== null }]),
+          .map((extraction) => [extraction.field, { value: extraction.confirmedValue ?? extraction.suggestedValue, confirmed: extraction.confirmedAt !== null, confidence: extraction.confidence }]),
       ),
     }));
   },

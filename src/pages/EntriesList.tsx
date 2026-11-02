@@ -281,6 +281,8 @@ export default function EntriesList({
   // The URL query holds the filters so the dashboard (?status=draft) and the VAT drill-down can link here.
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = useMemo(() => filtersFromParams(searchParams), [searchParams]);
+  // Set by the link shown after a receipt is confirmed.
+  const justAddedId = searchParams.get('entry');
   const setFilters = (next: EntryFilters) => {
     const params = toEntryListParams(next);
     // toEntryListParams trims for the API; the URL feeds the search box, so it keeps what was typed.
@@ -345,7 +347,8 @@ export default function EntriesList({
             {rows.map((entry) => (
               <li
                 key={entry.id}
-                className="grid min-h-[44px] gap-1 px-4 py-2 md:grid-cols-[7rem_minmax(0,1fr)_10rem_9rem_16rem] md:items-center md:gap-3"
+                aria-current={entry.id === justAddedId ? 'true' : undefined}
+                className={`grid min-h-[44px] gap-1 px-4 py-2 md:grid-cols-[7rem_minmax(0,1fr)_10rem_9rem_16rem] md:items-center md:gap-3${entry.id === justAddedId ? ' bg-blue-50' : ''}`}
               >
                 <span>
                   <span className="text-sm text-gray-700 md:hidden">Date: </span>
@@ -366,6 +369,9 @@ export default function EntriesList({
                     <span className="shrink-0 rounded bg-amber-100 px-2 text-sm text-amber-900">
                       Draft
                     </span>
+                  )}
+                  {entry.id === justAddedId && (
+                    <span className="shrink-0 rounded bg-blue-100 px-2 text-sm text-blue-900">Just added</span>
                   )}
                   {entry.hasReceipt && (
                     <svg

@@ -2,11 +2,11 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { Camera, FileText } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { Link } from 'react-router-dom';
 import StateMessage from '../components/StateMessage';
 import { formatDate } from '../lib/dates';
 import { formatPence } from '../lib/money';
 import {
-  confirmReceiptDetails,
   confirmReceiptUpload,
   fetchReceipts,
   readReceiptDetails,
@@ -165,13 +165,8 @@ function RemoveDialog({ receipt, onCancel, onRemove }: { receipt: ListedReceipt;
 }
 
 function ReceiptRow({ receipt, onRemove }: { receipt: ListedReceipt; onRemove: () => void }) {
-  const queryClient = useQueryClient();
   const read = readReceiptDetails(receipt);
   const title = titleOf(receipt);
-  const confirm = useMutation({
-    mutationFn: () => confirmReceiptDetails(receipt.id),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: receiptsQueryKey }),
-  });
   return (
     <li className="p-3">
       <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-x-3 gap-y-1">
@@ -199,10 +194,9 @@ function ReceiptRow({ receipt, onRemove }: { receipt: ListedReceipt; onRemove: (
         <div className="mt-2 rounded-md bg-amber-50 p-3 text-sm text-gray-900">
           <p className="font-medium">Draft: check these details</p>
           <p className="mt-1 text-gray-800">We read them from your receipt. Nothing is saved until you say they are right.</p>
-          {confirm.isError && <p role="alert" className="mt-1 text-red-800">{confirm.error.message}</p>}
-          <button type="button" className={`${buttonClass} mt-2`} disabled={confirm.isPending} onClick={() => confirm.mutate()}>
-            These are right
-          </button>
+          <Link to={`/money-out/receipts/${receipt.id}`} className={`${buttonClass} mt-2`}>
+            Check these details
+          </Link>
         </div>
       )}
       <button type="button" aria-label={`Remove ${title}`} onClick={onRemove} className={`${buttonClass} mt-2`}>

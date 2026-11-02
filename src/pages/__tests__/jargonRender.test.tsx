@@ -28,6 +28,7 @@ const PAGE_ADDRESSES = [
   '/money-in/other?kind=income',
   '/money-out',
   '/money-out/receipts',
+  '/money-out/receipts/r1',
   '/bank',
   '/tax/income-tax',
   '/tax/reports',
@@ -63,7 +64,7 @@ const loadedBody = (url: string): unknown => {
   }
   if (url.startsWith('/api/bank/reconcile')) return { ok: true, lines: [{ id: 'l1', date: '2026-10-03', amountPence: -1250, description: 'Coffee supplies' }], proposals: [{ lineId: 'l1', entryId: 'e1', kind: 'exact' }] };
   if (url.startsWith('/api/settings/vat-number')) return { masked: null };
-  return { ok: true, entries: [row], invoices: [], accounts: [], templates: [], receipts: [], nextCursor: null };
+  return { ok: true, entries: [row], invoices: [], accounts: [], templates: [], receipts: [{ id: 'r1', fileName: 'cafe.jpg', mimeType: 'image/jpeg', sizeBytes: 1, uploadStatus: 'ready', createdAt: '2026-10-30T10:00:00Z', aiStatus: 'extracted', readUrl: null, details: { vendor: { value: 'Corner Cafe', confirmed: false, confidence: 400 }, totalPence: { value: '1250', confirmed: false, confidence: 900 }, category: { value: 'meals', confirmed: false, confidence: 800 } } }], nextCursor: null };
 };
 
 const STATES = {

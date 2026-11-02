@@ -7,6 +7,7 @@ import MoneyOutPage from './MoneyOutPage';
 
 vi.mock('./ExpensesPage', () => ({ default: () => <p>expenses content</p> }));
 vi.mock('./ReceiptsPage', () => ({ default: () => <p>receipts content</p> }));
+vi.mock('./ReceiptReview', () => ({ ReceiptReviewPage: () => <p>receipt review content</p> }));
 vi.mock('./MileageSection', () => ({ default: () => <p>mileage content</p> }));
 
 function renderAt(path: string) {
@@ -30,6 +31,7 @@ describe('MoneyOutPage', () => {
 
   it.each([
     ['/money-out/receipts', 'receipts content'],
+    ['/money-out/receipts/abc', 'receipt review content'],
     ['/money-out/mileage', 'mileage content'],
   ])('%s opens its own tab', (path, content) => {
     renderAt(path);

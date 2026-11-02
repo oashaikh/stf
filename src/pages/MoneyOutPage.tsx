@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import SectionTabs from '../components/SectionTabs';
 import ExpensesPage from './ExpensesPage';
 import MileageSection from './MileageSection';
+import { ReceiptReviewPage } from './ReceiptReview';
 import ReceiptsPage from './ReceiptsPage';
 
 const TABS = [
@@ -19,6 +20,7 @@ export default function MoneyOutPage() {
       <Routes>
         <Route index element={<ExpensesPage heading="Expenses" />} />
         <Route path="receipts" element={<ReceiptsPage />} />
+        <Route path="receipts/:receiptId" element={<ReceiptReviewPage />} />
         <Route path="mileage" element={<MileageSection />} />
       </Routes>
     </main>

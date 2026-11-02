@@ -133,7 +133,7 @@ Also depends on:
     - Lint, typecheck, test and build pass
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 8: Sandbox tests for every property endpoint and documentation** (after 1, 3, 4, 5)
+- [x] **Task 8: Sandbox tests for every property endpoint and documentation** (after 1, 3, 4, 5)
   - Intent: Done means src/lib/hmrc/sandbox.integration.test.ts calls each Property Business and obligations endpoint the app uses (list businesses, property obligations, cumulative PUT, any retrieve call used), with fraud headers and Gov-Test-Scenario where useful, skipped without sandbox credentials and pinned to sandbox mode, so HMRC sees them in its logs. Write docs/workflows/its-property-update.md covering mapping, pence-to-pounds, gate and failure states. Update docs/runbooks/hmrc-sandbox-integration.md and docs/security/input-inventory.md for the new routes. Check doc examples match the code.
   - Files: `src/lib/hmrc/sandbox.integration.test.ts`, `docs/workflows/its-property-update.md`, `docs/runbooks/hmrc-sandbox-integration.md`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -141,3 +141,4 @@ Also depends on:
     - Docs list every new route and column and match the code's field names
     - npm test passes without credentials; lint, typecheck and build pass
   - Risk: Sandbox tests cannot be run without credentials, so the first real run happens in CI or by the owner.
+  - Commit: `5073ddbc497f`

@@ -73,7 +73,7 @@ Also depends on:
   - Risk: STF-119 and STF-120 also edit VatPage.tsx; keep its diff narrow by moving UI into VatFlow.tsx.
   - Commit: `b95814578f8c`
 
-- [ ] **Task 3: Figures step: plain words, box number in small text, and 'Why is this amount?'** (after 2)
+- [x] **Task 3: Figures step: plain words, box number in small text, and 'Why is this amount?'** (after 2)
   - Intent: Replace the nine-row box table with a figures step listing each amount in plain words per the spec table, with the box number in small muted text. Drillable boxes (1,3,4,5,6,7) get 'Why is this amount?' revealing the payments behind it, reusing existing drill-down lines, expensesLink and truncation note. Always-zero boxes 2,8,9 are folded into small text. Money right-aligned, tabular, labelled rows at 390px.
   - Files: `src/pages/VatFlow.tsx`, `src/pages/VatFigures.tsx`, `src/pages/VatFigures.test.tsx`, `src/pages/VatPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -82,6 +82,7 @@ Also depends on:
     - Truncation note appears when lines < totals
     - No horizontal scroll at 390 or 1440
     - Tests for expand/collapse, empty, truncated, refund; typecheck, lint, test pass
+  - Commit: `92f9522a10ca`
 
 - [ ] **Task 4: Final step: one-sentence summary, declaration and Send to HMRC** (after 3)
   - Intent: Build the last step: plain sentence, key figures, declaration checkbox, 'Send to HMRC' button. Keep the gate exactly: declaration enables confirm (period lock), stale needs re-confirm, reviewState.canSubmit alone enables sending, confirm dialog with preview stays (reworded plain). Test mode labelled on step and dialog. Receipt, unknown-outcome warning and filed lock stay in plain words. Raw preview behind a small disclosure. Do not alter reviewState logic, only labels.

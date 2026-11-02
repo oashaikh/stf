@@ -7,6 +7,7 @@ import MoneyInPage from './pages/MoneyInPage.tsx';
 import MoneyOutPage from './pages/MoneyOutPage.tsx';
 import BankPage from './pages/BankPage.tsx';
 import TaxHubPage from './pages/TaxHubPage.tsx';
+import ItsUpdatePage from './pages/ItsUpdatePage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
 import AppShell from './components/AppShell.tsx';
 import StateMessage from './components/StateMessage.tsx';
@@ -54,6 +55,7 @@ function AuthGate() {
         <Route path="/money-out/*" element={<MoneyOutPage />} />
         <Route path="/bank" element={<BankPage />} />
         <Route path="/tax/*" element={<TaxHubPage />} />
+        <Route path="/tax/update/:taxYear/:quarter" element={<ItsUpdatePage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       {OLD_ADDRESSES.map(([from, to]) => (

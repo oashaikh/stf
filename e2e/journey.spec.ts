@@ -293,6 +293,47 @@ test('owner sees Income Tax obligations with the next due one marked, and last k
   await expect(page.getByRole('status').filter({ hasText: 'Showing last known dates' })).toBeVisible();
 });
 
+// Mock mode only: the guided quarterly update on its own screen, walked from the Tax page, as review evidence for STF-86.
+test('owner walks the guided quarterly update from the Tax page to the confirmation', async ({ page }) => {
+  test.skip(!mocked, 'Uses the mocked Income Tax update API (JOURNEY_MOCK=1)');
+  const evidenceDir = path.join('browser-evidence', 'STF-86');
+  mkdirSync(evidenceDir, { recursive: true });
+  await mockApi(page, ownerPassword!);
+  await page.goto('/');
+  await page.getByLabel('Password').fill(ownerPassword!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeVisible();
+
+  const capture = async (name: string) => {
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const hideFixedBars = await page.addStyleTag({ content: '.sticky, .fixed { display: none !important; }' });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await page.screenshot({ path: path.join(evidenceDir, `${name}-${width}-light.png`), fullPage: true });
+      await hideFixedBars.evaluate((node) => node.remove());
+    }
+  };
+
+  await page.goto('/tax/income-tax');
+  await expect(page.getByText('Loading mileage')).toHaveCount(0);
+  await capture('1-obligations');
+  await page.getByRole('link', { name: 'Send your update' }).click();
+  await expect(page).toHaveURL(/\/tax\/update\/2026-27\/2$/);
+  await expect(page.getByText('Step 1 of 3')).toBeVisible();
+  await capture('2-step1-income');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByText('Step 2 of 3')).toBeVisible();
+  await capture('3-step2-costs');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('checkbox').check();
+  await capture('4-step3-send');
+  await page.getByRole('button', { name: 'Send to HMRC' }).click();
+  await expect(page.getByText('HMRC has your update')).toBeVisible();
+  await capture('5-sent');
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page).toHaveURL(/\/tax\/income-tax$/);
+});
+
 const boxRow = (page: Page, box: number) => page.getByRole('row').filter({ has: page.getByRole('cell', { name: String(box), exact: true }) });
 
 async function captureEvidence(page: Page, name: string) {

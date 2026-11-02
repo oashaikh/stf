@@ -82,3 +82,7 @@
     - The runbook links the audit doc and the script by name
   - Risk: Documentation only.
   - Commit: `b48d5dd5b8a7`
+
+- [x] **Task 6: Fix: address 11 review findings (cycle 1)** (after 5)
+  - Intent: Review left 11 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens: the code paths trace correctly. Money is converted to pence, the adjustments route validates its input and checks the sandbox/live mode, and failures are The agent is fixing them; nothing is needed from you.
+  - Commit: `4d9cc0e9b28b`

@@ -117,3 +117,7 @@ Also depends on:
     - all figures are invented; no secrets in images
   - Risk: Dark mode may not ship in this app; if absent, say so in captions.md rather than faking it.
   - Commit: `c71a0db20f0e`
+
+- [x] **Task 8: Fix: address 20 review findings (cycle 1)** (after 7)
+  - Intent: Review left 20 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Send the Home "Upcoming VAT return" card's "Period 26A1" to a plain quarter label, and fix "Live HMRC submission" on Settings. The scanner, OfficialName component and rend The agent is fixing them; nothing is needed from you.
+  - Commit: `3ec816a7771a`

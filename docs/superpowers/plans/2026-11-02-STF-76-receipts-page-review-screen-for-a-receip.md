@@ -98,3 +98,7 @@ Also depends on:
     - npm run lint, typecheck, test and build all pass
   - Risk: Edits the existing Receipts page and routing, which the other receipt tickets also touch; keep hunks small so they merge cleanly.
   - Commit: `df80181bf5a9`
+
+- [x] **Task 5: Fix: address 12 review findings (cycle 1)** (after 4)
+  - Intent: Review left 12 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Two correctness defects: the "link to the new entry" opens only the expenses list, and an edited tax figure is silently replaced by a rounded VAT rate. Everything else I t The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

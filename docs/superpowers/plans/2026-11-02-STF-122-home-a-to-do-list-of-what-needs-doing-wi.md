@@ -45,7 +45,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Dashboard API: add counts of unsorted bank payments and receipts to check**
+- [x] **Task 1: Dashboard API: add counts of unsorted bank payments and receipts to check**
   - Intent: GET /api/dashboard also returns `unsortedBankCount` (bank_transactions with status 'unmatched', joined through bank_connections to the session user, connection not soft-deleted) and `receiptsToCheckCount` (the user's receipts with ai_status 'extracted', no transaction_id, deleted_at null). Each is one bounded count query inside the existing DashboardStore, run in the existing Promise.all, and added to the query-audit comment. No migration, so there is no clash with the 0022 to 0024 migrations other tickets are planning. If the receipts count needs an index, mark it with a `ponytail:` comment pointing at STF-74's receipts_user_created_idx rather than adding a migration. The store stays injectable and user-id scoping is tested with fakes. The mock `/api/dashboard` response in e2e gets the two new fields.
   - Files: `api/_lib/dashboard.ts`, `api/_lib/__tests__/dashboard.test.ts`, `e2e/mockApi.ts`
   - Acceptance criteria the planner set:
@@ -54,6 +54,7 @@ Also depends on:
     - A test with a fake store shows both counts are passed through, and that another user's rows are not counted
     - Existing dashboard tests, `npm run typecheck` and `npm test` pass
   - Risk: Default model and effort. Read-only count, but it must be scoped to the user; tenant-isolation tests are required.
+  - Commit: `73bc1e261da7`
 
 - [ ] **Task 2: Pure builder for the Home to-do list**
   - Intent: Add `src/lib/homeTodos.ts` with a pure function `buildHomeTodos(input, today)`. Inputs: open VAT obligations, open Income Tax obligations (ItsObligationRow), unsortedBankCount, receiptsToCheckCount, the bank consent state (existing consentState in bankApi), and an optional list of skipped setup steps. Each item has an id, plain-words title, optional due date, days-late figure for overdue items, button label and target route. Overdue items come first, most late first, saying how late ('3 days late'). The rest follow soonest first. Undated items (unsorted payments, receipts) go after dated ones. Bank expiry reads 'Your bank connection runs out in N days'. When the list is empty return the 'nothing due' state with the next upcoming date ('You're up to date. Your next VAT return is due 7 March.'). Use wording from docs/design/ease-of-use.md section 1 and the plain-words table. Targets: VAT to /tax/vat, Income Tax to /tax/update/:taxYear/:quarter, unsorted payments and expiring bank to /bank, receipts to /money-out/receipts. The setup-skipped input is a plain optional array so this task does not depend on STF-123.

@@ -1,0 +1,50 @@
+{
+  "finished-1-business-type-1440-light.png": {
+    "title": "The first setup question asks what kind of business you run, with the official name in small text"
+  },
+  "finished-1-business-type-390-light.png": {
+    "title": "The first setup question asks what kind of business you run, with the official name in small text"
+  },
+  "finished-2-vat-1440-light.png": {
+    "title": "The second setup question asks whether you are registered for VAT and, if so, for your VAT number"
+  },
+  "finished-2-vat-390-light.png": {
+    "title": "The second setup question asks whether you are registered for VAT and, if so, for your VAT number"
+  },
+  "finished-3-hmrc-1440-light.png": {
+    "title": "The third setup step offers to connect to HMRC and says plainly that this is test mode"
+  },
+  "finished-3-hmrc-390-light.png": {
+    "title": "The third setup step offers to connect to HMRC and says plainly that this is test mode"
+  },
+  "finished-4-bank-1440-light.png": {
+    "title": "The last setup step offers to connect your bank so payments come in without typing"
+  },
+  "finished-4-bank-390-light.png": {
+    "title": "The last setup step offers to connect your bank so payments come in without typing"
+  },
+  "finished-5-all-set-1440-light.png": {
+    "title": "Setup ends with a short \"You are all set\" screen and one button to Home"
+  },
+  "finished-5-all-set-390-light.png": {
+    "title": "Setup ends with a short \"You are all set\" screen and one button to Home"
+  },
+  "finished-6-home-1440-light.png": {
+    "title": "Home after finishing setup has no setup to-dos left"
+  },
+  "finished-6-home-390-light.png": {
+    "title": "Home after finishing setup has no setup to-dos left"
+  },
+  "skipped-1-all-set-1440-light.png": {
+    "title": "Setup ends the same way when every step was skipped, and says skipped steps wait on Home"
+  },
+  "skipped-1-all-set-390-light.png": {
+    "title": "Setup ends the same way when every step was skipped, and says skipped steps wait on Home"
+  },
+  "skipped-2-home-with-to-dos-1440-light.png": {
+    "title": "Home after skipping setup lists each skipped step as a to-do with a button to do it now"
+  },
+  "skipped-2-home-with-to-dos-390-light.png": {
+    "title": "Home after skipping setup lists each skipped step as a to-do with a button to do it now"
+  }
+}

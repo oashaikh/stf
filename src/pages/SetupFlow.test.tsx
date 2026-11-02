@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SetupFacts } from '../lib/setupFlow';
-import SetupFlow, { SETUP_RETURN_KEY } from './SetupFlow';
+import SetupFlow, { ReturnToSetup, SETUP_RETURN_KEY } from './SetupFlow';
 
 const setupApi = vi.hoisted(() => ({ fetchSetupFacts: vi.fn(), saveSetupAnswers: vi.fn() }));
 const hmrcApi = vi.hoisted(() => ({ saveVatNumber: vi.fn(), fetchHmrcConnectUrl: vi.fn() }));
@@ -218,5 +218,15 @@ describe('load failure', () => {
     renderFlow();
     const message = await screen.findByRole('alert');
     expect(within(message).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+});
+
+describe('ReturnToSetup', () => {
+  afterEach(() => sessionStorage.clear());
+
+  it('clears the marker when the callback lands on /setup itself, so a later visit to Home is not bounced back', () => {
+    sessionStorage.setItem(SETUP_RETURN_KEY, '1');
+    render(<MemoryRouter initialEntries={['/setup']}><ReturnToSetup /></MemoryRouter>);
+    expect(sessionStorage.getItem(SETUP_RETURN_KEY)).toBeNull();
   });
 });

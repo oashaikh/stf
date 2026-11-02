@@ -22,11 +22,10 @@ const BUSINESS_TYPES: { value: BusinessType; label: string; officialName: string
 /** Sends the user back to /setup after HMRC or the bank returns them to another page. */
 export function ReturnToSetup() {
   const { pathname } = useLocation();
-  if (pathname !== '/setup' && sessionStorage.getItem(SETUP_RETURN_KEY)) {
-    sessionStorage.removeItem(SETUP_RETURN_KEY);
-    return <Navigate to="/setup" replace />;
-  }
-  return null;
+  if (!sessionStorage.getItem(SETUP_RETURN_KEY)) return null;
+  // Cleared on /setup too, or the bank's callback landing there would send a later visit to Home straight back.
+  sessionStorage.removeItem(SETUP_RETURN_KEY);
+  return pathname === '/setup' ? null : <Navigate to="/setup" replace />;
 }
 
 function Choice({ name, checked, onChange, children }: { name: string; checked: boolean; onChange: () => void; children: ReactNode }) {

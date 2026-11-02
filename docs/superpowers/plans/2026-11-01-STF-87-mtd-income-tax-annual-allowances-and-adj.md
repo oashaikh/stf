@@ -65,7 +65,7 @@ Also depends on:
     - npm test, lint and typecheck pass
   - Commit: `da1c3381c94b`
 
-- [ ] **Task 2: HMRC client call for the annual submission, with sandbox test** (after 1)
+- [x] **Task 2: HMRC client call for the annual submission, with sandbox test** (after 1)
   - Intent: Add submitAnnualSubmission to src/lib/hmrc/client.ts: PUT /individuals/business/self-employment/{nino}/{businessId}/annual/{taxYear} through hmrcFetch with fraud headers and the existing Accept version, next to submitCumulativePeriodSummary, with the same 'only call after confirmation' doc comment. Add a path helper and unit tests with a fake fetch. Add a describe.skipIf sandbox integration test, skipped when HMRC_CLIENT_ID, HMRC_SANDBOX_NINO or HMRC_SANDBOX_REFRESH_TOKEN are unset, always sandbox mode. Add a comment to recheck endpoint and field names against current HMRC docs.
   - Files: `src/lib/hmrc/client.ts`, `src/lib/hmrc/client.test.ts`, `src/lib/hmrc/sandbox.integration.test.ts`
   - Acceptance criteria the planner set:
@@ -73,6 +73,7 @@ Also depends on:
     - The integration test is skipped, not failed, without credentials
     - No live network call in the default test run
     - npm test passes
+  - Commit: `227271766927`
 
 - [ ] **Task 3: Table and migration to lock and audit annual submissions**
   - Intent: Add an its_annual_submissions table to server/src/db/schema.ts, modelled on its_submissions but keyed on (user_id, tax_year, sandbox) with no quarter. Columns: status confirmed/pending/submitted/rejected, confirmed_payload, confirmed_at, submitted_at. Add migration 0023_its_annual_submissions.sql (0022 is claimed by STF-74), the _journal.json entry with a unique tag, and snapshot; single migration head. Grant the new table to the app role. Update schema.test.ts. Records are never hard-deleted.

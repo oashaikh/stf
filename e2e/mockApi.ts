@@ -58,7 +58,8 @@ function vatReturn(entries: SavedEntry[]) {
   }));
   const drillDown = { box1: lines, box2: [], box3: [], box4: [], box5: [], box6: lines, box7: [], box8: [], box9: [] };
   const drillDownTotals = { ...boxes, box1: lines.length, box6: lines.length };
-  return { boxes, drillDown, drillDownTotals, entryCount: entries.length };
+  return { boxes, drillDown, drillDownTotals, // The fixed base figures stand for two ledger entries, so the count agrees with the boxes.
+  entryCount: entries.length + 2 };
 }
 
 // The server sends the preview in pounds.

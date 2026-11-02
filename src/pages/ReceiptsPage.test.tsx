@@ -24,6 +24,7 @@ vi.mock('../lib/receiptsApi', async (importOriginal) => ({
 }));
 
 const photo: ListedReceipt = {
+  duplicateOfId: null,
   id: '11111111-1111-4111-8111-111111111111',
   fileName: 'cafe-lunch.jpg',
   mimeType: 'image/jpeg',
@@ -153,6 +154,20 @@ describe('receipts list', () => {
     expect(await screen.findByText('train-ticket.pdf')).toBeTruthy();
     expect(fetchReceipts).toHaveBeenLastCalledWith('c1');
     expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+  });
+});
+
+describe('repeat file warning', () => {
+  it('shows a notice on a repeat receipt and stays dismissed after remount', async () => {
+    vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [{ ...photo, duplicateOfId: 'earlier' }], nextCursor: null });
+    const view = renderPage();
+    expect(await screen.findByText(/same file as a receipt you already added/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByText(/same file as a receipt/i)).toBeNull();
+    view.unmount();
+    renderPage();
+    await screen.findByText('Corner Cafe');
+    expect(screen.queryByText(/same file as a receipt/i)).toBeNull();
   });
 });
 

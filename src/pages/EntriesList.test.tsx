@@ -26,6 +26,7 @@ describe('EntriesList', () => {
 
   beforeEach(() => {
     entryUrls = [];
+    localStorage.clear();
     writes = [];
     writeReply = null;
     HTMLDialogElement.prototype.showModal = function showModal() { this.setAttribute('open', ''); };
@@ -73,6 +74,17 @@ describe('EntriesList', () => {
     expect(screen.getAllByText('Travel').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Draft')).toHaveLength(2); // the badge and the status option
     expect(screen.getAllByRole('img', { name: 'Receipt attached' })).toHaveLength(1);
+  });
+
+  it('warns on both rows of a matching pair and on no others, and remembers a dismissal', async () => {
+    pages[''] = { entries: [entry('e1', { reference: 'Rail Co' }), entry('e2', { reference: 'Rail Co', date: '2026-05-02' }), entry('e3')], nextCursor: null };
+    await renderList();
+    expect(screen.getAllByRole('status')).toHaveLength(2);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Dismiss' })[0]);
+    expect(screen.queryAllByRole('status')).toHaveLength(0);
+    cleanup();
+    await renderList();
+    expect(screen.queryAllByRole('status')).toHaveLength(0);
   });
 
   it('highlights the entry named in the link and leaves the others plain', async () => {

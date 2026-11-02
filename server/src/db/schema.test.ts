@@ -229,6 +229,14 @@ describe("schema migrations", () => {
     );
   });
 
+  it("adds the receipt file hash, duplicate pointer and their index in migration 0034", () => {
+    const sql = readFileSync(new URL("./migrations/0034_receipt_file_hash.sql", import.meta.url), "utf8");
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS "file_hash" text/);
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS "duplicate_of_receipt_id" uuid/);
+    expect(sql).toMatch(/CREATE INDEX IF NOT EXISTS "receipts_user_file_hash_idx" ON "receipts" \("user_id","file_hash"\)/);
+    expect(getTableConfig(receipts).indexes.map((index) => index.config.name)).toContain("receipts_user_file_hash_idx");
+  });
+
   it("indexes receipts by (user_id, created_at, id) for the newest-first list", () => {
     const sql = readFileSync(new URL("./migrations/0028_receipts_user_created_idx.sql", import.meta.url), "utf8");
     expect(sql).toMatch(
@@ -409,7 +417,7 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0033_its_annual_business_kind");
+    expect(tags.at(-1)).toBe("0034_receipt_file_hash");
   });
 });
 

@@ -28,7 +28,7 @@ const MS_PER_DAY = 86_400_000;
 const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 // Both dates are plain calendar dates, so UTC parsing keeps the day count exact.
-function daysApart(dateA: string, dateB: string): number {
+export function daysApart(dateA: string, dateB: string): number {
   return Math.abs(Date.parse(dateA) - Date.parse(dateB)) / MS_PER_DAY;
 }
 

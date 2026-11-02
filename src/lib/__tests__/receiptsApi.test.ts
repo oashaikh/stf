@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { confirmReceiptDraft, discardReceiptDraft, confirmReceiptUpload, readReceiptDetails, fetchReceipts, LOW_CONFIDENCE_THOUSANDTHS, removeReceipt, startReceiptUpload, uploadToSignedUrl, validateReceiptFile } from '../receiptsApi';
 
 const respond = (status: number, body: unknown) => vi.fn().mockImplementation(async () => new Response(JSON.stringify(body), { status }));
-const fileOf = (type: string, size: number, name = 'r.jpg') => ({ name, type, size }) as File;
+const fileOf = (type: string, size: number, name = 'r.jpg') => ({ name, type, size, arrayBuffer: async () => new TextEncoder().encode('abc').buffer }) as unknown as File;
+const ABC_SHA256 = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -39,7 +40,7 @@ describe('startReceiptUpload', () => {
     vi.stubGlobal('fetch', fetchMock);
     const result = await startReceiptUpload(fileOf('image/png', 5, 'a.png'));
     expect(fetchMock.mock.calls[0][0]).toBe('/api/receipts');
-    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify({ fileName: 'a.png', mimeType: 'image/png', sizeBytes: 5 }) });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST', body: JSON.stringify({ fileName: 'a.png', mimeType: 'image/png', sizeBytes: 5, fileHash: ABC_SHA256 }) });
     expect(result).toEqual({ receipt: { id: 'r1' }, uploadUrl: 'https://s/u' });
   });
   it('surfaces the server refusal message', async () => {

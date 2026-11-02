@@ -24,12 +24,14 @@ describe('ExpensesPage add entry form', () => {
     entries = [];
     posts = [];
     refusal = null;
+    localStorage.clear();
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string, init: RequestInit = {}) => {
         if (url.startsWith('/api/accounts')) return reply({ ok: true, accounts });
         if (url.startsWith('/api/recurring-entries')) return reply({ ok: true, templates: [] });
         if (url === '/api/settings/vat-number') return reply({ ok: true, masked });
+        if (url === '/api/vat/obligations') return reply({ obligations: [] });
         if (init.method === 'POST') {
           if (refusal) return reply({ ok: false, ...refusal }, 400);
           const body = JSON.parse(init.body as string);
@@ -70,6 +72,53 @@ describe('ExpensesPage add entry form', () => {
     type('Amount in pounds', '120');
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'a2' } });
   };
+
+  describe('possible duplicate warning', () => {
+    const earlier: ApiEntry = { id: 'e0', date: '2026-05-02', description: 'Train to client', reference: null, status: 'confirmed', kind: 'expense', grossPence: 12000, categoryAccountId: 'a2', categoryName: 'Travel', netPence: 12000, vatPence: 0, hasReceipt: false };
+    const fillMatching = () => {
+      fillValid();
+      type('Date', '2026-05-01');
+    };
+
+    it('warns about a matching entry and saves the same request as without the warning', async () => {
+      await openForm();
+      fillMatching();
+      fireEvent.click(screen.getByRole('button', { name: 'Save as draft' }));
+      await waitFor(() => expect(posts).toHaveLength(1));
+      cleanup();
+
+      entries = [earlier];
+      await openForm();
+      fillMatching();
+      expect(await screen.findByRole('status')).toHaveTextContent('Train to client');
+      fireEvent.click(screen.getByRole('button', { name: 'Save as draft' }));
+      await waitFor(() => expect(posts).toHaveLength(2));
+      expect(posts[1]).toEqual(posts[0]);
+    });
+
+    it('stays quiet when the amount differs', async () => {
+      entries = [{ ...earlier, grossPence: 5000 }];
+      await openForm();
+      fillMatching();
+      await waitFor(() => expect(screen.getByLabelText('Date')).toHaveValue('2026-05-01'));
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('keeps a dismissed warning hidden after the form is opened again', async () => {
+      entries = [earlier];
+      await openForm();
+      fillMatching();
+      fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      cleanup();
+
+      await openForm();
+      fillMatching();
+      await waitFor(() => expect(screen.getByLabelText('Date')).toHaveValue('2026-05-01'));
+      await waitFor(() => expect(client.isFetching()).toBe(0));
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+  });
 
   it('hides the VAT rate without a VAT number and shows it with one', async () => {
     await openForm();
@@ -192,6 +241,7 @@ describe('ExpensesPage edit entry', () => {
         if (url.startsWith('/api/accounts')) return reply({ ok: true, accounts });
         if (url.startsWith('/api/recurring-entries')) return reply({ ok: true, templates: [] });
         if (url === '/api/settings/vat-number') return reply({ ok: true, masked: null });
+        if (url === '/api/vat/obligations') return reply({ obligations: [] });
         if (init.method === 'PUT') {
           if (locked) return reply({ ok: false, code: 'PERIOD_LOCKED', error: 'locked' }, 409);
           const body = JSON.parse(init.body as string);
@@ -243,6 +293,12 @@ describe('ExpensesPage edit entry', () => {
     expect(puts[0].body).toMatchObject({ amountPence: 130000, amountIs: 'gross', vatRatePercent: 20, status: 'confirmed' });
     expect(await screen.findByText('Laptop and case', { selector: 'li *' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
+  });
+
+  it('does not warn that an entry being edited duplicates itself', async () => {
+    await openEdit();
+    await waitFor(() => expect(screen.getByLabelText('Description')).toHaveValue('Laptop'));
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
   });
 
   it('returns to the list on Cancel without sending anything', async () => {

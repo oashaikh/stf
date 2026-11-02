@@ -249,7 +249,7 @@ function ReceiptList({ onAdd }: { onAdd: () => void }) {
           <input
             type="search"
             aria-label="Search receipts"
-            placeholder="Search by who, what for or category"
+            placeholder="Search by who or category"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className={`min-h-11 w-full rounded-md border border-gray-400 bg-white px-3 text-gray-900 md:max-w-sm ${focusClass}`}

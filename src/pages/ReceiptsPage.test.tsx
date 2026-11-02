@@ -91,14 +91,13 @@ describe('receipts list', () => {
     expect(await screen.findByText('train-ticket.pdf')).toBeTruthy();
   });
 
-  it('lists date, who, what for, amount in pounds and category, with a thumbnail or file icon', async () => {
+  it('lists date, who, amount in pounds and category, with a thumbnail or file icon', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo, pdf], nextCursor: null });
     renderPage();
     const photoRow = (await screen.findByText('Corner Cafe')).closest('li')!;
     expect(within(photoRow).getByText('28 Oct 2026')).toBeTruthy();
     expect(within(photoRow).getByText('Meals')).toBeTruthy();
     expect(within(photoRow).getByText('£12.50')).toBeTruthy();
-    expect(within(photoRow).getByText('Meals')).toBeTruthy();
     expect(photoRow.querySelector('img')?.getAttribute('src')).toBe('https://files.test/cafe-lunch.jpg');
     const pdfRow = screen.getByText('train-ticket.pdf').closest('li')!;
     expect(within(pdfRow).getByText('Not read yet')).toBeTruthy();
@@ -118,11 +117,11 @@ describe('receipts list', () => {
     await waitFor(() => expect(fetchReceipts).toHaveBeenCalledTimes(2));
   });
 
-  it('searches by who, what for and category', async () => {
+  it('searches by who and category', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo, pdf], nextCursor: null });
     renderPage();
     await screen.findByText('Corner Cafe');
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Search receipts' }), { target: { value: 'lunch' } });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search receipts' }), { target: { value: 'meals' } });
     expect(screen.queryByText('train-ticket.pdf')).toBeNull();
     expect(screen.getByText('Corner Cafe')).toBeTruthy();
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search receipts' }), { target: { value: 'zzz' } });

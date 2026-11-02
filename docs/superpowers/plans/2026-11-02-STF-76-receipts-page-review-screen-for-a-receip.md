@@ -60,7 +60,7 @@ Also depends on:
   - Risk: Touches the shared list function used by the existing Receipts page; the ReceiptDetails type change must not break readReceiptDetails or ReceiptsPage.test.tsx.
   - Commit: `1d49bd86e865`
 
-- [ ] **Task 2: Client calls for confirming a draft with edits and discarding it** (after 1)
+- [x] **Task 2: Client calls for confirming a draft with edits and discarding it** (after 1)
   - Intent: First check whether STF-75 (NEW-13, confirm a receipt draft with the owner's edited values and create the entry) is on main. The repo today has only PUT /api/receipts, which marks the AI values confirmed unedited, and DELETE, which soft-deletes. If the STF-75 endpoint exists, add typed wrappers in src/lib/receiptsApi.ts: confirmReceiptDraft(id, edited fields, amount as integer pence) returning the new entry id, and discardReceiptDraft(id) (the existing DELETE soft-delete). If the endpoint does NOT exist, stop and ask in the ticket conversation; do not invent a server contract or write entry-creation logic here. Reuse refusalMessage and the EntryRefusedError pattern. Add tests with fetch mocked.
   - Files: `src/lib/receiptsApi.ts`, `src/lib/__tests__/receiptsApi.test.ts`
   - Acceptance criteria the planner set:
@@ -70,6 +70,7 @@ Also depends on:
     - Unit tests with mocked fetch cover both calls and a refusal
     - npm run lint, typecheck and test pass
   - Risk: Blocked on STF-75 not being in this tree. Wrong guess at the contract would ship a broken confirm.
+  - Commit: `211277f7ec2f`
 
 - [ ] **Task 3: Build the receipt review screen component** (after 2)
   - Intent: New ReceiptReview component: receipt image or PDF beside the suggested fields (stacked on phones at 390 px). Use readUrl: img for images, an embedded viewer or open-link fallback for PDFs. Each field (date, who it was from, total including tax, tax paid, category) is an editable input with a confidence marker that uses text as well as colour (e.g. 'Sure' or 'Check this one'). Fields under LOW_CONFIDENCE_THOUSANDTHS are highlighted. Category is a select of the owner's active expense accounts (reuse fetchAccounts(false) filtered to type expense). Money is shown with formatPence and parsed with parsePence, as integer pence. Copy says plainly these are suggestions to check, with plain words per docs/design/ease-of-use.md (official names only in small muted text via OfficialName). Buttons: 'Confirm' (calls confirmReceiptDraft with the edited values, then shows a link to the new entry) and 'Discard' (asks for confirmation naming what it removes, then discardReceiptDraft). Use the shared StateMessage for loading, empty and error states, the page container, type-scale and colour tokens, 44 px targets and visible focus. Component tests (API mocked): low-confidence field is highlighted and high is not; an edited value, not the original suggestion, is what gets sent; discard path asks first and calls discard; confirm shows the entry link; a refusal is shown beside the fix.

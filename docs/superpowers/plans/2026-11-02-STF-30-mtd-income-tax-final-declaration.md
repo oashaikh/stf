@@ -84,7 +84,7 @@ Also depends on:
   - Risk: Schema and migration work; the journal/snapshot can conflict with STF-38 and STF-74, which also edit it.
   - Commit: `72c3fabc3d9d`
 
-- [ ] **Task 4: Server: preview, tick-to-confirm and submit routes for the final declaration** (after 1, 2, 3)
+- [x] **Task 4: Server: preview, tick-to-confirm and submit routes for the final declaration** (after 1, 2, 3)
   - Intent: Add api/_lib/itsFinalDeclaration.ts and three routes mirroring itsAnnualSubmit (api/hmrc/its-final-preview.ts, its-final-confirm.ts, its-final-submit.ts). Preview triggers and fetches HMRC's calculation through the client from task 1 and returns it with STF's estimate and the comparison. The HMRC calls happen outside any DB transaction. Confirm requires declaration: true and stores the calculation, then writes an audit event, and refuses without the tick. Submit requires confirm: true and a stored confirmation, claims the row atomically (the idempotency lock), then sends the final declaration for the stored calculation id. Submit also records its audit event, and the sandbox/live switch comes from the same helper STF-87 uses, so live needs HMRC_SANDBOX_MODE=false plus the Settings opt-in. Add route tests for the gate (no tick gives 400/refusal and no audit row; a second user's request is refused; a repeat submit does not call HMRC twice; a live attempt without the double switch is blocked) and unit tests for the lib. Add an entry to docs/security/input-inventory.md.
   - Files: `api/_lib/itsFinalDeclaration.ts`, `api/_lib/__tests__/itsFinalDeclaration.test.ts`, `api/_lib/__tests__/itsFinalDeclarationRoute.test.ts`, `api/hmrc/its-final-preview.ts`, `api/hmrc/its-final-confirm.ts`, `api/hmrc/its-final-submit.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -97,6 +97,7 @@ Also depends on:
     - Logs and errors carry no NINO or token.
     - npm run typecheck and npm test pass.
   - Risk: HMRC submission, authorisation and idempotency work, so Opus at high.
+  - Commit: `6da552ccca29`
 
 - [ ] **Task 5: Final declaration guided flow, API wrappers and routing** (after 4)
   - Intent: Add src/lib/itsFinalApi.ts (wrappers like itsAnnualApi.ts) and a guided step-by-step page, FinalDeclarationFlow, mounted at /tax/final-declaration/:taxYear following ease-of-use.md and the YearEndFlow pattern. Step 1: HMRC's figures for income tax, National Insurance and total next to STF's estimate, with a plain-words call-out of any difference and what it means (e.g. other income STF doesn't hold). Step 2: the owner ticks HMRC's wording, the Send button is disabled until then, and the server is the real gate. Step 3: done, with the sandbox badge when in sandbox mode. Use plain words, with official names in small muted OfficialName text, shared StateMessage for loading/error/empty, 44px targets, and the shared design tokens. Add the jargon test coverage as other screens do. The route goes in App.tsx and App.test.tsx.

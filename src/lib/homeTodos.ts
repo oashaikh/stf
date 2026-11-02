@@ -87,6 +87,16 @@ export function buildHomeTodos(input: HomeTodoInput, today: Date): HomeTodos {
     );
   }
 
+  if (input.bank?.state === 'expired') {
+    dated.push({
+      id: 'bank-expired',
+      title: 'Your bank connection has run out',
+      dueDate: input.bank.expiresAt.slice(0, 10),
+      daysLate: Math.max(0, todayNumber - dayNumber(input.bank.expiresAt)),
+      buttonLabel: 'Reconnect bank',
+      route: '/bank',
+    });
+  }
   if (input.bank?.state === 'expiring') {
     const daysLeft = Math.max(0, Math.ceil((Date.parse(input.bank.expiresAt) - today.getTime()) / DAY_MS));
     dated.push({

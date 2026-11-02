@@ -51,6 +51,15 @@ describe('buildHomeTodos', () => {
     ]);
   });
 
+  it('puts an expired bank connection first, as overdue, and never says up to date', () => {
+    const result = buildHomeTodos(
+      input({ vatObligations: [vat('2026-11-20')], bank: { state: 'expired', expiresAt: '2026-10-30T10:00:00Z' } }),
+      today,
+    );
+    expect(result.upToDate).toBeNull();
+    expect(result.items[0]).toMatchObject({ title: 'Your bank connection has run out', buttonLabel: 'Reconnect bank', route: '/bank', daysLate: 3 });
+  });
+
   it('shows the bank connection item when expiring but not when active', () => {
     const expiring = buildHomeTodos(input({ bank: { state: 'expiring', expiresAt: '2026-11-08T10:00:00Z' } }), today);
     expect(expiring.items).toHaveLength(1);

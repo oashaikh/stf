@@ -74,7 +74,7 @@ export default function DashboardPage() {
       <section aria-labelledby="todo-heading" className="mt-6">
         <h2 id="todo-heading" className="text-lg font-medium text-gray-900">What needs doing</h2>
         {todos === null && <StateMessage kind="loading">Loading…</StateMessage>}
-        {todos?.upToDate && <StateMessage kind="empty">{todos.upToDate}</StateMessage>}
+        {todos?.upToDate && failures.length === 0 && <StateMessage kind="empty">{todos.upToDate}</StateMessage>}
         {todos && todos.items.length > 0 && (
           <ul aria-label="To-do list" className="mt-2 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
             {todos.items.map((item) => (

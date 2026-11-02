@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -13,6 +14,7 @@ import { formatDate } from "../lib/dates";
 import {
   createEntry,
   editEntry,
+  fetchEntriesAround,
   EntryRefusedError,
   PeriodLockedError,
   ENTRIES_QUERY_KEY,
@@ -23,6 +25,8 @@ import {
 import { entryFigures, parseEntryAmount, vatRateOf } from "../lib/entryForm";
 import { formatPence } from "../lib/money";
 import type { VatRate } from "../lib/vat";
+import DuplicateNotice from "../components/DuplicateNotice";
+import { useDuplicateFlags } from "../lib/useDuplicateFlags";
 import EntriesList from "./EntriesList";
 import RecurringEntriesSection from "./RecurringEntriesSection";
 import { LockedMessage } from "./EntryActions";
@@ -156,6 +160,26 @@ function AddEntryForm({
     "pence" in parsedAmount
       ? entryFigures(parsedAmount.pence, amountIs, showVat ? vatRate : 0)
       : null;
+
+  const grossPence = figures?.grossPence;
+  const supplier = reference.trim() || description.trim();
+  const neighbours = useQuery({
+    queryKey: [...ENTRIES_QUERY_KEY, "around", kind, date],
+    queryFn: () => fetchEntriesAround(date, kind, 3),
+    enabled: Boolean(date && supplier && grossPence !== undefined),
+  });
+  const candidates = useMemo(
+    () => [
+      ...(grossPence !== undefined && supplier
+        ? [{ id: "new", date, grossPence, reference: supplier, description: supplier }]
+        : []),
+      ...(neighbours.data?.entries ?? [])
+        .filter((other) => other.id !== entry?.id)
+        .map((other) => ({ ...other, reference: other.reference ?? "" })),
+    ],
+    [grossPence, supplier, date, neighbours.data, entry?.id],
+  );
+  const duplicates = useDuplicateFlags(candidates);
 
   const save = useMutation({
     mutationFn: (request: NewEntryRequest) =>
@@ -404,6 +428,15 @@ function AddEntryForm({
           {errors.form}
         </p>
       )}
+
+      {duplicates.flags.map((flag) => {
+        const other = neighbours.data?.entries.find((candidate) => flag.entryIds.includes(candidate.id));
+        return (
+          <DuplicateNotice key={flag.key} className="md:col-span-2" onDismiss={() => duplicates.dismiss(flag)}>
+            This looks like {other?.description} on {other && formatDate(other.date)} for {other && formatPence(other.grossPence)}, which you already added. Is it a repeat? You can still save it.
+          </DuplicateNotice>
+        );
+      })}
 
       <div className="flex flex-wrap gap-3 md:col-span-2">
         <button

@@ -31,6 +31,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/mileage.ts` | GET, POST, PATCH, DELETE | Mileage |
 | `api/receipts.ts` | GET, POST, PATCH, PUT, DELETE | Receipts |
 | `api/receipt-extract.ts` | POST | Receipts |
+| `api/receipt-confirm.ts` | POST, DELETE | Receipts |
 | `api/recurring-entries.ts` | GET, POST, PATCH, DELETE | Recurring entries |
 | `api/dashboard.ts` | GET | Reports and export (no input) |
 | `api/profit-and-loss.ts` | GET | Reports and export |
@@ -175,6 +176,8 @@ Text fields have a length cap and reject control characters (`plainText`; notes 
 | `limit` | GET query | integer from 1, capped at 25; default 25 | `receiptListQuerySchema`, `api/_lib/receipts.ts` |
 | `cursor` | GET query | max 200 chars; must decode to an ISO `createdAt` and a uuid `id`, else 400; the list is always scoped to the session user | `decodeReceiptCursor` |
 | `id` (extraction) | `api/receipt-extract.ts` POST body | uuid regex; receipt must be the session user's, ready and not deleted, else 404 | `validateReceiptId`, `findReady` |
+| receipt confirm fields | `api/receipt-confirm.ts` POST body | zod: uuid id and category, ISO date, plain-text supplier (60) and description (200), integer gross pence up to the entry maximum, VAT rate 0, 5 or 20; strict category, date and period-lock rules as for a hand-entered expense; receipt must be the session user's and read, else 404 or 409 | `confirmReceiptSchema`, `buildEntry` |
+| `id` (discard) | `api/receipt-confirm.ts` DELETE body | uuid regex; receipt must be the session user's and not yet an expense, else 404 or 409 | `validateReceiptId`, `skip` |
 | uploaded object | PUT to signed URL | signed for the declared type and length; PATCH compares stored size and type with the declaration and marks the row failed on a mismatch | `api/receipts.ts` |
 
 ## Recurring entries

@@ -49,7 +49,7 @@
   - Risk: client.ts is shared with STF-110, so hunks must stay small and non-overlapping.
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 3: Build any user-facing gaps, following the ease-of-use spec** (after 1)
+- [x] **Task 3: Build any user-facing gaps, following the ease-of-use spec** (after 1)
   - Files: `docs/hmrc/mtd-itsa-minimum-functionality.md`, `docs/screenshots/`
   - Acceptance criteria the planner set:
     - Each user-facing gap is met, or has a ticket-conversation question recorded in the audit doc
@@ -57,6 +57,7 @@
     - Screenshots exist for each changed screen
     - VAT screens are unchanged
   - Risk: Screen files are unknown until task 1; the implementer must add them here and stay clear of YearEndFlow.tsx and FinalDeclarationFlow.tsx (STF-110).
+  - Commit: `a862819b09cd`
 
 - [ ] **Task 4: Scripted, repeatable end-to-end HMRC sandbox evidence run** (after 2)
   - Intent: Add scripts/hmrcSandboxEvidence.ts run via a new npm script hmrc:evidence. It (1) refuses to run unless HMRC_SANDBOX_MODE is not 'false' and the base is test-api; (2) creates HMRC test users via the Create Test User API: an organisation with VAT (MTD) and an individual with MTD Income Tax, self-employment and UK property; (3) calls every endpoint STF uses through client.ts: VAT obligations, return submission and retrieval, ITS business details, obligations, self-employment and property cumulative updates, annual submissions, tax calculation trigger and get, final declaration; (4) validates fraud prevention headers against HMRC's test validator; (5) writes docs/hmrc/evidence/hmrc-sandbox-run-<date>.md with run date, test user ids (no passwords, tokens or full NINO), endpoints and results. Put pure step list and note rendering in src/lib/hmrc/evidenceRun.ts with unit tests on a faked fetch. The OAuth grant is a browser step, so with no refresh token the script prints instructions and exits non-zero. VAT functions are called read-only/as-is, not changed.

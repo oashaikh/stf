@@ -82,13 +82,14 @@ Also depends on:
   - Risk: STF-119 and STF-87 both edit TaxPage; keep changes to strings.
   - Commit: `6794259ad667`
 
-- [ ] **Task 4: Plain words on Expenses and Invoices** (after 1)
+- [x] **Task 4: Plain words on Expenses and Invoices** (after 1)
   - Intent: Rewrite visible text in ExpensesPage, EntriesList, EntryActions, InvoicesPage, InvoiceEditor and RecurringEntriesSection so no banned word shows (e.g. posting, journal, nominal code, category wording, sync, raw API errors). Errors say what happened, whether money is affected, and the next step. Wording only; layout and behaviour unchanged. Update matching tests, including hostileTextRender expectations only if they assert on old wording.
   - Files: `src/pages/ExpensesPage.tsx`, `src/pages/ExpensesPage.test.tsx`, `src/pages/EntriesList.tsx`, `src/pages/EntriesList.test.tsx`, `src/pages/EntryActions.tsx`, `src/pages/InvoicesPage.tsx`, `src/pages/InvoicesPage.test.tsx`, `src/pages/InvoiceEditor.tsx`, `src/pages/RecurringEntriesSection.tsx`, `src/pages/RecurringEntriesSection.test.tsx`
   - Acceptance criteria the planner set:
     - scanner finds no banned words in rendered Expenses, Invoices, editor and recurring sections including error and empty states
     - tests updated and passing; lint, typecheck, build pass
   - Risk: STF-119 edits several of these files; text-only hunks. Memory notes flaky vat-obligations query mocks in Invoices/Expenses tests; keep mocks returning defined data.
+  - Commit: `e2b39607c953`
 
 - [ ] **Task 5: Plain words on Settings and its sections** (after 1)
   - Intent: Rewrite visible text in SettingsPage, AuthenticatorSection, BusinessProfileSection, ChartOfAccountsSection (shown as categories, never 'chart of accounts'), TaxIdentifiersSection and BankSection (replace token/sync/reconcile wording with connect/update/match). Keep HMRC sandbox/opt-in behaviour untouched. Wording only. Update matching tests.

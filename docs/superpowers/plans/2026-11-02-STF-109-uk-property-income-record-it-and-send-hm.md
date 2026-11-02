@@ -122,7 +122,7 @@ Also depends on:
   - Risk: Design doc does not say where the property switch lives; assumed the Tax page. If unclear, ask in the ticket rather than guess.
   - Commit: `f23bc40628d6`
 
-- [ ] **Task 7: Guided property update flow and property rows on the Tax page** (after 3, 4, 5)
+- [x] **Task 7: Guided property update flow and property rows on the Tax page** (after 3, 4, 5)
   - Intent: Done means the Tax page lists property updates due beside self-employment ones (labelled 'Rental property'), and each opens a guided step-by-step flow at /tax/update/property/:taxYear/:quarter reusing ItsUpdatePage and ItsQuarterlyReview: show figures with explanations, preview the exact request, then a final step with one plain sentence ('You're telling HMRC you received £X in rent for ...'), a declaration, and a 'Send to HMRC' button. Test (sandbox) mode labelled each time; errors say what happened, whether a filing is affected and what to do. Parameterise the existing review component by business kind rather than copying. Screenshots at 1440 and 390 px. VAT screens untouched.
   - Files: `src/App.tsx`, `src/App.test.tsx`, `src/pages/ItsObligationsSection.tsx`, `src/pages/ItsObligationsSection.test.tsx`, `src/pages/ItsUpdatePage.tsx`, `src/pages/ItsUpdatePage.test.tsx`, `src/pages/ItsQuarterlyReview.tsx`, `src/pages/ItsQuarterlyReview.test.tsx`, `src/lib/hmrc/itsObligationsApi.ts`, `src/lib/hmrc/itsUpdateApi.ts`, `e2e/mockApi.ts`, `browser-evidence/STF-109/`
   - Acceptance criteria the planner set:
@@ -131,6 +131,7 @@ Also depends on:
     - Sandbox label shown on preview and send steps; rejected or unknown-outcome sends show plain advice and no retry for unknown outcome
     - Tests with mocked API clients cover happy path, rejection and unknown outcome
     - Lint, typecheck, test and build pass
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 8: Sandbox tests for every property endpoint and documentation** (after 1, 3, 4, 5)
   - Intent: Done means src/lib/hmrc/sandbox.integration.test.ts calls each Property Business and obligations endpoint the app uses (list businesses, property obligations, cumulative PUT, any retrieve call used), with fraud headers and Gov-Test-Scenario where useful, skipped without sandbox credentials and pinned to sandbox mode, so HMRC sees them in its logs. Write docs/workflows/its-property-update.md covering mapping, pence-to-pounds, gate and failure states. Update docs/runbooks/hmrc-sandbox-integration.md and docs/security/input-inventory.md for the new routes. Check doc examples match the code.

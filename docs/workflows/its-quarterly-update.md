@@ -703,12 +703,12 @@ The annual submission is part of the Income Tax year-end guided flow, accessible
 - **Tax page link** (current): A link on `src/pages/TaxPage.tsx` takes the user to the year-end flow
 - **Home to-do item** (future): Once the home to-do list is built, a to-do item will launch the flow
 
-The flow (`src/pages/YearEndFlow.tsx`) is a multi-step guided process:
-1. Display the tax year summary (income, expenses, net profit, or loss)
-2. Display allowances and the trading allowance choice
-3. Show the annual submission payload in plain language
-4. Ask for confirmation (the declaration tick)
-5. Send to HMRC and show the result
+The flow (`src/pages/YearEndFlow.tsx`) shows one thing per screen, with "Step N of M", Back and Save and leave:
+1. How you are counting your costs: the trading allowance if claimed, or a note that actual costs are used.
+2. One step per adjustment already on the tax record, each with a "Why is this amount?" link. There are none when the record has no adjustments.
+3. Check and send: one sentence on what will be sent, the declaration tick (which confirms the figures), and the Send to HMRC button.
+
+The step number is kept in the browser per tax year, so Save and leave and coming back resumes at the same step. The figures are rebuilt from the books on return, and the declaration has to be ticked again.
 
 The flow reuses the same preview, confirm, and submit routes as the programmatic API. All gating, locking, and audit rules are identical.
 

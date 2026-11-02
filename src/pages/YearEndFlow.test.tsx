@@ -33,10 +33,27 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.resetAllMocks();
 });
 
 describe('YearEndFlow', () => {
+  it('resumes at the step the owner left on', async () => {
+    vi.mocked(previewItsAnnual).mockResolvedValue(withAdjustment);
+    renderFlow();
+    fireEvent.click(await screen.findByRole('button', { name: 'Next' }));
+    cleanup();
+    renderFlow();
+    expect(await screen.findByText('Step 2 of 3')).toBeTruthy();
+  });
+
+  it('lands on the last step when the saved step no longer exists', async () => {
+    localStorage.setItem('its-annual-step:2026-27', '99');
+    vi.mocked(previewItsAnnual).mockResolvedValue(withAllowance);
+    renderFlow();
+    expect(await screen.findByText('Step 2 of 2')).toBeTruthy();
+  });
+
   it('shows the trading allowance choice in pounds on step 1 with a step count', async () => {
     vi.mocked(previewItsAnnual).mockResolvedValue(withAllowance);
     renderFlow();

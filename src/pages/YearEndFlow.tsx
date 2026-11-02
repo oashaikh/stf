@@ -45,12 +45,17 @@ function FigureAmount({ figure }: { figure: Figure }) {
   );
 }
 
-/**
- * The year-end allowances and adjustments as a guided flow. Everything shown comes from the server preview,
- * so leaving loses nothing: the figures are rebuilt from the books on return.
- */
+// Only the step number is kept, so a returning owner resumes where they stopped; the figures are rebuilt
+// from the books by the server preview each time. The declaration is deliberately not kept.
+const stepKey = (taxYear: string) => `its-annual-step:${taxYear}`;
+
+/** The year-end allowances and adjustments as a guided flow that resumes at the step the owner left on. */
 export default function YearEndFlow({ taxYear, onLeave }: { taxYear: string; onLeave: () => void }) {
-  const [stepIndex, setStepIndex] = useState(0);
+  const [savedStep, setSavedStep] = useState(() => Number(localStorage.getItem(stepKey(taxYear))) || 0);
+  const setStepIndex = (step: number) => {
+    localStorage.setItem(stepKey(taxYear), String(step));
+    setSavedStep(step);
+  };
   const [declared, setDeclared] = useState(false);
   const preview = useQuery({ queryKey: ['its-annual-preview', taxYear], queryFn: () => previewItsAnnual(taxYear), retry: false });
   const confirm = useMutation({ mutationFn: () => confirmItsAnnual(taxYear) });
@@ -64,6 +69,8 @@ export default function YearEndFlow({ taxYear, onLeave }: { taxYear: string; onL
     why: 'This adjustment is already on your tax record for the year. Check it matches your own records before you send.',
   }));
   const totalSteps = 2 + adjustments.length;
+  // A saved step can outlive a change in the figures, so keep it inside the steps that exist now.
+  const stepIndex = Math.min(Math.max(savedStep, 0), totalSteps - 1);
   const sandbox = preview.data?.endpoint.sandbox ?? true;
 
   const tickDeclaration = (ticked: boolean) => {
@@ -76,6 +83,7 @@ export default function YearEndFlow({ taxYear, onLeave }: { taxYear: string; onL
   if (preview.isError) return <StateMessage kind="error" onRetry={() => preview.refetch()}>{preview.error.message}</StateMessage>;
 
   if (submit.isSuccess) {
+    localStorage.removeItem(stepKey(taxYear));
     return (
       <section role="status" className="rounded-md border border-gray-300 bg-white p-4 md:p-6">
         <h1 className="text-2xl font-semibold text-gray-900">Your year-end figures are sent</h1>

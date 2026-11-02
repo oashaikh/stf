@@ -75,7 +75,7 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
   - Commit: `451408b59775`
 
-- [ ] **Task 3: Guided first-time setup screens** (after 2)
+- [x] **Task 3: Guided first-time setup screens** (after 2)
   - Intent: New page src/pages/SetupFlow.tsx at /setup: one question per screen with a 'Step 2 of 4' progress line, Back, 'Save and leave' and 'Skip for now' on every step. Step 1: three plain business type choices. Step 2: 'Are you registered for VAT?' Yes uses the existing saveVatNumber (9-digit validation reused), No records vatRegistered=false. Step 3: connect HMRC via fetchHmrcConnectUrl, labelled test mode, no live opt-in offered. Step 4: connect the bank via fetchBankConnectUrl. Both OAuth callbacks return to other pages (/settings?hmrc=... and /bank?bank=...), so the page sets a sessionStorage marker before leaving and a small component sends the user back to /setup, which resumes at the next unfinished step from server state. Use StateMessage, min-h-11 tap targets, focus rings and existing Tailwind tokens as in BankSection. Add the route in src/App.tsx (small hunk). Component tests mock the API modules.
   - Files: `src/pages/SetupFlow.tsx`, `src/pages/SetupFlow.test.tsx`, `src/App.tsx`, `src/App.test.tsx`
   - Acceptance criteria the planner set:
@@ -88,6 +88,7 @@ Also depends on:
     - Keyboard path works and every control has a visible focus style
     - npm run lint, typecheck, test and build pass
   - Risk: App.tsx is also edited by STF-87; keep the diff to one import and one route plus the return component. Settings and BankSection are owned by STF-120 and are not touched.
+  - Commit: `4d07afed6b21`
 
 - [ ] **Task 4: Show setup after first sign-in and as to-dos on Home** (after 3)
   - Intent: After sign-in, a user whose setup is not finished is sent once to /setup (redirect inside the signed-in routes driven by server setup state, so it holds across devices and does not loop once skipped or finished). On Home (DashboardPage, first menu item after STF-119) add a small SetupTodos component, rendered near the top, with one row per skipped or unfinished step in plain words and one button that reopens that step. Do not restructure the page; the full to-do-list Home is separate work.

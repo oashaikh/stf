@@ -30,6 +30,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/accounts.ts` | GET, POST, PATCH | Accounts |
 | `api/mileage.ts` | GET, POST, PATCH, DELETE | Mileage |
 | `api/receipts.ts` | POST, PATCH, DELETE | Receipts |
+| `api/receipt-extract.ts` | POST | Receipts |
 | `api/recurring-entries.ts` | GET, POST, PATCH, DELETE | Recurring entries |
 | `api/dashboard.ts` | GET | Reports and export (no input) |
 | `api/profit-and-loss.ts` | GET | Reports and export |
@@ -163,6 +164,7 @@ Text fields have a length cap and reject control characters (`plainText`; notes 
 | `mimeType` | POST body | `image/jpeg`, `image/png`, `image/webp` or `application/pdf` | `validateNewReceipt` |
 | `sizeBytes` | POST body | integer 1 to 10 MB | `validateNewReceipt` |
 | `id` | PATCH/DELETE body | uuid regex | `validateReceiptId` |
+| `id` (extraction) | `api/receipt-extract.ts` POST body | uuid regex; receipt must be the session user's, ready and not deleted, else 404 | `validateReceiptId`, `findReady` |
 | uploaded object | PUT to signed URL | signed for the declared type and length; PATCH compares stored size and type with the declaration and marks the row failed on a mismatch | `api/receipts.ts` |
 
 ## Recurring entries
@@ -284,6 +286,6 @@ Checked on 2026-10-31 against this branch.
 | Imported file (CSV, bank statement) | No | export exists (`api/entries-export.ts`), import does not; no CSV parser is used on request data |
 | Rich text or markdown | No | no markdown library in `package.json`; `grep -rnE "dangerouslySetInnerHTML\|innerHTML" src` finds nothing, so all user text renders as React text |
 | User-supplied links | No | no field stores a URL; the only `<img src>` is a server-generated QR data URL in `src/pages/AuthenticatorSection.tsx` |
-| AI input | Prompt only | `src/lib/receiptPrompt.ts` builds a fixed system prompt (no keys or settings) and wraps the optional `imageNote` in `<receipt_note>` tags with a never-follow instruction; output is always a draft the user confirms. `parseReceiptDraft` only checks the reply is a JSON object (**GAP**: no field-level schema check; do it when the extraction route is built). Nothing in `api/` or `src/` imports it yet, so no user text reaches a model today |
+| AI input | Receipt file and fixed prompt | `api/receipt-extract.ts` sends the signed-in owner's own ready receipt file and the fixed prompt from `src/lib/receiptPrompt.ts` (no keys or settings) to Anthropic; the optional `imageNote` is wrapped in `<receipt_note>` tags with a never-follow instruction. `parseReceiptReply` validates the reply with zod: integer pence, ISO date, fixed categories, strict keys, GBP only. Output is stored as drafts the user confirms |
 
 When one of these classes is added, move its row into the tables above in the same pull request.

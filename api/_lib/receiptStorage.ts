@@ -1,4 +1,4 @@
-import { HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 export interface ReceiptStorage {
@@ -6,6 +6,8 @@ export interface ReceiptStorage {
   presignUpload(key: string, mimeType: string, sizeBytes: number, expiresInSeconds: number): Promise<string>
   /** Size and content type of the stored object, or null if it does not exist. */
   statObject(key: string): Promise<{ sizeBytes: number; mimeType: string } | null>
+  /** The stored bytes. The 10 MB upload cap bounds the size, so the whole object is held in memory. */
+  getObject(key: string): Promise<Uint8Array>
 }
 
 const REQUIRED_VARIABLES = [
@@ -52,6 +54,11 @@ export function createReceiptStorage(env: Record<string, string | undefined> = p
         expiresIn: expiresInSeconds,
         signableHeaders: new Set(['content-type', 'content-length']),
       })
+    },
+    async getObject(key) {
+      const object = await client.send(new GetObjectCommand({ Bucket: config.bucket, Key: key }))
+      if (!object.Body) throw new Error('Receipt object has no body')
+      return object.Body.transformToByteArray()
     },
     async statObject(key) {
       try {

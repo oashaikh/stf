@@ -157,6 +157,20 @@ describe('receipts list', () => {
   });
 });
 
+describe('repeat file warning', () => {
+  it('shows a notice on a repeat receipt and stays dismissed after remount', async () => {
+    vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [{ ...photo, duplicateOfId: 'earlier' }], nextCursor: null });
+    const view = renderPage();
+    expect(await screen.findByText(/same file as a receipt you already added/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByText(/same file as a receipt/i)).toBeNull();
+    view.unmount();
+    renderPage();
+    await screen.findByText('Corner Cafe');
+    expect(screen.queryByText(/same file as a receipt/i)).toBeNull();
+  });
+});
+
 describe('receipt upload', () => {
   it('makes Add a receipt the main action, opening the phone camera', async () => {
     vi.mocked(fetchReceipts).mockResolvedValue({ receipts: [photo], nextCursor: null });

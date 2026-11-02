@@ -144,6 +144,26 @@ function mockReturn(vatState: MockVatState, entries: SavedEntry[]) {
 }
 
 /** A fake of the deployed API, so the journey can run against a built preview with no server behind it. */
+// An invented receipt read from a picture the owner already uploaded, so the repeat-file notice shows.
+export const repeatReceipt = {
+  id: '33333333-3333-4333-8333-333333333333',
+  fileName: 'cafe-lunch.svg',
+  mimeType: 'image/svg+xml',
+  sizeBytes: 600,
+  uploadStatus: 'ready',
+  createdAt: '2026-10-30T10:00:00Z',
+  duplicateOfId: '44444444-4444-4444-8444-444444444444',
+  aiStatus: 'extracted',
+  readUrl: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400"><rect width="300" height="400" fill="#f3f4f6"/><text x="30" y="60" font-size="24">Example Cafe</text><text x="30" y="110" font-size="20">Total 12.00</text></svg>')}`,
+  details: {
+    date: { value: '2026-10-28', confirmed: false, confidence: 950 },
+    vendor: { value: 'Example Cafe', confirmed: false, confidence: 900 },
+    totalPence: { value: '1200', confirmed: false, confidence: 900 },
+    vatPence: { value: '200', confirmed: false, confidence: 900 },
+    category: { value: 'meals', confirmed: false, confidence: 800 },
+  },
+};
+
 export async function mockApi(page: Page, ownerPassword: string, vatState: MockVatState = 'confirmed', homeState: MockHomeState = 'items-due') {
   const newUser = homeState === 'new-user';
   let signedIn = false;
@@ -370,6 +390,8 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         return json(route, { masked: vatNumberSaved ? '*******000' : null });
       case 'GET /api/vat/filed':
         return json(route, { ok: true, data: previewBody(entries) });
+      case 'GET /api/receipts':
+        return json(route, { receipts: [repeatReceipt], nextCursor: null });
       case 'GET /api/accounts':
         return json(route, { accounts: [incomeAccount, expenseAccount] });
       case 'GET /api/profit-and-loss': {

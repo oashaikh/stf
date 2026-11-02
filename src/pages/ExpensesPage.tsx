@@ -429,7 +429,7 @@ function AddEntryForm({
         </p>
       )}
 
-      {duplicates.flags.map((flag) => {
+      {duplicates.flags.filter((flag) => flag.entryIds.includes("new")).map((flag) => {
         const other = neighbours.data?.entries.find((candidate) => flag.entryIds.includes(candidate.id));
         return (
           <DuplicateNotice key={flag.key} className="md:col-span-2" onDismiss={() => duplicates.dismiss(flag)}>

@@ -3,8 +3,10 @@ import { Camera, FileText } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Link } from 'react-router-dom';
+import DuplicateNotice from '../components/DuplicateNotice';
 import StateMessage from '../components/StateMessage';
 import { formatDate } from '../lib/dates';
+import { dismissDuplicate, isDuplicateDismissed } from '../lib/duplicateDismissals';
 import { formatPence } from '../lib/money';
 import {
   confirmReceiptUpload,
@@ -167,6 +169,8 @@ function RemoveDialog({ receipt, onCancel, onRemove }: { receipt: ListedReceipt;
 function ReceiptRow({ receipt, onRemove }: { receipt: ListedReceipt; onRemove: () => void }) {
   const read = readReceiptDetails(receipt);
   const title = titleOf(receipt);
+  const fileKey = `file|${receipt.id}`;
+  const [, setFileNoticeDismissed] = useState(false);
   return (
     <li className="p-3">
       <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-x-3 gap-y-1">
@@ -190,6 +194,11 @@ function ReceiptRow({ receipt, onRemove }: { receipt: ListedReceipt; onRemove: (
           </span>
         )}
       </div>
+      {receipt.duplicateOfId !== null && !isDuplicateDismissed(fileKey) && (
+        <DuplicateNotice className="mt-2" onDismiss={() => { dismissDuplicate(fileKey); setFileNoticeDismissed(true); }}>
+          This is the same file as a receipt you already added. Is it a repeat? You can still keep it.
+        </DuplicateNotice>
+      )}
       {read.needsCheck && (
         <div className="mt-2 rounded-md bg-amber-50 p-3 text-sm text-gray-900">
           <p className="font-medium">Draft: check these details</p>

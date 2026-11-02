@@ -102,3 +102,7 @@ Also depends on:
     - Docs describe the property annual flow and the final declaration gate accurately against the code
     - npm test passes without network access
   - Commit: `e7c4b0fba6e2`
+
+- [x] **Task 6: Fix: address 13 review findings (cycle 1)** (after 5)
+  - Intent: Review left 13 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens: a property-only owner cannot reach the rental year-end steps, yet the new final-declaration gate demands those figures. Everything else I traced held up: The agent is fixing them; nothing is needed from you.
+  - Commit: `97a26514898c`

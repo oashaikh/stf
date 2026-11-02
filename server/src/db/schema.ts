@@ -618,9 +618,12 @@ export const bankTransactions = pgTable(
       .notNull()
       .default('unmatched'),
     possibleDuplicate: boolean('possible_duplicate').notNull().default(false),
+    matchedTransactionId: uuid('matched_transaction_id').references(() => transactions.id),
+    dismissedReason: text('dismissed_reason'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
+    matchedTransactionIdIdx: index('bank_transactions_matched_transaction_id_idx').on(table.matchedTransactionId),
     connectionProviderIdUidx: uniqueIndex('bank_transactions_connection_provider_id_uidx').on(table.connectionId, table.providerTransactionId),
     connectionDateIdx: index('bank_transactions_connection_date_idx').on(table.connectionId, table.date),
   }),

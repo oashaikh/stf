@@ -190,6 +190,13 @@
       "when": 1792986666126,
       "tag": "0026_its_final_declarations",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1792986667126,
+      "tag": "0027_bank_reconciliation",
+      "breakpoints": true
     }
   ]
 }

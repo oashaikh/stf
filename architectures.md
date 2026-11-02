@@ -289,7 +289,7 @@ CREATE TABLE audit_events (
 
 ### Receipt extraction agent
 
-Planned: not built yet. The SOP will be `docs/agents/receipt-extraction.md`, written before the feature.
+Built: the route is `api/receipt-extract.ts` and the SOP is `docs/agents/receipt-extraction.md`.
 
 ```
 User uploads receipt image/PDF

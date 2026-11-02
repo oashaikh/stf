@@ -12,6 +12,13 @@ export const mockItsObligations = [
   { kind: 'finalDeclaration', taxYear: '2025-26', periodStart: '2025-04-06', periodEnd: '2026-04-05', dueDate: '2027-01-31', status: 'open', receivedDate: null, overdue: false, nextDue: false },
 ];
 
+// Home shows an open quarterly update only inside 30 days; a new user has none yet, and "nothing due" has the next one far off.
+function itsRowsFor(homeState: MockHomeState) {
+  if (homeState === 'new-user') return [];
+  if (homeState === 'nothing-due') return mockItsObligations.map((row) => (row.nextDue ? { ...row, dueDate: '2027-02-05' } : row));
+  return mockItsObligations;
+}
+
 const incomeAccount = { id: 'acc-income-1', code: '4000', name: 'Sales', accountType: 'income', taxCategory: 'turnover', isSystem: true };
 
 interface SavedEntry {
@@ -116,6 +123,11 @@ const json = (route: Route, body: unknown, status = 200) => route.fulfill({ stat
 export type MockVatState = 'none' | 'draft' | 'confirmed' | 'filed';
 export const mockVatStates: MockVatState[] = ['none', 'draft', 'confirmed', 'filed'];
 
+/** What Home has to say: a new user with nothing connected, jobs due (one overdue), or nothing due soon. */
+export type MockHomeState = 'new-user' | 'items-due' | 'nothing-due';
+
+const DAY_MS = 86_400_000;
+
 const filedReceipt = { formBundleNumber: '000000000000', processingDate: '2026-07-02T09:00:00Z', sandbox: true };
 
 function mockReturn(vatState: MockVatState, entries: SavedEntry[]) {
@@ -130,7 +142,8 @@ function mockReturn(vatState: MockVatState, entries: SavedEntry[]) {
 }
 
 /** A fake of the deployed API, so the journey can run against a built preview with no server behind it. */
-export async function mockApi(page: Page, ownerPassword: string, vatState: MockVatState = 'confirmed', newUser = false) {
+export async function mockApi(page: Page, ownerPassword: string, vatState: MockVatState = 'confirmed', homeState: MockHomeState = 'items-due') {
+  const newUser = homeState === 'new-user';
   let signedIn = false;
   // A new user has answered nothing and connected nothing; everyone else is past setup, so the other journeys land on Home.
   let setup = newUser
@@ -200,16 +213,20 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
         bankConnected = true;
         return json(route, { url: '/setup' });
       case 'GET /api/bank/status':
-        return json(route, { ok: true, connected: bankConnected, displayName: null, maskedAccountNumber: null, consentExpiresAt: null, expired: false });
+        return json(route, homeState === 'items-due'
+          ? { ok: true, connected: true, displayName: 'Example Bank', maskedAccountNumber: '****1234', consentExpiresAt: new Date(Date.now() + 10 * DAY_MS).toISOString(), expired: false }
+          : { ok: true, connected: bankConnected, displayName: null, maskedAccountNumber: null, consentExpiresAt: null, expired: false });
       case 'GET /api/settings/tax-identifiers':
         return json(route, { ok: true, nino: null, utr: null });
       case 'GET /api/dashboard':
         return json(route, {
           data: {
             taxYear: { start: '2026-04-06', end: '2027-04-05', incomePence: 50000, expensesPence: 12000, profitPence: 38000 },
-            month: { start: '2026-10-01', end: '2026-10-31', incomePence: 0, expensesPence: 0, profitPence: 0 },
+            month: { start: '2026-10-01', end: '2026-10-31', incomePence: homeState === 'new-user' ? 0 : 125_000, expensesPence: homeState === 'new-user' ? 0 : 38_400, profitPence: homeState === 'new-user' ? 0 : 86_600 },
             vatQuarter: { start: '2026-10-01', end: '2026-12-31', vatCollectedPence: 0, vatPaidPence: 0 },
             draftCount: 0,
+            unsortedBankCount: homeState === 'items-due' ? 4 : 0,
+            receiptsToCheckCount: homeState === 'items-due' ? 2 : 0,
             recentEntries: [],
           },
         });
@@ -222,7 +239,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
             class2NicPence: 0,
             class4NicPence: 0,
             totalTaxPence: 0,
-            setAsidePence: 0,
+            setAsidePence: homeState === 'new-user' ? 0 : 17_320,
             expenseMethod: 'actual',
             tradingAllowancePence: 100000,
             profitWithActualExpensesPence: 38000,
@@ -231,7 +248,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
           },
         });
       case 'GET /api/vat/obligations':
-        return json(route, { obligations: vatState === 'none' ? [] : [{ ...period, due: '2026-08-07', status: 'O', overdue: false }] });
+        return json(route, { obligations: vatState === 'none' || homeState !== 'items-due' ? [] : [{ ...period, due: '2026-08-07', status: 'O', overdue: false }] });
       case 'GET /api/entries':
         return json(route, { entries });
       case 'POST /api/entries': {
@@ -275,7 +292,7 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
       case 'GET /api/hmrc/status':
         return json(route, { connected: hmrcConnected, needsItsReconnect: false, itsBusinessId: null });
       case 'GET /api/hmrc/its-obligations':
-        return json(route, { ok: true, stale: false, obligations: mockItsObligations.map((row) => (itsSent && row.status === 'open' ? { ...row, status: 'fulfilled' as const } : row)) });
+        return json(route, { ok: true, stale: false, obligations: itsRowsFor(homeState).map((row) => (itsSent && row.status === 'open' ? { ...row, status: 'fulfilled' as const } : row)) });
       case 'GET /api/hmrc/its-businesses':
         return json(route, { ok: true, businesses: [], selectedBusinessId: null });
       case 'GET /api/mileage':

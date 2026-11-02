@@ -66,6 +66,9 @@ function makeStorage(stored: { sizeBytes: number; mimeType: string } | null = nu
   const readSigned: Array<{ key: string; expiresInSeconds: number }> = [];
   const presigned: Array<{ key: string; mimeType: string; sizeBytes: number; expiresInSeconds: number }> = [];
   const storage: ReceiptStorage = {
+    async getObject() {
+      throw new Error('The receipts route never reads file bytes');
+    },
     async presignUpload(key, mimeType, sizeBytes, expiresInSeconds) {
       presigned.push({ key, mimeType, sizeBytes, expiresInSeconds });
       return `https://bucket.test/${key}?X-Amz-Signature=secretsig`;

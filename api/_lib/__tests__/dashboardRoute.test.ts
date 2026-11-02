@@ -26,6 +26,10 @@ const day = (date: string, accountType: LedgerLine['accountType'], amountPence: 
 });
 const recent: RecentEntry = { id: 'e1', date: '2026-10-25', description: 'Train to client', status: 'confirmed', kind: 'expense', grossPence: 12000 };
 
+// Per-user rows stand in for the table: a store that ignored userId would return the wrong user's count.
+const unsortedByUser: Record<string, number> = { owner: 4, other: 90 };
+const receiptsByUser: Record<string, number> = { owner: 2, other: 70 };
+
 function makeStore() {
   const asked: string[] = [];
   const store: DashboardStore = {
@@ -46,6 +50,14 @@ function makeStore() {
     async listRecentEntries(userId) {
       asked.push(`${userId}:recent`);
       return [recent];
+    },
+    async countUnsortedBankPayments(userId) {
+      asked.push(`${userId}:unsorted`);
+      return unsortedByUser[userId] ?? 0;
+    },
+    async countReceiptsToCheck(userId) {
+      asked.push(`${userId}:receipts`);
+      return receiptsByUser[userId] ?? 0;
     },
   };
   return { store, asked };
@@ -84,6 +96,8 @@ describe('dashboard route', () => {
         },
         vatQuarter: { start: '2026-10-01', end: '2026-12-31', vatCollectedPence: 50000, vatPaidPence: 20000 },
         draftCount: 3,
+        unsortedBankCount: 4,
+        receiptsToCheckCount: 2,
         recentEntries: [recent],
       },
     });
@@ -92,9 +106,16 @@ describe('dashboard route', () => {
   it('scopes every store call to the session user and queries one widest range', async () => {
     const { store, asked } = makeStore();
     await get(store, 'owner_b');
-    expect(asked).toHaveLength(3);
+    expect(asked).toHaveLength(5);
     expect(asked.every((entry) => entry.startsWith('owner_b:'))).toBe(true);
     expect(asked).toContain('owner_b:2026-04-06..2027-04-05');
+  });
+
+  it("counts only the session user's unsorted payments and receipts", async () => {
+    const { store } = makeStore();
+    const body = await (await get(store, 'owner')).json();
+    expect(body.data.unsortedBankCount).toBe(4);
+    expect(body.data.receiptsToCheckCount).toBe(2);
   });
 
   it('refuses a request without a session and never touches the store', async () => {

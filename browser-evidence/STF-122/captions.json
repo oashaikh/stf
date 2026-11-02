@@ -1,0 +1,20 @@
+{
+  "1440-light-home-new-user.png": {
+    "title": "A new user with nothing connected sees \"You're up to date\" and a money summary at zero, on a wide screen"
+  },
+  "390-light-home-new-user.png": {
+    "title": "The same first-time Home on a phone"
+  },
+  "1440-light-home-items-due.png": {
+    "title": "Home lists what needs doing: an overdue VAT return first, then an Income Tax update, a bank connection about to run out, bank payments to sort and receipts to check"
+  },
+  "390-light-home-items-due.png": {
+    "title": "The same to-do list on a phone, one job per row with its button"
+  },
+  "1440-light-home-nothing-due.png": {
+    "title": "With nothing due, Home says you're up to date and gives the date of the next Income Tax update, above this month's money in, money out and tax to set aside"
+  },
+  "390-light-home-nothing-due.png": {
+    "title": "The same \"up to date\" Home on a phone"
+  }
+}

@@ -1,171 +1,103 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
+import StateMessage from "../components/StateMessage";
+import { consentState, fetchBankStatus } from "../lib/bankApi";
 import { DASHBOARD_QUERY_KEY, fetchDashboard } from "../lib/dashboardApi";
-import { formatDate } from "../lib/dates";
+import { fetchItsObligations } from "../lib/hmrc/itsObligationsApi";
+import { buildHomeTodos } from "../lib/homeTodos";
 import { formatPence } from "../lib/money";
 import { currentTaxYear } from "../lib/taxBands";
 import { fetchTaxEstimate, taxEstimateQueryKey } from "../lib/taxEstimateApi";
-
-import type { VatObligationRow } from "../lib/hmrc/vatApi";
-import { getObligationDueWithin, REMINDER_WINDOW_DAYS } from "../lib/vatReminder";
-import type { ApiResponse } from "../model/types";
 import { useVatObligations } from "./useVatObligations";
-import StateMessage from '../components/StateMessage';
-import SetupTodos from './SetupTodos';
-import OfficialName from '../components/OfficialName';
+import SetupTodos from "./SetupTodos";
 
-const linkClass = "inline-flex min-h-11 items-center text-blue-800 underline";
+const actionClass = "inline-flex min-h-11 shrink-0 items-center rounded bg-blue-800 px-4 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-800";
+const figureClass = "flex min-h-11 items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4 text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-800";
 
-function Card({ title, period, children }: { title: string; period?: string; children: React.ReactNode }) {
+function Figure({ label, pence, to }: { label: string; pence: number; to: string }) {
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="text-sm font-medium text-gray-700">{title}</h2>
-      {period && <p className="text-xs text-gray-600">{period}</p>}
-      <dl className="mt-3 space-y-1">{children}</dl>
-    </section>
-  );
-}
-
-function Row({ label, pence }: { label: React.ReactNode; pence: number }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-gray-700">{label}</dt>
-      <dd className="text-right font-medium tabular-nums text-gray-900">{formatPence(pence)}</dd>
-    </div>
-  );
-}
-
-// Same key and response shape as the review on VatPage, so a visit to either page warms the other.
-async function fetchVatReturnDraft(period: VatObligationRow): Promise<{ boxes: { box5: number }; status: string | null }> {
-  const fields = new URLSearchParams({ periodKey: period.periodKey, start: period.start, end: period.end });
-  const response = await fetch(`/api/vat/return?${fields}`, { credentials: "same-origin" });
-  const body = (await response.json().catch(() => null)) as ApiResponse<{ boxes: { box5: number }; status: string | null }> | null;
-  if (!body?.ok) throw new Error(body?.error ?? "Request failed");
-  return body.data;
-}
-
-function UpcomingVatReturnCard() {
-  const obligations = useVatObligations();
-  const dueSoon = Array.isArray(obligations.data)
-    ? getObligationDueWithin(obligations.data, new Date().toISOString().slice(0, 10), REMINDER_WINDOW_DAYS)
-    : undefined;
-  const review = useQuery({
-    queryKey: ["vat-return", dueSoon?.periodKey],
-    queryFn: () => fetchVatReturnDraft(dueSoon as VatObligationRow),
-    enabled: dueSoon !== undefined,
-    retry: false,
-  });
-  if (!dueSoon || !review.data) return null;
-
-  return (
-    <Card title="Upcoming VAT return" period={`${formatDate(dueSoon.start)} to ${formatDate(dueSoon.end)}`}>
-      <div className="flex justify-between gap-4">
-        <dt className="text-gray-700">Due</dt>
-        <dd className="text-right font-medium text-gray-900">{formatDate(dueSoon.due)}</dd>
-      </div>
-      <div className="flex justify-between gap-4">
-        <dt className="text-gray-700">Draft</dt>
-        <dd className="text-right text-gray-900">{review.data.status === null ? "Not yet drafted" : "Draft saved"}</dd>
-      </div>
-      <Row label={<>VAT you owe HMRC<OfficialName>Box 5</OfficialName></>} pence={review.data.boxes.box5} />
-      <Link to="/tax/vat" className={linkClass}>
-        Review VAT return
+    <li>
+      <Link to={to} className={figureClass}>
+        <span>{label}</span>
+        <span className="text-right font-medium tabular-nums">{formatPence(pence)}</span>
       </Link>
-    </Card>
+    </li>
   );
 }
 
 export default function DashboardPage() {
-  const summary = useQuery({ queryKey: DASHBOARD_QUERY_KEY, queryFn: fetchDashboard });
-  const data = summary.data;
   const taxYear = currentTaxYear();
-  const taxEstimate = useQuery({ queryKey: taxEstimateQueryKey(taxYear), queryFn: () => fetchTaxEstimate(taxYear) });
+  const vat = useVatObligations();
+  const its = useQuery({ queryKey: ["its-obligations"], queryFn: () => fetchItsObligations(), retry: false });
+  const bank = useQuery({ queryKey: ["bank-status"], queryFn: fetchBankStatus, retry: false });
+  const summary = useQuery({ queryKey: DASHBOARD_QUERY_KEY, queryFn: fetchDashboard, retry: false });
+  const taxEstimate = useQuery({ queryKey: taxEstimateQueryKey(taxYear), queryFn: () => fetchTaxEstimate(taxYear), retry: false });
+
+  const loadingTodos = [vat, its, bank, summary].some((source) => source.isPending);
+  const failures = [
+    vat.isError && "Could not check your VAT returns.",
+    its.isError && "Could not check your Income Tax updates.",
+    bank.isError && "Could not check your bank connection.",
+    summary.isError && "Could not load your money summary.",
+    taxEstimate.isError && "Could not work out your tax to set aside.",
+  ].filter(Boolean);
+
+  const now = new Date();
+  const itsResult = its.data && "obligations" in its.data ? its.data.obligations : [];
+  const bankStatus = bank.data?.connected && bank.data.consentExpiresAt ? bank.data : null;
+  const todos = loadingTodos
+    ? null
+    : buildHomeTodos(
+        {
+          vatObligations: vat.data ?? [],
+          itsObligations: itsResult,
+          unsortedBankCount: summary.data?.unsortedBankCount ?? 0,
+          receiptsToCheckCount: summary.data?.receiptsToCheckCount ?? 0,
+          bank: bankStatus ? { state: consentState(bankStatus.consentExpiresAt!, now), expiresAt: bankStatus.consentExpiresAt! } : null,
+          // Skipped setup steps render in <SetupTodos /> above, with their own fetch and error state.
+          skippedSetupSteps: [],
+        },
+        now,
+      );
 
   return (
     <main className="p-4 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-gray-900">Home</h1>
-        <Link to="/money-out" className="inline-flex min-h-11 items-center rounded bg-blue-800 px-4 text-white">
-          Add entry
-        </Link>
-      </div>
+      <h1 className="text-2xl font-semibold text-gray-900">Home</h1>
+
+      {failures.length > 0 && (
+        <StateMessage kind="error" className="mt-4">{failures.join(" ")}</StateMessage>
+      )}
 
       <SetupTodos />
 
-      {summary.isPending && <StateMessage kind="loading" className="mt-6">Loading…</StateMessage>}
-      {summary.isError && (
-        <StateMessage kind="error" className="mt-6">Could not load the dashboard. Please try again.</StateMessage>
-      )}
+      <section aria-labelledby="todo-heading" className="mt-6">
+        <h2 id="todo-heading" className="text-lg font-medium text-gray-900">What needs doing</h2>
+        {todos === null && <StateMessage kind="loading">Loading…</StateMessage>}
+        {todos?.upToDate && failures.length === 0 && <StateMessage kind="empty">{todos.upToDate}</StateMessage>}
+        {todos && todos.items.length > 0 && (
+          <ul aria-label="To-do list" className="mt-2 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
+            {todos.items.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                <span className="min-w-0 flex-1 text-gray-900">
+                  {item.daysLate !== undefined && <strong className="mr-2 text-red-800">Overdue</strong>}
+                  {item.title}
+                </span>
+                <Link to={item.route} className={actionClass}>{item.buttonLabel}</Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      {data && (
-        <>
-          {data.recentEntries.length === 0 && data.draftCount === 0 && data.taxYear.incomePence === 0 && data.taxYear.expensesPence === 0 && (
-            <StateMessage kind="empty" className="mt-6">No entries yet. Add your first income or expense to see your position here.</StateMessage>
-          )}
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Card title="Tax year to date" period={`${formatDate(data.taxYear.start)} to ${formatDate(data.taxYear.end)}`}>
-              <Row label="Income" pence={data.taxYear.incomePence} />
-              <Row label="Expenses" pence={data.taxYear.expensesPence} />
-              <Row label="Profit" pence={data.taxYear.profitPence} />
-              <Link to="/money-out" className={linkClass}>
-                View entries
-              </Link>
-            </Card>
-            <Card title="This month" period={`${formatDate(data.month.start)} to ${formatDate(data.month.end)}`}>
-              <Row label="Income" pence={data.month.incomePence} />
-              <Row label="Expenses" pence={data.month.expensesPence} />
-              <Row label="Profit" pence={data.month.profitPence} />
-              <Link to="/money-out" className={linkClass}>
-                View entries
-              </Link>
-            </Card>
-            <Card title="VAT this quarter (estimate)" period={`${formatDate(data.vatQuarter.start)} to ${formatDate(data.vatQuarter.end)}`}>
-              <Row label="VAT collected" pence={data.vatQuarter.vatCollectedPence} />
-              <Row label="VAT paid" pence={data.vatQuarter.vatPaidPence} />
-              <Link to="/tax/vat" className={linkClass}>
-                Go to the VAT page
-              </Link>
-            </Card>
-            <UpcomingVatReturnCard />
-            {taxEstimate.data && (
-              <Card title="Tax set-aside (estimate)" period={`Tax year ${taxEstimate.data.taxYear}`}>
-                <Row label="Income tax and NIC" pence={taxEstimate.data.totalTaxPence} />
-                <Link to="/tax/income-tax" className={linkClass}>
-                  Go to the Tax page
-                </Link>
-              </Card>
-            )}
-          </div>
-
-          {data.draftCount > 0 && (
-            <p className="mt-6">
-              <Link to="/money-out?status=draft" className={linkClass}>
-                {data.draftCount} {data.draftCount === 1 ? "draft" : "drafts"} to confirm
-              </Link>
-            </p>
-          )}
-
-          {data.recentEntries.length > 0 && (
-            <section className="mt-6">
-              <h2 className="text-lg font-medium text-gray-900">Latest entries</h2>
-              <ul className="mt-2 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white">
-                {data.recentEntries.map((entry) => (
-                  <li key={entry.id} className="flex items-center justify-between gap-2 p-3">
-                    <span className="shrink-0 text-sm text-gray-600">{formatDate(entry.date)}</span>
-                    <span className="min-w-0 flex-1 truncate text-gray-900" title={entry.description}>
-                      {entry.description}
-                    </span>
-                    <span className="shrink-0 text-xs text-gray-700">{entry.status === "draft" ? "Draft" : "Confirmed"}</span>
-                    <span className="shrink-0 whitespace-nowrap text-right tabular-nums text-gray-900">{formatPence(entry.grossPence)}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </>
-      )}
+      <section aria-labelledby="money-heading" className="mt-8">
+        <h2 id="money-heading" className="text-lg font-medium text-gray-900">This month</h2>
+        <ul className="mt-2 grid gap-3 md:grid-cols-3">
+          {summary.data && <Figure label="Money in" pence={summary.data.month.incomePence} to="/money-in" />}
+          {summary.data && <Figure label="Money out" pence={summary.data.month.expensesPence} to="/money-out" />}
+          {taxEstimate.data && <Figure label="Tax to set aside" pence={taxEstimate.data.setAsidePence} to="/tax/income-tax" />}
+        </ul>
+      </section>
     </main>
   );
 }

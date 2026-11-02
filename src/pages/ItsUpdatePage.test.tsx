@@ -16,7 +16,7 @@ function renderAt(path: string, obligation: object = open) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/tax/update/:taxYear/:quarter" element={<ItsUpdatePage />} />
-          <Route path="/tax" element={<p>Tax page</p>} />
+          <Route path="/tax/income-tax" element={<p>Tax page</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -38,7 +38,7 @@ describe('ItsUpdatePage', () => {
   it('says so and links back when no open update matches', async () => {
     renderAt('/tax/update/2026-27/3');
     expect((await screen.findByRole('alert')).textContent).toContain('could not find that update');
-    expect(screen.getByRole('link', { name: 'Back to Tax' }).getAttribute('href')).toBe('/tax');
+    expect(screen.getByRole('link', { name: 'Back to Tax' }).getAttribute('href')).toBe('/tax/income-tax');
   });
 
   it('does not open the update for a quarter that is already sent', async () => {

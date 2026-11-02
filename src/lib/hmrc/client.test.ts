@@ -11,6 +11,11 @@ import {
   triggerTaxCalculation,
   getVatObligations,
   HmrcError,
+  ADJUSTABLE_SUMMARY_API_ACCEPT,
+  getAdjustableSummary,
+  getTaxLiabilityAdjustments,
+  TAX_LIABILITY_ADJUSTMENTS_API_ACCEPT,
+  triggerAdjustableSummary,
   listItsPropertyBusinesses,
   PROPERTY_BUSINESS_API_ACCEPT,
   propertyCumulativePath,
@@ -542,5 +547,81 @@ describe('final declaration calls', () => {
     const fetchFn = vi.fn().mockResolvedValue(jsonResponse(403, { code: 'RULE_FINAL_DECLARATION_RECEIVED', message: 'Already received' }));
     await expect(submitFinalDeclaration(nino, '2026-27', 'calc-1', 'tok', fraud, fetchFn))
       .rejects.toMatchObject({ apiError: { code: 'RULE_FINAL_DECLARATION_RECEIVED', statusCode: 403 } });
+  });
+});
+
+describe('adjustable summary calls', () => {
+  const nino = 'AA123456A';
+  const fraud = { 'Gov-Client-Timezone': 'UTC+00:00' };
+  const base = `/individuals/self-assessment/adjustable-summary/${nino}`;
+
+  it('triggers a summary for one business and period', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { calculationId: 'bsas-1' }));
+    const result = await triggerAdjustableSummary(
+      nino,
+      { businessId: 'XAIS12345678901', startDate: '2026-04-06', endDate: '2027-04-05' },
+      'tok', fraud, fetchFn,
+    );
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(new URL(url).pathname).toBe(`${base}/trigger`);
+    expect(init.method).toBe('POST');
+    expect(init.headers.Accept).toBe(ADJUSTABLE_SUMMARY_API_ACCEPT);
+    expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
+    expect(JSON.parse(init.body)).toEqual({
+      accountingPeriod: { startDate: '2026-04-06', endDate: '2027-04-05' },
+      typeOfBusiness: 'self-employment',
+      businessId: 'XAIS12345678901',
+    });
+    expect(result).toEqual({ calculationId: 'bsas-1' });
+  });
+
+  it('reads a summary and returns whole pence', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, {
+      adjustableSummaryCalculation: { totalIncome: 1234.5, totalExpenses: 0.07, netProfit: 1234.43 },
+    }));
+    const result = await getAdjustableSummary(nino, 'bsas-1', 'tok', fraud, fetchFn);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(new URL(url).pathname).toBe(`${base}/self-employment/bsas-1`);
+    expect(init.headers.Accept).toBe(ADJUSTABLE_SUMMARY_API_ACCEPT);
+    expect(result).toEqual({ totalIncomePence: 123450, totalExpensesPence: 7, netProfitPence: 123443, netLossPence: 0 });
+  });
+
+  it('reads a loss as pence', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, {
+      adjustableSummaryCalculation: { totalIncome: 100, totalExpenses: 250.25, netLoss: 150.25 },
+    }));
+    const result = await getAdjustableSummary(nino, 'bsas-2', 'tok', fraud, fetchFn);
+    expect(result.netProfitPence).toBe(0);
+    expect(result.netLossPence).toBe(15025);
+  });
+
+  it('surfaces an HMRC error', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(404, { code: 'MATCHING_RESOURCE_NOT_FOUND', message: 'nope' }));
+    await expect(getAdjustableSummary(nino, 'x', 'tok', fraud, fetchFn)).rejects.toBeInstanceOf(HmrcError);
+  });
+});
+
+describe('tax liability adjustments call', () => {
+  const nino = 'AA123456A';
+  const fraud = { 'Gov-Client-Timezone': 'UTC+00:00' };
+
+  it('reads the year\'s adjustments as pence', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, {
+      adjustments: [{ type: 'Pension contributions', amount: 500.1 }, { type: 'Gift Aid', amount: 20 }],
+    }));
+    const result = await getTaxLiabilityAdjustments(nino, '2026-27', 'tok', fraud, fetchFn);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(new URL(url).pathname).toBe(`/individuals/tax-liability-adjustments/${nino}/2026-27`);
+    expect(init.headers.Accept).toBe(TAX_LIABILITY_ADJUSTMENTS_API_ACCEPT);
+    expect(init.headers['Gov-Client-Timezone']).toBe('UTC+00:00');
+    expect(result).toEqual([
+      { type: 'Pension contributions', amountPence: 50010 },
+      { type: 'Gift Aid', amountPence: 2000 },
+    ]);
+  });
+
+  it('returns no adjustments when HMRC holds none', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, {}));
+    expect(await getTaxLiabilityAdjustments(nino, '2026-27', 'tok', fraud, fetchFn)).toEqual([]);
   });
 });

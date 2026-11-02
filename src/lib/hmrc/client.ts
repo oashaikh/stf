@@ -279,6 +279,106 @@ export async function submitFinalDeclaration(
   );
 }
 
+// ─── Business Source Adjustable Summary and Individuals Tax Liability Adjustments ──
+
+// Business Source Adjustable Summary API v7.0 (self-employment). Versions, paths and field names were
+// written from the published spec without live access to the docs page at build time: recheck against
+// https://developer.service.hmrc.gov.uk/api-documentation/docs/api/service/self-assessment-bsas-api
+// before the first sandbox call.
+export const ADJUSTABLE_SUMMARY_API_ACCEPT = 'application/vnd.hmrc.7.0+json';
+
+export const adjustableSummaryPath = (nino: string) =>
+  `/individuals/self-assessment/adjustable-summary/${nino}`;
+
+/** Ask HMRC to build a summary of what it holds for one self-employment business over one period. Nothing is changed. */
+export function triggerAdjustableSummary(
+  nino: string,
+  period: { businessId: string; startDate: string; endDate: string },
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<{ calculationId: string }> {
+  return hmrcFetch(
+    `${adjustableSummaryPath(nino)}/trigger`,
+    accessToken,
+    fraudHeaders,
+    {
+      method: 'POST',
+      headers: { Accept: ADJUSTABLE_SUMMARY_API_ACCEPT },
+      body: JSON.stringify({
+        accountingPeriod: { startDate: period.startDate, endDate: period.endDate },
+        typeOfBusiness: 'self-employment',
+        businessId: period.businessId,
+      }),
+    },
+    fetchFn,
+  );
+}
+
+export type AdjustableSummary = {
+  totalIncomePence: number;
+  totalExpensesPence: number;
+  netProfitPence: number;
+  netLossPence: number;
+};
+
+type RawAdjustableSummary = {
+  adjustableSummaryCalculation: {
+    totalIncome?: number | string;
+    totalExpenses?: number | string;
+    netProfit?: number | string;
+    netLoss?: number | string;
+  };
+};
+
+export async function getAdjustableSummary(
+  nino: string,
+  calculationId: string,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<AdjustableSummary> {
+  const raw = await hmrcFetch<RawAdjustableSummary>(
+    `${adjustableSummaryPath(nino)}/self-employment/${encodeURIComponent(calculationId)}`,
+    accessToken,
+    fraudHeaders,
+    { headers: { Accept: ADJUSTABLE_SUMMARY_API_ACCEPT } },
+    fetchFn,
+  );
+  // HMRC sends a profit or a loss, never both: the missing one is zero.
+  const { totalIncome = 0, totalExpenses = 0, netProfit = 0, netLoss = 0 } = raw.adjustableSummaryCalculation;
+  return {
+    totalIncomePence: poundsToPence(totalIncome),
+    totalExpensesPence: poundsToPence(totalExpenses),
+    netProfitPence: poundsToPence(netProfit),
+    netLossPence: poundsToPence(netLoss),
+  };
+}
+
+// Individuals Tax Liability Adjustments API v1.0. Path and field names are unchecked, as above: recheck
+// against the API's page on the Developer Hub before the first sandbox call.
+export const TAX_LIABILITY_ADJUSTMENTS_API_ACCEPT = 'application/vnd.hmrc.1.0+json';
+
+export type TaxLiabilityAdjustment = { type: string; amountPence: number };
+
+/** The adjustments HMRC already holds against the year's tax. Read only. */
+export async function getTaxLiabilityAdjustments(
+  nino: string,
+  taxYear: string,
+  accessToken: string,
+  fraudHeaders: Record<string, string>,
+  fetchFn?: typeof fetch,
+): Promise<TaxLiabilityAdjustment[]> {
+  const raw = await hmrcFetch<{ adjustments?: { type: string; amount: number | string }[] }>(
+    `/individuals/tax-liability-adjustments/${nino}/${taxYear}`,
+    accessToken,
+    fraudHeaders,
+    { headers: { Accept: TAX_LIABILITY_ADJUSTMENTS_API_ACCEPT } },
+    fetchFn,
+  );
+  return (raw.adjustments ?? []).map(({ type, amount }) => ({ type, amountPence: poundsToPence(amount) }));
+}
+
 // ─── VAT ──────────────────────────────────────────────────────────────────────
 
 export type VatObligation = {

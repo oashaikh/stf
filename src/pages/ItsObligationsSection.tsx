@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { formatDate } from '../lib/dates';
 import { fetchItsObligations, type ItsObligationRow, type ItsSetupGap } from '../lib/hmrc/itsObligationsApi';
 import StateMessage from '../components/StateMessage';
+import { quarterOf } from '../lib/hmrc/itsUpdateApi';
 
 const SETUP_STEPS: Record<ItsSetupGap, { text: string; link: string }> = {
   'not-connected': { text: 'Connect HMRC to see your Income Tax dates.', link: 'Connect HMRC in Settings' },
@@ -23,11 +24,12 @@ function groupByTaxYear(obligations: ItsObligationRow[]): [string, ItsObligation
   return [...groups].sort(([a], [b]) => b.localeCompare(a));
 }
 
-function Cell({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
+// A cell that carries a date range wraps rather than truncating, so the end date is never hidden.
+function Cell({ label, children, className = '', wrap = false }: { label: string; children: React.ReactNode; className?: string; wrap?: boolean }) {
   return (
     <td className={`flex min-h-11 items-center justify-between gap-4 py-1 sm:table-cell sm:py-2 sm:pr-4 ${className}`}>
       <span className="text-gray-700 sm:hidden">{label}</span>
-      <span className="block min-w-0 truncate text-right sm:text-left">{children}</span>
+      <span className={`block min-w-0 ${wrap ? '' : 'truncate'} text-right sm:text-left`}>{children}</span>
     </td>
   );
 }
@@ -43,7 +45,8 @@ function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligatio
             <th scope="col" className="py-2 pr-4 font-medium">Update</th>
             <th scope="col" className="py-2 pr-4 font-medium">Period</th>
             <th scope="col" className="py-2 pr-4 font-medium">Due date</th>
-            <th scope="col" className="py-2 font-medium">Status</th>
+            <th scope="col" className="py-2 pr-4 font-medium">Status</th>
+            <th scope="col" className="py-2 font-medium"><span className="sr-only">Action</span></th>
           </tr>
         </thead>
         <tbody>
@@ -57,7 +60,7 @@ function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligatio
                 <Cell label="Update" className="text-gray-900">
                   {obligation.kind === 'finalDeclaration' ? 'Final declaration' : 'Quarterly update'}
                 </Cell>
-                <Cell label="Period" className="text-gray-700">
+                <Cell label="Period" className="text-gray-700" wrap>
                   <span title={period}>{period}</span>
                 </Cell>
                 <Cell label="Due date" className="text-gray-700">
@@ -67,6 +70,15 @@ function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligatio
                   {statusLabel(obligation)}
                   {obligation.nextDue && <strong className="ml-2 rounded bg-blue-800 px-2 py-0.5 text-xs text-white">Next due</strong>}
                 </Cell>
+                {obligation.status === 'open' && quarterOf(obligation) ? (
+                  <Cell label="Action">
+                    <Link to={`/tax/update/${obligation.taxYear}/${quarterOf(obligation)}`} className="inline-flex min-h-11 items-center text-blue-800 underline">
+                      Send your update
+                    </Link>
+                  </Cell>
+                ) : (
+                  <td className="hidden sm:table-cell" />
+                )}
               </tr>
             );
           })}

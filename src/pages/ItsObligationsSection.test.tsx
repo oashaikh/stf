@@ -20,7 +20,7 @@ const row = (overrides: Partial<ItsObligationRow>): ItsObligationRow => ({
   ...overrides,
 });
 
-function renderSection(respond: () => Promise<Response>) {
+function renderSection(respond: (url: string) => Promise<Response>) {
   const fetchSpy = vi.fn(respond);
   vi.stubGlobal('fetch', fetchSpy);
   render(
@@ -67,6 +67,21 @@ describe('ItsObligationsSection', () => {
     expect(screen.getAllByText('Next due')).toHaveLength(1);
     expect(screen.getByText('Final declaration')).toBeTruthy();
     expect(screen.getByText('Fulfilled')).toBeTruthy();
+  });
+
+  it('links to the update screen only for an open quarterly obligation', async () => {
+    renderSection(async () =>
+      ok({
+        obligations: [
+          row({ taxYear: '2025-26', kind: 'finalDeclaration', periodStart: '2025-04-06', periodEnd: '2026-04-05' }),
+          row({ status: 'fulfilled', periodStart: '2026-07-06', periodEnd: '2026-10-05' }),
+          row({}),
+        ],
+      }),
+    );
+    const links = await screen.findAllByRole('link', { name: 'Send your update' });
+    expect(links).toHaveLength(1);
+    expect(links[0].getAttribute('href')).toBe('/tax/update/2026-27/1');
   });
 
   it('marks an overdue obligation with the word Overdue', async () => {

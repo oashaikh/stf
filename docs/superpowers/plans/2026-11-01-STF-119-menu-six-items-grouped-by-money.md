@@ -76,7 +76,7 @@ Starts at: Signed-in user lands on / and is sent to Home
   - Risk: 'Other income' scope is ambiguous in the spec; do not invent screens.
   - Commit: `7123f25f39e9`
 
-- [ ] **Task 3: Tax tabs and Bank page; clear Settings** (after 2)
+- [x] **Task 3: Tax tabs and Bank page; clear Settings** (after 2)
   - Intent: Tax gets tabs: VAT, Income Tax (current estimate plus quarterly updates), Past returns (existing VatHistoryList), Reports (ReportsPage). Create a Bank page holding the connected-accounts BankSection and remove it from SettingsPage so Settings holds business details, HMRC, security and preferences. Do not hard-code tax values. Reports is not a menu item.
   - Files: `src/pages/TaxHubPage.tsx`, `src/pages/TaxHubPage.test.tsx`, `src/pages/BankPage.tsx`, `src/pages/BankPage.test.tsx`, `src/pages/TaxPage.tsx`, `src/pages/VatPage.tsx`, `src/pages/ReportsPage.tsx`, `src/pages/SettingsPage.tsx`, `src/pages/SettingsPage.test.tsx`, `src/pages/BankSection.tsx`, `src/App.tsx`, `src/pages/__tests__/hostileTextRender.test.tsx`
   - Acceptance criteria the planner set:
@@ -85,6 +85,7 @@ Starts at: Signed-in user lands on / and is sent to Home
     - Nothing is removed: every earlier page content is still reachable
     - Wording on changed screens avoids the spec's never-on-screen words
     - npm run lint, typecheck, test pass
+  - Commit: `a01a48594bb4`
 
 - [ ] **Task 4: Update e2e mock journey and run the full checks** (after 3)
   - Intent: Fix e2e/mockApi.ts and journey.spec.ts for the new paths, assert old addresses redirect and six nav items at 390 and 1440, and make sure lint, typecheck, test and build all pass.

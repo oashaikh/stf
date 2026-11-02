@@ -95,3 +95,7 @@ Also depends on:
 - [x] **Task 6: Fix: address 11 review findings (cycle 0)** (after 5)
   - Intent: Review left 11 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The server work (GET list with cursor paging, presigned read URLs, owner scoping, index migration) and the upload/list/remove flow are correct, and validation passed. Unde The agent is fixing them; nothing is needed from you.
   - Commit: (none — no code change for this task)
+
+- [x] **Task 7: Fix: address 33 review findings (cycle 1)** (after 6)
+  - Intent: Review left 33 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Fix the field-name mismatch between the extraction store and the page. The extraction code (`api/_lib/receiptExtraction.ts:13`) stores `date`, `vendor`, `totalPence`, `vat The agent is fixing them; nothing is needed from you.
+  - Commit: `c08812924e83`

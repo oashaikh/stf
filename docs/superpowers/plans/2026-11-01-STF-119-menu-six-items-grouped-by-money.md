@@ -95,10 +95,11 @@ Starts at: Signed-in user lands on / and is sent to Home
     - All five project checks pass
   - Commit: `1e8e275c798e`
 
-- [ ] **Task 5: Browser evidence and review notes** (after 4)
+- [x] **Task 5: Browser evidence and review notes** (after 4)
   - Intent: Walk each changed screen as a new user in sandbox mode with invented figures, capture 1440 and 390 shots in light and dark under browser-evidence/STF-119/ (following the STF-107 layout), plus a captions file with a plain-English title per image. Write notes listing where screens differ from docs/design/ease-of-use.md and why. No real data, no secrets.
   - Files: `browser-evidence/STF-119/captions.md`, `browser-evidence/STF-119/`
   - Acceptance criteria the planner set:
     - Every changed screen has 1440 and 390 images in light and dark
     - Captions file titles every image in plain English
     - Differences from the spec are listed with reasons
+  - Commit: `18ce93b4345c`

@@ -141,7 +141,8 @@ describe('VatPage', () => {
     const { NotConnectedError } = await import('../lib/hmrc/vatApi');
     fetchVatObligations.mockRejectedValue(new NotConnectedError());
     renderPage();
-    await screen.findAllByRole('link', { name: 'Connect HMRC in Settings' });
+    expect(await screen.findAllByRole('link', { name: 'Connect HMRC in Settings' })).toHaveLength(1);
+    expect(screen.queryByRole('heading', { name: 'VAT obligations' })).not.toBeInTheDocument();
     expect(screen.queryByText('No past VAT returns yet.')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'VAT return history' })).not.toBeInTheDocument();
   });
@@ -229,6 +230,7 @@ describe('VatPage', () => {
       fetchVatObligations.mockRejectedValue(new VatNumberMissingError());
       renderPage();
       expect(await screen.findByRole('link', { name: 'Add your VAT number in Settings' })).toHaveAttribute('href', '/settings');
+      expect(screen.getAllByRole('link', { name: /Settings/ })).toHaveLength(1);
       expect(screen.queryByText('Step 1 of 2')).not.toBeInTheDocument();
       expect(document.body.textContent).not.toMatch(/ledger/i);
       expect(screen.getByText(/We need your VAT number/).textContent).not.toMatch(/obligation/i);
@@ -238,7 +240,8 @@ describe('VatPage', () => {
       fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, data: { ...review, status: 'confirmed', stale: true } })));
       fetchVatObligations.mockResolvedValue([obligation('26C3', '2026-07-01', '2026-09-30')]);
       renderPage();
-      expect(await screen.findByText(/Some payments changed after you confirmed/)).toBeInTheDocument();
+      expect(await screen.findByText(/Your payments changed since you confirmed/)).toBeInTheDocument();
+      expect(screen.queryByText(/Some payments changed/)).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Check your payments' })).toHaveAttribute('href', '/money-out');
       expect(document.body.textContent).not.toMatch(/ledger/i);
     });

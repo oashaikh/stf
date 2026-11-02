@@ -109,7 +109,7 @@ export default function VatPage() {
       {selected && step !== 'period' && <VatReturnReview key={selected.periodKey} period={selected} step={step} live={live} frame={frame} onNext={() => setStepOverride('send')} />}
 
       {/* Obligations would put a second page under the step, so they show only when no step does. */}
-      {!inFlow && <VatObligationsList />}
+      {!inFlow && !notConnected && !vatNumberMissing && <VatObligationsList />}
     </div>
   );
 }
@@ -225,10 +225,13 @@ function VatReturnReview({ period, step, live, frame, onNext }: VatReturnReviewP
 
       {review.data && (
         <>
-          <p role="status" className="mt-4 text-sm font-medium text-gray-900">
-            Status: {state.statusLabel}
-          </p>
-          {review.data.stale && <VatStop fix={{ to: '/money-out', label: 'Check your payments' }}>Some payments changed after you confirmed this return. Check them, then confirm again.</VatStop>}
+          {review.data.stale ? (
+            <VatStop fix={{ to: '/money-out', label: 'Check your payments' }}>{state.statusLabel}</VatStop>
+          ) : (
+            <p role="status" className="mt-4 text-sm font-medium text-gray-900">
+              Status: {state.statusLabel}
+            </p>
+          )}
           {filedReceipt && step === 'figures' && <p className="mt-2 text-sm font-medium text-gray-900">This return has already been sent to HMRC.</p>}
           {review.data.entryCount === 0 && step === 'figures' && (
             <p className="mt-2 text-sm text-gray-700">

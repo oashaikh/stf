@@ -28,4 +28,5 @@ Every image exists at 1440 and 390 px.
 3. Unsorted payments: no data source for it exists in the repo, so that stop is not built or shown. A stale return keeps the flow open so the user can still re-confirm after checking payments; the Send button stays disabled by the unchanged gate.
 4. Back on step 1: the button is shown on every step as the ticket asks, though on the first step it has nowhere earlier to go within the flow.
 5. The history and obligations lists no longer sit under a step; they show only when no step does (nothing due, or a stop screen). They are not yet on the Tax page; moving them was not in the plan.
-6. Mock data oddity: the mocked return shows no transactions but a £45.00 refund figure. That is the mock's invented data, not app logic, and the summary sentence reads from it faithfully.
+6. Stop screens (not connected, VAT number missing) show only the stop sentence and its one fix link; the lists are hidden there. The payments-changed stop shows one message with the link beside it.
+7. The 390 px captures are taken with the fixed bottom menu laid out in the page flow, so it cannot cover figures. On a real phone the page has bottom padding for it.

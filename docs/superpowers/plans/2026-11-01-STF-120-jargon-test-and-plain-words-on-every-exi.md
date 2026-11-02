@@ -61,7 +61,7 @@ Also depends on:
     - npm run lint, typecheck and test pass
   - Commit: `4cf211efdefe`
 
-- [ ] **Task 2: Plain words on Dashboard, Reports, app menu, sign-in and legal pages** (after 1)
+- [x] **Task 2: Plain words on Dashboard, Reports, app menu, sign-in and legal pages** (after 1)
   - Intent: Rewrite visible text only in DashboardPage, ReportsPage, AppShell, LoginPage and LegalPages so none of the banned words appear outside OfficialName: plain English, short sentences, you/your, buttons saying what they do, errors saying what happened and what to do next. Do not change behaviour or layout, and do not restructure the home page into a to-do list (that is STF-119). Update the existing tests that assert on the old wording.
   - Files: `src/pages/DashboardPage.tsx`, `src/pages/DashboardPage.test.tsx`, `src/pages/ReportsPage.tsx`, `src/pages/ReportsPage.test.tsx`, `src/components/AppShell.tsx`, `src/components/AppShell.test.tsx`, `src/pages/LoginPage.tsx`, `src/pages/LoginPage.test.tsx`, `src/pages/LegalPages.tsx`
   - Acceptance criteria the planner set:
@@ -69,6 +69,7 @@ Also depends on:
     - no change to routes, props, data fetching or layout classes
     - updated tests pass along with lint, typecheck and build
   - Risk: STF-119 edits AppShell, DashboardPage and ReportsPage in parallel; keep hunks to text strings only to avoid merge conflicts.
+  - Commit: `d6b1551922ce`
 
 - [ ] **Task 3: Plain words on the Tax screens (not the VAT review and send screens)** (after 1)
   - Intent: Rewrite visible text in TaxPage, ItsObligationsSection (Income Tax updates; replace 'obligation', 'period key', 'submit', raw error text with 'update due', 'quarter', 'Send to HMRC', plain errors) and MileageSection. Use OfficialName for HMRC names worth keeping. Leave VatPage, VatObligationsList, VatPreviewPanel and VatHistoryList untouched; STF-121 rewrites them. Wording only. Update the matching tests.

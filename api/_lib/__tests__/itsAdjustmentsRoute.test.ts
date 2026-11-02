@@ -33,7 +33,7 @@ const credentials = (): HmrcCredentials => ({
   expiresAt: new Date(TODAY.getTime() + 3_600_000),
 });
 
-let hmrcFetch: Mock<unknown[], Promise<Response>>;
+let hmrcFetch: Mock<[string], Promise<Response>>;
 let status: HmrcStatus;
 let sandboxMode: boolean | undefined;
 
@@ -121,7 +121,7 @@ describe('GET /api/hmrc/its-adjustments', () => {
   });
 
   it('reports an HMRC failure as a 502 with only the HMRC code', async () => {
-    hmrcFetch = vi.fn(async () => new Response(JSON.stringify({ code: 'RULE_X', message: 'secret-ish' }), { status: 400 }));
+    hmrcFetch = vi.fn(async (_url: string) => new Response(JSON.stringify({ code: 'RULE_X', message: 'secret-ish' }), { status: 400 }));
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const response = await handler()(asUser('u1'));
     expect(response.status).toBe(502);

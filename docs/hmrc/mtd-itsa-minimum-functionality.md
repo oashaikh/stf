@@ -63,6 +63,14 @@ Tasks 2 and 3 will build:
 4. Check the quarterly update flow handles several self-employment businesses (S, task 3).
 5. Fraud header validation for the Income Tax routes, in the evidence run (S, task 4).
 
+Task 3 result (user-facing gaps), checked 2 Nov 2026. No screen was changed, so there are no new screenshots and the VAT screens are untouched.
+
+1. In-app estimate disclaimer: already met. `src/pages/TaxPage.tsx` says the figure "is an estimate from your recorded profit so far, not a tax bill", and the trading allowance note says the figures are an estimate. No change needed.
+2. Several self-employment businesses: not met. `src/pages/SettingsPage.tsx` stores one selected business, and `src/pages/ItsUpdatePage.tsx` finds the obligation by business type only, so a second self-employment business would never get its own quarterly update. Question for the ticket conversation: docs/design/ease-of-use.md does not say how a person with two trades picks between them. Does the owner want a "which business is this update for?" step at the start of the quarterly update, or one set of settings per business?
+3. Guided step for Business Source Adjustable Summary and Individuals Tax Liability Adjustments: backend only (`api/hmrc/its-adjustments.ts`, client functions). `src/pages/YearEndFlow.tsx` shows adjustments already on the tax record but does not let the person trigger or correct one through these APIs. Question for the ticket conversation: the spec does not describe a screen for correcting figures after the final declaration. What should it say in plain words, and where in the six-item menu does it sit?
+
+Items 2 and 3 are left unbuilt until the owner answers, per the rule not to guess where the spec is silent.
+
 Left for the owner to decide, because each is large or sends customers elsewhere:
 
 1. Losses (rows 7 and 13): build the Individual Losses flow (L), or signpost to other software for now.

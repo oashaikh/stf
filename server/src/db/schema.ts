@@ -178,9 +178,14 @@ export const receipts = pgTable(
     aiRawOutput: jsonb('ai_raw_output'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    // Hex SHA-256 of the file, so the same file uploaded twice can be flagged. Advisory only.
+    fileHash: text('file_hash'),
+    // The earlier live receipt with the same file hash, set once at upload and never rewritten.
+    duplicateOfReceiptId: uuid('duplicate_of_receipt_id'),
   },
   (table) => ({
     userCreatedIdx: index('receipts_user_created_idx').on(table.userId, table.createdAt, table.id),
+    userFileHashIdx: index('receipts_user_file_hash_idx').on(table.userId, table.fileHash),
   }),
 );
 

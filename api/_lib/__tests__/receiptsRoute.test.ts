@@ -15,7 +15,7 @@ const authDeps: AuthDeps = {
   users: { findId: async (issuerId) => issuerId, createIfAbsent: async (issuerId) => issuerId },
 };
 
-type Row = StoredReceipt & { userId: string; fileKey: string; details?: ReceiptDetails };
+type Row = StoredReceipt & { userId: string; fileKey: string; fileHash?: string; details?: ReceiptDetails };
 
 function makeStore() {
   const rows: Row[] = [];
@@ -26,6 +26,10 @@ function makeStore() {
       const row: Row = { ...receipt, userId, id: `00000000-0000-4000-8000-${String(rows.length + 1).padStart(12, '0')}`, uploadStatus: 'pending', createdAt: '2026-10-01T10:00:00.000Z', deletedAt: null };
       rows.push(row);
       return row;
+    },
+    async findDuplicateOf(userId, fileHash) {
+      calls.push('findDuplicateOf');
+      return rows.find((row) => row.userId === userId && row.fileHash === fileHash && !row.deletedAt)?.id;
     },
     async find(userId, id) {
       calls.push('find');
@@ -97,6 +101,7 @@ const seed = (rows: Row[], userId: string, count: number, status: Row['uploadSta
       uploadStatus: status,
       createdAt: `2026-10-${String(n).padStart(2, '0')}T10:00:00.000Z`,
       deletedAt: null,
+      duplicateOfId: null,
     });
   }
 };
@@ -137,6 +142,45 @@ describe('receipts route', () => {
     expect((await call(store, storage, 'POST', 'owner_a', body)).status).toBe(400);
     expect(rows).toEqual([]);
     expect(presigned).toEqual([]);
+  });
+
+  const hash = 'a'.repeat(64);
+
+  it.each([['too short', 'abc123'], ['not hex', 'z'.repeat(64)], ['wrong type', 12]])('refuses a POST with a hash that is %s', async (_name, fileHash) => {
+    const { store, rows } = makeStore();
+    const { storage } = makeStorage();
+    expect((await call(store, storage, 'POST', 'owner_a', { ...upload, fileHash })).status).toBe(400);
+    expect(rows).toEqual([]);
+  });
+
+  it('uploads without a hash and reports no duplicate', async () => {
+    const { store, calls } = makeStore();
+    const { storage } = makeStorage();
+    const body = await (await call(store, storage, 'POST', 'owner_a', upload)).json();
+    expect(body.receipt.duplicateOfId).toBeNull();
+    expect(calls).toEqual(['insert']);
+  });
+
+  it('flags the second upload of the same file and never exposes the hash', async () => {
+    const { store, rows } = makeStore();
+    const { storage } = makeStorage();
+    const first = await (await call(store, storage, 'POST', 'owner_a', { ...upload, fileHash: hash })).json();
+    const second = await (await call(store, storage, 'POST', 'owner_a', { ...upload, fileHash: hash })).json();
+    expect(first.receipt.duplicateOfId).toBeNull();
+    expect(second.receipt.duplicateOfId).toBe(first.receipt.id);
+    expect(second.receipt).not.toHaveProperty('fileHash');
+    expect(JSON.stringify(second)).not.toContain(hash);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].duplicateOfId).toBeNull();
+  });
+
+  it("never matches another owner's receipt or a deleted one", async () => {
+    const { store, rows } = makeStore();
+    const { storage } = makeStorage();
+    await call(store, storage, 'POST', 'owner_b', { ...upload, fileHash: hash });
+    expect((await (await call(store, storage, 'POST', 'owner_a', { ...upload, fileHash: hash })).json()).receipt.duplicateOfId).toBeNull();
+    rows.find((row) => row.userId === 'owner_a')!.deletedAt = '2026-10-02T09:00:00.000Z';
+    expect((await (await call(store, storage, 'POST', 'owner_a', { ...upload, fileHash: hash })).json()).receipt.duplicateOfId).toBeNull();
   });
 
   it('creates a pending row under the session owner prefix and returns a 5 minute URL', async () => {
@@ -226,7 +270,7 @@ describe('receipts route', () => {
       expect(body.receipts.map((item: { fileName: string }) => item.fileName)).toEqual(['receipt-3.jpg', 'receipt-2.jpg', 'receipt-1.jpg']);
       expect(body.receipts[0]).toMatchObject({ uploadStatus: 'ready', aiStatus: 'pending', mimeType: 'image/jpeg' });
       expect(body.nextCursor).toBeNull();
-      expect(Object.keys(body.receipts[0]).sort()).toEqual(['aiStatus', 'createdAt', 'details', 'fileName', 'id', 'mimeType', 'readUrl', 'sizeBytes', 'uploadStatus']);
+      expect(Object.keys(body.receipts[0]).sort()).toEqual(['aiStatus', 'createdAt', 'details', 'duplicateOfId', 'fileName', 'id', 'mimeType', 'readUrl', 'sizeBytes', 'uploadStatus']);
     });
 
     it('never shows a second owner the first owner receipts, deleted ones included', async () => {

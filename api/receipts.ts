@@ -5,8 +5,9 @@ import { databaseReceiptStore, decodeReceiptCursor, encodeReceiptCursor, READ_UR
 const refuse = (status: number, error: string, code: string) => Response.json({ ok: false, error, code }, { status });
 
 // The record key from the store carries fileKey; only these columns reach the client.
-const toResponse = ({ id, fileName, mimeType, sizeBytes, uploadStatus, createdAt, deletedAt }: StoredReceipt) => ({
+const toResponse = ({ id, duplicateOfId, fileName, mimeType, sizeBytes, uploadStatus, createdAt, deletedAt }: StoredReceipt) => ({
   id,
+  duplicateOfId,
   fileName,
   mimeType,
   sizeBytes,
@@ -40,8 +41,9 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
       const last = page[page.length - 1];
       // Signing is local to the process and runs after the query has finished, outside any transaction (COD-4).
       const receipts = await Promise.all(
-        page.map(async ({ id, fileName, mimeType, sizeBytes, uploadStatus, aiStatus, details, createdAt, fileKey }) => ({
+        page.map(async ({ id, duplicateOfId, fileName, mimeType, sizeBytes, uploadStatus, aiStatus, details, createdAt, fileKey }) => ({
           id,
+          duplicateOfId,
           fileName,
           mimeType,
           sizeBytes,
@@ -63,7 +65,9 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
       const fileKey = `${auth.userId}/${crypto.randomUUID()}`;
       // Presign first so a signing failure leaves no pending row behind.
       const uploadUrl = await receiptStorage.presignUpload(fileKey, upload.mimeType, upload.sizeBytes, UPLOAD_URL_SECONDS);
-      const receipt = await store.insert(auth.userId, { ...upload, fileKey });
+      // A separate indexed lookup, outside any transaction; a repeat is only flagged, never refused.
+      const duplicateOfId = upload.fileHash ? (await store.findDuplicateOf(auth.userId, upload.fileHash)) ?? null : null;
+      const receipt = await store.insert(auth.userId, { ...upload, fileKey, duplicateOfId });
       return Response.json({ ok: true, receipt: toResponse(receipt), uploadUrl, expiresInSeconds: UPLOAD_URL_SECONDS });
     }
 

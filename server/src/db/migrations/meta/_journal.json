@@ -232,6 +232,13 @@
       "when": 1792986672126,
       "tag": "0032_bank_suggestions",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1792986673126,
+      "tag": "0034_receipt_file_hash",
+      "breakpoints": true
     }
   ]
 }

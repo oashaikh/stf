@@ -7,6 +7,8 @@ export interface ApiReceipt {
   sizeBytes: number;
   uploadStatus: ReceiptUploadStatus;
   createdAt: string;
+  /** The earlier receipt with the same file, or null. Advisory only. */
+  duplicateOfId: string | null;
 }
 
 /** Fields read with less confidence than this (integer thousandths) are flagged for a closer look; matches the "below 0.7" line in the extraction prompt. */
@@ -73,6 +75,13 @@ export async function fetchReceipts(cursor?: string): Promise<{ receipts: Listed
   return { receipts: body.receipts, nextCursor: body.nextCursor ?? null };
 }
 
+/** Hex SHA-256 of the file, or undefined where the browser has no crypto.subtle (plain http). The server treats it as optional. */
+async function hashFile(file: File): Promise<string | undefined> {
+  if (!globalThis.crypto?.subtle) return undefined;
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
 /** Checks the file locally, then asks the server for a pending receipt and a signed upload URL. */
 export async function startReceiptUpload(file: File): Promise<{ receipt: ApiReceipt; uploadUrl: string }> {
   const problem = validateReceiptFile(file);
@@ -81,7 +90,7 @@ export async function startReceiptUpload(file: File): Promise<{ receipt: ApiRece
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fileName: file.name, mimeType: file.type, sizeBytes: file.size }),
+    body: JSON.stringify({ fileName: file.name, mimeType: file.type, sizeBytes: file.size, fileHash: await hashFile(file) }),
   });
   if (!response.ok) throw new Error(await refusalMessage(response, 'Could not start the upload. Please try again.'));
   const body = await response.json();

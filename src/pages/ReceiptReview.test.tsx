@@ -29,6 +29,7 @@ const accounts = [
 ];
 
 const draft: ListedReceipt = {
+  duplicateOfId: null,
   id: '11111111-1111-4111-8111-111111111111',
   fileName: 'cafe-lunch.jpg',
   mimeType: 'image/jpeg',

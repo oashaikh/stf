@@ -89,7 +89,7 @@ Also depends on:
   - Risk: Opus/high: tenant isolation, financial status changes and audit trail.
   - Commit: `9c84d2a95e12`
 
-- [ ] **Task 4: Client API and 'Sort your bank payments' screen** (after 3)
+- [x] **Task 4: Client API and 'Sort your bank payments' screen** (after 3)
   - Intent: Add src/lib/bankReconcileApi.ts and a child component src/pages/BankSortSection.tsx rendered in BankPage (ease-of-use.md puts sorting payments on the Bank page). Plain words only (match, sort; never reconcile). Each payment shows a suggested match with a reason ('Same amount, 2 days apart'), one-tap 'Yes, match it', 'No', 'Set aside' with reason, and 'Add as new payment' creating a draft. Undo after every action. Shared StateMessage for loading/empty/error, an all-sorted empty state, formatPence right-aligned tabular, 44px targets, focus rings, rows collapse on phones. Tests with the API module mocked. Check the Home to-do for bank payments links to /bank.
   - Files: `src/lib/bankReconcileApi.ts`, `src/pages/BankSortSection.tsx`, `src/pages/BankSortSection.test.tsx`, `src/pages/BankPage.tsx`, `src/pages/BankPage.test.tsx`, `src/pages/__tests__/jargonRender.test.tsx`, `src/lib/homeTodos.ts`
   - Acceptance criteria the planner set:
@@ -98,6 +98,7 @@ Also depends on:
     - A fully matched month shows the all-sorted state and no unmatched lines
     - Loading, empty and error states use StateMessage
     - npm test, lint, typecheck and build pass
+  - Commit: `9944c2f0a882`
 
 - [ ] **Task 5: E2E mock and screenshot evidence at 390 and 1440 px** (after 4)
   - Intent: Extend e2e/mockApi.ts with an appended /api/bank/reconcile mock using invented data, add an e2e spec for the Bank sort flow, and capture screenshots at 390 px and 1440 px (light, and dark if shipped) into browser-evidence/STF-38 with captions.md.

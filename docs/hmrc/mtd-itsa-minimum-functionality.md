@@ -5,7 +5,7 @@ Source: HMRC Developer Hub, Income Tax MTD end-to-end service guide, "How to int
 sections "Minimum functionality standards", "Production approvals checklist" and "Process for being granted Production access".
 
 Date read: 2026-11-02, via a summary the operator pasted into the ticket (this environment cannot reach HMRC sites).
-Operator check: on 2 Nov 2026 the operator compared this document with the live HMRC page and accepted it.
+Source: summary pasted by the operator in the ticket on 2 Nov 2026; this document was not compared with the live page by its author. The operator's acceptance of this audit is recorded in the job conversation, not in the repository.
 The rows below follow that summary, not HMRC's exact wording.
 
 Scope: sole trader with self-employment and UK property income. Limited companies are out of scope.

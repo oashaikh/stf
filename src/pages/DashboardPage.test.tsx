@@ -95,7 +95,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('6 Apr 2026 to 5 Apr 2027')).toBeTruthy();
   });
 
-  it('shows the empty state for a new ledger', async () => {
+  it('shows the empty state for a new account', async () => {
     renderPage(Response.json({ ok: true, data: empty }));
     expect(await screen.findByText(/no entries yet/i)).toBeTruthy();
     expect(screen.getByRole('link', { name: /add entry/i }).getAttribute('href')).toBe('/money-out');
@@ -115,6 +115,8 @@ describe('DashboardPage', () => {
       expect(await screen.findByText('£543.21')).toBeTruthy();
       expect(screen.getByText(formatDate(dueSoon.due))).toBeTruthy();
       expect(screen.getByText('Draft saved')).toBeTruthy();
+      expect(screen.getByText('1 Jul 2026 to 30 Sep 2026')).toBeTruthy();
+      expect(screen.queryByText(/26C3/)).toBeNull();
       expect(screen.getByRole('link', { name: /review vat return/i }).getAttribute('href')).toBe('/tax/vat');
     });
 

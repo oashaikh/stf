@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { disconnectBank, fetchBankConnectUrl, fetchBankStatus, type BankStatus } from '../lib/bankApi';
 import BankSection from './BankSection';
+import { findJargon } from '../lib/jargon';
 
 vi.mock('../lib/bankApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/bankApi')>()),
@@ -84,7 +85,7 @@ describe('BankSection', () => {
     renderSection();
     fireEvent.click(await screen.findByRole('button', { name: 'Disconnect' }));
     expect(disconnectBank).not.toHaveBeenCalled();
-    expect(screen.getByText(/stops syncing transactions/i)).toBeInTheDocument();
+    expect(screen.getByText(/stops updating transactions/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Yes, disconnect' }));
     await waitFor(() => expect(disconnectBank).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole('button', { name: 'Connect bank account' })).toBeInTheDocument();
@@ -108,5 +109,13 @@ describe('BankSection', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Connect bank account' }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith('https://bank.test/consent'));
     vi.unstubAllGlobals();
+  });
+
+  it('uses no accounting jargon when connected and when asking to disconnect', async () => {
+    vi.mocked(fetchBankStatus).mockResolvedValue(linked(60));
+    renderSection();
+    fireEvent.click(await screen.findByRole('button', { name: /disconnect/i }));
+    await screen.findByText(/stops updating transactions/i);
+    expect(findJargon(document.body)).toEqual([]);
   });
 });

@@ -79,7 +79,7 @@ export default function SettingsPage() {
         code === 'BAD_REQUEST'
           ? 'Enter 9 digits. A leading GB and spaces are fine.'
           : code === 'SUBMISSION_PENDING'
-            ? 'A live VAT submission is pending. Change the number after it finishes.'
+            ? 'A VAT return is being sent to HMRC for real. Change the number after it finishes.'
             : 'Could not save your VAT number. Please try again.',
       );
     }
@@ -226,6 +226,9 @@ export default function SettingsPage() {
                   itsState.selectedBusinessId}
               </p>
             )}
+            {itsState && itsState.businesses.length === 0 && (
+              <p className="mt-2 text-gray-800">HMRC has no self-employment business on record for you yet.</p>
+            )}
             {itsState && !itsState.selectedBusinessId && itsState.businesses.length > 1 && (
               <form onSubmit={submitItsBusiness} className="mt-2">
                 <label htmlFor="its-business-select" className="block text-gray-900">Choose your self-employment business</label>
@@ -304,10 +307,10 @@ export default function SettingsPage() {
         {vatError && <p className="mt-2 text-red-800" role="alert">{vatError}</p>}
       </section>
       <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="mode-heading">
-        <h2 id="mode-heading" className="text-lg font-semibold text-gray-900">Live HMRC submission</h2>
+        <h2 id="mode-heading" className="text-lg font-semibold text-gray-900">Send to HMRC for real</h2>
         <p className="mt-2 text-gray-700">
-          Off by default: returns go to the HMRC test service only. Live filing needs this switch on and the server in
-          production mode as well. Neither one alone is enough.
+          Off by default: returns go to the HMRC test service only. Sending for real needs this switch on and the server
+          set to live as well. Neither one alone is enough.
         </p>
         {mode && (
           <>
@@ -356,8 +359,8 @@ export default function SettingsPage() {
               </div>
             )}
             <p className="mt-4 text-gray-900" role="status">
-              Effective mode: <strong>{isEffectivelyLive(mode) ? 'Live' : 'Sandbox (test)'}</strong>
-              {mode.live && !mode.envLive && ' (the server is not in production mode)'}
+              Right now: <strong>{isEffectivelyLive(mode) ? 'Live' : 'Sandbox (test)'}</strong>
+              {mode.live && !mode.envLive && ' (the server is not set to live)'}
             </p>
             <p className="mt-2 text-gray-700">
               HMRC connections are per environment. After changing this, use Reconnect to HMRC above.
@@ -367,9 +370,9 @@ export default function SettingsPage() {
         {modeFailed && <p className="mt-2 text-red-800" role="alert">Could not change the setting. Please try again.</p>}
       </section>
       <section className="mt-6 max-w-xl rounded-lg border border-gray-200 bg-white p-6" aria-labelledby="fraud-heading">
-        <h2 id="fraud-heading" className="text-lg font-semibold text-gray-900">HMRC fraud prevention headers</h2>
+        <h2 id="fraud-heading" className="text-lg font-semibold text-gray-900">Check your connection to HMRC</h2>
         <p className="mt-2 text-gray-700">
-          Sends the headers a real submission sends to HMRC's sandbox validator and shows what it reports.
+          Runs the same safety check HMRC makes when you send a return, using HMRC's test service, and shows the result.
         </p>
         <button
           type="button"
@@ -377,7 +380,7 @@ export default function SettingsPage() {
           disabled={checking}
           className="mt-4 min-h-[44px] min-w-[44px] rounded-md bg-blue-700 px-4 text-white hover:bg-blue-800 disabled:opacity-50"
         >
-          Check HMRC fraud headers
+          Check my connection
         </button>
         {checking && <StateMessage kind="loading" className="mt-2">Checking…</StateMessage>}
         {checkFailed && <StateMessage kind="error" className="mt-2">Could not run the check. Please try again.</StateMessage>}
@@ -386,7 +389,7 @@ export default function SettingsPage() {
             {checkResult.outcome === 'pass' && (
               <p className="text-green-800">
                 <span aria-hidden="true">✓ </span>
-                Pass: HMRC accepted every fraud prevention header.
+                Pass: HMRC accepted every safety check.
               </p>
             )}
             {checkResult.errors.length + checkResult.warnings.length > 0 && (

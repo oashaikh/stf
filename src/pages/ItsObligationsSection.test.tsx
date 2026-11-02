@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ItsObligationRow } from '../lib/hmrc/itsObligationsApi';
 import ItsObligationsSection from './ItsObligationsSection';
+import { findJargon } from '../lib/jargon';
 
 const row = (overrides: Partial<ItsObligationRow>): ItsObligationRow => ({
   kind: 'quarterly',
@@ -66,7 +67,7 @@ describe('ItsObligationsSection', () => {
     expect(within(nextRow).getByText('5 Aug 2026')).toBeTruthy();
     expect(screen.getAllByText('Next due')).toHaveLength(1);
     expect(screen.getByText('Final declaration')).toBeTruthy();
-    expect(screen.getByText('Fulfilled')).toBeTruthy();
+    expect(screen.getByText('Sent')).toBeTruthy();
   });
 
   it('links to the update screen only for an open quarterly obligation', async () => {
@@ -82,6 +83,12 @@ describe('ItsObligationsSection', () => {
     const links = await screen.findAllByRole('link', { name: 'Send your update' });
     expect(links).toHaveLength(1);
     expect(links[0].getAttribute('href')).toBe('/tax/update/2026-27/1');
+  });
+
+  it('uses no accounting jargon on screen', async () => {
+    renderSection(async () => ok({ obligations: [row({ nextDue: true }), row({ kind: 'finalDeclaration', status: 'fulfilled' })] }));
+    await screen.findAllByText('Sent');
+    expect(findJargon(document.body)).toEqual([]);
   });
 
   it('marks an overdue obligation with the word Overdue', async () => {

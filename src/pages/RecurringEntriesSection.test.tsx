@@ -7,6 +7,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { fetchAccounts } from '../lib/accountsApi';
 import { createTemplate, deleteTemplate, fetchTemplates, updateTemplate, type ApiTemplate } from '../lib/recurringEntriesApi';
 import RecurringEntriesSection from './RecurringEntriesSection';
+import { findJargon } from '../lib/jargon';
 
 vi.mock('../lib/recurringEntriesApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/recurringEntriesApi')>()),
@@ -70,6 +71,16 @@ describe('RecurringEntriesSection', () => {
     expect(row).toHaveTextContent('Monthly');
     expect(row).toHaveTextContent('1 Nov 2026');
     expect(row).toHaveTextContent('Money out');
+  });
+
+  it('uses no accounting jargon in the list or the empty state', async () => {
+    renderSection(true);
+    await screen.findByText('Studio rent');
+    expect(findJargon(document.body)).toEqual([]);
+    cleanup();
+    renderSection(false, []);
+    await screen.findByText(/No recurring entries yet/);
+    expect(findJargon(document.body)).toEqual([]);
   });
 
   it('says so when there are no templates, and when loading fails', async () => {

@@ -10,6 +10,7 @@ import TaxPage from './TaxPage';
 import { findJargon } from '../lib/jargon';
 
 // This file's fetch mock only knows the tax estimate.
+vi.mock('./UkPropertyPrompt', () => ({ default: () => <h3>Do you let out a property in the UK?</h3> }));
 vi.mock('./ItsObligationsSection', () => ({ default: () => <h2>Income Tax updates due</h2> }));
 vi.mock('../lib/tradingAllowanceApi', () => ({ saveExpenseMethod: vi.fn() }));
 

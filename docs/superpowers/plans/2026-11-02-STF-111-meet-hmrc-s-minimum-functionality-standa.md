@@ -27,7 +27,7 @@
 
 ## Tasks
 
-- [ ] **Task 1: Audit STF against HMRC's MTD Income Tax minimum functionality standards**
+- [x] **Task 1: Audit STF against HMRC's MTD Income Tax minimum functionality standards**
   - Intent: Fetch HMRC's current minimum functionality standards for MTD Income Tax from the Developer Hub service guide (WebFetch). Write docs/hmrc/mtd-itsa-minimum-functionality.md with one row per standard: the requirement, where STF meets it (file or screen), or a gap. Scope is a sole trader with self-employment and UK property income. Record each gap with a size estimate. State plainly that the VAT filing code is frozen and no standard is met by changing it. If the page cannot be fetched, stop and say so in the doc rather than guessing.
   - Files: `docs/hmrc/mtd-itsa-minimum-functionality.md`
   - Acceptance criteria the planner set:
@@ -36,6 +36,7 @@
     - A closing section lists the gaps tasks 2 and 3 will build and the gaps left for the owner
     - No source file under src, api or server is changed
   - Risk: Standards text comes from a live web page. Quote only what was read, and mark anything unverified.
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 2: Build the gaps the audit found in the HMRC client and API routes** (after 1)
   - Intent: Implement the backend gaps task 1 listed, using existing client.ts patterns (fraud headers on every call, integer pence, sandbox guard). Do not touch VAT code (vatApi, vatSubmit, vatPreview, vatReturns). STF-110 edits client.ts, so keep to small appended exports and rebase before finishing. Every new call gets a test with a fake fetch. If the audit finds no backend gap, record that in the audit doc and finish with only that doc edit.

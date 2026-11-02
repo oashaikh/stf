@@ -69,7 +69,7 @@ Also depends on:
   - Risk: Schema and migration work, so opus at high. Merge conflict risk with STF-38 and STF-74 on schema.ts and the journal.
   - Commit: `909a56ab84a3`
 
-- [ ] **Task 3: Suggestion service and route with a fake-client test** (after 1, 2)
+- [x] **Task 3: Suggestion service and route with a fake-client test** (after 1, 2)
   - Intent: Add api/_lib/bankCategorise.ts and api/bank/categorise.ts, behind withAuth. The route takes a bounded batch of the owner's unmatched bank line ids. The server loads descriptions and the owner's account list scoped to the session user, never trusting the client for descriptions. It checks the STF-7 kill switch first; when off it makes no call and returns a clear 'suggestions are off' result. It calls the Anthropic client STF-7 added (reuse it, add no dependency) with the model id from STF-7's env variable. It validates the model reply with zod, accepts only account ids that belong to the owner, clamps confidence to an integer, writes only the two suggestion columns, and does not touch status or the ledger. No network call while a transaction is open (). It logs an internal id and an audit event with no description text. It has a rate limit and a batch cap. Tests use a fake client: suggestions stored as drafts only, kill switch off means zero calls, an unknown account id is dropped, another user's line id is refused, and a failed call leaves lines unchanged and visible as an error.
   - Files: `api/_lib/bankCategorise.ts`, `api/bank/categorise.ts`, `api/_lib/bankStore.ts`, `api/_lib/__tests__/bankCategorise.test.ts`, `api/_lib/__tests__/bankCategoriseRoute.test.ts`, `api/_lib/__tests__/apiRoutes.test.ts`, `api/_lib/__tests__/maliciousInputRoutes.test.ts`, `vercel.json`, `docs/security/input-inventory.md`, `.env.example`
   - Acceptance criteria the planner set:
@@ -81,6 +81,7 @@ Also depends on:
     - `.env.example` is touched only if STF-7 has not already added the kill switch and model variables
     - npm run lint, typecheck and test pass
   - Risk: Opus at high: sends personal bank text to a third party, with an owner-scoped data and permission boundary. Depends on STF-7 for the client, model variable and kill switch; if they are not on the base branch the implementer must stop and ask. Overlaps STF-38 and STF-7 on apiRoutes.test.ts, input-inventory.md and .env.example.
+  - Commit: `be7cc0e2d3f8`
 
 - [ ] **Task 4: Show suggestions in Sort bank payments and accept as a draft** (after 3)
   - Intent: Add src/lib/bankCategoriseApi.ts as the client for the new route. In the STF-38 Sort bank payments view (BankSortSection), show the suggested category in plain words, e.g. 'Looks like Office costs', with confidence as a small muted note and the official account name in small muted text. Add a 'Suggest categories' button. When off or failed, show the fix beside the message and keep manual sorting working. Accepting calls STF-38's existing confirm path, which creates a draft entry; the owner can pick a different category. No suggestion is applied without a tap. Follow docs/design/ease-of-use.md. Use shared loading, empty and error components, 44px tap targets, and money via formatPence. Update the jargon render test. Provide screenshots at 1440 and 390 px.

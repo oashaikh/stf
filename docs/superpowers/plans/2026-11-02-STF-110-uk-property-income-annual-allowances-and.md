@@ -110,3 +110,7 @@ Also depends on:
 - [x] **Task 7: Fix: address 13 review findings (cycle 1)** (after 6)
   - Intent: Review left 13 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens: a property-only owner cannot reach the rental year-end steps, yet the new final-declaration gate demands those figures. Everything else I traced held up: The agent is fixing them; nothing is needed from you.
   - Commit: (none — no code change for this task)
+
+- [x] **Task 8: Fix: address 13 review findings (cycle 1)** (after 7)
+  - Intent: Review left 13 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Correctness lens: a property-only owner cannot reach the rental year-end steps, yet the new final-declaration gate demands those figures. Everything else I traced held up: The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

@@ -100,13 +100,14 @@ Also depends on:
   - Risk: STF-119 edits SettingsPage and BankSection; text-only hunks.
   - Commit: `0bfe5c96a75c`
 
-- [ ] **Task 6: Add the render-every-page jargon test** (after 2, 3, 4, 5)
+- [x] **Task 6: Add the render-every-page jargon test** (after 2, 3, 4, 5)
   - Intent: Add a Vitest test that renders every routed page and dialog (Dashboard, Expenses, Invoices incl. editor dialog, Reports, Tax, Settings with all sections, Login, legal pages, shell) with mocked API clients (, no live calls), in loading, empty, error and loaded states where cheap, and fails with the offending word and element on any banned word outside OfficialName. VAT review/send screens (VatPage, VatObligationsList, VatPreviewPanel, VatHistoryList) are excluded through a named list with a comment pointing at STF-121 to remove it. Include a self-check that the test fails when a banned word is injected. Ensure mocks always return defined data for vat-obligations.
   - Files: `src/pages/__tests__/jargonRender.test.tsx`
   - Acceptance criteria the planner set:
     - test passes on the rewritten screens and fails if a banned word is added to a page (shown once during development)
     - the VAT exclusions are an explicit list with the STF-121 note
     - npm run lint, typecheck, test, build all pass
+  - Commit: `0ecf5467afec`
 
 - [ ] **Task 7: Capture new-user screenshots, captions and spec-difference notes** (after 6)
   - Files: `browser-evidence/STF-120/captions.md`, `browser-evidence/STF-120/`

@@ -67,9 +67,21 @@ The `its_final_declarations` table is the source of truth for each final declara
 | `submitted` | HMRC accepted the declaration; receipt recorded | Final state; no further action |
 | `rejected` | HMRC rejected the submission (4xx error, e.g. invalid data) | Confirm again to re-trigger the calculation and resubmit |
 
+## Annual figures gate
+
+Before the calculation is requested, every business the owner has (self-employment and UK property) must have its annual figures submitted for that tax year and sandbox mode. This ensures HMRC has the complete year-end allowances before calculating the final tax.
+
+The preview, confirm, and submit routes each check that every business with a stored ID has a submitted annual submission record (confirmed, pending or rejected rows do not count). The check is a single query on the unique key `(user_id, tax_year, sandbox, business_kind)`. If any business is missing:
+- Return `409 ANNUAL_FIGURES_MISSING`
+- Name the missing business in plain words (e.g. "self-employment" or "UK property")
+- Point to the year-end flow: "You need to complete the annual figures for [business] first. Go back to your tax year-end."
+- Make no further call to HMRC
+
+A property-only user sees only the property check. A self-employment-only user sees only the self-employment check. A user with both sees both checks.
+
 ## Routes and gating
 
-All three routes are gated by the same prerequisites as the quarterly update and annual submission (ITSA enabled, mode check, HMRC credentials, ITS scope, business chosen, NINO stored). No HMRC API call is made during these checks — all are local database reads and credential validation.
+All three routes are gated by the same prerequisites as the quarterly update and annual submission (ITSA enabled, mode check, HMRC credentials, ITS scope, business chosen, NINO stored), plus the annual figures gate. No HMRC API call is made during these checks — all are local database reads and credential validation.
 
 ### Preview route: `POST /api/hmrc/its-final-preview`
 

@@ -3,10 +3,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { fetchItsBusinesses } from '../lib/hmrc/settingsApi';
+import { previewItsPropertyUpdate } from '../lib/hmrc/itsUpdateApi';
 import { confirmItsAnnual, previewItsAnnual, submitItsAnnual, type ItsAnnualPreview } from '../lib/itsAnnualApi';
 import YearEndFlow from './YearEndFlow';
 
 vi.mock('../lib/itsAnnualApi');
+vi.mock('../lib/hmrc/settingsApi');
+vi.mock('../lib/hmrc/itsUpdateApi');
 
 const preview = (body: ItsAnnualPreview['body'], sandbox = true): ItsAnnualPreview => ({
   endpoint: { method: 'PUT', url: 'https://example.test', sandbox },
@@ -27,7 +31,11 @@ function renderFlow(onLeave = vi.fn()) {
   return onLeave;
 }
 
+const noProperty = { businesses: [], selectedBusinessId: null, propertyBusinessId: null };
+const withProperty = { ...noProperty, propertyBusinessId: 'XPIS12345678901' };
+
 beforeEach(() => {
+  vi.mocked(fetchItsBusinesses).mockResolvedValue(noProperty);
   vi.mocked(confirmItsAnnual).mockResolvedValue();
   vi.mocked(submitItsAnnual).mockResolvedValue({ sandbox: true });
 });
@@ -147,6 +155,158 @@ describe('YearEndFlow', () => {
 
   it('shows an error with retry when the preview fails', async () => {
     vi.mocked(previewItsAnnual).mockRejectedValue(new Error('Connect HMRC first'));
+    renderFlow();
+    expect(await screen.findByText('Connect HMRC first')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+  });
+
+  it('offers the rental steps after the self-employment figures are sent', async () => {
+    vi.mocked(previewItsAnnual).mockResolvedValue(withAllowance);
+    vi.mocked(fetchItsBusinesses).mockResolvedValue({ ...withProperty, selectedBusinessId: 'XAIS12345678901' });
+    vi.mocked(previewItsPropertyUpdate).mockResolvedValue(rentalFigures(12000, 2500));
+    renderFlow();
+    await screen.findByText('Step 1 of 2');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('checkbox'));
+    const send = screen.getByRole('button', { name: 'Send to HMRC' }) as HTMLButtonElement;
+    await waitFor(() => expect(send.disabled).toBe(false));
+    fireEvent.click(send);
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue to your rental property' }));
+    expect(await screen.findByText('Step 1 of 3')).toBeTruthy();
+  });
+
+  it('says Done and no rental steps when there is no property business', async () => {
+    vi.mocked(previewItsAnnual).mockResolvedValue(withAllowance);
+    renderFlow();
+    await screen.findByText('Step 1 of 2');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('checkbox'));
+    const send = screen.getByRole('button', { name: 'Send to HMRC' }) as HTMLButtonElement;
+    await waitFor(() => expect(send.disabled).toBe(false));
+    fireEvent.click(send);
+    expect(await screen.findByRole('button', { name: 'Done' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Continue to your rental property' })).toBeNull();
+  });
+});
+
+const rentalFigures = (rentPounds: number, costsPounds: number) => ({
+  endpoint: { method: 'PUT', url: 'https://example.test', sandbox: true },
+  body: { fromDate: '2026-04-06', toDate: '2027-04-05', ukProperty: { income: { periodAmount: rentPounds }, expenses: { premisesRunningCosts: costsPounds } } },
+  headers: {},
+});
+
+describe('YearEndFlow with a rental property business', () => {
+  it('starts at the rental steps when the owner has no self-employment business', async () => {
+    vi.mocked(fetchItsBusinesses).mockResolvedValue(withProperty);
+    vi.mocked(previewItsPropertyUpdate).mockResolvedValue(rentalFigures(12000, 2500));
+    renderFlow();
+    expect(await screen.findByText('Step 1 of 3')).toBeTruthy();
+    expect(previewItsAnnual).not.toHaveBeenCalled();
+  });
+
+  it('lets an owner with both businesses skip to the rental steps after leaving mid-way', async () => {
+    vi.mocked(fetchItsBusinesses).mockResolvedValue({ ...withProperty, selectedBusinessId: 'XAIS12345678901' });
+    vi.mocked(previewItsAnnual).mockResolvedValue(withAllowance);
+    vi.mocked(previewItsPropertyUpdate).mockResolvedValue(rentalFigures(12000, 2500));
+    renderFlow();
+    await screen.findByText('Step 1 of 2');
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to your rental property' }));
+    expect(await screen.findByText('Step 1 of 3')).toBeTruthy();
+  });
+});
+
+describe('YearEndFlow rental property steps', () => {
+  const startRental = (rent = 12000, costs = 2500) => {
+    localStorage.setItem('its-property-annual-step:2026-27', '0');
+    vi.mocked(fetchItsBusinesses).mockResolvedValue(withProperty);
+    vi.mocked(previewItsPropertyUpdate).mockResolvedValue(rentalFigures(rent, costs));
+    vi.mocked(previewItsAnnual).mockImplementation(async (target) =>
+      typeof target === 'string'
+        ? withAllowance
+        : preview({ ukProperty: target.choice === 'allowance' ? { allowances: { propertyIncomeAllowance: 1000 } } : {} } as never),
+    );
+    renderFlow();
+  };
+
+  it('shows what you earned and spent on the rental, in pounds', async () => {
+    startRental();
+    expect(await screen.findByText('Step 1 of 3')).toBeTruthy();
+    expect(screen.getByText('£12,000.00')).toBeTruthy();
+    expect(screen.getByText('£2,500.00')).toBeTruthy();
+    expect(screen.getAllByText('Why is this amount?').length).toBe(2);
+  });
+
+  it('pre-selects actual costs when they leave more tax-free than the £1,000 allowance', async () => {
+    startRental(12000, 2500);
+    await screen.findByText('Step 1 of 3');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText('Step 2 of 3')).toBeTruthy();
+    expect((screen.getByRole('radio', { name: /actual costs/i }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText(/your actual costs leave more tax-free/i)).toBeTruthy();
+  });
+
+  it('pre-selects the flat allowance when it leaves more tax-free', async () => {
+    startRental(12000, 400);
+    await screen.findByText('Step 1 of 3');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect((screen.getByRole('radio', { name: /£1,000\.00 rental allowance/i }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText(/the flat allowance leaves more tax-free/i)).toBeTruthy();
+  });
+
+  it('only counts the rent received when it is below the allowance', async () => {
+    startRental(300, 0);
+    await screen.findByText('Step 1 of 3');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText(/the flat allowance leaves £300\.00 tax-free/i)).toBeTruthy();
+  });
+
+  it('sends nothing until the declaration is ticked and Send is pressed', async () => {
+    startRental();
+    await screen.findByText('Step 1 of 3');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('radio', { name: /£1,000\.00 rental allowance/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(await screen.findByText('£1,000.00')).toBeTruthy();
+    expect(confirmItsAnnual).not.toHaveBeenCalled();
+    const send = screen.getByRole('button', { name: 'Send to HMRC' }) as HTMLButtonElement;
+    expect(send.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('checkbox'));
+    await waitFor(() => expect(send.disabled).toBe(false));
+    expect(confirmItsAnnual).toHaveBeenCalledWith({ taxYear: '2026-27', business: 'uk-property', choice: 'allowance' });
+    expect(submitItsAnnual).not.toHaveBeenCalled();
+    fireEvent.click(send);
+    expect(await screen.findByText(/rental property figures are sent/i)).toBeTruthy();
+    expect(submitItsAnnual).toHaveBeenCalledTimes(1);
+  });
+
+  it('resumes at the saved step with the saved choice', async () => {
+    localStorage.setItem('its-property-annual-choice:2026-27', 'allowance');
+    startRental();
+    localStorage.setItem('its-property-annual-step:2026-27', '1');
+    cleanup();
+    renderFlow();
+    expect(await screen.findByText('Step 2 of 3')).toBeTruthy();
+    expect((screen.getByRole('radio', { name: /rental allowance/i }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('explains a failed send in plain words and keeps the flow open', async () => {
+    startRental();
+    vi.mocked(submitItsAnnual).mockRejectedValue(new Error('HMRC could not take your figures. Nothing was sent. Try again shortly.'));
+    await screen.findByText('Step 1 of 3');
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(await screen.findByRole('checkbox'));
+    const send = screen.getByRole('button', { name: 'Send to HMRC' }) as HTMLButtonElement;
+    await waitFor(() => expect(send.disabled).toBe(false));
+    fireEvent.click(send);
+    expect(await screen.findByText(/Nothing was sent/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Send to HMRC' })).toBeTruthy();
+  });
+
+  it('shows a retry when the rental figures cannot be loaded', async () => {
+    startRental();
+    vi.mocked(previewItsPropertyUpdate).mockRejectedValue(new Error('Connect HMRC first'));
+    cleanup();
     renderFlow();
     expect(await screen.findByText('Connect HMRC first')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();

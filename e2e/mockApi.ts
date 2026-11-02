@@ -326,6 +326,23 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
             declarationWording: 'I declare that the information I have given on this return is correct and complete to the best of my knowledge.',
           },
         });
+      case 'POST /api/hmrc/its-annual-preview': {
+        const { business, choice } = request.postDataJSON();
+        const body = business === 'uk-property' ? { ukProperty: choice === 'allowance' ? { allowances: { propertyIncomeAllowance: 1000 } } : {} } : { allowances: { tradingIncomeAllowance: '1000.00' } };
+        return json(route, { ok: true, data: { endpoint: { method: 'PUT', url: 'https://test-api.service.hmrc.gov.uk/annual', sandbox: true }, body, headers: {} } });
+      }
+      case 'POST /api/hmrc/its-annual-confirm':
+      case 'POST /api/hmrc/its-annual-submit':
+        return json(route, { ok: true, data: { sandbox: true } });
+      case 'POST /api/hmrc/its-property-preview':
+        return json(route, {
+          ok: true,
+          data: {
+            endpoint: { method: 'PUT', url: 'https://test-api.service.hmrc.gov.uk/property', sandbox: true },
+            body: { fromDate: '2026-04-06', toDate: '2027-04-05', ukProperty: { income: { periodAmount: 12000 }, expenses: { premisesRunningCosts: 1500.5, professionalFees: 999.5 } } },
+            headers: {},
+          },
+        });
       case 'POST /api/hmrc/its-final-confirm':
         return json(route, { ok: true, data: { sandbox: true } });
       case 'POST /api/hmrc/its-final-submit':

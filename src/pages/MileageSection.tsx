@@ -180,8 +180,8 @@ export default function MileageSection() {
   const claimedTenths = trips.filter((trip) => !trip.deletedAt).reduce((sum, trip) => sum + trip.distanceTenths, 0);
 
   return (
-    <section aria-labelledby="mileage-heading" className="mt-10">
-      <h2 id="mileage-heading" className="text-xl font-semibold text-gray-900">
+    <section aria-labelledby="mileage-heading" className="mt-6">
+      <h2 id="mileage-heading" className="sr-only">
         Mileage
       </h2>
       <p className="mt-2 text-sm text-gray-700">

@@ -116,7 +116,7 @@ describe('callback', () => {
     vi.useFakeTimers({ now: NOW });
     const store = fakeStore(rows);
     const response = await createCallbackHandler({ store, getProvider: () => fakeProvider() })(asUser(callbackUrl(signState('u1'))));
-    expect(response.headers.get('location')).toBe('https://app.test/settings?bank=connected');
+    expect(response.headers.get('location')).toBe('https://app.test/bank?bank=connected');
     expect(rows.u1.displayName).toBe('Sandbox Current');
     expect(rows.u1.maskedAccountNumber).toBe('5678');
     expect(rows.u1.consentExpiresAt).toEqual(new Date(NOW.getTime() + 90 * 24 * 60 * 60 * 1000));
@@ -154,7 +154,7 @@ describe('callback', () => {
     const response = await createCallbackHandler({ store: fakeStore(rows), getProvider: () => provider })(
       asUser(callbackUrl(signState('u1'), 'x'.repeat(257))),
     );
-    expect(response.headers.get('location')).toBe('https://app.test/settings?bank=error');
+    expect(response.headers.get('location')).toBe('https://app.test/bank?bank=error');
     expect(provider.finishConsent).not.toHaveBeenCalled();
   });
 
@@ -162,7 +162,7 @@ describe('callback', () => {
     const store = fakeStore(rows);
     const provider = fakeProvider({ listAccounts: vi.fn(async () => []) });
     const response = await createCallbackHandler({ store, getProvider: () => provider })(asUser(callbackUrl(signState('u1'))));
-    expect(response.headers.get('location')).toBe('https://app.test/settings?bank=error');
+    expect(response.headers.get('location')).toBe('https://app.test/bank?bank=error');
     expect(store.save).not.toHaveBeenCalled();
   });
 
@@ -173,7 +173,7 @@ describe('callback', () => {
       }),
     });
     const response = await createCallbackHandler({ store: fakeStore(rows), getProvider: () => provider })(asUser(callbackUrl(signState('u1'))));
-    expect(response.headers.get('location')).toBe('https://app.test/settings?bank=error');
+    expect(response.headers.get('location')).toBe('https://app.test/bank?bank=error');
     expect(logged).toContain('TypeError');
     for (const secret of [CODE, ACCESS]) expect(logged).not.toContain(secret);
   });

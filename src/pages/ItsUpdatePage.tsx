@@ -24,11 +24,11 @@ export default function ItsUpdatePage() {
     <main className="max-w-4xl p-4 md:p-8">
       {obligations.isPending && <StateMessage kind="loading">Loading your update…</StateMessage>}
       {obligations.isError && <StateMessage kind="error">Could not load your Income Tax dates. Reload the page to try again.</StateMessage>}
-      {found && <ItsQuarterlyReview key={found.periodStart} obligation={found} onClose={() => navigate('/tax')} />}
+      {found && <ItsQuarterlyReview key={found.periodStart} obligation={found} onClose={() => navigate('/tax/income-tax')} />}
       {!obligations.isPending && !obligations.isError && !found && (
         <>
           <StateMessage kind="error">We could not find that update. It may already be sent.</StateMessage>
-          <Link to="/tax" className="inline-flex min-h-11 items-center text-blue-800 underline">Back to Tax</Link>
+          <Link to="/tax/income-tax" className="inline-flex min-h-11 items-center text-blue-800 underline">Back to Tax</Link>
         </>
       )}
     </main>

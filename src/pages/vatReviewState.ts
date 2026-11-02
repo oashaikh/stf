@@ -88,7 +88,7 @@ export function reviewState(input: ReviewStateInput): ReviewState {
     alreadyConfirmed,
     canConfirm: input.declarationTicked && !input.confirmPending && !alreadyConfirmed,
     canSubmit: alreadyConfirmed && !input.submitPending && !filed && !outcomeUnknown,
-    submitLabel: input.submitPending ? 'Submitting…' : input.live ? 'Submit to HMRC' : 'Submit to HMRC sandbox',
+    submitLabel: input.submitPending ? 'Sending…' : input.live ? 'Send to HMRC' : 'Send to HMRC sandbox',
     receipt: submission
       ? { ...submission, heading: submission.sandbox ? 'Sandbox test submission' : 'Submitted to HMRC' }
       : null,

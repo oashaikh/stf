@@ -36,7 +36,7 @@ function CategoryTable({ title, rows, totalLabel, totalPence, range }: {
           <div key={row.accountId} className="flex justify-between gap-4">
             <dt className="min-w-0 truncate" title={row.accountName}>
               <Link
-                to={`/expenses?${new URLSearchParams({ from: range.start, to: range.end, categoryAccountId: row.accountId })}`}
+                to={`/money-out?${new URLSearchParams({ from: range.start, to: range.end, categoryAccountId: row.accountId })}`}
                 className="flex min-h-11 items-center text-blue-800 underline"
               >
                 <span className="truncate">{row.accountName}</span>
@@ -94,9 +94,9 @@ export default function ReportsPage() {
   }
 
   return (
-    <main className="p-4 md:p-8">
-      <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
-      <h2 className="mt-1 text-lg text-gray-800">Profit and loss</h2>
+    <div className="mt-6">
+      <h2 className="sr-only">Reports</h2>
+      <h3 className="mt-1 text-lg text-gray-800">Profit and loss</h3>
 
       <div className="mt-4 flex flex-wrap items-start gap-4">
         <label className="flex flex-col gap-1 text-sm text-gray-700">
@@ -168,6 +168,6 @@ export default function ReportsPage() {
           </p>
         )}
       </section>
-    </main>
+    </div>
   );
 }

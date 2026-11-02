@@ -15,8 +15,8 @@ const CONSENT_DAYS = 90;
 
 const defaultDeps: CallbackDeps = { store: databaseBankStore, getProvider: defaultProvider };
 
-function settingsRedirect(outcome: 'connected' | 'error'): Response {
-  return Response.redirect(`${process.env.APP_ORIGIN}/settings?bank=${outcome}`, 302);
+function bankRedirect(outcome: 'connected' | 'error'): Response {
+  return Response.redirect(`${process.env.APP_ORIGIN}/bank?bank=${outcome}`, 302);
 }
 
 // Public route: the bank redirects the browser here without a bearer header, so the signed state is the credential.
@@ -30,14 +30,14 @@ export function createCallbackHandler(deps: CallbackDeps = defaultDeps) {
     if (!userId) return Response.json({ ok: false, error: 'Invalid state', code: 'INVALID_STATE' }, { status: 400 });
 
     const code = params.get('code');
-    if (!code || code.length > MAX_AUTH_CODE_LENGTH || params.get('error')) return settingsRedirect('error');
+    if (!code || code.length > MAX_AUTH_CODE_LENGTH || params.get('error')) return bankRedirect('error');
 
     try {
       const provider = deps.getProvider();
       // The provider calls finish before the single-statement write, so no transaction is held open across them.
       const tokens = await provider.finishConsent(code);
       const [account] = await provider.listAccounts(tokens.accessToken);
-      if (!account) return settingsRedirect('error');
+      if (!account) return bankRedirect('error');
       await deps.store.save(userId, {
         providerAccountId: account.id,
         displayName: account.name,
@@ -47,11 +47,11 @@ export function createCallbackHandler(deps: CallbackDeps = defaultDeps) {
         refreshToken: tokens.refreshToken,
         tokenExpiresAt: tokens.expiresAt,
       });
-      return settingsRedirect('connected');
+      return bankRedirect('connected');
     } catch (error) {
       // Class name only: messages can carry codes or tokens.
       console.error('Bank callback failed', error instanceof Error ? error.name : 'unknown');
-      return settingsRedirect('error');
+      return bankRedirect('error');
     }
   };
 }

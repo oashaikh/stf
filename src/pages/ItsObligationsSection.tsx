@@ -39,7 +39,7 @@ function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligatio
     <div className="mt-4">
       <h3 className="text-base font-semibold text-gray-900">{taxYear}</h3>
       <table className="mt-2 w-full table-fixed border-collapse text-sm">
-        <caption className="sr-only">Income Tax obligations for {taxYear}</caption>
+        <caption className="sr-only">Income Tax updates due for {taxYear}</caption>
         <thead className="hidden sm:table-header-group">
           <tr className="border-b border-gray-200 text-left text-gray-700">
             <th scope="col" className="py-2 pr-4 font-medium">Update</th>
@@ -96,7 +96,7 @@ export default function ItsObligationsSection() {
 
   return (
     <section aria-labelledby="its-obligations-heading" className="mt-8">
-      <h2 id="its-obligations-heading" className="text-lg font-semibold text-gray-900">Income Tax obligations</h2>
+      <h2 id="its-obligations-heading" className="text-lg font-semibold text-gray-900">Income Tax updates due</h2>
 
       {obligations.isError && (
         <StateMessage kind="error">
@@ -121,7 +121,7 @@ export default function ItsObligationsSection() {
               {result.error && (/[.!?]$/.test(result.error) ? result.error : `${result.error}.`)}
             </p>
           )}
-          {result.obligations.length === 0 && <p className="mt-4 text-gray-700">No Income Tax obligations found.</p>}
+          {result.obligations.length === 0 && <p className="mt-4 text-gray-700">No Income Tax updates due.</p>}
           {groupByTaxYear(result.obligations).map(([taxYear, rows]) => (
             <ObligationsTable key={taxYear} taxYear={taxYear} obligations={rows} />
           ))}

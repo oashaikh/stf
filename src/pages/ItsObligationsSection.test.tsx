@@ -112,9 +112,9 @@ describe('ItsObligationsSection', () => {
     expect((await screen.findByRole('alert')).textContent).toMatch(/could not load your income tax dates/i);
   });
 
-  it('says so when HMRC lists no obligations', async () => {
+  it('says so when HMRC lists no updates due', async () => {
     renderSection(async () => ok({ obligations: [] }));
-    expect(await screen.findByText(/no income tax obligations/i)).toBeTruthy();
+    expect(await screen.findByText(/no income tax updates due/i)).toBeTruthy();
   });
 
   it.each([

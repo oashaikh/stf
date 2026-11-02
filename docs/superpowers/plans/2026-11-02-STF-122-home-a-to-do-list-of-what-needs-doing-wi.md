@@ -92,3 +92,7 @@ Also depends on:
     - No real data in the images or mock
   - Risk: e2e/mockApi.ts is also edited by STF-123 and STF-74; keep hunks small. Dark capture only applies if the app ships a dark theme; if not, say so in the notes.
   - Commit: `0a6905884572`
+
+- [x] **Task 5: Fix: One check failed while testing: FAIL  App.test.tsx > first sign-in redirect > keeps Home when the setup state cannot be loaded.** (after 4)
+  - Intent: One check failed while testing: FAIL  App.test.tsx > first sign-in redirect > keeps Home when the setup state cannot be loaded. The agent is fixing it; nothing is needed from you.
+  - Commit: `8ca5765729de`

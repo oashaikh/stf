@@ -71,7 +71,7 @@ The `its_final_declarations` table is the source of truth for each final declara
 
 Before the calculation is requested, every business the owner has (self-employment and UK property) must have its annual figures submitted for that tax year and sandbox mode. This ensures HMRC has the complete year-end allowances before calculating the final tax.
 
-The preview, confirm, and submit routes each check that every business with a stored ID has a confirmed or submitted annual submission record. The check is a single query on the unique key `(user_id, tax_year, sandbox, business_kind)`. If any business is missing:
+The preview, confirm, and submit routes each check that every business with a stored ID has a submitted annual submission record (confirmed, pending or rejected rows do not count). The check is a single query on the unique key `(user_id, tax_year, sandbox, business_kind)`. If any business is missing:
 - Return `409 ANNUAL_FIGURES_MISSING`
 - Name the missing business in plain words (e.g. "self-employment" or "UK property")
 - Point to the year-end flow: "You need to complete the annual figures for [business] first. Go back to your tax year-end."

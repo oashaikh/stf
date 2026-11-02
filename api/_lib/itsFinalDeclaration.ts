@@ -169,6 +169,8 @@ const BUSINESS_NAMES: Record<ItsAnnualBusiness, string> = { 'self-employment': '
  */
 async function ready(userId: string, taxYear: string, deps: ItsFinalDeps) {
   const { hmrcStore = databaseHmrcStore, identifiers = databaseTaxIdentifiersStore, submissions = databaseFinalStore } = deps;
+  // Same first gate as checkItsReadiness, so a disabled feature costs no database read.
+  if (process.env.HMRC_ITSA_ENABLED !== 'true') throw new VatReturnError(404, 'ITSA_DISABLED', 'Income Tax is off');
   const { itsBusinessId, itsPropertyBusinessId } = await hmrcStore.status(userId);
   const businesses: ItsAnnualBusiness[] = [];
   if (itsBusinessId) businesses.push('self-employment');

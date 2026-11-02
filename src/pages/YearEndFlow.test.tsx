@@ -160,9 +160,9 @@ describe('YearEndFlow', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
   });
 
-  it('offers the rental steps after the self-employment figures are sent, not before', async () => {
+  it('offers the rental steps after the self-employment figures are sent', async () => {
     vi.mocked(previewItsAnnual).mockResolvedValue(withAllowance);
-    vi.mocked(fetchItsBusinesses).mockResolvedValue(withProperty);
+    vi.mocked(fetchItsBusinesses).mockResolvedValue({ ...withProperty, selectedBusinessId: 'XAIS12345678901' });
     vi.mocked(previewItsPropertyUpdate).mockResolvedValue(rentalFigures(12000, 2500));
     renderFlow();
     await screen.findByText('Step 1 of 2');
@@ -193,6 +193,26 @@ const rentalFigures = (rentPounds: number, costsPounds: number) => ({
   endpoint: { method: 'PUT', url: 'https://example.test', sandbox: true },
   body: { fromDate: '2026-04-06', toDate: '2027-04-05', ukProperty: { income: { periodAmount: rentPounds }, expenses: { premisesRunningCosts: costsPounds } } },
   headers: {},
+});
+
+describe('YearEndFlow with a rental property business', () => {
+  it('starts at the rental steps when the owner has no self-employment business', async () => {
+    vi.mocked(fetchItsBusinesses).mockResolvedValue(withProperty);
+    vi.mocked(previewItsPropertyUpdate).mockResolvedValue(rentalFigures(12000, 2500));
+    renderFlow();
+    expect(await screen.findByText('Step 1 of 3')).toBeTruthy();
+    expect(previewItsAnnual).not.toHaveBeenCalled();
+  });
+
+  it('lets an owner with both businesses skip to the rental steps after leaving mid-way', async () => {
+    vi.mocked(fetchItsBusinesses).mockResolvedValue({ ...withProperty, selectedBusinessId: 'XAIS12345678901' });
+    vi.mocked(previewItsAnnual).mockResolvedValue(withAllowance);
+    vi.mocked(previewItsPropertyUpdate).mockResolvedValue(rentalFigures(12000, 2500));
+    renderFlow();
+    await screen.findByText('Step 1 of 2');
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to your rental property' }));
+    expect(await screen.findByText('Step 1 of 3')).toBeTruthy();
+  });
 });
 
 describe('YearEndFlow rental property steps', () => {

@@ -28,11 +28,11 @@ const buttonBase = 'inline-flex min-h-11 items-center rounded-md px-4 focus-visi
 const primaryButton = `${buttonBase} bg-blue-800 text-white hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-50`;
 const secondaryButton = `${buttonBase} border border-gray-300 bg-white text-gray-900 hover:bg-gray-50`;
 
-function WhyThisAmount({ children }: { children: string }) {
+function WhyThisAmount({ children, label = 'Why is this amount?' }: { children: string; label?: string }) {
   return (
     <details className="mt-4 text-sm text-gray-700">
       <summary className="inline-flex min-h-11 cursor-pointer items-center text-blue-800 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-800">
-        Why is this amount?
+        {label}
       </summary>
       <p className="mt-1">{children}</p>
     </details>
@@ -85,7 +85,14 @@ function SelfEmploymentYearEnd({ taxYear, onLeave, onContinueToProperty }: { tax
   };
 
   if (preview.isPending) return <StateMessage kind="loading">Getting your year-end figures…</StateMessage>;
-  if (preview.isError) return <StateMessage kind="error" onRetry={() => preview.refetch()}>{preview.error.message}</StateMessage>;
+  if (preview.isError) {
+    return (
+      <>
+        <StateMessage kind="error" onRetry={() => preview.refetch()}>{preview.error.message}</StateMessage>
+        {onContinueToProperty && <button type="button" onClick={onContinueToProperty} className={`mt-4 ${secondaryButton}`}>Skip to your rental property</button>}
+      </>
+    );
+  }
 
   if (submit.isSuccess) {
     localStorage.removeItem(stepKey(taxYear));
@@ -139,7 +146,7 @@ function SelfEmploymentYearEnd({ taxYear, onLeave, onContinueToProperty }: { tax
             : `You are about to send HMRC your year-end figures for ${taxYear}: a trading allowance of ${formatPence(parsePence(allowance) ?? 0)}.`}
         </p>
         <label className="mt-4 flex min-h-11 items-start gap-3 text-gray-900">
-          <input type="checkbox" checked={declared} onChange={(event) => tickDeclaration(event.target.checked)} className="mt-1 h-5 w-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-800" />
+          <input type="checkbox" checked={declared} onChange={(event) => tickDeclaration(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-800" />
           <span>I declare that these figures are correct and complete to the best of my knowledge.</span>
         </label>
         {confirm.isError && <StateMessage kind="error" className="mt-2">{confirm.error.message}</StateMessage>}
@@ -162,6 +169,7 @@ function SelfEmploymentYearEnd({ taxYear, onLeave, onContinueToProperty }: { tax
           <button type="button" onClick={() => setStepIndex(stepIndex + 1)} className={primaryButton}>Next</button>
         )}
         <button type="button" onClick={onLeave} className={secondaryButton}>Save and leave</button>
+        {onContinueToProperty && <button type="button" onClick={onContinueToProperty} className={secondaryButton}>Skip to your rental property</button>}
       </div>
     </section>
   );
@@ -279,7 +287,7 @@ function PropertyYearEnd({ taxYear, onLeave }: { taxYear: string; onLeave: () =>
           <input type="radio" name="property-choice" checked={choice === 'actual'} onChange={() => chooseOption('actual')} className={radioInput} />
           <span>Claim my actual costs</span>
         </label>
-        <WhyThisAmount>You can have one or the other, not both. Pick the one that leaves more of your rent tax-free. We have already picked it for you, and you can change it.</WhyThisAmount>
+        <WhyThisAmount label="Which should I pick?">You can have one or the other, not both. Pick the one that leaves more of your rent tax-free. We have already picked it for you, and you can change it.</WhyThisAmount>
       </fieldset>
     );
   } else {
@@ -305,7 +313,7 @@ function PropertyYearEnd({ taxYear, onLeave }: { taxYear: string; onLeave: () =>
           />
         )}
         <label className="mt-4 flex min-h-11 items-start gap-3 text-gray-900">
-          <input type="checkbox" checked={declared} onChange={(event) => tickDeclaration(event.target.checked)} className="mt-1 h-5 w-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-800" />
+          <input type="checkbox" checked={declared} onChange={(event) => tickDeclaration(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-800" />
           <span>I declare that these figures are correct and complete to the best of my knowledge.</span>
         </label>
         {confirm.isError && <StateMessage kind="error" className="mt-2">{confirm.error.message}</StateMessage>}
@@ -340,7 +348,11 @@ export default function YearEndFlow({ taxYear, onLeave }: { taxYear: string; onL
   // A failed lookup just hides the rental steps; it must not block the self-employment figures.
   const businesses = useQuery({ queryKey: ['its-businesses'], queryFn: () => fetchItsBusinesses(), retry: false });
   if (onProperty) return <PropertyYearEnd taxYear={taxYear} onLeave={onLeave} />;
+  // Wait for the lookup so a property-only owner never sees the self-employment steps flash up.
+  if (businesses.isPending) return <StateMessage kind="loading">Getting your businesses…</StateMessage>;
   const hasProperty = Boolean(businesses.data?.propertyBusinessId);
+  // Without a self-employment business there is nothing to send for it, and its preview would only refuse.
+  if (hasProperty && !businesses.data?.selectedBusinessId) return <PropertyYearEnd taxYear={taxYear} onLeave={onLeave} />;
   return (
     <SelfEmploymentYearEnd
       taxYear={taxYear}

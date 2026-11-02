@@ -61,6 +61,7 @@ Conventions that hold for every route: the owner comes from the signed session c
 | `api/bank/callback.ts` | GET | Bank |
 | `api/bank/status.ts` | GET | Bank (no input) |
 | `api/bank/disconnect.ts` | POST | Bank (no input beyond session) |
+| `api/bank/reconcile.ts` | GET, POST | Bank |
 | `api/vat/preview.ts` | POST | VAT |
 | `api/vat/return.ts` | GET, POST | VAT |
 | `api/vat/return-confirm.ts` | POST | VAT |
@@ -235,6 +236,10 @@ Public route: `api/hmrc/callback.ts` and `api/bank/callback.ts` are the only rou
 | `state` | callback query | HMAC-signed value naming the user; invalid, forged, expired or missing gives 400 and no provider call. This is the credential for this public route | `verifiedStateUserId`, `api/bank/callback.ts` |
 | `code` | callback query | non-empty string of at most 256 chars, passed to the bank token endpoint | `api/bank/callback.ts` |
 | `error` | callback query | presence only | `api/bank/callback.ts` |
+| `action` | reconcile POST body | one of `match`, `unmatch`, `dismiss`, `undismiss`, `createEntry`, else 400 | `bodySchema`, `api/_lib/bankReconcile.ts` |
+| `lineId`, `entryId`, `categoryAccountId` | reconcile POST body | uuid, else 400. A line or entry that is not the session owner's gets 404; the owner id is never read from the request | `bodySchema`, `databaseReconcileStore` |
+| `reason` | reconcile POST body (`dismiss`) | trimmed, 1 to 200 chars, no control characters | `bodySchema`, `api/_lib/bankReconcile.ts` |
+| `vatRatePercent` | reconcile POST body (`createEntry`) | 0, 5 or 20, default 0 | `bodySchema`, `api/_lib/bankReconcile.ts` |
 
 ## VAT
 

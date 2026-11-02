@@ -61,6 +61,7 @@ const loadedBody = (url: string): unknown => {
   if (url.startsWith('/api/profit-and-loss')) {
     return { data: { ...period, income: [{ accountId: 'a1', accountName: 'Sales', totalPence: 120000 }], expenses: [{ accountId: 'a2', accountName: 'Travel', totalPence: 30000 }], incomePence: 120000, expensesPence: 30000, profitPence: 90000 } };
   }
+  if (url.startsWith('/api/bank/reconcile')) return { ok: true, lines: [{ id: 'l1', date: '2026-10-03', amountPence: -1250, description: 'Coffee supplies' }], proposals: [{ lineId: 'l1', entryId: 'e1', kind: 'exact' }] };
   if (url.startsWith('/api/settings/vat-number')) return { masked: null };
   return { ok: true, entries: [row], invoices: [], accounts: [], templates: [], receipts: [], nextCursor: null };
 };

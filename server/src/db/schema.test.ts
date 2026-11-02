@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { getTableConfig } from "drizzle-orm/pg-core";
-import { bankConnections, invoices, receipts, recurringEntryRuns } from "./schema";
+import { bankConnections, bankTransactions, invoices, receipts, recurringEntryRuns } from "./schema";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(__dirname, "migrations");
@@ -226,7 +226,7 @@ describe("schema migrations", () => {
   });
 
   it("indexes receipts by (user_id, created_at, id) for the newest-first list", () => {
-    const sql = readFileSync(new URL("./migrations/0027_receipts_user_created_idx.sql", import.meta.url), "utf8");
+    const sql = readFileSync(new URL("./migrations/0028_receipts_user_created_idx.sql", import.meta.url), "utf8");
     expect(sql).toMatch(
       /CREATE INDEX IF NOT EXISTS "receipts_user_created_idx" ON "receipts" \("user_id","created_at","id"\)/,
     );
@@ -405,6 +405,21 @@ describe("first-time setup columns", () => {
     const journal = JSON.parse(readFileSync(join(MIGRATIONS_DIR, "meta", "_journal.json"), "utf8"));
     const tags: string[] = journal.entries.map((entry: { tag: string }) => entry.tag);
     expect(new Set(tags).size).toBe(tags.length);
-    expect(tags.at(-1)).toBe("0028_receipt_extractions_receipt_idx");
+    expect(tags.at(-1)).toBe("0029_receipt_extractions_receipt_idx");
+  });
+});
+
+describe("bank reconciliation columns", () => {
+  const sql = readMigrationSql();
+
+  it("adds the link and dismiss reason idempotently, with an index and a foreign key", () => {
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "matched_transaction_id" uuid;/);
+    expect(sql).toMatch(/ALTER TABLE "bank_transactions" ADD COLUMN IF NOT EXISTS "dismissed_reason" text;/);
+    expect(sql).toMatch(/FOREIGN KEY \("matched_transaction_id"\) REFERENCES "public"\."transactions"\("id"\)/);
+    expect(sql).toMatch(/CREATE INDEX IF NOT EXISTS "bank_transactions_matched_transaction_id_idx" ON "bank_transactions" \("matched_transaction_id"\)/);
+  });
+
+  it("exposes both columns on the schema", () => {
+    expect(Object.keys(bankTransactions)).toEqual(expect.arrayContaining(["matchedTransactionId", "dismissedReason"]));
   });
 });

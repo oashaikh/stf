@@ -77,7 +77,7 @@ Also depends on:
     - Lint, typecheck, test and build pass
   - Commit: `5219d00c9b4e`
 
-- [ ] **Task 3: Build the cumulative property update and its dry-run preview** (after 1, 2)
+- [x] **Task 3: Build the cumulative property update and its dry-run preview** (after 1, 2)
   - Intent: Done means a pure function maps tax-year-to-date property totals onto HMRC's cumulative property request (fromDate, toDate, ukProperty income and expenses). Pounds strings use the existing pence-to-pounds helper, no floats; only categories HMRC accepts are sent. Add a property summary alongside getTaxYearSummary totalling property- accounts from 6 April to the quarter end. Add api/hmrc/its-property-preview.ts and api/_lib/itsPropertyPreview.ts following the self-employment preview pattern: same schema checks, sandbox guard, audit event, fraud-header dry run, and the exact request body shown. Reuse quarterEndDate and existing helpers. VAT code untouched.
   - Files: `src/lib/itsPropertyUpdate.ts`, `src/lib/itsPropertyUpdate.test.ts`, `api/_lib/itsPropertyPreview.ts`, `api/_lib/__tests__/itsPropertyPreview.test.ts`, `api/_lib/__tests__/itsPropertyPreviewRoute.test.ts`, `api/_lib/taxYearSummary.ts`, `api/hmrc/its-property-preview.ts`, `src/lib/hmrc/itsUpdateApi.ts`
   - Acceptance criteria the planner set:
@@ -85,6 +85,7 @@ Also depends on:
     - Route test: unauthenticated refused, a user with no property business id gets a plain 409, and a user cannot see another user's figures
     - Preview returns the exact body that would be sent and the fraud headers are present on the dry run
     - Lint, typecheck, test and build pass
+  - Commit: `e5d416463238`
 
 - [ ] **Task 4: Confirm and submit the property update through the same confirmation gate** (after 1, 3)
   - Intent: Done means property updates are confirmed then submitted exactly like the self-employment update (STF-85): declaration recorded first, payload compared on submit (STALE_CONFIRMATION), claim row blocks double filing, a 4xx marks the row rejected, a 5xx or network failure leaves it pending with OUTCOME_UNKNOWN. Add a business_kind column ('self-employment' | 'uk-property', default 'self-employment') to its_submissions and widen the unique key to include it, in migration 0026 (single head, snapshot, journal, grants). Parameterise the existing itsSubmit.ts by kind rather than copying it. Add property confirm and submit routes. Sandbox default and the live-needs-both-switches guard are kept. Existing self-employment submissions and tests are unaffected; VAT untouched.

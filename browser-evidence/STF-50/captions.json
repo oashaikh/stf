@@ -1,0 +1,26 @@
+{
+  "entry-form-1440-light.png": {
+    "title": "Typing an expense that matches one already added shows a notice, and you can still save it"
+  },
+  "entry-form-390-light.png": {
+    "title": "on a phone, the same notice sits above the Save button"
+  },
+  "expenses-list-1440-light.png": {
+    "title": "The Expenses list marks repeats of the same amount and supplier a few days apart"
+  },
+  "expenses-list-390-light.png": {
+    "title": "on a phone, the same notice sits above the list"
+  },
+  "receipts-list-1440-light.png": {
+    "title": "A receipt uploaded twice shows a notice you can dismiss"
+  },
+  "receipts-list-390-light.png": {
+    "title": "on a phone, the notice sits under the receipt"
+  },
+  "receipt-review-1440-light.png": {
+    "title": "Checking a receipt warns when it is the same file as one you already added"
+  },
+  "receipt-review-390-light.png": {
+    "title": "on a phone, the notice sits above the fields to check"
+  }
+}

@@ -16,6 +16,8 @@ import {
 } from "../lib/entryFilters";
 import { formatPence } from "../lib/money";
 import { useVatObligations } from "./useVatObligations";
+import DuplicateNotice from "../components/DuplicateNotice";
+import { useDuplicateFlags } from "../lib/useDuplicateFlags";
 import StateMessage from '../components/StateMessage';
 
 const fieldClass =
@@ -303,7 +305,12 @@ export default function EntriesList({
   // The list API drops voided entries, so a voided row stays here until the next refetch.
   const sectionRef = useRef<HTMLElement>(null);
   const [voidedIds, setVoidedIds] = useState<string[]>([]);
-  const rows = entries.data?.pages.flatMap((page) => page.entries) ?? [];
+  const rows = useMemo(() => entries.data?.pages.flatMap((page) => page.entries) ?? [], [entries.data]);
+  const candidates = useMemo(
+    () => rows.filter((row) => row.kind === "expense").map((row) => ({ ...row, reference: row.reference ?? "" })),
+    [rows],
+  );
+  const duplicates = useDuplicateFlags(candidates);
   const isFiltered =
     JSON.stringify(filters) !== JSON.stringify(DEFAULT_ENTRY_FILTERS);
 
@@ -418,6 +425,20 @@ export default function EntriesList({
                     }}
                   />
                 )}
+                {duplicates.flags
+                  .filter((flag) => flag.entryIds.includes(entry.id))
+                  .map((flag) => {
+                    const other = rows.find((row) => row.id === flag.entryIds.find((id) => id !== entry.id));
+                    return (
+                      <DuplicateNotice
+                        key={flag.key}
+                        className="md:col-span-full"
+                        onDismiss={() => duplicates.dismiss(flag)}
+                      >
+                        This looks like {other?.description} on {other && formatDate(other.date)} for {other && formatPence(other.grossPence)}. Is it a repeat?
+                      </DuplicateNotice>
+                    );
+                  })}
               </li>
             ))}
           </ul>

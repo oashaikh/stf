@@ -5,12 +5,17 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { fetchAccounts, type ApiAccount } from '../lib/accountsApi';
+import { fetchEntriesAround } from '../lib/entriesApi';
 import { confirmReceiptDraft, discardReceiptDraft, fetchReceipts, type ListedReceipt } from '../lib/receiptsApi';
 import ReceiptReview, { ReceiptReviewPage } from './ReceiptReview';
 
 vi.mock('../lib/accountsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/accountsApi')>()),
   fetchAccounts: vi.fn(),
+}));
+vi.mock('../lib/entriesApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/entriesApi')>()),
+  fetchEntriesAround: vi.fn(),
 }));
 vi.mock('../lib/receiptsApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/receiptsApi')>()),
@@ -29,6 +34,7 @@ const accounts = [
 ];
 
 const draft: ListedReceipt = {
+  duplicateOfId: null,
   id: '11111111-1111-4111-8111-111111111111',
   fileName: 'cafe-lunch.jpg',
   mimeType: 'image/jpeg',
@@ -46,12 +52,15 @@ const draft: ListedReceipt = {
   },
 };
 
-function renderReview(onDone = vi.fn()) {
+const sameLunch = { id: 'entry-1', date: '2026-10-27', grossPence: 1200, reference: null, description: 'Corner Cafe' };
+
+function renderReview(onDone = vi.fn(), receipt: ListedReceipt = draft) {
   vi.mocked(fetchAccounts).mockResolvedValue(accounts);
+  vi.mocked(fetchEntriesAround).mockResolvedValue({ entries: [], nextCursor: null });
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter>
-        <ReceiptReview receipt={draft} onDone={onDone} />
+        <ReceiptReview receipt={receipt} onDone={onDone} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -63,6 +72,7 @@ beforeAll(() => {
   HTMLDialogElement.prototype.close = function close() { this.removeAttribute('open'); };
 });
 afterEach(() => {
+  localStorage.clear();
   cleanup();
   vi.resetAllMocks();
 });
@@ -171,6 +181,40 @@ describe('ReceiptReview', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Discard' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Keep it' }));
     expect(discardReceiptDraft).not.toHaveBeenCalled();
+  });
+});
+
+describe('ReceiptReview duplicate warnings', () => {
+  it('warns about a repeat file and keeps Confirm sending the same request', async () => {
+    renderReview(vi.fn(), { ...draft, duplicateOfId: 'earlier-receipt' });
+    expect(await screen.findByText(/same file as a receipt you already added/i)).toBeTruthy();
+    vi.mocked(confirmReceiptDraft).mockResolvedValue('entry-9');
+    fireEvent.change(await screen.findByLabelText('Who it was from'), { target: { value: 'Corner Cafe' } });
+    await waitFor(() => expect((screen.getByLabelText('Category') as HTMLSelectElement).value).toBe('acc-meals'));
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+    await waitFor(() => expect(confirmReceiptDraft).toHaveBeenCalledWith(expect.objectContaining({
+      id: draft.id, supplier: 'Corner Cafe', grossPence: 1200, categoryAccountId: 'acc-meals',
+    })));
+  });
+
+  it('shows an entry match and clears it when the total is edited', async () => {
+    renderReview();
+    vi.mocked(fetchEntriesAround).mockResolvedValue({ entries: [sameLunch], nextCursor: null } as never);
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-10-29' } });
+    expect(await screen.findByText(/you already added/i)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Total including tax'), { target: { value: '13.00' } });
+    await waitFor(() => expect(screen.queryByText(/you already added/i)).toBeNull());
+  });
+
+  it('keeps a dismissed notice dismissed after remount', async () => {
+    const receipt = { ...draft, duplicateOfId: 'earlier-receipt' };
+    renderReview(vi.fn(), receipt);
+    fireEvent.click(await screen.findByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByText(/same file as a receipt/i)).toBeNull();
+    cleanup();
+    renderReview(vi.fn(), receipt);
+    await screen.findByLabelText('Who it was from');
+    expect(screen.queryByText(/same file as a receipt/i)).toBeNull();
   });
 });
 

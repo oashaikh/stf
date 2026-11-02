@@ -1,13 +1,17 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import DuplicateNotice from '../components/DuplicateNotice';
 import OfficialName from '../components/OfficialName';
 import StateMessage from '../components/StateMessage';
 import { fetchAccounts, type ApiAccount } from '../lib/accountsApi';
-import { ENTRIES_QUERY_KEY } from '../lib/entriesApi';
+import { formatDate } from '../lib/dates';
+import { dismissDuplicate, isDuplicateDismissed } from '../lib/duplicateDismissals';
+import { ENTRIES_QUERY_KEY, fetchEntriesAround } from '../lib/entriesApi';
+import { useDuplicateFlags } from '../lib/useDuplicateFlags';
 import { vatRateOf } from '../lib/entryForm';
 import { vatOnGross } from '../lib/vat';
-import { formatPenceRaw, parsePence } from '../lib/money';
+import { formatPence, formatPenceRaw, parsePence } from '../lib/money';
 import {
   confirmReceiptDraft,
   type ConfirmedReceiptFields,
@@ -117,6 +121,28 @@ export default function ReceiptReview({ receipt, onDone }: { receipt: ListedRece
   const accounts = accountsQuery.data ?? [];
   const accountId = chosenAccountId ?? suggestedAccountId(accounts, receipt.details.category?.value);
 
+  // Advisory only: what is typed now is compared with expenses a few days either side; nothing here blocks Confirm.
+  const typedGrossPence = parsePence(total);
+  const typedSupplier = supplier.trim();
+  const neighbours = useQuery({
+    queryKey: [...ENTRIES_QUERY_KEY, 'around', 'expense', date],
+    queryFn: () => fetchEntriesAround(date, 'expense', 3),
+    enabled: Boolean(date && typedSupplier && typedGrossPence),
+  });
+  const candidates = useMemo(
+    () => [
+      ...(typedGrossPence && typedSupplier && date
+        ? [{ id: 'new', date, grossPence: typedGrossPence, reference: typedSupplier, description: typedSupplier }]
+        : []),
+      ...(neighbours.data?.entries ?? []).map((other) => ({ ...other, reference: other.reference ?? '' })),
+    ],
+    [typedGrossPence, typedSupplier, date, neighbours.data],
+  );
+  const duplicates = useDuplicateFlags(candidates);
+  const fileKey = `file|${receipt.id}`;
+  const [, setFileNoticeDismissed] = useState(false);
+  const showFileNotice = receipt.duplicateOfId !== null && !isDuplicateDismissed(fileKey);
+
   const queryClient = useQueryClient();
   const confirm = useMutation({
     mutationFn: (fields: ConfirmedReceiptFields) => confirmReceiptDraft(fields),
@@ -181,6 +207,19 @@ export default function ReceiptReview({ receipt, onDone }: { receipt: ListedRece
       <section aria-label="What we read">
         <h2 className="text-lg font-semibold text-gray-900">Check what we read</h2>
         <p className="mt-1 text-gray-800">These are suggestions. Look at the receipt, change anything that is wrong, then confirm.</p>
+        {showFileNotice && (
+          <DuplicateNotice className="mt-4" onDismiss={() => { dismissDuplicate(fileKey); setFileNoticeDismissed(true); }}>
+            This is the same file as a receipt you already added. Is it a repeat? You can still confirm it.
+          </DuplicateNotice>
+        )}
+        {duplicates.flags.filter((flag) => flag.entryIds.includes('new')).map((flag) => {
+          const other = neighbours.data?.entries.find((candidate) => flag.entryIds.includes(candidate.id));
+          return (
+            <DuplicateNotice key={flag.key} className="mt-4" onDismiss={() => duplicates.dismiss(flag)}>
+              This looks like {other?.description} on {other && formatDate(other.date)} for {other && formatPence(other.grossPence)}, which you already added. Is it a repeat? You can still confirm it.
+            </DuplicateNotice>
+          );
+        })}
         <form
           className="mt-4 space-y-3"
           onSubmit={(event) => {

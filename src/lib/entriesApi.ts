@@ -1,4 +1,4 @@
-import { toEntryListParams, type EntryFilters } from './entryFilters';
+import { DEFAULT_ENTRY_FILTERS, toEntryListParams, type EntryFilters } from './entryFilters';
 import type { VatRate } from './vat';
 
 export interface ApiEntry {
@@ -42,6 +42,12 @@ export class EntryRefusedError extends Error {
 export class PeriodLockedError extends Error {}
 
 export const ENTRIES_QUERY_KEY = ['entries'];
+
+/** The list API wants a candidate's neighbours only: one bounded page of same-kind entries around a date. */
+export function fetchEntriesAround(date: string, kind: 'income' | 'expense', days: number) {
+  const shift = (offset: number) => new Date(Date.parse(date) + offset * 86_400_000).toISOString().slice(0, 10);
+  return fetchEntries({ ...DEFAULT_ENTRY_FILTERS, kind, from: shift(-days), to: shift(days) });
+}
 
 export async function fetchEntries(filters: EntryFilters, cursor?: string): Promise<{ entries: ApiEntry[]; nextCursor: string | null }> {
   const query = toEntryListParams(filters, cursor).toString();

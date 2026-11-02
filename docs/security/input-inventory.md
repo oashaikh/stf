@@ -172,6 +172,7 @@ Text fields have a length cap and reject control characters (`plainText`; notes 
 | `fileName` | POST body | string, trimmed, 1 to 200 chars; control characters rejected; never used in the storage key | `validateNewReceipt`, `api/_lib/receipts.ts` |
 | `mimeType` | POST body | `image/jpeg`, `image/png`, `image/webp` or `application/pdf` | `validateNewReceipt` |
 | `sizeBytes` | POST body | integer 1 to 10 MB | `validateNewReceipt` |
+| `fileHash` | POST body | optional; 64 hex characters (SHA-256 of the file), lowercased; used only to look up the session user's own live receipts; never returned | `validateNewReceipt` |
 | `id` | PATCH/PUT/DELETE body | uuid regex | `validateReceiptId` |
 | `limit` | GET query | integer from 1, capped at 25; default 25 | `receiptListQuerySchema`, `api/_lib/receipts.ts` |
 | `cursor` | GET query | max 200 chars; must decode to an ISO `createdAt` and a uuid `id`, else 400; the list is always scoped to the session user | `decodeReceiptCursor` |

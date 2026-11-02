@@ -15,6 +15,8 @@ const newReceiptSchema = z.object({
   fileName: plainText(200, { required: true }),
   mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
   sizeBytes: z.number().int().min(1).max(MAX_RECEIPT_BYTES),
+  // Optional: a browser without crypto.subtle still uploads, it just skips the duplicate check.
+  fileHash: z.string().regex(/^[0-9a-f]{64}$/i).transform((value) => value.toLowerCase()).optional(),
 });
 
 // The query string is the only input; the owner comes from the session, never from here.
@@ -29,8 +31,10 @@ export type NewReceipt = z.infer<typeof newReceiptSchema>;
 export type UploadStatus = 'pending' | 'ready' | 'failed';
 
 /** Explicit columns only (SEC-12): no user_id and no file_key in responses. */
-export interface StoredReceipt extends NewReceipt {
+export interface StoredReceipt extends Omit<NewReceipt, 'fileHash'> {
   id: string;
+  /** The earlier receipt this file repeats, or null. Advisory: it never blocks or changes anything. */
+  duplicateOfId: string | null;
   uploadStatus: UploadStatus;
   createdAt: string;
   deletedAt: string | null;
@@ -49,7 +53,9 @@ export type ReceiptRecord = StoredReceipt & { fileKey: string };
 
 // Injected so tests never touch a database. Every call is scoped by userId from the session.
 export interface ReceiptStore {
-  insert(userId: string, receipt: NewReceipt & { fileKey: string }): Promise<StoredReceipt>;
+  insert(userId: string, receipt: NewReceipt & { fileKey: string; duplicateOfId: string | null }): Promise<StoredReceipt>;
+  /** The id of the owner's live receipt with this file hash, or undefined. */
+  findDuplicateOf(userId: string, fileHash: string): Promise<string | undefined>;
   /** The live row for (id, userId), or undefined. */
   find(userId: string, id: string): Promise<ReceiptRecord | undefined>;
   setUploadStatus(userId: string, id: string, uploadStatus: UploadStatus): Promise<StoredReceipt | undefined>;
@@ -91,6 +97,7 @@ const receiptColumns = {
   uploadStatus: receipts.uploadStatus,
   createdAt: receipts.createdAt,
   deletedAt: receipts.deletedAt,
+  duplicateOfId: receipts.duplicateOfReceiptId,
 };
 
 const toStoredReceipt = <Row extends { mimeType: string; createdAt: Date; deletedAt: Date | null }>(row: Row) => ({
@@ -105,8 +112,19 @@ const liveRow = (userId: string, id: string) => and(eq(receipts.id, id), eq(rece
 // Every statement is a single-row insert or filters on the primary key plus user_id, so none can return more than one row.
 export const databaseReceiptStore: ReceiptStore = {
   async insert(userId, receipt) {
-    const [row] = await db.insert(receipts).values({ userId, ...receipt }).returning(receiptColumns);
+    const { duplicateOfId, ...columns } = receipt;
+    const [row] = await db.insert(receipts).values({ userId, ...columns, duplicateOfReceiptId: duplicateOfId }).returning(receiptColumns);
     return toStoredReceipt(row);
+  },
+  // Backed by receipts_user_file_hash_idx (user_id, file_hash); LIMIT 1 and one call per upload.
+  async findDuplicateOf(userId, fileHash) {
+    const [row] = await db
+      .select({ id: receipts.id })
+      .from(receipts)
+      .where(and(eq(receipts.userId, userId), eq(receipts.fileHash, fileHash), isNull(receipts.deletedAt)))
+      .orderBy(receipts.createdAt)
+      .limit(1);
+    return row?.id;
   },
   async find(userId, id) {
     const [row] = await db

@@ -57,3 +57,36 @@ describe('old addresses', () => {
     expect(window.location.pathname + window.location.search + window.location.hash).toBe(to);
   });
 });
+
+describe('guided setup', () => {
+  async function openAs(path: string) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => ({ ok: url === '/api/me', status: url === '/api/me' ? 200 : 500, json: async () => ({}) }) as Response),
+    );
+    window.history.pushState({}, '', path);
+    vi.resetModules();
+    const { default: FreshApp } = await import('./App');
+    render(<FreshApp />);
+    await screen.findByRole('navigation', { name: 'Main' });
+  }
+
+  afterEach(() => sessionStorage.clear());
+
+  it('/setup is a page of its own', async () => {
+    await openAs('/setup');
+    expect(window.location.pathname).toBe('/setup');
+  });
+
+  it('sends the user back to /setup when HMRC returns them to settings', async () => {
+    sessionStorage.setItem('stf-setup-return', '1');
+    await openAs('/settings?hmrc=connected');
+    expect(window.location.pathname).toBe('/setup');
+    expect(sessionStorage.getItem('stf-setup-return')).toBeNull();
+  });
+
+  it('leaves settings alone when the user did not come from setup', async () => {
+    await openAs('/settings?hmrc=connected');
+    expect(window.location.pathname).toBe('/settings');
+  });
+});

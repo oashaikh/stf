@@ -9,6 +9,7 @@ import BankPage from './pages/BankPage.tsx';
 import TaxHubPage from './pages/TaxHubPage.tsx';
 import ItsUpdatePage from './pages/ItsUpdatePage.tsx';
 import SettingsPage from './pages/SettingsPage.tsx';
+import SetupFlow, { ReturnToSetup } from './pages/SetupFlow.tsx';
 import AppShell from './components/AppShell.tsx';
 import StateMessage from './components/StateMessage.tsx';
 import LoginPage from './pages/LoginPage.tsx';
@@ -47,6 +48,8 @@ function AuthGate() {
   if (!session.data) return <LoginPage />;
 
   return (
+    <>
+    <ReturnToSetup />
     <Routes>
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route element={<AppShell />}>
@@ -57,12 +60,14 @@ function AuthGate() {
         <Route path="/tax/*" element={<TaxHubPage />} />
         <Route path="/tax/update/:taxYear/:quarter" element={<ItsUpdatePage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/setup" element={<SetupFlow />} />
       </Route>
       {OLD_ADDRESSES.map(([from, to]) => (
         <Route key={from} path={from} element={<RedirectKeepingSearch to={to} />} />
       ))}
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
+    </>
   );
 }
 

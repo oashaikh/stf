@@ -188,4 +188,85 @@ describe('ItsQuarterlyReview', () => {
     expect(screen.getByRole('link', { name: 'Add it in Settings' }).getAttribute('href')).toBe('/settings');
     expect(screen.queryByRole('button', { name: 'Next' })).toBeNull();
   });
+
+  describe('for a rental property', () => {
+    const propertyObligation = { ...obligation, business: 'uk-property' as const };
+    const propertyPreview = {
+      ok: true,
+      data: {
+        endpoint: { method: 'PUT', url: 'https://test-api.service.hmrc.gov.uk/individuals/business/property/uk/AB******C/XA******1/cumulative/2026-27', sandbox: true },
+        body: {
+          fromDate: '2026-04-06',
+          toDate: '2026-07-05',
+          ukProperty: { income: { periodAmount: 4500.5, otherIncome: 10 }, expenses: { repairsAndMaintenance: 120.25, financialCosts: 80 } },
+        },
+        headers: {},
+      },
+    };
+    const propertyHappy = (url: string) => {
+      if (url.endsWith('its-property-preview')) return Response.json(propertyPreview);
+      if (url.endsWith('its-property-confirm')) return Response.json({ ok: true, data: { sandbox: true } });
+      if (url.endsWith('its-property-submit')) return Response.json({ ok: true, data: { sandbox: true } });
+      return Response.json({ ok: false, code: 'X', error: 'wrong route' }, { status: 500 });
+    };
+    function renderProperty(respond: (url: string) => Response) {
+      const fetchSpy = vi.fn(async (url: string, _init?: RequestInit) => respond(url));
+      vi.stubGlobal('fetch', fetchSpy);
+      render(
+        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+          <MemoryRouter><ItsQuarterlyReview obligation={propertyObligation} onClose={() => {}} /></MemoryRouter>
+        </QueryClientProvider>,
+      );
+      return fetchSpy;
+    }
+    async function toSend() {
+      await screen.findByText('Step 1 of 3');
+      click('Next');
+      click('Next');
+    }
+
+    it('names the rental property, shows rent in plain words and tells the owner it is test mode', async () => {
+      renderProperty(propertyHappy);
+      expect(await screen.findByText('Rental property')).toBeTruthy();
+      expect(await screen.findByText('Rent received')).toBeTruthy();
+      expect(screen.getByText('£4,500.50')).toBeTruthy();
+      click('Next');
+      expect(screen.getByText('Repairs and maintenance')).toBeTruthy();
+      click('Next');
+      expect(screen.getByText(/You are telling HMRC you received £4,510.50 in rental income and your costs were £200.25 for /)).toBeTruthy();
+      expect(screen.getByText(/Test mode/)).toBeTruthy();
+    });
+
+    it('cannot send without the declaration, then confirms and sends through the property routes', async () => {
+      const fetchSpy = renderProperty(propertyHappy);
+      await toSend();
+      expect((screen.getByRole('button', { name: 'Send to HMRC' }) as HTMLButtonElement).disabled).toBe(true);
+      fireEvent.click(screen.getByRole('checkbox'));
+      click('Send to HMRC');
+      expect(await screen.findByText('HMRC has your update')).toBeTruthy();
+      expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+        '/api/hmrc/its-property-preview',
+        '/api/hmrc/its-property-confirm',
+        '/api/hmrc/its-property-submit',
+      ]);
+    });
+
+    it('explains a rejection and allows another try', async () => {
+      renderProperty((url) => url.endsWith('its-property-submit') ? Response.json({ ok: false, code: 'STALE_CONFIRMATION', error: 'x' }, { status: 409 }) : propertyHappy(url));
+      await toSend();
+      fireEvent.click(screen.getByRole('checkbox'));
+      click('Send to HMRC');
+      expect((await screen.findByRole('alert')).textContent).toContain('Your records changed since you confirmed');
+      await waitFor(() => expect((screen.getByRole('button', { name: 'Send to HMRC' }) as HTMLButtonElement).disabled).toBe(false));
+    });
+
+    it('offers no retry when the outcome is unknown', async () => {
+      renderProperty((url) => url.endsWith('its-property-submit') ? Response.json({ ok: false, code: 'OUTCOME_UNKNOWN', error: 'x' }, { status: 502 }) : propertyHappy(url));
+      await toSend();
+      fireEvent.click(screen.getByRole('checkbox'));
+      click('Send to HMRC');
+      expect((await screen.findByRole('alert')).textContent).toContain('Do not send it again');
+      expect(screen.queryByRole('button', { name: 'Send to HMRC' })).toBeNull();
+    });
+  });
 });

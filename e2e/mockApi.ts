@@ -7,9 +7,10 @@ const baseBox4 = 4500;
 const baseBox7 = 22500;
 // Invented Income Tax dates for the Tax page: one fulfilled and one next-due quarterly update, plus the final declaration.
 export const mockItsObligations = [
-  { kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-04-06', periodEnd: '2026-07-05', dueDate: '2026-08-05', status: 'fulfilled', receivedDate: '2026-07-20', overdue: false, nextDue: false },
-  { kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-07-06', periodEnd: '2026-10-05', dueDate: '2026-11-05', status: 'open', receivedDate: null, overdue: false, nextDue: true },
-  { kind: 'finalDeclaration', taxYear: '2025-26', periodStart: '2025-04-06', periodEnd: '2026-04-05', dueDate: '2027-01-31', status: 'open', receivedDate: null, overdue: false, nextDue: false },
+  { business: 'self-employment', kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-04-06', periodEnd: '2026-07-05', dueDate: '2026-08-05', status: 'fulfilled', receivedDate: '2026-07-20', overdue: false, nextDue: false },
+  { business: 'self-employment', kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-07-06', periodEnd: '2026-10-05', dueDate: '2026-11-05', status: 'open', receivedDate: null, overdue: false, nextDue: true },
+  { business: 'uk-property', kind: 'quarterly', taxYear: '2026-27', periodStart: '2026-07-06', periodEnd: '2026-10-05', dueDate: '2026-11-05', status: 'open', receivedDate: null, overdue: false, nextDue: false },
+  { business: 'self-employment', kind: 'finalDeclaration', taxYear: '2025-26', periodStart: '2025-04-06', periodEnd: '2026-04-05', dueDate: '2027-01-31', status: 'open', receivedDate: null, overdue: false, nextDue: false },
 ];
 
 // Home shows an open quarterly update only inside 30 days; a new user has none yet, and "nothing due" has the next one far off.
@@ -310,6 +311,22 @@ export async function mockApi(page: Page, ownerPassword: string, vatState: MockV
             headers: { Accept: 'application/vnd.hmrc.5.0+json' },
           },
         });
+      case 'POST /api/hmrc/its-property-preview':
+        return json(route, {
+          ok: true,
+          data: {
+            endpoint: { method: 'PUT', url: 'https://test-api.service.hmrc.gov.uk/individuals/business/property/uk/AB******C/XA******1/cumulative/2026-27', sandbox: true },
+            body: {
+              fromDate: '2026-04-06',
+              toDate: '2026-10-05',
+              ukProperty: { income: { periodAmount: 6300 }, expenses: { repairsAndMaintenance: 420.5, financialCosts: 910 } },
+            },
+            headers: { Accept: 'application/vnd.hmrc.6.0+json' },
+          },
+        });
+      case 'POST /api/hmrc/its-property-confirm':
+      case 'POST /api/hmrc/its-property-submit':
+        return json(route, { ok: true, data: { sandbox: true } });
       case 'POST /api/hmrc/its-cumulative-submit':
         itsSent = true;
         return json(route, { ok: true, data: { sandbox: true } });

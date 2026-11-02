@@ -54,11 +54,12 @@ function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligatio
             const period = `${formatDate(obligation.periodStart)} to ${formatDate(obligation.periodEnd)}`;
             return (
               <tr
-                key={`${obligation.kind}-${obligation.periodStart}`}
+                key={`${obligation.business}-${obligation.kind}-${obligation.periodStart}`}
                 className={`block border-b border-gray-100 py-2 sm:table-row sm:py-0 ${obligation.nextDue ? 'bg-blue-50' : ''}`}
               >
                 <Cell label="Update" className="text-gray-900">
                   {obligation.kind === 'finalDeclaration' ? 'Final declaration' : 'Quarterly update'}
+                  {obligation.business === 'uk-property' && <span className="block text-xs text-gray-700">Rental property</span>}
                 </Cell>
                 <Cell label="Period" className="text-gray-700" wrap>
                   <span title={period}>{period}</span>
@@ -72,7 +73,7 @@ function ObligationsTable({ taxYear, obligations }: { taxYear: string; obligatio
                 </Cell>
                 {obligation.status === 'open' && quarterOf(obligation) ? (
                   <Cell label="Action">
-                    <Link to={`/tax/update/${obligation.taxYear}/${quarterOf(obligation)}`} className="inline-flex min-h-11 items-center text-blue-800 underline">
+                    <Link to={`/tax/update/${obligation.business === 'uk-property' ? 'property/' : ''}${obligation.taxYear}/${quarterOf(obligation)}`} className="inline-flex min-h-11 items-center text-blue-800 underline">
                       Send your update
                     </Link>
                   </Cell>

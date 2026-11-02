@@ -75,6 +75,7 @@ function AuthGate() {
         <Route path="/bank" element={<BankPage />} />
         <Route path="/tax/*" element={<TaxHubPage />} />
         <Route path="/tax/update/:taxYear/:quarter" element={<ItsUpdatePage />} />
+        <Route path="/tax/update/property/:taxYear/:quarter" element={<ItsUpdatePage business="uk-property" />} />
         <Route path="/tax/year-end/:taxYear" element={<YearEndPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/setup" element={<SetupFlow />} />

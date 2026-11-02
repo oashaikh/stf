@@ -1,6 +1,32 @@
 {
-  "tax-property-prompt-1440-light.png": {"title": "The Tax page asks if you let out a property in the UK and offers one button to turn on rental categories"},
-  "tax-property-prompt-390-light.png": {"title": "The Tax page asks if you let out a property in the UK and offers one button to turn on rental categories"},
-  "money-out-rental-group-1440-light.png": {"title": "Once rental categories are on, Repairs and the like appear under their own Rental property heading, apart from business categories"},
-  "money-out-rental-group-390-light.png": {"title": "Once rental categories are on, Repairs and the like appear under their own Rental property heading, apart from business categories"}
+  "tax-property-prompt-1440-light.png": {
+    "title": "The Tax page asks if you let out a property in the UK and offers one button to turn on rental categories"
+  },
+  "tax-property-prompt-390-light.png": {
+    "title": "The Tax page asks if you let out a property in the UK and offers one button to turn on rental categories"
+  },
+  "money-out-rental-group-1440-light.png": {
+    "title": "Once rental categories are on, Repairs and the like appear under their own Rental property heading, apart from business categories"
+  },
+  "money-out-rental-group-390-light.png": {
+    "title": "Once rental categories are on, Repairs and the like appear under their own Rental property heading, apart from business categories"
+  },
+  "tax-rental-property-row-1440-light.png": {
+    "title": "The Tax page lists the rental property update due next to the business update, labelled Rental property"
+  },
+  "tax-rental-property-row-390-light.png": {
+    "title": "The Tax page lists the rental property update due next to the business update, labelled Rental property"
+  },
+  "rental-update-income-1440-light.png": {
+    "title": "The first step of the rental property update shows the rent received, with a button to see where the figure comes from"
+  },
+  "rental-update-income-390-light.png": {
+    "title": "The first step of the rental property update shows the rent received, with a button to see where the figure comes from"
+  },
+  "rental-update-send-1440-light.png": {
+    "title": "The last step says in one sentence what you are telling HMRC, shows the test mode notice, and keeps Send locked until you tick the declaration"
+  },
+  "rental-update-send-390-light.png": {
+    "title": "The last step says in one sentence what you are telling HMRC, shows the test mode notice, and keeps Send locked until you tick the declaration"
+  }
 }

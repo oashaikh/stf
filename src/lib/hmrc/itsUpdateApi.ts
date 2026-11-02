@@ -44,11 +44,16 @@ export async function previewItsPropertyUpdate(taxYear: string, quarter: Quarter
   return (await post('its-property-preview', { taxYear, quarter })).data as ItsUpdatePreview<PropertyCumulativeSummary>;
 }
 
+type Business = ItsObligationRow['business'];
+
+// The property routes run the same gate against the rental property business.
+const routeStem = (business: Business) => (business === 'uk-property' ? 'its-property' : 'its-cumulative');
+
 /** Records the declaration on the server; submit then sends exactly what was confirmed. */
-export async function confirmItsUpdate(taxYear: string, quarter: Quarter): Promise<void> {
-  await post('its-cumulative-confirm', { taxYear, quarter, declaration: true });
+export async function confirmItsUpdate(taxYear: string, quarter: Quarter, business: Business = 'self-employment'): Promise<void> {
+  await post(`${routeStem(business)}-confirm`, { taxYear, quarter, declaration: true });
 }
 
-export async function submitItsUpdate(taxYear: string, quarter: Quarter): Promise<{ sandbox: boolean }> {
-  return (await post('its-cumulative-submit', { taxYear, quarter, confirm: true })).data as { sandbox: boolean };
+export async function submitItsUpdate(taxYear: string, quarter: Quarter, business: Business = 'self-employment'): Promise<{ sandbox: boolean }> {
+  return (await post(`${routeStem(business)}-submit`, { taxYear, quarter, confirm: true })).data as { sandbox: boolean };
 }

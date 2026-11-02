@@ -4,9 +4,9 @@ import { Link } from 'react-router-dom';
 
 import StateMessage from '../components/StateMessage';
 import { formatDate } from '../lib/dates';
-import type { CumulativePeriodSummary } from '../lib/hmrc/client';
+import type { CumulativePeriodSummary, PropertyCumulativeSummary } from '../lib/hmrc/client';
 import type { ItsObligationRow } from '../lib/hmrc/itsObligationsApi';
-import { confirmItsUpdate, ItsUpdateError, previewItsUpdate, quarterOf, submitItsUpdate } from '../lib/hmrc/itsUpdateApi';
+import { confirmItsUpdate, ItsUpdateError, type ItsUpdatePreview, previewItsPropertyUpdate, previewItsUpdate, quarterOf, submitItsUpdate } from '../lib/hmrc/itsUpdateApi';
 import { formatPence } from '../lib/money';
 
 // The plain label comes first; the form name goes under it in small text for checking against a letter. A key with no entry shows no small text.
@@ -23,6 +23,20 @@ const FIGURE_NAMES: Record<string, { label: string; hmrcName?: string }> = {
   otherExpenses: { label: 'Other expenses', hmrcName: 'Other business expenses' },
   tradingIncomeAllowance: { label: 'Trading allowance' },
 };
+const PROPERTY_FIGURE_NAMES: Record<string, { label: string; hmrcName?: string }> = {
+  periodAmount: { label: 'Rent received', hmrcName: 'Total rents and other income from property' },
+  premiumsOfLeaseGrant: { label: 'Lease premiums', hmrcName: 'Premiums of lease grant' },
+  reversePremiums: { label: 'Reverse premiums', hmrcName: 'Reverse premiums and inducements' },
+  taxDeducted: { label: 'Tax already taken off', hmrcName: 'Tax deducted' },
+  otherIncome: { label: 'Other rental income', hmrcName: 'Other property income' },
+  premisesRunningCosts: { label: 'Running costs', hmrcName: 'Rent, rates, insurance and ground rent' },
+  repairsAndMaintenance: { label: 'Repairs and maintenance', hmrcName: 'Repairs, maintenance and renewals' },
+  financialCosts: { label: 'Mortgage and loan interest', hmrcName: 'Loan interest and other financial costs' },
+  professionalFees: { label: 'Professional fees', hmrcName: 'Legal, management and other professional fees' },
+  costOfServices: { label: 'Services for tenants', hmrcName: 'Costs of services provided, including wages' },
+  other: { label: 'Other costs', hmrcName: 'Other allowable property expenses' },
+  travelCosts: { label: 'Travel', hmrcName: 'Car, van and travel costs' },
+};
 const UNKNOWN_LABEL = 'Other amount';
 
 /** HMRC amounts arrive as pounds strings; string maths on the parts keeps floats out of money. */
@@ -34,9 +48,14 @@ function poundsToPence(pounds: string): number {
 
 type Figure = { key: string; label: string; hmrcName?: string; pence: number };
 
-const figureOf = (key: string, pounds: string): Figure => ({ key, label: FIGURE_NAMES[key]?.label ?? UNKNOWN_LABEL, hmrcName: FIGURE_NAMES[key]?.hmrcName, pence: poundsToPence(pounds) });
+const figureOf = (key: string, pounds: string, names = FIGURE_NAMES): Figure => ({ key, label: names[key]?.label ?? UNKNOWN_LABEL, hmrcName: names[key]?.hmrcName, pence: poundsToPence(pounds) });
 
-function figuresOf(summary: CumulativePeriodSummary) {
+// Property amounts arrive as numbers of pounds; two decimals first, so the pence maths stays on whole numbers.
+const propertyFigures = (amounts: Partial<Record<string, number>> = {}) =>
+  Object.entries(amounts).map(([key, pounds]) => figureOf(key, (pounds ?? 0).toFixed(2), PROPERTY_FIGURE_NAMES));
+
+function figuresOf(summary: CumulativePeriodSummary | PropertyCumulativeSummary) {
+  if ('ukProperty' in summary) return { income: propertyFigures(summary.ukProperty.income), costs: propertyFigures(summary.ukProperty.expenses) };
   const income = Object.entries(summary.periodIncome).map(([key, value]) => figureOf(key, value));
   const costs = summary.periodAllowances
     ? [figureOf('tradingIncomeAllowance', summary.periodAllowances.tradingIncomeAllowance)]
@@ -109,9 +128,10 @@ const STEPS: Step[] = ['income', 'costs', 'send'];
 
 export default function ItsQuarterlyReview({ obligation, onClose }: { obligation: ItsObligationRow; onClose: () => void }) {
   const quarter = quarterOf(obligation)!;
+  const isProperty = obligation.business === 'uk-property';
   const queryClient = useQueryClient();
   // Remembered per quarter so "Save and leave" lets the person come back to the same step.
-  const stepKey = `its-review-step:${obligation.taxYear}:${quarter}`;
+  const stepKey = `its-review-step:${obligation.business}:${obligation.taxYear}:${quarter}`;
   const [step, setStepState] = useState<Step>(() => {
     const saved = sessionStorage.getItem(stepKey) as Step | null;
     return saved && STEPS.includes(saved) ? saved : 'income';
@@ -121,16 +141,16 @@ export default function ItsQuarterlyReview({ obligation, onClose }: { obligation
     setStepState(next);
   };
   const [declared, setDeclared] = useState(false);
-  const preview = useQuery({
-    queryKey: ['its-update-preview', obligation.taxYear, quarter],
-    queryFn: () => previewItsUpdate(obligation.taxYear, quarter),
+  const preview = useQuery<ItsUpdatePreview<CumulativePeriodSummary | PropertyCumulativeSummary>>({
+    queryKey: ['its-update-preview', obligation.business, obligation.taxYear, quarter],
+    queryFn: () => (isProperty ? previewItsPropertyUpdate(obligation.taxYear, quarter) : previewItsUpdate(obligation.taxYear, quarter)),
     retry: false,
     gcTime: 0,
   });
   const submit = useMutation({
     mutationFn: async () => {
-      await confirmItsUpdate(obligation.taxYear, quarter);
-      return submitItsUpdate(obligation.taxYear, quarter);
+      await confirmItsUpdate(obligation.taxYear, quarter, obligation.business);
+      return submitItsUpdate(obligation.taxYear, quarter, obligation.business);
     },
     onSuccess: () => {
       sessionStorage.removeItem(stepKey);
@@ -176,6 +196,7 @@ export default function ItsQuarterlyReview({ obligation, onClose }: { obligation
     // The bottom padding keeps the buttons clear of the fixed phone menu.
     <section aria-labelledby="its-review-heading" className="rounded-md border border-gray-300 bg-white p-4 pb-24 md:p-6 md:pb-6">
       <h1 id="its-review-heading" className="text-2xl font-semibold text-gray-900">Send your Income Tax update</h1>
+      {isProperty && <p className="mt-1 text-sm font-medium text-gray-900">Rental property</p>}
       <p className="mt-1 text-sm text-gray-700">{period}. Figures add up from the start of the tax year.</p>
       {data && !submit.isSuccess && <p className="mt-1 text-sm font-medium text-gray-900">Step {stepNumber} of {STEPS.length}</p>}
 
@@ -219,7 +240,7 @@ export default function ItsQuarterlyReview({ obligation, onClose }: { obligation
       {data && figures && !submit.isSuccess && step === 'send' && (
         <>
           <p className="mt-4 font-medium text-gray-900">
-            You are telling HMRC your income was {formatPence(sumPence(figures.income))} and your costs were {formatPence(sumPence(figures.costs))} for {period}.
+            {isProperty ? 'You are telling HMRC you received' : 'You are telling HMRC your income was'} {formatPence(sumPence(figures.income))}{isProperty && ' in rental income'} and your costs were {formatPence(sumPence(figures.costs))} for {period}.
           </p>
           <label className="mt-4 flex min-h-11 items-start gap-3 text-sm text-gray-900">
             <input type="checkbox" checked={declared} onChange={(event) => setDeclared(event.target.checked)} className="mt-1 h-5 w-5" />

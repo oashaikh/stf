@@ -330,7 +330,7 @@ test('owner walks the guided quarterly update from the Tax page to the confirmat
   await page.goto('/tax/income-tax');
   await expect(page.getByText('Loading mileage')).toHaveCount(0);
   await capture('1-obligations');
-  await page.getByRole('link', { name: 'Send your update' }).click();
+  await page.getByRole('link', { name: 'Send your update' }).first().click();
   await expect(page).toHaveURL(/\/tax\/update\/2026-27\/2$/);
   await expect(page.getByText('Step 1 of 3')).toBeVisible();
   await capture('2-step1-income');
@@ -523,4 +523,41 @@ test('new user skips every setup step and finds them as to-dos on Home', async (
   await expect(page.getByRole('link', { name: 'Connect HMRC' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Connect bank' })).toBeVisible();
   await captureSetupScreen(page, 'skipped-2-home-with-to-dos');
+});
+
+// Mock mode only: the rental property update on the Tax page and its last step, as review evidence for STF-109.
+test('owner sees the rental property update on the Tax page and reaches the send step', async ({ page }) => {
+  test.skip(!mocked, 'Uses the mocked obligations API (JOURNEY_MOCK=1)');
+  const evidenceDir = path.join('browser-evidence', 'STF-109');
+  mkdirSync(evidenceDir, { recursive: true });
+  await mockApi(page, ownerPassword!);
+  await page.goto('/');
+  await page.getByLabel('Password').fill(ownerPassword!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
+
+  const capture = async (name: string) => {
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const hideFixedBars = await page.addStyleTag({ content: '.sticky, .fixed { display: none !important; }' });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+      await page.screenshot({ path: path.join(evidenceDir, `${name}-${width}-light.png`), fullPage: true });
+      await hideFixedBars.evaluate((node) => node.remove());
+    }
+  };
+
+  await page.goto('/tax/income-tax');
+  await expect(page.getByText('Rental property')).toBeVisible();
+  await capture('tax-rental-property-row');
+
+  await page.getByRole('link', { name: 'Send your update' }).nth(1).click();
+  await expect(page).toHaveURL(/\/tax\/update\/property\/2026-27\/2$/);
+  await expect(page.getByText('Rent received')).toBeVisible();
+  await capture('rental-update-income');
+
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  await expect(page.getByText(/You are telling HMRC you received/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Send to HMRC' })).toBeDisabled();
+  await capture('rental-update-send');
 });

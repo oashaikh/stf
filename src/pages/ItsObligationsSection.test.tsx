@@ -135,4 +135,11 @@ describe('ItsObligationsSection', () => {
     const link = await screen.findByRole('link', { name: text });
     expect(link.getAttribute('href')).toBe('/settings');
   });
+
+  it('labels rental property rows and links them to the property flow', async () => {
+    renderSection(async () => ok({ obligations: [row({}), row({ business: 'uk-property' })] }));
+    expect(await screen.findByText('Rental property')).toBeTruthy();
+    const links = screen.getAllByRole('link', { name: 'Send your update' }).map((link) => link.getAttribute('href'));
+    expect(links).toEqual(['/tax/update/2026-27/1', '/tax/update/property/2026-27/1']);
+  });
 });

@@ -73,7 +73,7 @@
   - Risk: Handles HMRC credentials and tokens, so opus at high. Network calls must be faked in tests. package.json is a hot file: keep the edit to one script line.
   - Commit: `622f30957fc6`
 
-- [ ] **Task 5: Runbook for the evidence run and the owner's approval email** (after 4)
+- [x] **Task 5: Runbook for the evidence run and the owner's approval email** (after 4)
   - Intent: Write docs/runbooks/hmrc-evidence-run.md: prerequisites, exact order (rerun inside the 2-week window HMRC checks logs after the approval email), how to authorise the test individual and organisation, how to read the evidence note, and a template of what the owner quotes in the email. Link it from the audit doc. Do not edit hmrc-sandbox-integration.md (STF-110). State plainly that the agent run has not produced a real evidence note, unless it has.
   - Files: `docs/runbooks/hmrc-evidence-run.md`, `docs/hmrc/mtd-itsa-minimum-functionality.md`
   - Acceptance criteria the planner set:
@@ -81,3 +81,4 @@
     - No secrets, personal data or machine paths
     - The runbook links the audit doc and the script by name
   - Risk: Documentation only.
+  - Commit: `b48d5dd5b8a7`

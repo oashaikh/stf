@@ -121,3 +121,7 @@ Also depends on:
 - [x] **Task 8: Fix: address 20 review findings (cycle 1)** (after 7)
   - Intent: Review left 20 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Send the Home "Upcoming VAT return" card's "Period 26A1" to a plain quarter label, and fix "Live HMRC submission" on Settings. The scanner, OfficialName component and rend The agent is fixing them; nothing is needed from you.
   - Commit: `3ec816a7771a`
+
+- [x] **Task 9: Fix: address 17 review findings (cycle 2)** (after 8)
+  - Intent: Review left 17 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Recapture the Home, Settings and Tax screenshots: the committed ones predate the wording fixes. The code fixes from cycle 1 are in place (quarter date range on Home, e2e l The agent is fixing them; nothing is needed from you.
+  - Commit: `8bb3a2d1587e`

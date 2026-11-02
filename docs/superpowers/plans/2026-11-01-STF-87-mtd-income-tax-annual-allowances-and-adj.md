@@ -86,7 +86,7 @@ Also depends on:
   - Risk: Opus/high: schema, migration and role grants. Re-check the 0022 collision with STF-74 before finishing.
   - Commit: (none — no code change for this task)
 
-- [ ] **Task 4: Preview, confirm and submit logic and routes for the annual submission** (after 1, 2, 3)
+- [x] **Task 4: Preview, confirm and submit logic and routes for the annual submission** (after 1, 2, 3)
   - Intent: Add api/_lib/itsAnnualSubmit.ts reusing checkItsReadiness, the hmrcCall helpers and the claim/confirm/receipt pattern from api/_lib/itsSubmit.ts. Three routes: preview (server recomputes the builder output from the tax year summary), confirm (stores the server-computed payload with the user's declaration), submit (claims the row atomically, calls submitAnnualSubmission outside any DB transaction, records the receipt or rejection). The payload is never taken from the request. Live submission needs HMRC_SANDBOX_MODE=false and user opt-in. Audit rows for confirm, submit and reject. Route tests: submit without confirmation refused, concurrent second submit refused, second user cannot submit another user's confirmation, ITSA disabled and live-mode refusals. Add the routes to docs/security/input-inventory.md. Check how its-* routes are registered and follow that.
   - Files: `api/_lib/itsAnnualSubmit.ts`, `api/hmrc/its-annual-preview.ts`, `api/hmrc/its-annual-confirm.ts`, `api/hmrc/its-annual-submit.ts`, `api/_lib/__tests__/itsAnnualSubmit.test.ts`, `api/_lib/__tests__/itsAnnualSubmitRoute.test.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -99,6 +99,7 @@ Also depends on:
     - Route tests include a different-user refusal
     - npm test passes
   - Risk: Opus/high: HMRC submission, authorisation and idempotency lock. Needs the table (task 3) and client (task 2).
+  - Commit: `76221003e376`
 
 - [ ] **Task 5: Income Tax year end guided flow: steps, figures and send** (after 4)
   - Intent: Replace the Tax-page section with a guided step-by-step flow, per the owner's 1 Nov direction. Add src/lib/itsAnnualApi.ts (fetch wrappers for the three routes). Add src/pages/YearEndFlow.tsx: one thing per screen, 'Step N of M' header, Back and 'Save and leave' on every step (progress resumes on return from the server-side preview/confirm state; no new data collected). Steps: (a) trading allowance choice in plain words, pre-filled from the STF-31 choice and shown via formatPence from tax bands, (b) each remaining figure on its own screen, pre-filled from the preview, with the HMRC field name only in small muted text. Every figure has a 'Why is this amount?' disclosure explaining in plain words where it came from. Final step: one plain sentence of what will be sent, the declaration checkbox, and a 'Send to HMRC' button enabled only after the declaration is ticked and confirm has succeeded, with a sandbox label in sandbox mode. Use StateMessage for loading/empty/error, 44px tap targets, visible focus, design tokens, right-aligned tabular figures. Plain words, no accounting jargon in headings. Component tests mock itsAnnualApi and cover step navigation, Back, Save and leave, Why links, and Send gating. docs/design/ease-of-use.md is absent from this worktree, so follow the ticket comment; where it is silent (exact copy, step count, resume behaviour) ask in the ticket rather than guessing.

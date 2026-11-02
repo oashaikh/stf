@@ -72,7 +72,7 @@ Also depends on:
   - Risk: Opus at high: it sends money to HMRC and enforces the confirmation gate, the idempotency lock and per-user isolation.
   - Commit: `3f5833f95f71`
 
-- [ ] **Task 3: Final declaration checks every business has its yearly figures in** (after 2)
+- [x] **Task 3: Final declaration checks every business has its yearly figures in** (after 2)
   - Intent: Before HMRC's calculation is requested, previewItsFinalForUser in api/_lib/itsFinalDeclaration.ts must check that each business the user has (self-employment and UK property, from the stored business ids) has an annual row with status 'submitted' for that year and sandbox mode. The check is one bounded query on the unique key, with no per-row loop. If any is missing, refuse early with a distinct code (ANNUAL_FIGURES_MISSING) whose message names the business, says nothing has been sent, and says what to do next. Confirm and submit repeat the check so it cannot be skipped. Only final-declaration files change; VAT code is untouched. Tests cover: both submitted passes, property missing, self-employment missing, a user with one business, and a pending or rejected row blocking.
   - Files: `api/_lib/itsFinalDeclaration.ts`, `api/_lib/__tests__/itsFinalDeclaration.test.ts`, `api/_lib/__tests__/itsFinalDeclarationRoute.test.ts`
   - Acceptance criteria the planner set:
@@ -81,6 +81,7 @@ Also depends on:
     - The check is a single query filtered by user_id and tax_year
     - A property-only user and a self-employment-only user are each handled correctly
     - npm run typecheck, lint and test pass
+  - Commit: `f8b0d55f6a91`
 
 - [ ] **Task 4: Year-end flow: guided property steps and final declaration pointer** (after 2, 3)
   - Intent: Extend src/pages/YearEndFlow.tsx following docs/design/ease-of-use.md. When the user has a UK property business, add guided steps with 'Step N of M': what you earned and spent on your rental, then a plain-English choice between a flat £1,000 rental allowance and claiming actual costs, showing which leaves more tax-free, with each figure explaining itself. Official names sit in small muted text via OfficialName. Then a preview of what will be sent, an explicit declaration, and send, with plain error messages. Money uses formatPence and shared StateMessage components. The final declaration page shows ANNUAL_FIGURES_MISSING as a plain message with a button back to the year-end flow. Tap targets at least 44px, works at 390px. Component tests mock the API client and cover choice, resume, error and success. The ease-of-use jargon test must pass. VAT pages are untouched.

@@ -54,7 +54,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Pure bank-line matching function**
+- [x] **Task 1: Pure bank-line matching function**
   - Intent: Add src/lib/bankMatching.ts: a pure function taking unmatched bank lines (id, date, signed amountPence, description) and confirmed entries (id, date, signed gross pence) and returning proposals. Rule 1: same amount and same date, marked 'exact'. Rule 2: same amount within 3 days, nearest date first, marked 'close'. Each entry is proposed to at most one line (exact claimed before close, ties broken by id for stable output). Integer pence only, no I/O. Tests in src/lib/bankMatching.test.ts cover exact, close, outside window, opposite sign, one entry wanted by two lines, ties, empty input, and a fully matched set leaving no unmatched lines.
   - Files: `src/lib/bankMatching.ts`, `src/lib/bankMatching.test.ts`
   - Acceptance criteria the planner set:
@@ -63,6 +63,7 @@ Also depends on:
     - An entry is never proposed for two lines and output order is deterministic
     - No floating-point money arithmetic
     - npm test, typecheck and lint pass
+  - Commit: (none — no code change for this task)
 
 - [ ] **Task 2: Migration and schema: link bank lines to entries, dismiss reason**
   - Intent: bank_transactions has status unmatched/matched/dismissed but no link to an entry. Add nullable matched_transaction_id (uuid FK to transactions.id) and dismissed_reason (text), plus an index on matched_transaction_id. Add migration 0025_bank_reconciliation.sql (re-check the next free number against base branch; single head), update meta/_journal.json and snapshot, schema.ts and schema.test.ts, and any column grants the repo uses. Nothing is deleted.

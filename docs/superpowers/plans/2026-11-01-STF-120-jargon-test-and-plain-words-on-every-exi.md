@@ -71,7 +71,7 @@ Also depends on:
   - Risk: STF-119 edits AppShell, DashboardPage and ReportsPage in parallel; keep hunks to text strings only to avoid merge conflicts.
   - Commit: `d6b1551922ce`
 
-- [ ] **Task 3: Plain words on the Tax screens (not the VAT review and send screens)** (after 1)
+- [x] **Task 3: Plain words on the Tax screens (not the VAT review and send screens)** (after 1)
   - Intent: Rewrite visible text in TaxPage, ItsObligationsSection (Income Tax updates; replace 'obligation', 'period key', 'submit', raw error text with 'update due', 'quarter', 'Send to HMRC', plain errors) and MileageSection. Use OfficialName for HMRC names worth keeping. Leave VatPage, VatObligationsList, VatPreviewPanel and VatHistoryList untouched; STF-121 rewrites them. Wording only. Update the matching tests.
   - Files: `src/pages/TaxPage.tsx`, `src/pages/TaxPage.test.tsx`, `src/pages/ItsObligationsSection.tsx`, `src/pages/ItsObligationsSection.test.tsx`, `src/pages/MileageSection.tsx`, `src/pages/MileageSection.test.tsx`
   - Acceptance criteria the planner set:
@@ -80,6 +80,7 @@ Also depends on:
     - buttons that send to HMRC read 'Send to HMRC' and behaviour is unchanged
     - lint, typecheck, test pass
   - Risk: STF-119 and STF-87 both edit TaxPage; keep changes to strings.
+  - Commit: `6794259ad667`
 
 - [ ] **Task 4: Plain words on Expenses and Invoices** (after 1)
   - Intent: Rewrite visible text in ExpensesPage, EntriesList, EntryActions, InvoicesPage, InvoiceEditor and RecurringEntriesSection so no banned word shows (e.g. posting, journal, nominal code, category wording, sync, raw API errors). Errors say what happened, whether money is affected, and the next step. Wording only; layout and behaviour unchanged. Update matching tests, including hostileTextRender expectations only if they assert on old wording.

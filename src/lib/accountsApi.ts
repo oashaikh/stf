@@ -76,3 +76,8 @@ export const renameAccount = (id: string, name: string, fetchFn: FetchFn = fetch
 
 export const setAccountArchived = (id: string, archived: boolean, fetchFn: FetchFn = fetch) =>
   send('PATCH', { id, archived }, fetchFn);
+
+/** Switches on the UK property categories; repeat calls are harmless. */
+export async function enablePropertyAccounts(fetchFn: FetchFn = fetch): Promise<ApiAccount[]> {
+  return (await send('POST', { propertyAccounts: true }, fetchFn)).accounts;
+}

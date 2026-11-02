@@ -2,13 +2,14 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../db', () => ({ db: {} }));
 
-import { DEFAULT_ACCOUNTS } from '../../../src/lib/chartOfAccounts';
+import { DEFAULT_ACCOUNTS, PROPERTY_ACCOUNTS } from '../../../src/lib/chartOfAccounts';
 import {
   AccountRuleError,
   DuplicateAccountCodeError,
   archiveAccount,
   assertNoRetype,
   createAccount,
+  ensurePropertyAccounts,
   isUniqueViolation,
   listAccounts,
   renameAccount,
@@ -33,6 +34,13 @@ function fakeStore() {
   const store: AccountStore = {
     async seedDefaults(userId) {
       for (const d of DEFAULT_ACCOUNTS) {
+        if ([...rows.values()].some((r) => r.userId === userId && r.code === d.code)) continue;
+        const id = `acc-${nextId++}`;
+        rows.set(id, { ...d, id, userId, archivedAt: null });
+      }
+    },
+    async seedPropertyAccounts(userId) {
+      for (const d of PROPERTY_ACCOUNTS) {
         if ([...rows.values()].some((r) => r.userId === userId && r.code === d.code)) continue;
         const id = `acc-${nextId++}`;
         rows.set(id, { ...d, id, userId, archivedAt: null });
@@ -182,5 +190,16 @@ describe('pure rules', () => {
     expect(validateNewAccount({ ...newTravel, taxCategory: 'Bad Slug' })).toBeNull();
     expect(validateNewAccount({ ...newTravel, isSystem: true })).toEqual(newTravel);
     expect(validateNewAccount(null)).toBeNull();
+  });
+});
+
+describe('ensurePropertyAccounts', () => {
+  it('adds the property accounts once, is safe to repeat, and leaves other users alone', async () => {
+    const { store } = fakeStore();
+    await ensurePropertyAccounts(store, 'u1');
+    const again = await ensurePropertyAccounts(store, 'u1');
+    expect(again.map((a) => a.code)).toEqual(PROPERTY_ACCOUNTS.map((a) => a.code).sort());
+    const other = await listAccounts(store, 'u2', false);
+    expect(other.some((a) => a.taxCategory?.startsWith('property-'))).toBe(false);
   });
 });

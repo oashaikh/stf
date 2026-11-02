@@ -1,3 +1,4 @@
+import { isPropertyCategory } from './chartOfAccounts.js';
 import type { DatePeriod } from './dashboardSummary.js';
 import type { ProfitLossLine } from './profitAndLoss.js';
 import type { ExpenseMethodComparison } from './tradingAllowance.js';
@@ -73,6 +74,8 @@ export function buildTaxYearSummary(lines: TaxYearLine[], period: DatePeriod, mi
 
   for (const line of lines) {
     if (!contributesToReturn(line, period)) continue;
+    // UK property is reported to HMRC separately from self-employment.
+    if (isPropertyCategory(line.taxCategory)) continue;
     const isIncome = line.accountType === 'income';
     const totalPence = isIncome ? -line.amountPence : line.amountPence; // income is a credit
     const category = line.taxCategory;

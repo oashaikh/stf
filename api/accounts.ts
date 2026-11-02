@@ -5,6 +5,7 @@ import {
   createAccount,
   databaseAccountStore,
   DuplicateAccountCodeError,
+  ensurePropertyAccounts,
   listAccounts,
   renameAccount,
   unarchiveAccount,
@@ -25,7 +26,9 @@ export function createAccountsHandler(store: AccountStore = databaseAccountStore
     }
 
     if (request.method === 'POST') {
-      const newAccount = validateNewAccount(await request.json().catch(() => null));
+      const body = await request.json().catch(() => null);
+      if (body?.propertyAccounts === true) return Response.json({ ok: true, accounts: await ensurePropertyAccounts(store, auth.userId) });
+      const newAccount = validateNewAccount(body);
       if (!newAccount) return refuse(400, 'Account needs a code, name and valid type', 'BAD_REQUEST');
       try {
         return Response.json({ ok: true, account: await createAccount(store, auth.userId, newAccount) });

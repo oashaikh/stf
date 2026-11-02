@@ -29,3 +29,19 @@ export const DEFAULT_ACCOUNTS: readonly DefaultAccount[] = [
   { code: '6600', name: 'Other allowable expenses', accountType: 'expense', taxCategory: 'other-allowable', isSystem: false },
   { code: '6900', name: 'Disallowable expenses', accountType: 'expense', taxCategory: 'disallowable', isSystem: false },
 ];
+
+// UK property categories follow HMRC's property income and expense boxes. They are a separate list so
+// owners without a rental see no extra categories; the property- prefix keeps them out of self-employment figures.
+export const PROPERTY_CATEGORY_PREFIX = 'property-';
+export const isPropertyCategory = (taxCategory: string | null): boolean => taxCategory?.startsWith(PROPERTY_CATEGORY_PREFIX) ?? false;
+
+export const PROPERTY_ACCOUNTS: readonly DefaultAccount[] = [
+  { code: '4200', name: 'Rent received', accountType: 'income', taxCategory: 'property-rent-received', isSystem: false },
+  { code: '6710', name: 'Rental repairs and maintenance', accountType: 'expense', taxCategory: 'property-repairs-maintenance', isSystem: false },
+  { code: '6720', name: 'Rental mortgage interest and finance costs', accountType: 'expense', taxCategory: 'property-finance-costs', isSystem: false },
+  { code: '6730', name: 'Rental running costs (rates, rent, insurance, utilities)', accountType: 'expense', taxCategory: 'property-premises-running-costs', isSystem: false },
+  { code: '6740', name: 'Rental professional fees (agent, accountant, legal)', accountType: 'expense', taxCategory: 'property-professional-fees', isSystem: false },
+  { code: '6750', name: 'Rental services (cleaning, gardening, wages)', accountType: 'expense', taxCategory: 'property-cost-of-services', isSystem: false },
+  { code: '6760', name: 'Rental travel', accountType: 'expense', taxCategory: 'property-travel-costs', isSystem: false },
+  { code: '6770', name: 'Other rental costs', accountType: 'expense', taxCategory: 'property-other-costs', isSystem: false },
+];

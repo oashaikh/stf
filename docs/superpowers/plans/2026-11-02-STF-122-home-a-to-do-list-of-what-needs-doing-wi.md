@@ -96,3 +96,7 @@ Also depends on:
 - [x] **Task 5: Fix: One check failed while testing: FAIL  App.test.tsx > first sign-in redirect > keeps Home when the setup state cannot be loaded.** (after 4)
   - Intent: One check failed while testing: FAIL  App.test.tsx > first sign-in redirect > keeps Home when the setup state cannot be loaded. The agent is fixing it; nothing is needed from you.
   - Commit: `8ca5765729de`
+
+- [x] **Task 6: Fix: address 7 review findings (cycle 1)** (after 5)
+  - Intent: Review left 7 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK Add a to-do for an expired bank connection in src/lib/homeTodos.ts. Today a lapsed connection produces no item, so Home says "You're up to date" when the bank feed has sto The agent is fixing them; nothing is needed from you.
+  - Commit: `60ff78290f43`

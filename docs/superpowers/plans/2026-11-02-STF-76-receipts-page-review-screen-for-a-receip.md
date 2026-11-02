@@ -49,7 +49,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Return per-field confidence from the receipts list**
+- [x] **Task 1: Return per-field confidence from the receipts list**
   - Intent: GET /api/receipts already returns each read field as {value, confirmed}. Add a confidence figure in integer thousandths (0-1000, from receipt_extractions.confidence, already stored) to each field. Extend the ReceiptDetails type in src/lib/receiptsApi.ts with the same. Export one LOW_CONFIDENCE_THOUSANDTHS constant (700, matching the 'below 0.7' wording in the extraction prompt) so the UI and server share one line. Select only the extra column, in the existing single extractions query (no new query, no N+1). Add a route test asserting confidence is returned and that another user's receipt is not. Done = existing tests still pass and the new field is visible to the client.
   - Files: `api/_lib/receipts.ts`, `api/receipts.ts`, `api/_lib/__tests__/receiptsRoute.test.ts`, `src/lib/receiptsApi.ts`, `src/lib/__tests__/receiptsApi.test.ts`
   - Acceptance criteria the planner set:
@@ -58,6 +58,7 @@ Also depends on:
     - Route test covers confidence in the response and a second user being refused the first user's receipt
     - npm run lint, typecheck and test pass
   - Risk: Touches the shared list function used by the existing Receipts page; the ReceiptDetails type change must not break readReceiptDetails or ReceiptsPage.test.tsx.
+  - Commit: `1d49bd86e865`
 
 - [ ] **Task 2: Client calls for confirming a draft with edits and discarding it** (after 1)
   - Intent: First check whether STF-75 (NEW-13, confirm a receipt draft with the owner's edited values and create the entry) is on main. The repo today has only PUT /api/receipts, which marks the AI values confirmed unedited, and DELETE, which soft-deletes. If the STF-75 endpoint exists, add typed wrappers in src/lib/receiptsApi.ts: confirmReceiptDraft(id, edited fields, amount as integer pence) returning the new entry id, and discardReceiptDraft(id) (the existing DELETE soft-delete). If the endpoint does NOT exist, stop and ask in the ticket conversation; do not invent a server contract or write entry-creation logic here. Reuse refusalMessage and the EntryRefusedError pattern. Add tests with fetch mocked.

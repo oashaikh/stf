@@ -72,7 +72,7 @@ Also depends on:
     - npm test passes.
   - Commit: `d2b2da5641ec`
 
-- [ ] **Task 3: Database table that locks one final declaration per tax year and environment**
+- [x] **Task 3: Database table that locks one final declaration per tax year and environment**
   - Intent: Add its_final_declarations modelled on its_annual_submissions: user_id, tax_year, sandbox, status (reuse the its_submission_status enum), HMRC calculation id, stored HMRC figures in pence, declaration_confirmed_at, hmrc_correlation_id, submitted_at, timestamps, with UNIQUE(user_id, tax_year, sandbox) as the idempotency lock. The user_id foreign key is covered by the unique index. No deletes; rows only change status. Use migration 0026, since 0022 and 0025 are claimed by other live plans, and parent it on the current journal head. Re-check the journal against main before finishing. Update schema.test.ts.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0026_its_final_declarations.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0026_snapshot.json`
   - Acceptance criteria the planner set:
@@ -82,6 +82,7 @@ Also depends on:
     - schema.test.ts covers the new table.
     - npm test passes.
   - Risk: Schema and migration work; the journal/snapshot can conflict with STF-38 and STF-74, which also edit it.
+  - Commit: `72c3fabc3d9d`
 
 - [ ] **Task 4: Server: preview, tick-to-confirm and submit routes for the final declaration** (after 1, 2, 3)
   - Intent: Add api/_lib/itsFinalDeclaration.ts and three routes mirroring itsAnnualSubmit (api/hmrc/its-final-preview.ts, its-final-confirm.ts, its-final-submit.ts). Preview triggers and fetches HMRC's calculation through the client from task 1 and returns it with STF's estimate and the comparison. The HMRC calls happen outside any DB transaction. Confirm requires declaration: true and stores the calculation, then writes an audit event, and refuses without the tick. Submit requires confirm: true and a stored confirmation, claims the row atomically (the idempotency lock), then sends the final declaration for the stored calculation id. Submit also records its audit event, and the sandbox/live switch comes from the same helper STF-87 uses, so live needs HMRC_SANDBOX_MODE=false plus the Settings opt-in. Add route tests for the gate (no tick gives 400/refusal and no audit row; a second user's request is refused; a repeat submit does not call HMRC twice; a live attempt without the double switch is blocked) and unit tests for the lib. Add an entry to docs/security/input-inventory.md.

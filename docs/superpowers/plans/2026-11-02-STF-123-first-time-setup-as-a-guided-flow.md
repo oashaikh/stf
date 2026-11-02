@@ -50,7 +50,7 @@ Also depends on:
 
 ## Tasks
 
-- [ ] **Task 1: Remember setup progress on the server**
+- [x] **Task 1: Remember setup progress on the server**
   - Intent: Add the small amount of server state the flow needs and one route to read and write it. Add users.vat_registered (nullable boolean, so 'not answered yet' is distinguishable from 'no'), users.setup_skipped_steps (text[] of step ids, default empty) and users.setup_finished_at (nullable timestamptz). The business type column already exists but nothing in api/ sets it, so the same route accepts a business type (existing enum values) and updates users.business_type. New migration 0024_first_time_setup.sql with a matching _journal.json entry and snapshot, parented on the current head (0022 on this branch; STF-74 and STF-87 plan 0022/0023, so re-check the head against main before finishing and keep a single head). Route api/settings/setup.ts: GET returns {businessType, vatRegistered, skippedSteps, finishedAt}; POST validates every field server-side (enum for businessType, boolean for vatRegistered, step ids from a fixed list, 'finish' flag) and sets finishedAt on the server. Pre-fill comes from existing columns (business_name, vat_number, HMRC and bank status), so no other server work. The route is behind withAuth and scoped to auth.userId. Pure validation lives in api/_lib/setupProgress.ts with a store interface in the style of api/_lib/vatNumber.ts. Add the route to docs/security/input-inventory.md.
   - Files: `server/src/db/schema.ts`, `server/src/db/schema.test.ts`, `server/src/db/migrations/0024_first_time_setup.sql`, `server/src/db/migrations/meta/_journal.json`, `server/src/db/migrations/meta/0024_snapshot.json`, `api/_lib/setupProgress.ts`, `api/settings/setup.ts`, `api/_lib/__tests__/setupProgress.test.ts`, `api/_lib/__tests__/setupRoute.test.ts`, `docs/security/input-inventory.md`
   - Acceptance criteria the planner set:
@@ -63,6 +63,7 @@ Also depends on:
     - docs/security/input-inventory.md lists the new route and its inputs
     - npm run lint, typecheck, test and build pass
   - Risk: Schema migration and a new authenticated write route, hence opus at high. Migration number clashes with STF-74/STF-87 plans; implementer must re-check the head against main.
+  - Commit: `42405211e12f`
 
 - [ ] **Task 2: Setup steps logic and client API** (after 1)
   - Intent: Pure, tested logic for the flow plus a thin fetch client. src/lib/setupFlow.ts defines the four steps in order (business type, VAT registered or not, connect HMRC, connect the bank), the one-sentence 'what this is for' text for each in plain words (no word from the 'Never on screen' table in docs/design/ease-of-use.md; official names only as small-text companions), and functions: which steps are done (from setup state plus existing HMRC status, bank status and vat_number), which is next, which are skipped and so still to-do, and whether the flow should show at all. Pre-fill rule: a step STF already knows (HMRC connected, bank connected, VAT number saved implies registered) shows as done and only asks to confirm. src/lib/setupApi.ts wraps GET/POST /api/settings/setup in the style of businessProfileApi.ts and reuses fetchHmrcStatus, fetchBankStatus, fetchVatNumberMask and saveVatNumber.

@@ -88,6 +88,10 @@ Also depends on:
     - npm run lint, typecheck, test and build pass
   - Commit: `50b1c93be46a`
 
-- [x] **Task 5: Fix: address 11 review findings (cycle 1)** (after 4)
+- [x] **Task 5: Fix (recovered): address 11 review findings (cycle 1)** (after 4)
   - Intent: Review left 11 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The server work (GET list with cursor paging, presigned read URLs, owner scoping, index migration) and the upload/list/remove flow are correct, and validation passed. Unde The agent is fixing them; nothing is needed from you.
   - Commit: `000ca1a98708`
+
+- [x] **Task 6: Fix: address 11 review findings (cycle 0)** (after 5)
+  - Intent: Review left 11 findings unresolved (NEEDS_WORK): **correctness** — NEEDS_WORK The server work (GET list with cursor paging, presigned read URLs, owner scoping, index migration) and the upload/list/remove flow are correct, and validation passed. Unde The agent is fixing them; nothing is needed from you.
+  - Commit: (none — no code change for this task)

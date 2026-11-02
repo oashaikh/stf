@@ -5,6 +5,7 @@ import {
   HmrcError,
   listItsSelfEmploymentBusinesses,
   refreshAccessToken,
+  submitAnnualSubmission,
   submitCumulativePeriodSummary,
   submitVatReturn,
   withHmrcToken,
@@ -120,5 +121,15 @@ describe.skipIf(!hasCredentials || !sandboxOnly)('HMRC sandbox integration', () 
     await expect(submitCumulativePeriodSummary(
       nino!, businessId, '2024-25', payload, tokens.accessToken, fraudHeaders(),
     )).resolves.not.toThrow();
+  });
+
+  it('submits annual allowances for a self-employment business', async () => {
+    const tokens = await refreshAccessToken(refreshToken!);
+    const { businessDetails } = await listItsSelfEmploymentBusinesses(nino!, tokens.accessToken, fraudHeaders());
+    expect(businessDetails.length).toBeGreaterThan(0);
+    await expect(submitAnnualSubmission(
+      nino!, businessDetails[0]!.businessId, '2024-25',
+      { allowances: { tradingIncomeAllowance: '1000.00' } }, tokens.accessToken, fraudHeaders(),
+    )).resolves.toBeUndefined();
   });
 });

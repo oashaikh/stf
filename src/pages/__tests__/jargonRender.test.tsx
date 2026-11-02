@@ -56,7 +56,7 @@ const loadedBody = (url: string): unknown => {
     return { data: { ...period, income: [{ accountId: 'a1', accountName: 'Sales', totalPence: 120000 }], expenses: [{ accountId: 'a2', accountName: 'Travel', totalPence: 30000 }], incomePence: 120000, expensesPence: 30000, profitPence: 90000 } };
   }
   if (url.startsWith('/api/settings/vat-number')) return { masked: null };
-  return { ok: true, entries: [row], invoices: [], accounts: [], templates: [], nextCursor: null };
+  return { ok: true, entries: [row], invoices: [], accounts: [], templates: [], receipts: [], nextCursor: null };
 };
 
 const STATES = {

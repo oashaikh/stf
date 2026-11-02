@@ -9,7 +9,7 @@ Unmatched bank lines of the signed-in owner, plus the names of their accounts.
 - For each line: a temporary request number, the description, the amount in pence and the date.
 - The owner's account list: account id, code and name only.
 - Not sent: the owner's name, email, bank account number, sort code, bank reference ids, other lines, receipts or any other record.
-- Bank descriptions can contain a payee's name. They go to Anthropic, which is the same third party as receipt extraction ([[receipt-extraction.md]]). Only lines the owner chose to sort are sent, and the prompt tells the model to ignore any instruction inside a description.
+- Bank descriptions can contain a payee's name. They go to Anthropic, which is the same third party as receipt extraction ([receipt-extraction.md](receipt-extraction.md)). Only lines the owner chose to sort are sent, and the prompt tells the model to ignore any instruction inside a description.
 - A request holds at most 25 lines.
 
 ## What the model may write

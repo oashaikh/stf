@@ -29,7 +29,7 @@ export interface SetupStepInfo {
 export const SETUP_STEPS: readonly SetupStepInfo[] = [
   { id: 'business_type', title: 'What kind of business do you run?', purpose: 'This tells us which tax rules and forms apply to you.' },
   { id: 'vat', title: 'Are you registered for VAT?', purpose: 'This tells us whether you need to send VAT returns.', officialName: 'VAT registration' },
-  { id: 'hmrc', title: 'Connect to HMRC', purpose: 'This lets us send your tax and VAT updates for you.', officialName: 'HMRC' },
+  { id: 'hmrc', title: 'Connect to HMRC', purpose: 'This lets us send your tax and VAT updates for you.' },
   { id: 'bank', title: 'Connect your bank', purpose: 'This brings in your payments so you do not have to type them.' },
 ];
 

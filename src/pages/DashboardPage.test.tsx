@@ -149,7 +149,7 @@ describe('DashboardPage', () => {
   it('lists skipped setup steps near the top', async () => {
     setupApi.fetchSetupFacts.mockResolvedValue({ ...finishedSetup, hmrcConnected: false, setup: { ...finishedSetup.setup, skippedSteps: ['hmrc'] } });
     renderPage(Response.json({ ok: true, data: summary }));
-    expect((await screen.findByRole('link', { name: 'Do this now' })).getAttribute('href')).toBe('/setup?step=hmrc');
+    expect((await screen.findByRole('link', { name: 'Connect HMRC' })).getAttribute('href')).toBe('/setup?step=hmrc');
   });
 
   it('keeps the rest of Home in place when the setup state cannot be loaded', async () => {

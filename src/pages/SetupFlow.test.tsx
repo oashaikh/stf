@@ -155,6 +155,14 @@ describe('skip and leave', () => {
     expect(setupApi.saveSetupAnswers).toHaveBeenLastCalledWith({ finish: true });
   });
 
+  it('moves focus to the new step heading and only mentions skipped steps when there are some', async () => {
+    setupApi.fetchSetupFacts.mockResolvedValue(withSetup({ vatRegistered: false }, { hmrcConnected: true, bankConnected: true }));
+    renderFlow();
+    const heading = await screen.findByRole('heading', { level: 1, name: 'You are all set' });
+    expect(heading).toHaveFocus();
+    expect(screen.queryByText(/Anything you skipped/)).not.toBeInTheDocument();
+  });
+
   it('tells the user when saving failed and stays on the step', async () => {
     setupApi.fetchSetupFacts.mockResolvedValue(newUser);
     setupApi.saveSetupAnswers.mockRejectedValue(new Error('down'));
@@ -172,7 +180,7 @@ describe('connect steps', () => {
     renderFlow();
     expect(await screen.findByText(/Test mode/)).toBeInTheDocument();
     expect(screen.queryByText(/live/i)).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Connect to HMRC' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Connect' }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith('https://hmrc.example/authorise'));
     expect(sessionStorage.getItem(SETUP_RETURN_KEY)).toBe('1');
   });

@@ -458,13 +458,12 @@ async function signInAsNewUser(page: Page) {
   await expect(page).toHaveURL(/\/setup$/);
 }
 
+// Viewport captures, not full-page, so the menu and header show around the setup screen.
 async function captureSetupScreen(page: Page, name: string) {
   for (const width of evidenceWidths) {
     await page.setViewportSize({ width, height: 900 });
-    const hideFixedBars = await page.addStyleTag({ content: '.sticky, .fixed { display: none !important; }' });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.screenshot({ path: path.join(setupEvidenceDir, `${name}-${width}-light.png`), fullPage: true });
-    await hideFixedBars.evaluate((node) => node.remove());
+    await page.screenshot({ path: path.join(setupEvidenceDir, `${name}-${width}-light.png`) });
   }
 }
 
@@ -485,7 +484,7 @@ test('new user is walked through setup, answers every step and lands on Home wit
 
   await expect(page.getByRole('heading', { level: 1, name: 'Connect to HMRC' })).toBeVisible();
   await captureSetupScreen(page, 'finished-3-hmrc');
-  await page.getByRole('button', { name: 'Connect to HMRC' }).click();
+  await page.getByRole('button', { name: 'Connect', exact: true }).click();
 
   await expect(page.getByRole('heading', { level: 1, name: 'Connect your bank' })).toBeVisible();
   await captureSetupScreen(page, 'finished-4-bank');
@@ -516,6 +515,8 @@ test('new user skips every setup step and finds them as to-dos on Home', async (
 
   await expect(page.getByRole('heading', { level: 1, name: 'Home' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Finish setting up' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Do this now' })).toHaveCount(4);
+  await expect(page.getByRole('link', { name: 'Answer' })).toHaveCount(2);
+  await expect(page.getByRole('link', { name: 'Connect HMRC' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Connect bank' })).toBeVisible();
   await captureSetupScreen(page, 'skipped-2-home-with-to-dos');
 });

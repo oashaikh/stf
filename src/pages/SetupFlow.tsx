@@ -1,10 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import StateMessage from '../components/StateMessage';
 import { fetchBankConnectUrl } from '../lib/bankApi';
 import { VatNumberRefusedError, fetchHmrcConnectUrl, saveVatNumber } from '../lib/hmrc/settingsApi';
 import { fetchSetupFacts, saveSetupAnswers, type SetupAnswers } from '../lib/setupApi';
-import { SETUP_STEPS, stepLabel, stepsDone, type BusinessType, type SetupFacts, type SetupStepId } from '../lib/setupFlow';
+import { SETUP_STEPS, stepLabel, stepsDone, todoSteps, type BusinessType, type SetupFacts, type SetupStepId } from '../lib/setupFlow';
 
 /** Set just before leaving for HMRC or the bank, whose callbacks land on other pages. */
 export const SETUP_RETURN_KEY = 'stf-setup-return';
@@ -49,6 +49,7 @@ export default function SetupFlow() {
   const [vatInput, setVatInput] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   function load() {
     setLoadFailed(false);
@@ -71,6 +72,9 @@ export default function SetupFlow() {
   // Runs once on arrival; the ?step= it reads is only the way in, not something to reload on.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(load, []);
+
+  // The button that had focus unmounts when the step swaps; moving focus to the heading also announces the new step.
+  useEffect(() => headingRef.current?.focus(), [current, changing]);
 
   if (loadFailed) return <StateMessage kind="error" className="p-6" onRetry={load}>We could not load your setup. Please try again.</StateMessage>;
   if (!facts) return <StateMessage kind="loading" className="p-6">Loading…</StateMessage>;
@@ -149,7 +153,7 @@ export default function SetupFlow() {
   }
 
   const footer = (id: SetupStepId) => (
-    <div className="mt-8 flex flex-wrap gap-3 border-t border-gray-200 pt-4">
+    <div className="mt-8 flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row">
       <button type="button" className={secondaryButton} disabled={busy || id === 'business_type'} onClick={() => goTo(SETUP_STEPS[SETUP_STEPS.findIndex((step) => step.id === id) - 1].id)}>
         Back
       </button>
@@ -184,9 +188,9 @@ export default function SetupFlow() {
 
   if (current === 'finished') {
     return (
-      <section className="p-4 sm:p-6" aria-labelledby="setup-heading">
-        <h1 id="setup-heading" className="text-2xl font-semibold text-gray-900">You are all set</h1>
-        <p className="mt-2 text-gray-700">Anything you skipped is waiting for you on Home.</p>
+      <section className="p-4 md:p-8" aria-labelledby="setup-heading">
+        <h1 id="setup-heading" ref={headingRef} tabIndex={-1} className="text-2xl font-semibold text-gray-900">You are all set</h1>
+        {todoSteps(facts).length > 0 && <p className="mt-2 text-gray-700">Anything you skipped is waiting for you on Home.</p>}
         {error && <StateMessage kind="error">{error}</StateMessage>}
         <div className="mt-6">
           <button
@@ -288,7 +292,7 @@ export default function SetupFlow() {
         )}
         <div className="mt-6">
           <button type="button" className={primaryButton} disabled={busy} onClick={() => connect(current)}>
-            {current === 'hmrc' ? 'Connect to HMRC' : 'Connect your bank'}
+            {current === 'hmrc' ? 'Connect' : 'Connect your bank'}
           </button>
         </div>
       </>
@@ -296,9 +300,9 @@ export default function SetupFlow() {
   }
 
   return (
-    <section className="p-4 sm:p-6" aria-labelledby="setup-heading">
+    <section className="p-4 md:p-8" aria-labelledby="setup-heading">
       <p className="text-sm text-gray-700">{stepLabel(current)}</p>
-      <h1 id="setup-heading" className="mt-1 text-2xl font-semibold text-gray-900">{info.title}</h1>
+      <h1 id="setup-heading" ref={headingRef} tabIndex={-1} className="mt-1 text-2xl font-semibold text-gray-900">{info.title}</h1>
       <p className="mt-2 text-gray-700">{info.purpose}</p>
       {info.officialName && <small className="block text-sm text-gray-600">{info.officialName}</small>}
       {body}

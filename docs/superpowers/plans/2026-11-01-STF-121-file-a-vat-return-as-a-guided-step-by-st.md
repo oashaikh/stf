@@ -97,7 +97,7 @@ Also depends on:
   - Risk: Touches the submission gate UI; Opus high because a mistake could weaken the confirm-before-send safeguard.
   - Commit: `5ed12387d9b9`
 
-- [ ] **Task 5: Keep e2e journey green; update VAT workflow doc** (after 4)
+- [x] **Task 5: Keep e2e journey green; update VAT workflow doc** (after 4)
   - Intent: Update e2e/journey.spec.ts VAT steps and e2e/mockApi.ts only as far as the new screens require. Ensure vat-obligations query mocks always return defined data. Update docs/workflows/vat-return.md. Do not edit jargonRender.test.tsx (STF-120).
   - Files: `e2e/journey.spec.ts`, `e2e/mockApi.ts`, `docs/workflows/vat-return.md`, `src/pages/VatPage.test.tsx`
   - Acceptance criteria the planner set:
@@ -105,6 +105,7 @@ Also depends on:
     - Doc matches the new step order
     - lint, typecheck, test, build pass
   - Risk: e2e files also in STF-119 plan; keep hunks narrow.
+  - Commit: `2e589926b00c`
 
 - [ ] **Task 6: Capture first-time-user evidence, captions and review notes** (after 5)
   - Intent: Run the app in sandbox mode with invented figures and walk the flow as a new user at 1440 and 390, light and dark, committing images to browser-evidence/STF-121/ with captions.md giving each a plain-English title, plus notes on where screens differ from the spec and why.

@@ -27,7 +27,7 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
     } catch (error) {
       // The message names only the missing variable, never a value.
       console.error('Receipt storage config error:', error instanceof Error ? error.message : 'unknown');
-      return refuse(503, 'Receipt storage is not configured', 'STORAGE_UNAVAILABLE');
+      return refuse(409, 'Receipt storage is not configured', 'STORAGE_UNAVAILABLE');
     }
 
     if (request.method === 'GET') {

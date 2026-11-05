@@ -72,11 +72,13 @@ export async function callHmrcAsUser(
     credentials: HmrcCredentials;
     store: HmrcStore;
     label: string;
+    /** Status for an HMRC failure; a read route that must never answer 5xx passes 424. */
+    failureStatus?: number;
     call: (accessToken: string, fraudHeaders: Record<string, string>) => Promise<Response>;
   },
   { refresh = refreshAccessToken, now = () => new Date() }: HmrcCallDeps = {},
 ): Promise<Response> {
-  const { request, userId, credentials, store, label, call } = options;
+  const { request, userId, credentials, store, label, call, failureStatus = 502 } = options;
   const fraudHeaders = requestFraudHeaders(request, userId, now());
 
   try {
@@ -87,7 +89,7 @@ export async function callHmrcAsUser(
     console.error(`HMRC ${label} error`, error.apiError.code, error.apiError.statusCode);
     return Response.json(
       { ok: false, error: 'HMRC request failed', code: error.apiError.code, hmrcStatus: error.apiError.statusCode },
-      { status: 502 },
+      { status: failureStatus },
     );
   }
 }

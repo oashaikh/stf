@@ -323,11 +323,11 @@ describe('receipts route', () => {
       expect(readSigned).toEqual([{ key: 'owner_a/key-3', expiresInSeconds: 300 }]);
     });
 
-    it('answers 503 when storage is not configured', async () => {
+    it('answers 409 when storage is not configured', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => undefined);
       const { store } = makeStore();
       const response = await createReceiptsHandler(store, undefined, authDeps)(new Request('https://app.test/api/receipts', { headers: { cookie: 'stf_session=tok-owner_a' } }));
-      expect(response.status).toBe(503);
+      expect(response.status).toBe(409);
     });
   });
 

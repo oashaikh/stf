@@ -72,6 +72,7 @@ export function createObligationsHandler(
         credentials,
         store,
         label: 'obligations',
+        failureStatus: 424,
         call: async (accessToken, fraudHeaders) => {
           const { obligations } = await getVatObligations(
             vatNumber,

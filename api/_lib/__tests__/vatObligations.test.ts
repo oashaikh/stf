@@ -191,7 +191,7 @@ describe('GET /api/vat/obligations', () => {
   it('maps an HMRC error to a sanitised response with no token or VRN in the logs', async () => {
     hmrcFetch.mockResolvedValue(jsonResponse({ code: 'VRN_NOT_FOUND', message: `no ${VRN} for ${ACCESS}` }, 404));
     const response = await handler()(asUser('/api/vat/obligations', 'u1'));
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(424);
     const body = await response.json();
     expect(body).toEqual({ ok: false, error: 'HMRC request failed', code: 'VRN_NOT_FOUND', hmrcStatus: 404 });
     expect(logged).not.toContain(ACCESS);

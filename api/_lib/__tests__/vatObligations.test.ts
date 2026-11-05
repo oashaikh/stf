@@ -191,11 +191,39 @@ describe('GET /api/vat/obligations', () => {
   it('maps an HMRC error to a sanitised response with no token or VRN in the logs', async () => {
     hmrcFetch.mockResolvedValue(jsonResponse({ code: 'VRN_NOT_FOUND', message: `no ${VRN} for ${ACCESS}` }, 404));
     const response = await handler()(asUser('/api/vat/obligations', 'u1'));
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(424);
     const body = await response.json();
     expect(body).toEqual({ ok: false, error: 'HMRC request failed', code: 'VRN_NOT_FOUND', hmrcStatus: 404 });
     expect(logged).not.toContain(ACCESS);
     expect(logged).not.toContain(REFRESH);
     expect(logged).not.toContain(VRN);
+  });
+
+  it('answers 424 HMRC_UNAVAILABLE when HMRC cannot be reached', async () => {
+    hmrcFetch.mockRejectedValue(new TypeError(`fetch failed for ${ACCESS}`));
+    const response = await handler()(asUser('/api/vat/obligations', 'u1'));
+    expect(response.status).toBe(424);
+    expect(await response.json()).toMatchObject({ ok: false, code: 'HMRC_UNAVAILABLE' });
+    expect(logged).not.toContain(ACCESS);
+  });
+
+  it('answers 409 HMRC_NOT_SET_UP when a refresh needs a setting that is missing', async () => {
+    stored.u1 = credentials({ expiresAt: new Date(TODAY.getTime() - 1000) });
+    refresh.mockRejectedValue(new Error('HMRC_CLIENT_ID is not set'));
+    const response = await handler()(asUser('/api/vat/obligations', 'u1'));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ ok: false, code: 'HMRC_NOT_SET_UP' });
+  });
+
+  it('answers 409 when the credentials cannot be read because the encryption key is missing', async () => {
+    const store = {
+      credentials: async () => {
+        throw new Error('HMRC_TOKEN_ENCRYPTION_KEY is not set');
+      },
+      saveRefreshedTokens,
+    } as unknown as HmrcStore;
+    const response = await createObligationsHandler(store, authDeps, { now: () => TODAY })(asUser('/api/vat/obligations', 'u1'));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'HMRC_NOT_SET_UP' });
   });
 });

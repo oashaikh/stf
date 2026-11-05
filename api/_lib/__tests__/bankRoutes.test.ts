@@ -94,6 +94,22 @@ afterEach(() => {
 });
 
 describe('connect', () => {
+  it('answers 409 BANK_NOT_CONFIGURED, not a 500, when the provider settings are missing', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const response = await createConnectHandler(() => {
+      throw new Error('TrueLayer is not configured');
+    }, authDeps)(asUser('/api/bank/connect', 'u1'));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ ok: false, code: 'BANK_NOT_CONFIGURED' });
+  });
+
+  it('answers 409 BANK_NOT_CONFIGURED when HMRC_STATE_SECRET is unset', async () => {
+    vi.stubEnv('HMRC_STATE_SECRET', '');
+    const response = await createConnectHandler(() => fakeProvider(), authDeps)(asUser('/api/bank/connect', 'u1'));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ ok: false, code: 'BANK_NOT_CONFIGURED' });
+  });
+
   it('refuses a request without sign-in', async () => {
     const response = await createConnectHandler(() => fakeProvider(), authDeps)(asUser('/api/bank/connect'));
     expect(response.status).toBe(401);

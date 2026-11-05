@@ -144,6 +144,18 @@ describe('receipts route', () => {
     expect(presigned).toEqual([]);
   });
 
+  it('answers 424 RECEIPTS_UNAVAILABLE, not a 500, when the list query fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { store } = makeStore();
+    store.list = async () => {
+      throw new Error('connection refused postgres://secret');
+    };
+    const { storage } = makeStorage();
+    const response = await call(store, storage, 'GET', 'owner_a');
+    expect(response.status).toBe(424);
+    expect(await response.json()).toMatchObject({ ok: false, code: 'RECEIPTS_UNAVAILABLE' });
+  });
+
   const hash = 'a'.repeat(64);
 
   it.each([['too short', 'abc123'], ['not hex', 'z'.repeat(64)], ['wrong type', 12]])('refuses a POST with a hash that is %s', async (_name, fileHash) => {

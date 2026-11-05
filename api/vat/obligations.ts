@@ -60,7 +60,23 @@ export function createObligationsHandler(
     const query = parseQuery(new URL(request.url), today);
     if (!query) return failure(400, 'BAD_REQUEST', 'Invalid from, to or status');
 
-    const credentials = await store.credentials(auth.userId);
+    try {
+      return await fetchObligations(request, auth.userId, query, today);
+    } catch (error) {
+      // A read route must not answer 5xx. Only the message is logged: a fetch error can echo a URL or token.
+      // Config errors read "<NAME> is not set" (client requireEnv, token encryption key) and name no value.
+      const message = error instanceof Error ? error.message : '';
+      if (/^[A-Z][A-Z0-9_]+ is not set/.test(message)) {
+        console.error('HMRC obligations config error:', message);
+        return failure(409, 'HMRC_NOT_SET_UP', 'HMRC is not set up yet');
+      }
+      console.error('HMRC obligations unexpected error:', error instanceof Error ? error.name : 'unknown');
+      return failure(424, 'HMRC_UNAVAILABLE', 'HMRC could not be reached');
+    }
+  }, authDeps);
+
+  async function fetchObligations(request: Request, userId: string, query: { from: string; to: string; status?: 'O' | 'F' }, today: string): Promise<Response> {
+    const credentials = await store.credentials(userId);
     if (!credentials) return failure(409, 'HMRC_NOT_CONNECTED', 'HMRC is not connected');
     if (!credentials.vatNumber) return failure(409, 'VAT_NUMBER_MISSING', 'No VAT number is set');
     const { vatNumber } = credentials;
@@ -68,7 +84,7 @@ export function createObligationsHandler(
     return callHmrcAsUser(
       {
         request,
-        userId: auth.userId,
+        userId,
         credentials,
         store,
         label: 'obligations',
@@ -99,7 +115,7 @@ export function createObligationsHandler(
       },
       { refresh, now },
     );
-  }, authDeps);
+  }
 }
 
 export default { fetch: createObligationsHandler() };

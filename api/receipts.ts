@@ -16,7 +16,7 @@ const toResponse = ({ id, duplicateOfId, fileName, mimeType, sizeBytes, uploadSt
   deletedAt,
 });
 
-// Storage is built per request so a deployment without storage settings answers 503 instead of failing to load.
+// Storage is built per request so a deployment without storage settings answers 409 instead of failing to load.
 export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore, storage?: ReceiptStorage, authDeps?: AuthDeps) {
   return withAuth(async (request, auth) => {
     if (request.method !== 'GET' && request.method !== 'POST' && request.method !== 'PATCH' && request.method !== 'PUT' && request.method !== 'DELETE') return refuse(405, 'Method not allowed', 'METHOD');
@@ -35,26 +35,13 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
       const after = query.success && query.data.cursor !== undefined ? decodeReceiptCursor(query.data.cursor) : undefined;
       if (!query.success || (query.data.cursor !== undefined && !after)) return refuse(400, 'Limit must be a whole number from 1 and the cursor must come from a previous page', 'BAD_REQUEST');
       const { limit } = query.data;
-      // One extra row tells us whether another page exists.
-      const rows = await store.list(auth.userId, after, limit + 1);
-      const page = rows.slice(0, limit);
-      const last = page[page.length - 1];
-      // Signing is local to the process and runs after the query has finished, outside any transaction (COD-4).
-      const receipts = await Promise.all(
-        page.map(async ({ id, duplicateOfId, fileName, mimeType, sizeBytes, uploadStatus, aiStatus, details, createdAt, fileKey }) => ({
-          id,
-          duplicateOfId,
-          fileName,
-          mimeType,
-          sizeBytes,
-          uploadStatus,
-          aiStatus,
-          details,
-          createdAt,
-          readUrl: uploadStatus === 'ready' ? await receiptStorage.presignRead(fileKey, READ_URL_SECONDS) : null,
-        })),
-      );
-      return Response.json({ ok: true, receipts, nextCursor: rows.length > limit && last ? encodeReceiptCursor({ createdAt: last.createdAt, id: last.id }) : null });
+      try {
+        return await listPage(auth.userId, after, limit, receiptStorage);
+      } catch (error) {
+        // A read must not answer 5xx. Log the error name only: a database or signing message can echo keys or SQL.
+        console.error('Receipt list error:', error instanceof Error ? error.name : 'unknown');
+        return refuse(424, 'Receipts could not be loaded just now', 'RECEIPTS_UNAVAILABLE');
+      }
     }
 
     const body = await request.json().catch(() => null);
@@ -96,6 +83,29 @@ export function createReceiptsHandler(store: ReceiptStore = databaseReceiptStore
     if (!receipt) return refuse(404, 'Receipt not found', 'NOT_FOUND');
     return Response.json({ ok: true, receipt: toResponse(receipt) });
   }, authDeps);
+
+  async function listPage(userId: string, after: ReturnType<typeof decodeReceiptCursor>, limit: number, receiptStorage: ReceiptStorage): Promise<Response> {
+    // One extra row tells us whether another page exists.
+    const rows = await store.list(userId, after, limit + 1);
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    // Signing is local to the process and runs after the query has finished, outside any transaction (COD-4).
+    const receipts = await Promise.all(
+      page.map(async ({ id, duplicateOfId, fileName, mimeType, sizeBytes, uploadStatus, aiStatus, details, createdAt, fileKey }) => ({
+        id,
+        duplicateOfId,
+        fileName,
+        mimeType,
+        sizeBytes,
+        uploadStatus,
+        aiStatus,
+        details,
+        createdAt,
+        readUrl: uploadStatus === 'ready' ? await receiptStorage.presignRead(fileKey, READ_URL_SECONDS) : null,
+      })),
+    );
+    return Response.json({ ok: true, receipts, nextCursor: rows.length > limit && last ? encodeReceiptCursor({ createdAt: last.createdAt, id: last.id }) : null });
+  }
 }
 
 export default { fetch: createReceiptsHandler() };
